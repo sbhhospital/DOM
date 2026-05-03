@@ -12,7 +12,7 @@
 const CONFIG = {
   WHATSAPP_USER: 'SBH HOSPITAL',
   WHATSAPP_PASS: '123456789',
-  FRONTEND_URL: 'PASTE_YOUR_DEPLOYED_REACT_APP_URL_HERE', // e.g., https://dom-attendance.vercel.app
+  FRONTEND_URL: 'https://sbh-dom.vercel.app',
 };
 
 /**
@@ -197,14 +197,24 @@ function archiveAllData() {
   // Add weekly/monthly logic as needed
 }
 
-function archiveSheet(sourceName, targetName) {
+/**
+ * STEP 6: TESTING HELPER
+ * Run this function to add a test employee and get a test link.
+ */
+function createTestUser() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const source = ss.getSheetByName(sourceName);
-  const target = ss.getSheetByName(targetName);
+  const masterSheet = ss.getSheetByName('Master_Data');
   
-  const data = source.getDataRange().getValues();
-  if (data.length > 1) {
-    target.getRange(target.getLastRow() + 1, 1, data.length - 1, data[0].length).setValues(data.slice(1));
-    source.deleteRows(2, data.length - 1);
-  }
+  // Add Test Row: ID, Name, Mobile, Dept, Type
+  const testData = ['TEST001', 'Test User', 'YOUR_MOBILE_NUMBER', 'Testing Dept', 'Normal'];
+  masterSheet.appendRow(testData);
+  
+  const id = testData[0];
+  const name = encodeURIComponent(testData[1]);
+  const dept = encodeURIComponent(testData[3]);
+  const testUrl = `${CONFIG.FRONTEND_URL}?id=${id}&name=${name}&dept=${dept}`;
+  
+  Logger.log(`Test User Added!`);
+  Logger.log(`Testing Link: ${testUrl}`);
+  SpreadsheetApp.getUi().alert(`Test User added. Check logs (Ctrl+Enter) for the test link.`);
 }
