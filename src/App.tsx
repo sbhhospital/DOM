@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { 
   Send, 
-  Calendar,
   Loader2,
   MapPin,
   Clock,
@@ -9,7 +8,8 @@ import {
   User,
   CheckCircle,
   MessageSquare,
-  Building2
+  Building2,
+  Calendar
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, isAfter, setHours, setMinutes } from 'date-fns';
@@ -20,7 +20,14 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbwy3Xc0OSW8KacQhjpSuEE0
 
 type AttendanceStatus = 'Yes' | 'Leave';
 
-const SuccessModal = ({ isOpen, onClose, empName, meetingType }) => {
+interface SuccessModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  empName: string;
+  meetingType: string;
+}
+
+const SuccessModal = ({ isOpen, onClose, empName, meetingType }: SuccessModalProps) => {
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
@@ -144,11 +151,18 @@ function App() {
     }
   };
 
+  const handleClose = () => {
+    window.close();
+    // Fallback if window.close() is blocked
+    setTimeout(() => {
+      window.location.href = "https://itsbhhospital.com";
+    }, 100);
+  };
+
   return (
     <div className="app-container">
       <Toaster position="top-center" />
       
-      {/* Hospital Logo Branding */}
       <div className="logo-section">
         <img 
           src="/logo.jpg" 
@@ -166,7 +180,6 @@ function App() {
       </div>
 
       <div className="main-card">
-        {/* Animated Progress Bar */}
         <div className="h-2 bg-slate-100 flex">
           <motion.div
             initial={{ width: '0%' }}
@@ -177,7 +190,6 @@ function App() {
 
         <div className="p-8 md:p-10">
           <div className="space-y-8">
-            {/* Identity Card */}
             <div>
               <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 ml-1">
                 <User size={12} className="text-emerald-500" /> Professional Identity
@@ -193,7 +205,6 @@ function App() {
               </div>
             </div>
 
-            {/* Attendance Confirmation */}
             <div className="space-y-2">
               <label className="input-label">Attendance Confirmation</label>
               <div className="relative">
@@ -233,7 +244,6 @@ function App() {
               )}
             </AnimatePresence>
 
-            {/* System Status Grid */}
             <div className="status-grid">
               <div className="status-item">
                 <div className="status-title">Geolocation</div>
@@ -268,12 +278,12 @@ function App() {
         </div>
       </div>
 
-      {/* Footer Branding */}
       <footer className="mt-12 text-center">
         <div className="flex justify-center gap-6 text-slate-300 mb-4 opacity-40">
            <ShieldCheck size={20} />
            <MapPin size={20} />
            <Building2 size={20} />
+           <Calendar size={20} />
         </div>
         <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">SBH Hospital Automation</p>
         <p className="text-[8px] text-slate-400 font-bold mt-1 opacity-50 uppercase tracking-widest">Secured Enterprise Verification System</p>
@@ -281,7 +291,7 @@ function App() {
 
       <SuccessModal
         isOpen={isSubmitted}
-        onClose={() => window.close() || (window.location.href = "https://itsbhhospital.com")}
+        onClose={handleClose}
         empName={empData.name}
         meetingType={empData.meetingType}
       />
