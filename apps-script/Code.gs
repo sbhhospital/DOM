@@ -13,6 +13,7 @@ const CONFIG = {
   WHATSAPP_USER: 'SBH HOSPITAL',
   WHATSAPP_PASS: '123456789',
   FRONTEND_URL: 'https://sbh-dom.vercel.app',
+  REPORT_EMAILS: ['director@hospital.com', 'suman@hospital.com'], // Replace with actual emails
 };
 
 /**
@@ -139,12 +140,68 @@ function closeDailyAttendance() {
     const [id, name, mobile, dept, type] = row;
     if (type === "Normal" && !presentIds.includes(id)) {
       dailySheet.appendRow([
-        todayStr, id, name, dept, "Absent", "-", "13:00", "No Information", "-", "-", "ABSENT"
+        todayStr, id, name, dept, "Absent", "-", "-", "No Information", "-", "-", "ABSENT"
       ]);
       const lastRow = dailySheet.getLastRow();
       dailySheet.getRange(lastRow, 1, 1, 11).setFontColor("#94a3b8"); // Muted color
     }
   });
+}
+
+/**
+ * STEP 6: PDF REPORT GENERATION & SENDING
+ * Generates a clean PDF of today's attendance and emails it.
+ */
+function generateAndSendDailyReport() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const dailySheet = ss.getSheetByName('Daily_DOM');
+  const todayStr = Utilities.formatDate(new Date(), "GMT+5:30", "dd-MMM-yyyy");
+  const todayDbStr = Utilities.formatDate(new Date(), "GMT+5:30", "yyyy-MM-dd");
+  
+  const data = dailySheet.getDataRange().getValues();
+  const todayData = data.filter((row, index) => index === 0 || row[0] === todayDbStr);
+  
+  if (todayData.length <= 1) {
+    Logger.log("No data for today. Skipping report.");
+    return;
+  }
+
+  // Create Temporary Spreadsheet for PDF conversion
+  const tempSS = SpreadsheetApp.create(`DOM_Report_${todayStr}`);
+  const tempSheet = tempSS.getSheets()[0];
+  tempSheet.getRange(1, 1, todayData.length, todayData[0].length).setValues(todayData);
+  
+  // Styling
+  const headerRange = tempSheet.getRange(1, 1, 1, todayData[0].length);
+  headerRange.setBackground('#1e293b').setFontColor('white').setFontWeight('bold');
+  tempSheet.setFrozenRows(1);
+  tempSheet.autoResizeColumns(1, todayData[0].length);
+  
+  // Highlight Late rows in Red in the PDF
+  for (let i = 1; i < todayData.length; i++) {
+    if (todayData[i][10] === "LATE") {
+      tempSheet.getRange(i + 1, 1, 1, 11).setFontColor("red");
+    }
+  }
+
+  SpreadsheetApp.flush();
+  
+  // Get PDF Blob
+  const blob = tempSS.getAs('application/pdf').setName(`DOM_Report_${todayStr}.pdf`);
+  
+  // Send Email to Recipients
+  const subject = `🏥 Daily DOM Attendance Report - ${todayStr}`;
+  const body = `Hello,\n\nPlease find attached the Daily Operations Management (DOM) attendance report for today, ${todayStr}.\n\nTotal Entries: ${todayData.length - 1}`;
+  
+  CONFIG.REPORT_EMAILS.forEach(email => {
+    MailApp.sendEmail(email, subject, body, {
+      attachments: [blob]
+    });
+  });
+
+  // Cleanup: Delete temp spreadsheet
+  DriveApp.getFileById(tempSS.getId()).setTrashed(true);
+  Logger.log(`PDF Report sent to: ${CONFIG.REPORT_EMAILS.join(", ")}`);
 }
 
 /**

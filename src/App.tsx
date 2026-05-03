@@ -72,7 +72,7 @@ function App() {
     }
   }, [currentTime]);
 
-  const isClosed = isAfter(new Date(), setMinutes(setHours(new Date(), 13), 0));
+  const isClosed = false; // Kept active 24h as requested
   const isAfterLimit = isAfter(new Date(), setMinutes(setHours(new Date(), 11), 0));
 
   const handleSubmit = async () => {
