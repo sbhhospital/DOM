@@ -150,9 +150,15 @@ function App() {
 
       <div className="glass-card">
         <header className="header-section">
-          <div className="logo-container">
-            <Building2 size={32} className="text-emerald-500" />
-            <span className="logo-text">SBH ENTERPRISE</span>
+          <div className="flex justify-center mb-8">
+            <img 
+              src="/logo.png" 
+              alt="SBH Hospital Logo" 
+              className="h-20 w-auto object-contain drop-shadow-xl"
+              onError={(e) => {
+                e.currentTarget.src = 'https://via.placeholder.com/200x80?text=SBH+HOSPITAL';
+              }}
+            />
           </div>
           
           <div className="inline-flex items-center gap-3 px-4 py-2 bg-slate-800/50 rounded-2xl border border-slate-700/50 mb-8">

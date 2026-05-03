@@ -8,6 +8,7 @@ const CONFIG = {
   WHATSAPP_PASS: '123456789',
   WHATSAPP_GROUP_ID: '120363406464175673@g.us', // CEOITBOX Group
   FRONTEND_URL: 'https://sbh-dom.vercel.app',
+  LOGO_URL: 'https://i.imgur.com/uG5eB6o.png', // Temporary link, please update with your actual logo URL
   REPORT_EMAILS: ['dme@sbhhospital.com', 'namanmishraofficial@gmail.com'],
   REPORT_FOLDER_ID: '15OZUR4M9SS9IqIlDzZOGjrX6RlL85K9P', // Target Drive Folder
   DIRECTOR_NAME: 'DR Ashish Mahobia Sir',
@@ -261,19 +262,38 @@ function generateProfessionalReport(type) {
   const tempSS = SpreadsheetApp.create(`${type}_Report_${todayDbStr}`);
   const tempSheet = tempSS.getSheets()[0];
   
-  // Apply Stylized Professional Look
-  tempSheet.getRange(1, 1, reportData.length, reportData[0].length).setValues(reportData);
+  // 1. Insert Watermark (Using Large Background Text)
+  const watermarkRange = tempSheet.getRange("C5:H15");
+  watermarkRange.merge();
+  watermarkRange.setValue("SBH GROUP OF HOSPITALS")
+                .setFontSize(50)
+                .setFontColor("#f1f5f9") // Very light grey
+                .setFontWeight("bold")
+                .setHorizontalAlignment("center")
+                .setVerticalAlignment("middle")
+                .setWrap(true);
+
+  // 2. Insert Logo
+  try {
+    const logoBlob = UrlFetchApp.fetch(CONFIG.LOGO_URL).getBlob();
+    tempSheet.insertImage(logoBlob, 1, 1, 0, 0).setHeight(60).setWidth(150);
+  } catch (e) {
+    Logger.log("Logo fetch failed: " + e.message);
+  }
+
+  // 3. Apply Stylized Professional Look
+  tempSheet.getRange(4, 1, reportData.length, reportData[0].length).setValues(reportData);
   
   // Header Style
-  const headerRange = tempSheet.getRange(1, 1, 1, reportData[0].length);
+  const headerRange = tempSheet.getRange(4, 1, 1, reportData[0].length);
   headerRange.setBackground('#2d3748').setFontColor('#ffffff').setFontWeight('bold').setVerticalAlignment('middle');
-  tempSheet.setRowHeight(1, 35);
+  tempSheet.setRowHeight(4, 35);
 
   // Alternating Row Colors
   if (reportData.length > 1) {
     for (let i = 2; i <= reportData.length; i++) {
       if (i % 2 === 0) {
-        tempSheet.getRange(i, 1, 1, reportData[0].length).setBackground('#f7fafc');
+        tempSheet.getRange(i + 3, 1, 1, reportData[0].length).setBackground('#f7fafc');
       }
     }
   }
@@ -281,7 +301,7 @@ function generateProfessionalReport(type) {
   // Late Highlighting
   for (let i = 1; i < reportData.length; i++) {
     if (reportData[i][10] === "LATE") {
-      tempSheet.getRange(i + 1, 1, 1, 11).setFontColor("#e53e3e").setFontWeight('bold');
+      tempSheet.getRange(i + 4, 1, 1, 11).setFontColor("#e53e3e").setFontWeight('bold');
     }
   }
 
