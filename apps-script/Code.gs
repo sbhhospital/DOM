@@ -6,6 +6,7 @@
 const CONFIG = {
   WHATSAPP_USER: 'SBH HOSPITAL',
   WHATSAPP_PASS: '123456789',
+  WHATSAPP_GROUP_ID: '120363406464175673@g.us', // CEOITBOX Group
   FRONTEND_URL: 'https://sbh-dom.vercel.app',
   REPORT_EMAILS: ['dme@sbhhospital.com', 'namanmishraofficial@gmail.com'],
   REPORT_FOLDER_ID: '15OZUR4M9SS9IqIlDzZOGjrX6RlL85K9P', // Target Drive Folder
@@ -145,6 +146,17 @@ function generateProfessionalReport(type = 'Daily DOM') {
   CONFIG.REPORT_EMAILS.forEach(email => {
     MailApp.sendEmail(email, subject, body, { attachments: [blob] });
   });
+
+  // Send to WhatsApp Group
+  const waMsg = `📊 *${type} REPORT*\nDate: ${todayStr}\n\nDownload Report: ${pdfLink}`;
+  const waApiUrl = `https://app.messageautosender.com/message/new?username=${encodeURIComponent(CONFIG.WHATSAPP_USER)}&password=${encodeURIComponent(CONFIG.WHATSAPP_PASS)}&receiverMobileNo=${CONFIG.WHATSAPP_GROUP_ID}&receiverName=CEOITBOX&message=${encodeURIComponent(waMsg)}`;
+  
+  try {
+    UrlFetchApp.fetch(waApiUrl);
+    Logger.log("Report sent to WhatsApp Group");
+  } catch (e) {
+    Logger.log(`Failed to send WA Group report: ${e.message}`);
+  }
 
   // Cleanup
   DriveApp.getFileById(tempSS.getId()).setTrashed(true);
