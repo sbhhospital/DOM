@@ -60,6 +60,17 @@ function doPost(e) {
     const dateStr = Utilities.formatDate(now, "GMT+5:30", "dd-MMM-yyyy (EEE)");
     const timeStr = Utilities.formatDate(now, "GMT+5:30", "hh:mm:ss a"); // AM/PM
     
+    // Logic: If on leave, don't mark as Late
+    let lateStatus = "ON_TIME";
+    let lateRemarkValue = data.lateRemark || "-";
+    
+    if (data.status === "On Leave") {
+      lateStatus = "LEAVE";
+      lateRemarkValue = "-"; // Clear late remark if on leave
+    } else if (data.lateRemark) {
+      lateStatus = "LATE";
+    }
+
     const row = [
       dateStr,
       data.empId,
@@ -67,17 +78,20 @@ function doPost(e) {
       data.department,
       data.status,
       timeStr,
-      "01:00 PM", // Auto Out Time in AM/PM
-      data.lateRemark || "-",
+      "01:00 PM", 
+      lateRemarkValue,
       data.location,
       data.leaveReason || "-",
-      data.lateRemark ? "LATE" : "ON_TIME"
+      lateStatus
     ];
 
     sheet.appendRow(row);
     
-    if (data.lateRemark) {
-      sheet.getRange(sheet.getLastRow(), 1, 1, row.length).setFontColor("red");
+    const lastRow = sheet.getLastRow();
+    if (lateStatus === "LATE") {
+      sheet.getRange(lastRow, 1, 1, row.length).setFontColor("#e53e3e").setFontWeight('bold');
+    } else if (lateStatus === "LEAVE") {
+      sheet.getRange(lastRow, 1, 1, row.length).setFontColor("#d97706").setFontWeight('bold');
     }
 
     return ContentService.createTextOutput(JSON.stringify({ success: true }))
@@ -252,7 +266,7 @@ function generateProfessionalReport(type) {
   
   // Header Style
   const headerRange = tempSheet.getRange(1, 1, 1, reportData[0].length);
-  headerRange.setBackground('#2d3748').setFontColor('#ffffff').setFontWeight('bold').setVerticalAlignment('middle').setPaddingLeft(10).setPaddingRight(10);
+  headerRange.setBackground('#2d3748').setFontColor('#ffffff').setFontWeight('bold').setVerticalAlignment('middle');
   tempSheet.setRowHeight(1, 35);
 
   // Alternating Row Colors
@@ -291,7 +305,37 @@ function generateProfessionalReport(type) {
   const waMsg = `📄 *${type} REPORT*\n\nDate: ${todayDbStr}\nStatus: Generated & Saved\n\nDownload Link: ${pdfLink}`;
   UrlFetchApp.fetch(`https://app.messageautosender.com/message/new?username=${encodeURIComponent(CONFIG.WHATSAPP_USER)}&password=${encodeURIComponent(CONFIG.WHATSAPP_PASS)}&receiverMobileNo=${CONFIG.WHATSAPP_GROUP_ID}&receiverName=CEOITBOX&message=${encodeURIComponent(waMsg)}`);
   
+  const body = `Professional attendance report for ${type} is ready.\n\nYou can view/download it here: ${pdfLink}`;
   CONFIG.REPORT_EMAILS.forEach(email => MailApp.sendEmail(email, `🏥 ${type} Report - ${todayDbStr}`, body, { attachments: [blob] }));
 
   DriveApp.getFileById(tempSS.getId()).setTrashed(true);
+}
+
+/**
+ * STEP 6: AUTO-CLOSE ATTENDANCE (Marking Absentees)
+ * This function marks anyone who didn't submit as ABSENT with "No Information".
+ */
+function closeDailyAttendance() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const masterSheet = ss.getSheetByName('Master_Data');
+  const dailySheet = ss.getSheetByName('Daily_DOM');
+  
+  const masterData = masterSheet.getDataRange().getValues().slice(1);
+  const todayDbStr = Utilities.formatDate(new Date(), "GMT+5:30", "dd-MMM-yyyy (EEE)");
+  
+  const dailyData = dailySheet.getDataRange().getValues();
+  const presentIds = dailyData
+    .filter(row => row[0] === todayDbStr)
+    .map(row => row[1].toString());
+
+  masterData.forEach(row => {
+    const [id, name, mobile, dept, type] = row;
+    if (type === "Normal" && !presentIds.includes(id.toString())) {
+      dailySheet.appendRow([
+        todayDbStr, id, name, dept, "Absent", "-", "-", "No Information", "-", "-", "ABSENT"
+      ]);
+      const lastRow = dailySheet.getLastRow();
+      dailySheet.getRange(lastRow, 1, 1, 11).setFontColor("#94a3b8").setFontWeight('bold'); // Muted grey for absentees
+    }
+  });
 }
