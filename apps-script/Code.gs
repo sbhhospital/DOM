@@ -8,7 +8,7 @@ const CONFIG = {
   WHATSAPP_PASS: '123456789',
   WHATSAPP_GROUP_ID: '120363406464175673@g.us', // CEOITBOX Group
   FRONTEND_URL: 'https://sbh-dom.vercel.app',
-  LOGO_URL: 'https://i.imgur.com/uG5eB6o.png', // Temporary link, please update with your actual logo URL
+  LOGO_URL: 'https://i.imgur.com/uG5eB6o.jpg', // Updated to .jpg
   REPORT_EMAILS: ['dme@sbhhospital.com', 'namanmishraofficial@gmail.com'],
   REPORT_FOLDER_ID: '15OZUR4M9SS9IqIlDzZOGjrX6RlL85K9P', // Target Drive Folder
   DIRECTOR_NAME: 'DR Ashish Mahobia Sir',

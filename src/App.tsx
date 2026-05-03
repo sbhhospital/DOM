@@ -9,7 +9,7 @@ import {
   ShieldCheck,
   User,
   PartyPopper,
-  AlertCircle
+  Info
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, isAfter, setHours, setMinutes } from 'date-fns';
@@ -57,7 +57,7 @@ function App() {
         (pos) => setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
         (err) => {
           console.error(err);
-          toast.error("Location tracking is required for validation.");
+          toast.error("Location tracking required for verification.");
         }
       );
     }
@@ -75,15 +75,15 @@ function App() {
 
   const handleSubmit = async () => {
     if (!status) {
-      toast.error("Please select a valid response status.");
+      toast.error("Please select a response status.");
       return;
     }
     if (!location && status === 'Yes') {
-      toast.error("Geolocation is mandatory for 'Present' status.");
+      toast.error("GPS verification is mandatory.");
       return;
     }
     if ((status === 'No' || status === 'Leave') && !leaveReason) {
-      toast.error("Explanation is required for absence or leave.");
+      toast.error("Please provide a brief reason.");
       return;
     }
 
@@ -107,101 +107,90 @@ function App() {
       
       setIsSubmitted(true);
     } catch (error) {
-      toast.error("Transmission failed. Please check your network.");
+      toast.error("Transmission failed. Retrying...");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="main-container">
+    <div className="app-wrapper">
       <Toaster position="top-center" />
       
-      {/* Premium Success Modal */}
+      {/* Success Modal */}
       <AnimatePresence>
         {isSubmitted && (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="modal-overlay"
+            className="modal-backdrop"
           >
             <motion.div 
-              initial={{ scale: 0.8, y: 20, opacity: 0 }}
-              animate={{ scale: 1, y: 0, opacity: 1 }}
-              className="success-modal"
+              initial={{ scale: 0.9, y: 40 }}
+              animate={{ scale: 1, y: 0 }}
+              className="success-card"
             >
-              <div className="w-24 h-24 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-8 border border-green-500/20">
-                <PartyPopper className="w-12 h-12 text-green-500" />
+              <div className="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-8 border-2 border-green-100">
+                <PartyPopper className="w-12 h-12 text-green-600" />
               </div>
-              <h2 className="text-3xl font-bold text-white mb-3">Submission Success</h2>
-              <p className="text-slate-400 mb-10 text-lg leading-relaxed">
-                Thank you, {empData.name}. Your attendance for today's {empData.meetingType} has been securely logged.
+              <h2 className="text-4xl font-black text-gray-900 mb-4">CONFIRMED</h2>
+              <p className="text-gray-500 text-lg font-medium leading-relaxed mb-12">
+                Thank you, {empData.name}. Your session has been securely verified and logged.
               </p>
               <button 
                 onClick={() => window.close()}
-                className="submit-btn"
+                className="btn-primary"
               >
-                Close Portal
+                Exit Portal
               </button>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <div className="glass-card">
-        <header className="header-section">
-          <div className="flex justify-center mb-8">
-            <img 
-              src="/logo.png" 
-              alt="SBH Hospital Logo" 
-              className="h-20 w-auto object-contain drop-shadow-xl"
-              onError={(e) => {
-                e.currentTarget.src = 'https://via.placeholder.com/200x80?text=SBH+HOSPITAL';
-              }}
-            />
-          </div>
-          
-          <div className="inline-flex items-center gap-3 px-4 py-2 bg-slate-800/50 rounded-2xl border border-slate-700/50 mb-8">
-            <Clock size={16} className="text-emerald-500" />
-            <span className="text-sm font-bold tabular-nums text-slate-300">
-              {format(currentTime, 'hh:mm:ss a')}
-            </span>
-          </div>
+      <div className="glass-panel">
+        <div className="logo-container">
+          <img 
+            src="/logo.jpg" 
+            alt="Hospital Logo" 
+            className="logo-img"
+            onError={(e) => {
+              e.currentTarget.src = 'https://via.placeholder.com/300x100?text=SBH+HOSPITAL';
+            }}
+          />
+        </div>
 
-          <div className="space-y-1">
-            <h1 className="text-2xl font-black tracking-tight text-white uppercase">{empData.meetingType}</h1>
-            <p className="text-slate-400 text-sm font-semibold flex items-center justify-center gap-2">
-              <Calendar size={14} /> {format(new Date(), 'EEEE, MMMM do, yyyy')}
-            </p>
+        <header className="header-title">
+          <h1 className="meeting-type">{empData.meetingType}</h1>
+          <div className="date-badge">
+            <Calendar size={16} />
+            <span>{format(new Date(), 'EEEE, MMMM do, yyyy')}</span>
           </div>
         </header>
 
-        {/* Identity Section */}
-        <div className="relative group mb-10">
-          <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-500 to-blue-500 rounded-3xl blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
-          <div className="relative bg-slate-900/50 border border-white/5 rounded-3xl p-6 flex items-center gap-5">
-            <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center justify-center text-emerald-500 shadow-xl">
-              <User size={32} />
-            </div>
-            <div>
-              <p className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em] mb-1">Corporate Profile</p>
-              <h3 className="text-xl font-bold text-white leading-tight">{empData.name}</h3>
-              <p className="text-slate-400 text-sm font-medium">{empData.dept}</p>
-            </div>
+        {/* Profile Identity */}
+        <div className="profile-card">
+          <div className="profile-avatar shadow-lg shadow-green-900/10">
+            <User size={28} />
+          </div>
+          <div className="profile-info">
+            <p className="text-[10px] text-green-600 font-black uppercase tracking-widest mb-0.5">Corporate Identity</p>
+            <h3>{empData.name}</h3>
+            <p>{empData.dept}</p>
           </div>
         </div>
 
         <div className="space-y-8">
           <div className="input-group">
-            <label className="input-label">Attendance Confirmation</label>
+            <label className="form-label">Attendance Confirmation</label>
             <select 
-              className="custom-select"
+              className="fluent-select"
               value={status}
               onChange={(e) => setStatus(e.target.value as AttendanceStatus)}
             >
               <option value="" disabled>Select response status...</option>
               <option value="Yes">PRESENT AT MEETING</option>
-              <option value="No">ABSENT / NOT JOINING</option>
+              <option value="No">ABSENT / UNAVAILABLE</option>
               <option value="Leave">OFFICIAL LEAVE</option>
             </select>
           </div>
@@ -215,10 +204,10 @@ function App() {
                 className="overflow-hidden"
               >
                 <div className="input-group">
-                  <label className="input-label">Reason for {status.toUpperCase()}</label>
+                  <label className="form-label">Provide Reason</label>
                   <textarea 
-                    className="custom-textarea"
-                    placeholder="Provide official reason here..."
+                    className="fluent-textarea"
+                    placeholder="Briefly explain your status..."
                     rows={3}
                     value={leaveReason}
                     onChange={(e) => setLeaveReason(e.target.value)}
@@ -228,24 +217,21 @@ function App() {
             )}
           </AnimatePresence>
 
-          {/* Validation Metrics */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col p-4 bg-slate-900/40 rounded-2xl border border-white/5">
+          <div className="grid grid-cols-2 gap-4 mb-10">
+            <div className="stat-item">
               <div className="flex items-center gap-2 mb-2">
-                <MapPin size={16} className="text-emerald-500" />
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Geolocation</span>
+                <MapPin size={16} className="text-green-600" />
+                <span className="text-[10px] font-black text-gray-400 uppercase">GPS Validation</span>
               </div>
-              <p className="text-xs font-black text-slate-300 tracking-wide">
-                {location ? 'SECURE_ACTIVE' : 'INITIALIZING...'}
-              </p>
+              <p className="text-xs font-bold text-gray-700">{location ? 'VERIFIED' : 'LOCATING...'}</p>
             </div>
-            <div className={`flex flex-col p-4 rounded-2xl border ${lateInfo && status === 'Yes' ? 'bg-red-500/5 border-red-500/20' : 'bg-emerald-500/5 border-emerald-500/20'}`}>
+            <div className="stat-item">
               <div className="flex items-center gap-2 mb-2">
-                <ShieldCheck size={16} className={lateInfo && status === 'Yes' ? 'text-red-500' : 'text-emerald-500'} />
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Punctuality</span>
+                <Clock size={16} className="text-orange-600" />
+                <span className="text-[10px] font-black text-gray-400 uppercase">Time Status</span>
               </div>
-              <p className={`text-xs font-black tracking-wide ${lateInfo && status === 'Yes' ? 'text-red-500' : 'text-emerald-500'}`}>
-                {(lateInfo && status === 'Yes') ? lateInfo : (status === 'Leave' ? 'LEAVE_MODE' : 'VAL_ON_TIME')}
+              <p className={`text-xs font-bold ${lateInfo && status === 'Yes' ? 'text-red-600' : 'text-green-600'}`}>
+                {(lateInfo && status === 'Yes') ? lateInfo : 'ON TIME'}
               </p>
             </div>
           </div>
@@ -253,27 +239,27 @@ function App() {
           <button 
             onClick={handleSubmit}
             disabled={isSubmitting || !status || (!location && status === 'Yes')}
-            className="submit-btn"
+            className={`btn-primary ${status === 'Yes' ? '' : 'btn-orange'} active:scale-95 transition-transform`}
           >
             {isSubmitting ? (
               <Loader2 className="w-6 h-6 animate-spin" />
             ) : (
               <>
                 <span>VERIFY & SUBMIT</span>
-                <Send size={20} className="ml-1" />
+                <Send size={20} />
               </>
             )}
           </button>
         </div>
 
-        <footer className="mt-12 text-center">
-          <div className="flex justify-center gap-6 text-slate-600 mb-4 opacity-40">
+        <footer className="mt-16 text-center">
+          <div className="flex justify-center gap-4 text-gray-300 mb-4 opacity-40">
              <ShieldCheck size={20} />
-             <MapPin size={20} />
-             <AlertCircle size={20} />
+             <Info size={20} />
+             <Building2 size={20} />
           </div>
-          <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">SBH Hospital Automation</p>
-          <p className="text-[8px] text-slate-600 mt-2">SECURED MULTI-LAYER AUTHENTICATION SYSTEM</p>
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.4em]">SBH Hospital IT Automation</p>
+          <p className="text-[8px] text-gray-300 font-bold mt-1">SECURED MULTI-LAYER VERIFICATION</p>
         </footer>
       </div>
     </div>
