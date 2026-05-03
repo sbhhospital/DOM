@@ -13,7 +13,7 @@ const CONFIG = {
   WHATSAPP_USER: 'SBH HOSPITAL',
   WHATSAPP_PASS: '123456789',
   FRONTEND_URL: 'https://sbh-dom.vercel.app',
-  REPORT_EMAILS: ['director@hospital.com', 'suman@hospital.com'], // Replace with actual emails
+  REPORT_EMAILS: ['dme@sbhhospital.com', 'namanmishraofficial@gmail.com'],
 };
 
 /**
