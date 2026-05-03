@@ -2,14 +2,14 @@ import { useState, useEffect } from 'react';
 import { 
   Send, 
   Calendar,
-  Building2,
   Loader2,
   MapPin,
   Clock,
   ShieldCheck,
   User,
-  PartyPopper,
-  Info
+  CheckCircle,
+  MessageSquare,
+  Building2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, isAfter, setHours, setMinutes } from 'date-fns';
@@ -18,7 +18,38 @@ import toast, { Toaster } from 'react-hot-toast';
 
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbwy3Xc0OSW8KacQhjpSuEE00FZ3rHPrPFttOQ4GE3JqIqF8P3KIYIZkO3CNEyD-G6Ip/exec';
 
-type AttendanceStatus = 'Yes' | 'No' | 'Leave';
+type AttendanceStatus = 'Yes' | 'Leave';
+
+const SuccessModal = ({ isOpen, onClose, empName, meetingType }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        className="bg-white rounded-[2rem] p-10 max-w-sm w-full text-center shadow-2xl border border-slate-100 relative overflow-hidden"
+      >
+        <div className="absolute top-0 inset-x-0 h-2 bg-emerald-500"></div>
+        <div className="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6 border-4 border-white shadow-lg">
+          <CheckCircle strokeWidth={3} size={40} />
+        </div>
+        <h3 className="text-xl font-black text-slate-900 mb-2 tracking-tight uppercase">Confirmed!</h3>
+        <p className="text-[10px] font-bold text-slate-500 mb-6 uppercase tracking-widest">Attendance Recorded</p>
+
+        <p className="text-xs font-medium text-slate-500 mb-8 leading-relaxed">
+          Thank you, <span className="font-bold text-slate-900">{empName}</span>. Your attendance for <span className="font-bold text-slate-900">{meetingType}</span> has been securely logged into the system.
+        </p>
+
+        <button
+          onClick={onClose}
+          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-black py-4 rounded-2xl transition-all active:scale-[0.98] tracking-widest uppercase shadow-lg shadow-emerald-200"
+        >
+          Close Portal
+        </button>
+      </motion.div>
+    </div>
+  );
+};
 
 function App() {
   const [empData, setEmpData] = useState({
@@ -57,7 +88,7 @@ function App() {
         (pos) => setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
         (err) => {
           console.error(err);
-          toast.error("Location tracking required for verification.");
+          toast.error("Location tracking required for security verification.");
         }
       );
     }
@@ -75,15 +106,15 @@ function App() {
 
   const handleSubmit = async () => {
     if (!status) {
-      toast.error("Please select a response status.");
+      toast.error("Please select your status.");
       return;
     }
     if (!location && status === 'Yes') {
-      toast.error("GPS verification is mandatory.");
+      toast.error("GPS validation is required for submission.");
       return;
     }
-    if ((status === 'No' || status === 'Leave') && !leaveReason) {
-      toast.error("Please provide a brief reason.");
+    if (status === 'Leave' && !leaveReason) {
+      toast.error("Please provide a reason for leave.");
       return;
     }
 
@@ -93,11 +124,11 @@ function App() {
         empId: empData.id,
         name: empData.name,
         department: empData.dept,
-        status: status === 'Yes' ? 'Present' : (status === 'Leave' ? 'On Leave' : 'Absent'),
+        status: status === 'Yes' ? 'Present' : 'On Leave',
         leaveReason: leaveReason,
         location: location ? `${location.lat},${location.lng}` : 'N/A',
         timestamp: format(new Date(), 'yyyy-MM-dd HH:mm:ss'),
-        lateRemark: (status === 'Leave' || status === 'No') ? '' : lateInfo,
+        lateRemark: status === 'Leave' ? '' : lateInfo,
         meetingType: empData.meetingType
       };
 
@@ -107,161 +138,153 @@ function App() {
       
       setIsSubmitted(true);
     } catch (error) {
-      toast.error("Transmission failed. Retrying...");
+      toast.error("Network error. Retrying submission...");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="app-wrapper">
+    <div className="app-container">
       <Toaster position="top-center" />
       
-      {/* Success Modal */}
-      <AnimatePresence>
-        {isSubmitted && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="modal-backdrop"
-          >
-            <motion.div 
-              initial={{ scale: 0.9, y: 40 }}
-              animate={{ scale: 1, y: 0 }}
-              className="success-card"
-            >
-              <div className="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-8 border-2 border-green-100">
-                <PartyPopper className="w-12 h-12 text-green-600" />
-              </div>
-              <h2 className="text-4xl font-black text-gray-900 mb-4">CONFIRMED</h2>
-              <p className="text-gray-500 text-lg font-medium leading-relaxed mb-12">
-                Thank you, {empData.name}. Your session has been securely verified and logged.
-              </p>
-              <button 
-                onClick={() => window.close()}
-                className="btn-primary"
-              >
-                Exit Portal
-              </button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Hospital Logo Branding */}
+      <div className="logo-section">
+        <img 
+          src="/logo.jpg" 
+          alt="SBH Hospital" 
+          className="logo-img"
+          onError={(e) => {
+            e.currentTarget.src = 'https://via.placeholder.com/200x80?text=SBH+HOSPITAL';
+          }}
+        />
+      </div>
 
-      <div className="glass-panel">
-        <div className="logo-container">
-          <img 
-            src="/logo.jpg" 
-            alt="Hospital Logo" 
-            className="logo-img"
-            onError={(e) => {
-              e.currentTarget.src = 'https://via.placeholder.com/300x100?text=SBH+HOSPITAL';
-            }}
+      <div className="text-center mb-8">
+        <p className="text-[10px] font-black text-emerald-600 tracking-[0.3em] uppercase opacity-80 mb-2">Internal Attendance Portal</p>
+        <h1 className="text-3xl font-black text-slate-900 tracking-tight leading-none uppercase">{empData.meetingType}</h1>
+      </div>
+
+      <div className="main-card">
+        {/* Animated Progress Bar */}
+        <div className="h-2 bg-slate-100 flex">
+          <motion.div
+            initial={{ width: '0%' }}
+            animate={{ width: status ? '100%' : '50%' }}
+            className="bg-emerald-500 h-full transition-all duration-500"
           />
         </div>
 
-        <header className="header-title">
-          <h1 className="meeting-type">{empData.meetingType}</h1>
-          <div className="date-badge">
-            <Calendar size={16} />
-            <span>{format(new Date(), 'EEEE, MMMM do, yyyy')}</span>
-          </div>
-        </header>
+        <div className="p-8 md:p-10">
+          <div className="space-y-8">
+            {/* Identity Card */}
+            <div>
+              <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 ml-1">
+                <User size={12} className="text-emerald-500" /> Professional Identity
+              </div>
+              <div className="bg-slate-50 border border-slate-200 rounded-[1.5rem] p-6 flex items-center gap-5">
+                <div className="w-14 h-14 bg-white rounded-2xl border border-slate-200 flex items-center justify-center text-emerald-600 shadow-sm font-black text-xl">
+                  {empData.name.charAt(0)}
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-slate-900 leading-tight">{empData.name}</h3>
+                  <p className="text-slate-500 text-xs font-bold uppercase tracking-wide">{empData.dept}</p>
+                </div>
+              </div>
+            </div>
 
-        {/* Profile Identity */}
-        <div className="profile-card">
-          <div className="profile-avatar shadow-lg shadow-green-900/10">
-            <User size={28} />
-          </div>
-          <div className="profile-info">
-            <p className="text-[10px] text-green-600 font-black uppercase tracking-widest mb-0.5">Corporate Identity</p>
-            <h3>{empData.name}</h3>
-            <p>{empData.dept}</p>
-          </div>
-        </div>
+            {/* Attendance Confirmation */}
+            <div className="space-y-2">
+              <label className="input-label">Attendance Confirmation</label>
+              <div className="relative">
+                <select
+                  className="form-input appearance-none"
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value as AttendanceStatus)}
+                >
+                  <option value="">Choose Status...</option>
+                  <option value="Yes">PRESENT (JOINING MEETING)</option>
+                  <option value="Leave">OFFICIAL LEAVE</option>
+                </select>
+                <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                  <Clock size={14} />
+                </div>
+              </div>
+            </div>
 
-        <div className="space-y-8">
-          <div className="input-group">
-            <label className="form-label">Attendance Confirmation</label>
-            <select 
-              className="fluent-select"
-              value={status}
-              onChange={(e) => setStatus(e.target.value as AttendanceStatus)}
-            >
-              <option value="" disabled>Select response status...</option>
-              <option value="Yes">PRESENT AT MEETING</option>
-              <option value="No">ABSENT / UNAVAILABLE</option>
-              <option value="Leave">OFFICIAL LEAVE</option>
-            </select>
-          </div>
-
-          <AnimatePresence>
-            {(status === 'No' || status === 'Leave') && (
-              <motion.div 
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                className="overflow-hidden"
-              >
-                <div className="input-group">
-                  <label className="form-label">Provide Reason</label>
-                  <textarea 
-                    className="fluent-textarea"
-                    placeholder="Briefly explain your status..."
-                    rows={3}
+            <AnimatePresence>
+              {status === 'Leave' && (
+                <motion.div 
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="space-y-2 overflow-hidden"
+                >
+                  <label className="input-label">
+                    <MessageSquare size={12} className="text-emerald-500" /> Leave Reason
+                  </label>
+                  <textarea
                     value={leaveReason}
                     onChange={(e) => setLeaveReason(e.target.value)}
+                    placeholder="Describe the reason for leave..."
+                    className="form-input h-28 resize-none py-4"
                   />
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* System Status Grid */}
+            <div className="status-grid">
+              <div className="status-item">
+                <div className="status-title">Geolocation</div>
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${location ? 'bg-emerald-500' : 'bg-slate-300 animate-pulse'}`}></div>
+                  <span className="status-value">{location ? 'VERIFIED' : 'LOCATING...'}</span>
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+              </div>
+              <div className="status-item">
+                <div className="status-title">Punctuality</div>
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${lateInfo ? 'bg-red-500' : 'bg-emerald-500'}`}></div>
+                  <span className={`status-value ${lateInfo ? 'text-red-600' : 'text-emerald-600'}`}>
+                    {lateInfo ? lateInfo : 'ON TIME'}
+                  </span>
+                </div>
+              </div>
+            </div>
 
-          <div className="grid grid-cols-2 gap-4 mb-10">
-            <div className="stat-item">
-              <div className="flex items-center gap-2 mb-2">
-                <MapPin size={16} className="text-green-600" />
-                <span className="text-[10px] font-black text-gray-400 uppercase">GPS Validation</span>
-              </div>
-              <p className="text-xs font-bold text-gray-700">{location ? 'VERIFIED' : 'LOCATING...'}</p>
-            </div>
-            <div className="stat-item">
-              <div className="flex items-center gap-2 mb-2">
-                <Clock size={16} className="text-orange-600" />
-                <span className="text-[10px] font-black text-gray-400 uppercase">Time Status</span>
-              </div>
-              <p className={`text-xs font-bold ${lateInfo && status === 'Yes' ? 'text-red-600' : 'text-green-600'}`}>
-                {(lateInfo && status === 'Yes') ? lateInfo : 'ON TIME'}
-              </p>
-            </div>
+            <button
+              onClick={handleSubmit}
+              disabled={isSubmitting || !status || (!location && status === 'Yes')}
+              className="btn-submit"
+            >
+              {isSubmitting ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <>Submit Verification <Send size={14} /></>
+              )}
+            </button>
           </div>
-
-          <button 
-            onClick={handleSubmit}
-            disabled={isSubmitting || !status || (!location && status === 'Yes')}
-            className={`btn-primary ${status === 'Yes' ? '' : 'btn-orange'} active:scale-95 transition-transform`}
-          >
-            {isSubmitting ? (
-              <Loader2 className="w-6 h-6 animate-spin" />
-            ) : (
-              <>
-                <span>VERIFY & SUBMIT</span>
-                <Send size={20} />
-              </>
-            )}
-          </button>
         </div>
-
-        <footer className="mt-16 text-center">
-          <div className="flex justify-center gap-4 text-gray-300 mb-4 opacity-40">
-             <ShieldCheck size={20} />
-             <Info size={20} />
-             <Building2 size={20} />
-          </div>
-          <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.4em]">SBH Hospital IT Automation</p>
-          <p className="text-[8px] text-gray-300 font-bold mt-1">SECURED MULTI-LAYER VERIFICATION</p>
-        </footer>
       </div>
+
+      {/* Footer Branding */}
+      <footer className="mt-12 text-center">
+        <div className="flex justify-center gap-6 text-slate-300 mb-4 opacity-40">
+           <ShieldCheck size={20} />
+           <MapPin size={20} />
+           <Building2 size={20} />
+        </div>
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">SBH Hospital Automation</p>
+        <p className="text-[8px] text-slate-400 font-bold mt-1 opacity-50 uppercase tracking-widest">Secured Enterprise Verification System</p>
+      </footer>
+
+      <SuccessModal
+        isOpen={isSubmitted}
+        onClose={() => window.close() || (window.location.href = "https://itsbhhospital.com")}
+        empName={empData.name}
+        meetingType={empData.meetingType}
+      />
     </div>
   );
 }
