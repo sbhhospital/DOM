@@ -160,7 +160,7 @@ export const BoardroomQrPosterModal: React.FC<BoardroomQrPosterModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[10000] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-[10000] modal-backdrop flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
       {/* Container */}
       <div className="bg-slate-900 rounded-3xl shadow-2xl max-w-4xl w-full my-auto overflow-hidden border border-slate-700 flex flex-col max-h-[96vh]">
         {/* Top Control Bar */}

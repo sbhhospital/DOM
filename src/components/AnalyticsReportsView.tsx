@@ -651,7 +651,7 @@ export const AnalyticsReportsView: React.FC<AnalyticsReportsViewProps> = ({ sele
 
       {/* Email Report Modal */}
       {showEmailModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">

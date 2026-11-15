@@ -545,7 +545,7 @@ export const LeaderPortal: React.FC = () => {
 
         {/* Modal: Informed Absence Notice */}
         {showInformedModal && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
               <h3 className="text-base font-black text-slate-900 mb-1">Record Prior Informed Absence</h3>
               <p className="text-xs text-slate-500 mb-4">
@@ -602,7 +602,7 @@ export const LeaderPortal: React.FC = () => {
 
         {/* Modal: Leader Personal Password Change */}
         {showUserPassModal && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-200">
               <h3 className="text-base font-black text-slate-900 mb-1 flex items-center gap-2">
                 <Lock className="w-4 h-4 text-emerald-600" />

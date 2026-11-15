@@ -190,7 +190,7 @@ export const LiveRoomQrScannerModal: React.FC<LiveRoomQrScannerModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[25000] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4">
+    <div className="fixed inset-0 z-[25000] modal-backdrop flex items-center justify-center p-3 sm:p-4">
       <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200 relative flex flex-col max-h-[95vh] animate-in fade-in zoom-in-95">
         {/* Top Header */}
         <div className="p-4 bg-slate-900 text-white flex items-center justify-between shrink-0">

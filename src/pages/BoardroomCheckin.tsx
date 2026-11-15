@@ -310,7 +310,7 @@ export const BoardroomCheckin: React.FC = () => {
 
       {/* ================= STYLISH THANK YOU POPUP MODAL ================= */}
       {showThankYouModal && confirmationData && (
-        <div className="fixed inset-0 z-[20000] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in">
+        <div className="fixed inset-0 z-[20000] modal-backdrop flex items-center justify-center p-4 animate-in fade-in">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 text-center shadow-2xl border border-slate-200 relative overflow-hidden">
             {/* Top Glowing Gradient Accent */}
             <div className="h-3 w-full bg-gradient-to-r from-orange-500 via-emerald-500 to-green-700 absolute top-0 left-0" />

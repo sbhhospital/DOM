@@ -44,6 +44,9 @@ import {
   UserX,
   UserCheck,
   Loader2,
+  X,
+  List,
+  Grid,
 } from 'lucide-react';
 import { useDomApp } from '../context/DomAppContext';
 import { useAuthSession } from '../context/AuthSessionContext';
@@ -282,6 +285,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
   const [showScheduleEditModal, setShowScheduleEditModal] = useState(false);
   const [isSavingSchedule, setIsSavingSchedule] = useState(false);
   const [rosterStatusFilter, setRosterStatusFilter] = useState<'ALL' | 'ACTIVE' | 'DISABLED'>('ALL');
+  const [leaderSearchTerm, setLeaderSearchTerm] = useState('');
+  const [leaderDeptFilter, setLeaderDeptFilter] = useState('ALL');
+  const [leaderViewMode, setLeaderViewMode] = useState<'list' | 'grid'>('list');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [copiedEmail, setCopiedEmail] = useState(false);
   const [toastAlert, setToastAlert] = useState<{ type: 'success' | 'error' | 'info'; text: string; url?: string } | null>(null);
@@ -417,26 +424,39 @@ export const UnifiedAdminDashboard: React.FC = () => {
   const filteredRecords = recordsForDate.filter((r) => {
     const nameMatch =
       r.leader?.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      r.leader?.department?.name.toLowerCase().includes(searchTerm.toLowerCase());
+      r.leader?.department?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (r.leader?.employee_code && r.leader.employee_code.toLowerCase().includes(searchTerm.toLowerCase()));
     const statusMatch =
       statusFilter === 'ALL'
         ? true
-        : statusFilter === 'PHYSICAL'
-          ? r.selected_mode === 'PHYSICAL' && (r.status === 'PRESENT' || r.admin_verified_attendance)
-          : statusFilter === 'VIRTUAL'
-            ? r.selected_mode === 'VIRTUAL' && r.status === 'PRESENT'
-            : statusFilter === 'INFORMED_LATE'
-              ? r.status === 'INFORMED_LATE'
-              : statusFilter === 'LEAVE' || statusFilter === 'INFORMED_ABSENT'
-                ? r.status === 'INFORMED_ABSENT' || r.status === 'LEAVE'
-                : statusFilter === 'ABSENT'
-                  ? r.status === 'ABSENT' || (r.status === 'PENDING' && r.selected_mode === 'NONE')
-                  : r.status === statusFilter;
+        : statusFilter === 'PRESENT'
+          ? (r.selected_mode === 'PHYSICAL' && (r.status === 'PRESENT' || r.admin_verified_attendance)) ||
+            (r.selected_mode === 'VIRTUAL' && r.status === 'PRESENT') ||
+            r.status === 'PRESENT' ||
+            Boolean(r.admin_verified_attendance)
+          : statusFilter === 'PHYSICAL'
+            ? r.selected_mode === 'PHYSICAL' && (r.status === 'PRESENT' || r.admin_verified_attendance)
+            : statusFilter === 'VIRTUAL'
+              ? r.selected_mode === 'VIRTUAL' && r.status === 'PRESENT'
+              : statusFilter === 'INFORMED_LATE'
+                ? r.status === 'INFORMED_LATE'
+                : statusFilter === 'LEAVE' || statusFilter === 'INFORMED_ABSENT'
+                  ? r.status === 'INFORMED_ABSENT' || r.status === 'LEAVE'
+                  : statusFilter === 'ABSENT'
+                    ? r.status === 'ABSENT' || (r.status === 'PENDING' && r.selected_mode === 'NONE')
+                    : r.status === statusFilter;
     return nameMatch && statusMatch;
   });
 
   // Calculate live statistics
   const totalLeaders = leaders.length;
+  const countPresent = recordsForDate.filter(
+    (r) =>
+      (r.selected_mode === 'PHYSICAL' && (r.status === 'PRESENT' || r.admin_verified_attendance)) ||
+      (r.selected_mode === 'VIRTUAL' && r.status === 'PRESENT') ||
+      r.status === 'PRESENT' ||
+      Boolean(r.admin_verified_attendance)
+  ).length;
   const countPhysical = recordsForDate.filter(
     (r) => r.selected_mode === 'PHYSICAL' && (r.status === 'PRESENT' || r.admin_verified_attendance)
   ).length;
@@ -446,6 +466,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
   const countAbsent = recordsForDate.filter(
     (r) => r.status === 'ABSENT' || (r.status === 'PENDING' && r.selected_mode === 'NONE')
   ).length;
+  const turnoutPercent = totalLeaders > 0 ? Math.round((countPresent / totalLeaders) * 100) : 0;
 
   // Handle Leader Add / Edit Submit with Loading Animation
   const handleSaveLeader = async (e: React.FormEvent) => {
@@ -523,11 +544,21 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
   const openEditLeaderModal = (leader: Leader) => {
     setEditingLeader(leader);
+    const matchedDept = departments.find(
+      (d) =>
+        d.id === leader.department_id ||
+        d.id === leader.department?.id ||
+        (leader.department?.name && d.name.trim().toLowerCase() === leader.department.name.trim().toLowerCase()) ||
+        (leader.department?.code && d.code.trim().toLowerCase() === leader.department.code.trim().toLowerCase()) ||
+        (leader.employee_code && (leader.employee_code === '20251' || leader.employee_code.includes('IT')) && d.code === 'IT') ||
+        (leader.email && leader.email.toLowerCase().includes('it@') && d.code === 'IT') ||
+        (leader.full_name && leader.full_name.toLowerCase().includes('naman') && d.code === 'IT')
+    );
     setLeaderForm({
       full_name: leader.full_name,
       email: leader.email,
       phone: leader.phone,
-      department_id: leader.department_id || leader.department?.id || '',
+      department_id: matchedDept?.id || leader.department_id || leader.department?.id || (departments[0]?.id || ''),
       employee_code: leader.employee_code || '',
       expected_mode: leader.expected_mode === 'VIRTUAL' ? 'VIRTUAL' : 'PHYSICAL',
       role: leader.role,
@@ -723,255 +754,351 @@ export const UnifiedAdminDashboard: React.FC = () => {
     d.code.toLowerCase().includes(deptSearchTerm.toLowerCase())
   );
 
-  return (
-    <div className="min-h-screen bg-[#f8faf9] flex font-sans antialiased text-[#1f2d2a]">
-      {/* ================= PERMANENT FIXED LEFT SIDEBAR (Matching SBH PORTAL Design) ================= */}
-      <aside className="w-68 xl:w-72 bg-slate-50 text-[#1f2d2a] shrink-0 sticky top-0 h-[calc(100vh-2.5rem)] flex flex-col border-r border-[#dcdcdc] z-30 shadow-sm overflow-hidden">
-        {/* Sidebar Header: Hospital Emblem & Title */}
-        <div className="h-20 flex items-center justify-between px-5 border-b border-slate-200 bg-white/50 shrink-0">
+  const renderSidebarNav = (isMobile: boolean = false) => (
+    <>
+      {/* Sidebar Header: Hospital Emblem & Title */}
+      <div className="h-20 flex items-center justify-between px-5 border-b border-slate-200 bg-white/50 shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center p-1.5 border border-[#dcdcdc] shadow-xs">
+            <img src={sbhLogo} alt="Logo" className="w-full h-full object-contain" />
+          </div>
+          <div className="flex flex-col">
+            <span className="font-bold text-base text-[#1f2d2a] tracking-tight uppercase leading-none">
+              SBH <span className="text-[#2e7d32]">DOM PORTAL</span>
+            </span>
+            <span className="text-[9px] font-bold text-slate-400 tracking-wider uppercase mt-1">
+              Daily Operations Meeting
+            </span>
+          </div>
+        </div>
+        {isMobile && (
+          <button
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg cursor-pointer"
+          >
+            <X size={20} />
+          </button>
+        )}
+      </div>
+
+      {/* Live Clock Pill inside Sidebar */}
+      <div className="p-3 mx-2 my-2 rounded-2xl bg-white border border-[#dcdcdc] shadow-xs">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <div className="p-1 rounded-md bg-[#2e7d32] text-white">
+              <Clock size={11} strokeWidth={3} />
+            </div>
+            <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">System Clock</span>
+          </div>
+          <span className="text-[12px] font-black font-mono text-[#1f2d2a]">
+            {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+          </span>
+        </div>
+      </div>
+
+      {/* Sidebar Navigation Menu */}
+      <div className="flex-1 overflow-y-auto px-2 py-1 space-y-1 custom-scrollbar">
+        <div className="px-3 pt-2 pb-1">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+            Command Center
+          </span>
+        </div>
+
+        {/* 🏠 Homepage Button: Live Attendance Register */}
+        <button
+          onClick={() => {
+            setActiveTab('attendance');
+            if (isMobile) setIsMobileMenuOpen(false);
+          }}
+          className={`relative flex items-center justify-between w-full transition-[background-color,color,transform] duration-200 font-semibold tracking-wide text-[13px] px-4 py-3 rounded-xl cursor-pointer ${
+            activeTab === 'attendance'
+              ? 'bg-[#2e7d32] text-white shadow-md shadow-emerald-700/20 transform scale-[1.01]'
+              : 'text-[#1f2d2a] hover:bg-[#cfead6]/40 hover:text-[#2e7d32]'
+          }`}
+        >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center p-1.5 border border-[#dcdcdc] shadow-xs">
-              <img src={sbhLogo} alt="Logo" className="w-full h-full object-contain" />
+            <Home size={18} strokeWidth={activeTab === 'attendance' ? 2.5 : 2} className={activeTab === 'attendance' ? 'text-white' : 'text-[#2e7d32] flex-shrink-0'} />
+            <span className="truncate">Live Attendance Register</span>
+          </div>
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${activeTab === 'attendance' ? 'bg-white/20 text-white' : 'bg-[#cfead6] text-[#2e7d32] border border-[#2e7d32]/20'}`}>
+            Live
+          </span>
+        </button>
+
+        {/* 🔗 Daily Meeting Links Button */}
+        <button
+          onClick={() => {
+            setActiveTab('links');
+            if (isMobile) setIsMobileMenuOpen(false);
+          }}
+          className={`relative flex items-center justify-between w-full transition-[background-color,color,transform] duration-200 font-semibold tracking-wide text-[13px] px-4 py-3 rounded-xl cursor-pointer ${
+            activeTab === 'links'
+              ? 'bg-[#2e7d32] text-white shadow-md shadow-emerald-700/20 transform scale-[1.01]'
+              : 'text-[#1f2d2a] hover:bg-[#cfead6]/40 hover:text-[#2e7d32]'
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <Video size={18} strokeWidth={activeTab === 'links' ? 2.5 : 2} className={activeTab === 'links' ? 'text-white' : 'text-teal-600 flex-shrink-0'} />
+            <span className="truncate">Daily Meeting Links</span>
+          </div>
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${activeTab === 'links' ? 'bg-white/20 text-white' : 'bg-slate-200/60 text-slate-700'}`}>
+            Meet
+          </span>
+        </button>
+
+        {/* 👥 Leaders Roster Button */}
+        <button
+          onClick={() => {
+            setActiveTab('leaders');
+            if (isMobile) setIsMobileMenuOpen(false);
+          }}
+          className={`relative flex items-center justify-between w-full transition-[background-color,color,transform] duration-200 font-semibold tracking-wide text-[13px] px-4 py-3 rounded-xl cursor-pointer ${
+            activeTab === 'leaders'
+              ? 'bg-[#2e7d32] text-white shadow-md shadow-emerald-700/20 transform scale-[1.01]'
+              : 'text-[#1f2d2a] hover:bg-[#cfead6]/40 hover:text-[#2e7d32]'
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <Users size={18} strokeWidth={activeTab === 'leaders' ? 2.5 : 2} className={activeTab === 'leaders' ? 'text-white' : 'text-[#2e7d32] flex-shrink-0'} />
+            <span className="truncate">Hospital Leaders Roster</span>
+          </div>
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${activeTab === 'leaders' ? 'bg-white/20 text-white' : 'bg-slate-200/60 text-slate-700'}`}>
+            {leaders.length}
+          </span>
+        </button>
+
+        {/* 🏢 Departments Master Button */}
+        <button
+          onClick={() => {
+            setActiveTab('departments');
+            if (isMobile) setIsMobileMenuOpen(false);
+          }}
+          className={`relative flex items-center justify-between w-full transition-[background-color,color,transform] duration-200 font-semibold tracking-wide text-[13px] px-4 py-3 rounded-xl cursor-pointer ${
+            activeTab === 'departments'
+              ? 'bg-[#2e7d32] text-white shadow-md shadow-emerald-700/20 transform scale-[1.01]'
+              : 'text-[#1f2d2a] hover:bg-[#cfead6]/40 hover:text-[#2e7d32]'
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <Building size={18} strokeWidth={activeTab === 'departments' ? 2.5 : 2} className={activeTab === 'departments' ? 'text-white' : 'text-blue-600 flex-shrink-0'} />
+            <span className="truncate">Departments Master</span>
+          </div>
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${activeTab === 'departments' ? 'bg-white/20 text-white' : 'bg-slate-200/60 text-slate-700'}`}>
+            {departments.length}
+          </span>
+        </button>
+
+        {/* 📅 DOM / WOM / MOM Calendar Button */}
+        <button
+          onClick={() => {
+            setActiveTab('calendar');
+            if (isMobile) setIsMobileMenuOpen(false);
+          }}
+          className={`relative flex items-center justify-between w-full transition-[background-color,color,transform] duration-200 font-semibold tracking-wide text-[13px] px-4 py-3 rounded-xl cursor-pointer ${
+            activeTab === 'calendar'
+              ? 'bg-[#2e7d32] text-white shadow-md shadow-emerald-700/20 transform scale-[1.01]'
+              : 'text-[#1f2d2a] hover:bg-[#cfead6]/40 hover:text-[#2e7d32]'
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <Calendar size={18} strokeWidth={activeTab === 'calendar' ? 2.5 : 2} className={activeTab === 'calendar' ? 'text-white' : 'text-orange-500 flex-shrink-0'} />
+            <span className="truncate">Cadence Calendar</span>
+          </div>
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${activeTab === 'calendar' ? 'bg-white/20 text-white' : 'bg-slate-200/60 text-slate-700'}`}>
+            {currentCadence}
+          </span>
+        </button>
+
+        {/* 📊 Graphical Analytics Button */}
+        <button
+          onClick={() => {
+            setActiveTab('reports');
+            if (isMobile) setIsMobileMenuOpen(false);
+          }}
+          className={`relative flex items-center justify-between w-full transition-[background-color,color,transform] duration-200 font-semibold tracking-wide text-[13px] px-4 py-3 rounded-xl cursor-pointer ${
+            activeTab === 'reports'
+              ? 'bg-[#2e7d32] text-white shadow-md shadow-emerald-700/20 transform scale-[1.01]'
+              : 'text-[#1f2d2a] hover:bg-[#cfead6]/40 hover:text-[#2e7d32]'
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <BarChart3 size={18} strokeWidth={activeTab === 'reports' ? 2.5 : 2} className={activeTab === 'reports' ? 'text-white' : 'text-purple-600 flex-shrink-0'} />
+            <span className="truncate">Graphical Analytics</span>
+          </div>
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${activeTab === 'reports' ? 'bg-white/20 text-white' : 'bg-slate-200/60 text-slate-700'}`}>
+            Graphs
+          </span>
+        </button>
+
+        {/* ⚙️ WhatsApp & Settings Button */}
+        <button
+          onClick={() => {
+            setActiveTab('settings');
+            if (isMobile) setIsMobileMenuOpen(false);
+          }}
+          className={`relative flex items-center justify-between w-full transition-[background-color,color,transform] duration-200 font-semibold tracking-wide text-[13px] px-4 py-3 rounded-xl cursor-pointer ${
+            activeTab === 'settings'
+              ? 'bg-[#2e7d32] text-white shadow-md shadow-emerald-700/20 transform scale-[1.01]'
+              : 'text-[#1f2d2a] hover:bg-[#cfead6]/40 hover:text-[#2e7d32]'
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <Shield size={18} strokeWidth={activeTab === 'settings' ? 2.5 : 2} className={activeTab === 'settings' ? 'text-white' : 'text-emerald-600 flex-shrink-0'} />
+            <span className="truncate">WhatsApp & Gateway</span>
+          </div>
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${activeTab === 'settings' ? 'bg-white/20 text-white' : 'bg-slate-200/60 text-slate-700'}`}>
+            Config
+          </span>
+        </button>
+
+        {/* PDF Reports Section */}
+        <div className="pt-3 pb-1 px-3">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+            Download PDF Reports
+          </span>
+        </div>
+
+        <button
+          onClick={() => downloadPdfReport(selectedDate)}
+          className="w-full px-4 py-2.5 rounded-xl text-[13px] font-semibold text-[#1f2d2a] hover:bg-slate-100 flex items-center gap-3 cursor-pointer transition-all hover:translate-x-1"
+        >
+          <Download size={16} className="text-[#2e7d32] shrink-0" />
+          <span className="truncate">Daily Attendance PDF</span>
+        </button>
+        <button
+          onClick={() => downloadMonthlyPdfReport('October 2026')}
+          className="w-full px-4 py-2.5 rounded-xl text-[13px] font-semibold text-[#1f2d2a] hover:bg-slate-100 flex items-center gap-3 cursor-pointer transition-all hover:translate-x-1"
+        >
+          <Download size={16} className="text-[#2e7d32] shrink-0" />
+          <span className="truncate">Monthly MOM Audit PDF</span>
+        </button>
+        <button
+          onClick={() => downloadYearlyPdfReport(2026)}
+          className="w-full px-4 py-2.5 rounded-xl text-[13px] font-semibold text-[#1f2d2a] hover:bg-slate-100 flex items-center gap-3 cursor-pointer transition-all hover:translate-x-1"
+        >
+          <Download size={16} className="text-[#2e7d32] shrink-0" />
+          <span className="truncate">Annual Hospital Audit PDF</span>
+        </button>
+      </div>
+
+      {/* Sidebar Footer with Admin Controls & Clean Logout */}
+      <div className="p-3 border-t border-slate-200 bg-white/50 space-y-2 shrink-0">
+        <div className="flex items-center gap-2.5 px-3 py-2 bg-white rounded-xl border border-slate-200 shadow-xs">
+          <div className="w-8 h-8 rounded-xl bg-[#cfead6] text-[#2e7d32] flex items-center justify-center font-black text-xs border border-[#2e7d32]/20">
+            <Shield size={16} className="text-[#2e7d32]" />
+          </div>
+          <div className="overflow-hidden flex-1">
+            <div className="truncate font-black text-[#1f2d2a] text-xs leading-tight">
+              {adminProfile?.full_name || 'Administrator'}
             </div>
-            <div className="flex flex-col">
-              <span className="font-bold text-base text-[#1f2d2a] tracking-tight uppercase leading-none">
-                SBH <span className="text-orange-600">DOM PORTAL</span>
-              </span>
-              <span className="text-[9px] font-bold text-slate-400 tracking-wider uppercase mt-1">
-                Daily Operations Meeting
-              </span>
+            <div className="text-[9px] text-[#2e7d32] font-bold flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping inline-block" />
+              <span className="truncate">{adminProfile?.username || 'admin'} • Supabase SQL</span>
             </div>
           </div>
         </div>
-
-        {/* Live Clock Pill inside Sidebar */}
-        <div className="p-3 mx-2 my-2 rounded-2xl bg-white border border-[#dcdcdc] shadow-xs">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <div className="p-1 rounded-md bg-emerald-600 text-white">
-                <Clock size={11} strokeWidth={3} />
-              </div>
-              <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">System Clock</span>
-            </div>
-            <span className="text-[12px] font-black font-mono text-[#1f2d2a]">
-              {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-            </span>
-          </div>
-        </div>
-
-        {/* Sidebar Navigation Menu (Matching SBH Portal Orange Active & Green Legible Theme) */}
-        <div className="flex-1 overflow-y-auto px-2 py-1 space-y-1 custom-scrollbar">
-          <div className="px-3 pt-2 pb-1">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-              Command Center
-            </span>
-          </div>
-
-          {/* 🏠 Homepage Button: Live Attendance Register */}
-          <button
-            onClick={() => setActiveTab('attendance')}
-            className={`relative flex items-center justify-between w-full transition-[background-color,color,transform] duration-200 font-semibold tracking-wide text-[13px] px-4 py-3 rounded-xl cursor-pointer ${
-              activeTab === 'attendance'
-                ? 'bg-orange-500 text-white shadow-lg shadow-orange-200/50 transform scale-[1.02]'
-                : 'text-emerald-950/80 hover:bg-orange-50 hover:text-orange-950 opacity-90 hover:opacity-100 hover:translate-x-1'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <Home size={18} strokeWidth={activeTab === 'attendance' ? 2.5 : 2} className={activeTab === 'attendance' ? 'text-white' : 'text-orange-500 flex-shrink-0'} />
-              <span className="truncate">Live Attendance Register</span>
-            </div>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${activeTab === 'attendance' ? 'bg-white/20 text-white' : 'bg-emerald-50 text-emerald-700 border border-emerald-100'}`}>
-              Live
-            </span>
-          </button>
-
-          {/* 🔗 Daily Meeting Links Button */}
-          <button
-            onClick={() => setActiveTab('links')}
-            className={`relative flex items-center justify-between w-full transition-[background-color,color,transform] duration-200 font-semibold tracking-wide text-[13px] px-4 py-3 rounded-xl cursor-pointer ${
-              activeTab === 'links'
-                ? 'bg-orange-500 text-white shadow-lg shadow-orange-200/50 transform scale-[1.02]'
-                : 'text-emerald-950/80 hover:bg-orange-50 hover:text-orange-950 opacity-90 hover:opacity-100 hover:translate-x-1'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <Video size={18} strokeWidth={activeTab === 'links' ? 2.5 : 2} className={activeTab === 'links' ? 'text-white' : 'text-orange-500 flex-shrink-0'} />
-              <span className="truncate">Daily Meeting Links</span>
-            </div>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${activeTab === 'links' ? 'bg-white/20 text-white' : 'bg-slate-200/60 text-slate-700'}`}>
-              Meet
-            </span>
-          </button>
-
-          {/* 👥 Leaders Roster Button */}
-          <button
-            onClick={() => setActiveTab('leaders')}
-            className={`relative flex items-center justify-between w-full transition-[background-color,color,transform] duration-200 font-semibold tracking-wide text-[13px] px-4 py-3 rounded-xl cursor-pointer ${
-              activeTab === 'leaders'
-                ? 'bg-orange-500 text-white shadow-lg shadow-orange-200/50 transform scale-[1.02]'
-                : 'text-emerald-950/80 hover:bg-orange-50 hover:text-orange-950 opacity-90 hover:opacity-100 hover:translate-x-1'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <Users size={18} strokeWidth={activeTab === 'leaders' ? 2.5 : 2} className={activeTab === 'leaders' ? 'text-white' : 'text-orange-500 flex-shrink-0'} />
-              <span className="truncate">Hospital Leaders Roster</span>
-            </div>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${activeTab === 'leaders' ? 'bg-white/20 text-white' : 'bg-slate-200/60 text-slate-700'}`}>
-              {leaders.length}
-            </span>
-          </button>
-
-          {/* 🏢 Departments Master Button */}
-          <button
-            onClick={() => setActiveTab('departments')}
-            className={`relative flex items-center justify-between w-full transition-[background-color,color,transform] duration-200 font-semibold tracking-wide text-[13px] px-4 py-3 rounded-xl cursor-pointer ${
-              activeTab === 'departments'
-                ? 'bg-orange-500 text-white shadow-lg shadow-orange-200/50 transform scale-[1.02]'
-                : 'text-emerald-950/80 hover:bg-orange-50 hover:text-orange-950 opacity-90 hover:opacity-100 hover:translate-x-1'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <Building size={18} strokeWidth={activeTab === 'departments' ? 2.5 : 2} className={activeTab === 'departments' ? 'text-white' : 'text-orange-500 flex-shrink-0'} />
-              <span className="truncate">Departments Master</span>
-            </div>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${activeTab === 'departments' ? 'bg-white/20 text-white' : 'bg-slate-200/60 text-slate-700'}`}>
-              {departments.length}
-            </span>
-          </button>
-
-          {/* 📅 DOM / WOM / MOM Calendar Button */}
-          <button
-            onClick={() => setActiveTab('calendar')}
-            className={`relative flex items-center justify-between w-full transition-[background-color,color,transform] duration-200 font-semibold tracking-wide text-[13px] px-4 py-3 rounded-xl cursor-pointer ${
-              activeTab === 'calendar'
-                ? 'bg-orange-500 text-white shadow-lg shadow-orange-200/50 transform scale-[1.02]'
-                : 'text-emerald-950/80 hover:bg-orange-50 hover:text-orange-950 opacity-90 hover:opacity-100 hover:translate-x-1'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <Calendar size={18} strokeWidth={activeTab === 'calendar' ? 2.5 : 2} className={activeTab === 'calendar' ? 'text-white' : 'text-orange-500 flex-shrink-0'} />
-              <span className="truncate">Cadence Calendar</span>
-            </div>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${activeTab === 'calendar' ? 'bg-white/20 text-white' : 'bg-slate-200/60 text-slate-700'}`}>
-              {currentCadence}
-            </span>
-          </button>
-
-          {/* 📊 Graphical Analytics Button */}
-          <button
-            onClick={() => setActiveTab('reports')}
-            className={`relative flex items-center justify-between w-full transition-[background-color,color,transform] duration-200 font-semibold tracking-wide text-[13px] px-4 py-3 rounded-xl cursor-pointer ${
-              activeTab === 'reports'
-                ? 'bg-orange-500 text-white shadow-lg shadow-orange-200/50 transform scale-[1.02]'
-                : 'text-emerald-950/80 hover:bg-orange-50 hover:text-orange-950 opacity-90 hover:opacity-100 hover:translate-x-1'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <BarChart3 size={18} strokeWidth={activeTab === 'reports' ? 2.5 : 2} className={activeTab === 'reports' ? 'text-white' : 'text-orange-500 flex-shrink-0'} />
-              <span className="truncate">Graphical Analytics</span>
-            </div>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${activeTab === 'reports' ? 'bg-white/20 text-white' : 'bg-slate-200/60 text-slate-700'}`}>
-              Graphs
-            </span>
-          </button>
-
-          {/* ⚙️ WhatsApp & Settings Button */}
-          <button
-            onClick={() => setActiveTab('settings')}
-            className={`relative flex items-center justify-between w-full transition-[background-color,color,transform] duration-200 font-semibold tracking-wide text-[13px] px-4 py-3 rounded-xl cursor-pointer ${
-              activeTab === 'settings'
-                ? 'bg-orange-500 text-white shadow-lg shadow-orange-200/50 transform scale-[1.02]'
-                : 'text-emerald-950/80 hover:bg-orange-50 hover:text-orange-950 opacity-90 hover:opacity-100 hover:translate-x-1'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <Shield size={18} strokeWidth={activeTab === 'settings' ? 2.5 : 2} className={activeTab === 'settings' ? 'text-white' : 'text-orange-500 flex-shrink-0'} />
-              <span className="truncate">WhatsApp & Gateway</span>
-            </div>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${activeTab === 'settings' ? 'bg-white/20 text-white' : 'bg-slate-200/60 text-slate-700'}`}>
-              Config
-            </span>
-          </button>
-
-          {/* PDF Reports Section */}
-          <div className="pt-3 pb-1 px-3">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-              Download PDF Reports
-            </span>
-          </div>
-
-          <button
-            onClick={() => downloadPdfReport(selectedDate)}
-            className="w-full px-4 py-2.5 rounded-xl text-[13px] font-semibold text-emerald-950/80 hover:bg-orange-50 hover:text-orange-950 flex items-center gap-3 cursor-pointer transition-all hover:translate-x-1"
-          >
-            <Download size={16} className="text-orange-500 shrink-0" />
-            <span className="truncate">Daily Attendance PDF</span>
-          </button>
-          <button
-            onClick={() => downloadMonthlyPdfReport('October 2026')}
-            className="w-full px-4 py-2.5 rounded-xl text-[13px] font-semibold text-emerald-950/80 hover:bg-orange-50 hover:text-orange-950 flex items-center gap-3 cursor-pointer transition-all hover:translate-x-1"
-          >
-            <Download size={16} className="text-orange-500 shrink-0" />
-            <span className="truncate">Monthly MOM Audit PDF</span>
-          </button>
-          <button
-            onClick={() => downloadYearlyPdfReport(2026)}
-            className="w-full px-4 py-2.5 rounded-xl text-[13px] font-semibold text-emerald-950/80 hover:bg-orange-50 hover:text-orange-950 flex items-center gap-3 cursor-pointer transition-all hover:translate-x-1"
-          >
-            <Download size={16} className="text-orange-500 shrink-0" />
-            <span className="truncate">Annual Hospital Audit PDF</span>
-          </button>
-        </div>
-
-        {/* Sidebar Footer with Admin Controls & Clean Logout */}
-        <div className="p-3 border-t border-slate-200 bg-white/50 space-y-2 shrink-0">
-          <div className="flex items-center gap-2.5 px-3 py-2 bg-white rounded-xl border border-slate-200 shadow-xs">
-            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-black text-xs border border-emerald-100">
-              <Shield size={16} className="text-[#2e7d32]" />
-            </div>
-            <div className="overflow-hidden flex-1">
-              <div className="truncate font-black text-[#1f2d2a] text-xs leading-tight">
-                {adminProfile?.full_name || 'Administrator'}
-              </div>
-              <div className="text-[9px] text-[#2e7d32] font-bold flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping inline-block" />
-                <span className="truncate">{adminProfile?.username || 'admin'} • Supabase SQL</span>
-              </div>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-1.5">
-            <button
-              onClick={() => setShowQrDisplayModal(true)}
-              className="px-2.5 py-2 rounded-xl text-[11px] font-bold bg-white hover:bg-slate-100 text-[#1f2d2a] border border-[#dcdcdc] flex items-center justify-center gap-1.5 cursor-pointer transition-all shadow-xs hover:border-[#2e7d32]"
-              title="Boardroom Static QR"
-            >
-              <QrCode className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Room QR</span>
-            </button>
-            <button
-              onClick={() => setShowPasswordModal(true)}
-              className="px-2.5 py-2 rounded-xl text-[11px] font-bold bg-white hover:bg-slate-100 text-[#1f2d2a] border border-[#dcdcdc] flex items-center justify-center gap-1.5 cursor-pointer transition-all shadow-xs hover:border-[#2e7d32]"
-              title="Change Password"
-            >
-              <KeyRound className="w-3.5 h-3.5 text-amber-500" />
-              <span>Password</span>
-            </button>
-          </div>
+        <div className="grid grid-cols-2 gap-1.5">
           <button
             onClick={() => {
-              logoutAdmin();
-              navigate('/login');
+              setShowQrDisplayModal(true);
+              if (isMobile) setIsMobileMenuOpen(false);
             }}
-            className="w-full flex items-center justify-center gap-2.5 p-3 bg-white text-rose-600 font-bold text-[12px] tracking-wider rounded-2xl border border-rose-100 hover:bg-rose-50 transition-all duration-200 active:scale-95 shadow-sm cursor-pointer"
+            className="px-2.5 py-2 rounded-xl text-[11px] font-bold bg-white hover:bg-slate-100 text-[#1f2d2a] border border-[#dcdcdc] flex items-center justify-center gap-1.5 cursor-pointer transition-all shadow-xs hover:border-[#2e7d32]"
+            title="Boardroom Static QR"
           >
-            <LogOut size={16} />
-            <span>Sign Out / Logout</span>
+            <QrCode className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Room QR</span>
+          </button>
+          <button
+            onClick={() => {
+              setShowPasswordModal(true);
+              if (isMobile) setIsMobileMenuOpen(false);
+            }}
+            className="px-2.5 py-2 rounded-xl text-[11px] font-bold bg-white hover:bg-slate-100 text-[#1f2d2a] border border-[#dcdcdc] flex items-center justify-center gap-1.5 cursor-pointer transition-all shadow-xs hover:border-[#2e7d32]"
+            title="Change Password"
+          >
+            <KeyRound className="w-3.5 h-3.5 text-amber-500" />
+            <span>Password</span>
           </button>
         </div>
+        <button
+          onClick={() => {
+            logoutAdmin();
+            navigate('/login');
+          }}
+          className="w-full flex items-center justify-center gap-2.5 p-3 bg-white text-rose-600 font-bold text-[12px] tracking-wider rounded-2xl border border-rose-100 hover:bg-rose-50 transition-all duration-200 active:scale-95 shadow-sm cursor-pointer"
+        >
+          <LogOut size={16} />
+          <span>Sign Out / Logout</span>
+        </button>
+      </div>
+    </>
+  );
+
+  return (
+    <div className="min-h-screen bg-[#f8faf9] flex font-sans antialiased text-[#1f2d2a]">
+      {/* Desktop Fixed Left Sidebar */}
+      <aside className="hidden lg:flex w-68 xl:w-72 bg-slate-50 text-[#1f2d2a] shrink-0 sticky top-0 h-[calc(100vh-2.5rem)] flex-col border-r border-[#dcdcdc] z-30 shadow-sm overflow-hidden">
+        {renderSidebarNav(false)}
       </aside>
 
-      {/* ================= RIGHT DASHBOARD CONTENT AREA (Attached to Sidebar) ================= */}
+      {/* Mobile Drawer Navigation (Slide-in) */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-[200] lg:hidden">
+          <div
+            className="fixed inset-0 modal-backdrop transition-opacity"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+          <aside className="fixed inset-y-0 left-0 w-72 max-w-[85vw] bg-slate-50 flex flex-col border-r border-[#dcdcdc] shadow-2xl overflow-hidden z-10 animate-in slide-in-from-left duration-200">
+            {renderSidebarNav(true)}
+          </aside>
+        </div>
+      )}
+
+      {/* ================= RIGHT DASHBOARD CONTENT AREA ================= */}
       <div className="flex-1 min-w-0 flex flex-col min-h-screen bg-[#f8faf9] pb-16">
+        {/* Mobile Top Navbar (lg:hidden) */}
+        <div className="lg:hidden sticky top-0 z-40 w-full bg-white border-b border-[#dcdcdc] px-3.5 py-2.5 flex items-center justify-between shadow-xs">
+          <div className="flex items-center gap-2.5">
+            <button
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="p-2 rounded-xl text-[#1f2d2a] hover:bg-slate-100 border border-[#dcdcdc] cursor-pointer"
+              title="Open Navigation Menu"
+            >
+              <Menu size={20} />
+            </button>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-white rounded-lg p-1 border border-[#dcdcdc] shadow-2xs">
+                <img src={sbhLogo} alt="Logo" className="w-full h-full object-contain" />
+              </div>
+              <div>
+                <div className="text-xs font-black uppercase text-[#1f2d2a] leading-none">
+                  SBH <span className="text-[#2e7d32]">DOM PORTAL</span>
+                </div>
+                <div className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                  Live Sync v2.1
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <div className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded-lg border border-slate-200">
+              {selectedDate}
+            </div>
+            <a
+              href={currentMeeting.google_meet_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-2.5 py-1.5 bg-[#2e7d32] text-white rounded-xl text-xs font-bold flex items-center gap-1 shadow-xs"
+              title="Google Meet"
+            >
+              <Video size={14} />
+              <span className="text-[9px] font-black uppercase tracking-wider">Meet</span>
+            </a>
+          </div>
+        </div>
+
         {/* Toast Alert Banner */}
         {toastAlert && (
           <div className={`p-3 text-xs font-bold text-center flex items-center justify-center gap-2 sticky top-0 z-40 transition-all ${toastAlert.type === 'success'
@@ -1090,236 +1217,213 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
         {/* Main Body Container Attached Directly to the Right of Sidebar */}
         <div className="flex-1 p-4 sm:p-6 space-y-6 max-w-[1600px] w-full mx-auto">
-          {/* Meeting Type & Schedule Header Banner (Clean High-Contrast Reference Theme) */}
-          <div className="bg-white rounded-2xl border border-[#dcdcdc] shadow-sm p-5 relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition-all">
-            <div className="h-1.5 w-full bg-gradient-to-r from-orange-500 via-[#2e7d32] to-teal-500 absolute top-0 left-0" />
-            <div className="flex items-center gap-4">
-              <div
-                className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-white shadow-sm text-sm shrink-0 ${
-                  currentCadence === 'MOM'
-                    ? 'bg-purple-600'
-                    : currentCadence === 'WOM'
-                      ? 'bg-blue-600'
-                      : currentMeeting.is_holiday_or_shifted
-                        ? 'bg-amber-600'
-                        : 'bg-gradient-to-br from-orange-500 to-amber-600'
-                }`}
-              >
-                {currentCadence}
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-bold text-orange-900 bg-orange-50 border border-orange-200 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1.5">
-                    {currentCadence === 'MOM' && 'MOM — Monthly Strategic Session (1st Monday)'}
-                    {currentCadence === 'WOM' && 'WOM — Weekly Review Session (Every Monday)'}
-                    {currentCadence === 'DOM' && 'DOM — Daily Operations Standup'}
-                    {currentCadence === 'HOLIDAY' && 'HOLIDAY — Standing Off-Day'}
-                  </span>
-                  {currentMeeting.is_holiday_or_shifted && (
-                    <span className="text-[10px] bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded-full border border-amber-300 flex items-center gap-1">
-                      <AlertTriangle className="w-3 h-3 text-amber-600" /> Rescheduled / Shifted
+          {/* Top Meeting Header for Non-Attendance Tabs */}
+          {activeTab !== 'attendance' && (
+            <div className="bg-white rounded-2xl border border-[#dcdcdc] shadow-xs px-4 py-3 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+              <div className="flex items-center gap-3">
+                <div
+                  className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-white shadow-xs text-xs shrink-0 ${
+                    currentCadence === 'MOM'
+                      ? 'bg-purple-600'
+                      : currentCadence === 'WOM'
+                        ? 'bg-blue-600'
+                        : 'bg-gradient-to-br from-[#2e7d32] to-teal-700'
+                  }`}
+                >
+                  {currentCadence}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold text-emerald-900 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                      {currentCadence} Cadence
                     </span>
-                  )}
-                </div>
-                <h2 className="text-xl sm:text-2xl font-bold text-[#1f2d2a] mt-1 tracking-tight">{currentMeeting.title}</h2>
-                <div className="flex flex-wrap items-center gap-2 mt-1 text-xs">
-                  <span className="inline-flex items-center gap-1.5 font-bold text-[#1f2d2a] bg-slate-100 px-2.5 py-1 rounded-lg border border-[#dcdcdc] font-mono">
-                    <Clock className="w-3.5 h-3.5 text-orange-600" />
-                    Scheduled: {currentMeeting.scheduled_time}
-                  </span>
-                  <span className="text-slate-300">•</span>
-                  <a
-                    href={currentMeeting.google_meet_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-700 hover:text-blue-800 font-bold flex items-center gap-1 transition-colors"
-                  >
-                    <Video className="w-3.5 h-3.5 text-blue-600" />
-                    <span>Meet: {currentMeeting.google_meet_url}</span>
-                  </a>
+                    <span className="text-sm font-bold text-[#1f2d2a]">{currentMeeting.title}</span>
+                  </div>
+                  <div className="text-xs text-slate-500 font-mono">
+                    Scheduled: {currentMeeting.scheduled_time} • Raipur Hospital Operations
+                  </div>
                 </div>
               </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    setSchedForm({
+                      title: currentMeeting.title,
+                      frequency: currentMeeting.frequency,
+                      cadence: currentCadence,
+                      scheduled_time: currentMeeting.scheduled_time,
+                      is_holiday_or_shifted: currentMeeting.is_holiday_or_shifted,
+                      shift_reason: currentMeeting.shift_reason || '',
+                      google_meet_url: currentMeeting.google_meet_url,
+                    });
+                    setShowScheduleEditModal(true);
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-[#1f2d2a] border border-[#dcdcdc] rounded-xl text-xs font-bold shadow-2xs transition-colors cursor-pointer"
+                >
+                  <Settings2 className="w-3.5 h-3.5 text-slate-600" />
+                  <span>Modify Cadence</span>
+                </button>
+
+                <button
+                  onClick={handleSendReminderNotice}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2e7d32] hover:bg-[#256628] text-white rounded-xl text-xs font-bold shadow-2xs transition-all cursor-pointer"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span>Notice</span>
+                </button>
+              </div>
             </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                onClick={() => {
-                  setSchedForm({
-                    title: currentMeeting.title,
-                    frequency: currentMeeting.frequency,
-                    cadence: currentCadence,
-                    scheduled_time: currentMeeting.scheduled_time,
-                    is_holiday_or_shifted: currentMeeting.is_holiday_or_shifted,
-                    shift_reason: currentMeeting.shift_reason || '',
-                    google_meet_url: currentMeeting.google_meet_url,
-                  });
-                  setShowScheduleEditModal(true);
-                }}
-                className="flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-50 text-[#1f2d2a] border border-[#dcdcdc] rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer"
-              >
-                <Settings2 className="w-3.5 h-3.5 text-orange-600" />
-                <span>Modify Date / Cadence</span>
-              </button>
-
-              <button
-                onClick={handleSendReminderNotice}
-                className="flex items-center gap-1.5 px-3.5 py-2 bg-[#2e7d32] hover:bg-[#256628] text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer"
-              >
-                <Send className="w-3.5 h-3.5" />
-                <span>Send {currentCadence} WhatsApp Notice</span>
-              </button>
-
-              <button
-                onClick={() => sendNonAttendeesEscalationNotice(selectedDate)}
-                className="flex items-center gap-1.5 px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer"
-              >
-                <AlertCircle className="w-3.5 h-3.5" />
-                <span>Escalate Non-Attendees</span>
-              </button>
-            </div>
-          </div>
+          )}
 
           {/* ================= TAB 1: ATTENDANCE REGISTER ================= */}
           {activeTab === 'attendance' && (
-            <div className="space-y-6">
-              {/* Live Command Center Countdown Banner (Crisp White + Clean High-Contrast Theme) */}
-              <div className="p-5 rounded-2xl bg-white border border-[#dcdcdc] shadow-sm relative overflow-hidden space-y-4">
-                <div className="absolute inset-0 bg-gradient-to-b from-white via-slate-50/40 to-emerald-50/15 pointer-events-none" />
+            <div className="space-y-3.5">
+              {/* Sleek High-Density Enterprise Command Center */}
+              <div className="bg-white rounded-2xl border border-[#dcdcdc] shadow-xs p-3 sm:p-3.5 relative overflow-hidden">
+                <div className="h-1.5 w-full bg-gradient-to-r from-emerald-500 via-teal-500 to-indigo-600 absolute top-0 left-0" />
 
-                <div className="relative z-10 space-y-4">
-                  {/* Top Row: Digital Clock (IST) + Modern Tabular Countdown + Target Milestone */}
-                  <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
-                    {/* Digital Clock Box showing Live India Standard Time (IST) */}
-                    <div className="flex items-center gap-3 bg-slate-50 px-4 py-2.5 rounded-xl border border-[#dcdcdc] shadow-2xs shrink-0">
-                      <div className="w-10 h-10 rounded-xl bg-[#cfead6] text-[#2e7d32] flex items-center justify-center shrink-0">
-                        <Clock className="w-5 h-5 text-[#2e7d32] animate-pulse" />
-                      </div>
-                      <div>
-                        <div className="text-[10px] font-black uppercase tracking-wider text-[#2e7d32] flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full bg-[#2e7d32] animate-ping" />
-                          <span>Live India Time (IST)</span>
-                          <span className="text-[9px] font-mono bg-white text-slate-700 px-1.5 py-0.2 rounded border border-[#dcdcdc] font-bold">Asia/Kolkata</span>
-                        </div>
-                        <div className="text-xl sm:text-2xl font-mono font-black text-[#1f2d2a] tracking-wider">
-                          {countdown.liveIndiaTime}
-                        </div>
-                        <div className="text-[10px] text-slate-600 font-semibold">
-                          {countdown.liveIndiaDate}
-                        </div>
-                      </div>
+                <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-3 pt-0.5">
+                  {/* Left: Meeting Cadence & Time Info */}
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-white shadow-xs text-xs shrink-0 ${
+                        currentCadence === 'MOM'
+                          ? 'bg-purple-600'
+                          : currentCadence === 'WOM'
+                            ? 'bg-blue-600'
+                            : currentMeeting.is_holiday_or_shifted
+                              ? 'bg-amber-600'
+                              : 'bg-gradient-to-br from-[#2e7d32] to-teal-700'
+                      }`}
+                    >
+                      {currentCadence}
                     </div>
-
-                    {/* Real-time Second-by-Second Countdown Display (Executive Dark Card) */}
-                    <div className="flex items-center justify-center gap-3 bg-[#1f2d2a] text-white px-6 py-2.5 rounded-xl shadow-sm border border-black/40">
-                      <div className="text-center min-w-[42px]">
-                        <div className="text-2xl sm:text-3xl font-mono font-black text-emerald-400 tracking-wider">
-                          {countdown.hoursStr}
-                        </div>
-                        <div className="text-[9px] font-black text-slate-300 uppercase tracking-wider">HRS</div>
-                      </div>
-                      <span className="text-2xl font-mono font-bold text-slate-500 animate-pulse">:</span>
-                      <div className="text-center min-w-[42px]">
-                        <div className="text-2xl sm:text-3xl font-mono font-black text-amber-400 tracking-wider">
-                          {countdown.minsStr}
-                        </div>
-                        <div className="text-[9px] font-black text-slate-300 uppercase tracking-wider">MIN</div>
-                      </div>
-                      <span className="text-2xl font-mono font-bold text-slate-500 animate-pulse">:</span>
-                      <div className="text-center min-w-[42px]">
-                        <div className="text-2xl sm:text-3xl font-mono font-black text-white tracking-wider">
-                          {countdown.secsStr}
-                        </div>
-                        <div className="text-[9px] font-black text-slate-300 uppercase tracking-wider">SEC</div>
-                      </div>
-                    </div>
-
-                    {/* Active Target Milestone Badge */}
-                    <div className="bg-slate-50 px-4 py-2.5 rounded-xl border border-[#dcdcdc] shadow-2xs flex flex-col justify-center min-w-[210px]">
+                    <div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
-                          countdown.statusColor === 'amber'
-                            ? 'bg-amber-100 text-amber-900 border-amber-300'
-                            : countdown.statusColor === 'blue'
-                              ? 'bg-blue-100 text-blue-900 border-blue-300'
-                              : countdown.statusColor === 'purple'
-                                ? 'bg-purple-100 text-purple-900 border-purple-300'
-                                : 'bg-[#cfead6] text-[#2e7d32] border-[#2e7d32]/30'
-                        }`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${countdown.statusColor === 'amber' ? 'bg-amber-500 animate-ping' : 'bg-[#2e7d32] animate-ping'}`} />
-                          {countdown.statusBadge}
+                        <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 bg-[#cfead6] border border-[#2e7d32]/20 px-2 py-0.5 rounded-full">
+                          {currentCadence === 'MOM' && 'MOM Strategic'}
+                          {currentCadence === 'WOM' && 'WOM Review'}
+                          {currentCadence === 'DOM' && 'DOM Standup'}
+                          {currentCadence === 'HOLIDAY' && 'Holiday'}
                         </span>
-                        <span className="text-[11px] text-[#1f2d2a] font-bold bg-white px-2 py-0.5 rounded border border-[#dcdcdc]">
-                          Target: {countdown.targetMilestone}
+                        <h2 className="text-base sm:text-lg font-bold text-[#1f2d2a] tracking-tight">{currentMeeting.title}</h2>
+                        {currentMeeting.is_holiday_or_shifted && (
+                          <span className="text-[10px] bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded-full border border-amber-300 flex items-center gap-1">
+                            <AlertTriangle className="w-3 h-3 text-amber-600" /> Shifted
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5 text-xs flex-wrap">
+                        <span className="inline-flex items-center gap-1 font-bold text-[#1f2d2a] font-mono text-[11px]">
+                          <Clock className="w-3.5 h-3.5 text-[#2e7d32]" />
+                          Scheduled: {currentMeeting.scheduled_time}
                         </span>
-                      </div>
-                      <div className="text-xs text-[#1f2d2a] font-bold mt-1 truncate">
-                        {countdown.stageTitle}
-                      </div>
-                      <div className="text-[11px] text-slate-600 font-medium truncate">
-                        {countdown.subtext}
+                        <span className="text-slate-300">•</span>
+                        <a
+                          href={currentMeeting.google_meet_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-700 hover:text-blue-800 font-bold flex items-center gap-1 transition-colors text-[11px]"
+                        >
+                          <Video className="w-3.5 h-3.5 text-blue-600" />
+                          <span>Meet Link</span>
+                        </a>
+                        <span className="text-slate-300">•</span>
+                        <span className="text-slate-500 text-[11px]">Venue: 5th Floor Conf.</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Operations Action Bar with Clean Enterprise Buttons */}
-                  <div className="flex flex-wrap items-center justify-between gap-2.5 pt-3 border-t border-[#dcdcdc]">
-                    <div className="flex flex-wrap items-center gap-2">
-                      {/* Master Automated 09:50 AM Trigger Button */}
-                      <button
-                        onClick={handleTriggerAutomatedTransmission}
-                        className="px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-2 cursor-pointer transition-all active:scale-95"
-                        title={`Broadcast 09:50 AM Alerts to WhatsApp Group and all ${leaders.length} registered leaders with 15-Minute Magic Links`}
-                      >
-                        <Zap className="w-4 h-4 text-yellow-200 fill-yellow-200" />
-                        <span>⚡ Auto-Broadcast 09:50 AM (Group + {leaders.length} {leaders.length === 1 ? 'Leader' : 'Leaders'})</span>
-                      </button>
-
-                      {/* Approve All Pending Attendance Button */}
-                      <button
-                        onClick={async () => {
-                          const res = await approveAllPendingRecords(selectedDate);
-                          setToastAlert({ type: 'success', text: res.message });
-                          setTimeout(() => setToastAlert(null), 5000);
-                        }}
-                        className="px-3.5 py-2 bg-white hover:bg-emerald-50 text-[#2e7d32] border border-[#dcdcdc] hover:border-[#2e7d32] rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
-                        title="Approve all leaders who have joined on this date"
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5 text-[#2e7d32]" />
-                        <span>Approve All Joined Today</span>
-                      </button>
-
-                      {/* Stage 1 (09:50 AM) Manual Button */}
-                      <button
-                        onClick={() => handleSendGroupCeoitbox('0950')}
-                        className="px-3.5 py-2 bg-white hover:bg-slate-50 text-[#1f2d2a] border border-[#dcdcdc] rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer transition-all"
-                        title="Send 09:50 AM Meeting Reminder to Official WhatsApp Group"
-                      >
-                        <Send className="w-3.5 h-3.5 text-slate-500" />
-                        <span>Send 09:50 AM Reminder</span>
-                      </button>
-
-                      {/* Stage 2 (10:30 AM) Button */}
-                      <button
-                        onClick={() => handleSendGroupCeoitbox('1030')}
-                        className="px-3.5 py-2 bg-white hover:bg-slate-50 text-[#1f2d2a] border border-[#dcdcdc] rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer transition-all"
-                        title="Send 10:30 AM Final Attendance & Absentee Audit to WhatsApp Group"
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5 text-[#2e7d32]" />
-                        <span>Send 10:30 AM Report</span>
-                      </button>
-
-                      {/* Official WhatsApp Group Modal Link */}
-                      <button
-                        onClick={() => handleSendGroupCeoitbox('0950')}
-                        className="px-3.5 py-2 bg-white hover:bg-slate-50 text-[#1f2d2a] border border-[#dcdcdc] rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer transition-all"
-                        title="Open Official WhatsApp Group Broadcast Center"
-                      >
-                        <MessageSquare className="w-3.5 h-3.5 text-[#2e7d32]" />
-                        <span>Official WhatsApp Group</span>
-                      </button>
+                  {/* Center: Live Digital IST Clock & Countdown Pill */}
+                  <div className="flex items-center gap-2.5 bg-[#1f2d2a] text-white px-3.5 py-1.5 rounded-xl shadow-xs border border-black/30 shrink-0">
+                    <div className="flex items-center gap-1.5 pr-2.5 border-r border-slate-700">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                      <span className="text-xs font-mono font-black text-emerald-300">{countdown.liveIndiaTime}</span>
+                      <span className="text-[9px] text-slate-400 uppercase font-semibold">IST</span>
                     </div>
+                    <div className="flex items-center gap-1 text-xs font-mono font-black">
+                      <span className="text-emerald-400">{countdown.hoursStr}h</span>
+                      <span className="text-slate-500">:</span>
+                      <span className="text-amber-400">{countdown.minsStr}m</span>
+                      <span className="text-slate-500">:</span>
+                      <span className="text-white">{countdown.secsStr}s</span>
+                    </div>
+                    <span className="text-[9px] font-bold bg-white/10 text-slate-200 px-2 py-0.5 rounded ml-1 hidden sm:inline">
+                      Target: {countdown.targetMilestone}
+                    </span>
+                  </div>
 
-                    {/* Auto-Scheduler Status Pill */}
+                  {/* Right: Quick Action Buttons */}
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <button
+                      onClick={handleTriggerAutomatedTransmission}
+                      className="px-3 py-1.5 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
+                      title={`Broadcast 09:50 AM Alerts to WhatsApp Group and all ${leaders.length} registered leaders`}
+                    >
+                      <Zap className="w-3.5 h-3.5 text-yellow-200 fill-yellow-200" />
+                      <span>⚡ 09:50 AM Broadcast</span>
+                    </button>
+
+                    <button
+                      onClick={async () => {
+                        const res = await approveAllPendingRecords(selectedDate);
+                        setToastAlert({ type: 'success', text: res.message });
+                        setTimeout(() => setToastAlert(null), 5000);
+                      }}
+                      className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-[#2e7d32] border border-emerald-300 rounded-xl text-xs font-bold shadow-xs flex items-center gap-1 cursor-pointer transition-all active:scale-95"
+                      title="Approve all leaders who have joined on this date"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5 text-[#2e7d32]" />
+                      <span>Approve Joined</span>
+                    </button>
+
+                    <button
+                      onClick={handleSendReminderNotice}
+                      className="px-2.5 py-1.5 bg-[#2e7d32] hover:bg-[#256628] text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1 cursor-pointer transition-all"
+                      title={`Send ${currentCadence} WhatsApp Notice`}
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      <span>Notice</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleSendGroupCeoitbox('0950')}
+                      className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-[#1f2d2a] border border-[#dcdcdc] rounded-xl text-xs font-bold shadow-xs flex items-center gap-1 cursor-pointer transition-all"
+                      title="Official WhatsApp Group Broadcast"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5 text-[#2e7d32]" />
+                      <span>Group</span>
+                    </button>
+
+                    <button
+                      onClick={() => sendNonAttendeesEscalationNotice(selectedDate)}
+                      className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-xl text-xs font-bold shadow-xs flex items-center gap-1 cursor-pointer transition-all"
+                      title="Escalate Non-Attendees"
+                    >
+                      <AlertCircle className="w-3.5 h-3.5 text-rose-600" />
+                      <span>Escalate</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setSchedForm({
+                          title: currentMeeting.title,
+                          frequency: currentMeeting.frequency,
+                          cadence: currentCadence,
+                          scheduled_time: currentMeeting.scheduled_time,
+                          is_holiday_or_shifted: currentMeeting.is_holiday_or_shifted,
+                          shift_reason: currentMeeting.shift_reason || '',
+                          google_meet_url: currentMeeting.google_meet_url,
+                        });
+                        setShowScheduleEditModal(true);
+                      }}
+                      className="p-1.5 bg-white hover:bg-slate-100 text-slate-700 rounded-xl border border-[#dcdcdc] transition-colors cursor-pointer"
+                      title="Modify Date / Cadence"
+                    >
+                      <Settings2 className="w-4 h-4 text-slate-700" />
+                    </button>
+
                     <button
                       onClick={() => {
                         const nextState = !autoCeoitboxDispatch;
@@ -1333,202 +1437,224 @@ export const UnifiedAdminDashboard: React.FC = () => {
                         });
                         setTimeout(() => setToastAlert(null), 4000);
                       }}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all border shrink-0 ${
+                      className={`px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-all border shrink-0 ${
                         autoCeoitboxDispatch
-                          ? 'bg-[#cfead6] text-[#2e7d32] border-[#2e7d32]/30 hover:bg-[#d6f5e3]'
-                          : 'bg-white text-slate-700 border-[#dcdcdc] hover:text-[#1f2d2a]'
+                          ? 'bg-[#cfead6] text-[#2e7d32] border-[#2e7d32]/30'
+                          : 'bg-slate-100 text-slate-600 border-[#dcdcdc]'
                       }`}
+                      title="Auto-Scheduler Toggle"
                     >
-                      <Clock className={`w-3.5 h-3.5 ${autoCeoitboxDispatch ? 'text-[#2e7d32]' : 'text-slate-400'}`} />
-                      <span>Auto-Scheduler: {autoCeoitboxDispatch ? 'ACTIVE' : 'PAUSED'}</span>
+                      <Clock className={`w-3 h-3 ${autoCeoitboxDispatch ? 'text-[#2e7d32]' : 'text-slate-400'}`} />
+                      <span>Auto: {autoCeoitboxDispatch ? 'ON' : 'OFF'}</span>
                     </button>
                   </div>
-
-                  {/* OPERATIONS PURPOSE EXPLANATION & MILESTONES CARD */}
-                  <div className="pt-3 border-t border-[#dcdcdc] bg-slate-50 -mx-5 -mb-5 px-5 py-3.5 rounded-b-2xl space-y-2.5">
-                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs">
-                      <div className="flex items-start sm:items-center gap-2 flex-wrap">
-                        <span className="px-2.5 py-0.5 rounded-md bg-[#2e7d32] text-white font-bold text-[11px] shadow-2xs shrink-0">
-                          🎯 ACTIVE SESSION OBJECTIVE:
-                        </span>
-                        <span className="font-bold text-[#1f2d2a] text-xs">
-                          {countdown.countdownForTitle}
-                        </span>
-                        <span className="text-slate-600 text-xs hidden xl:inline font-medium">
-                          — {countdown.countdownForDescription}
-                        </span>
-                      </div>
-
-                      {/* Venue & Leader Assembly Details */}
-                      <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-700 shrink-0">
-                        <span className="flex items-center gap-1 bg-white px-2.5 py-0.5 rounded-md border border-[#dcdcdc] font-semibold">
-                          📍 <strong className="text-[#1f2d2a]">Venue:</strong> Conference Room, 5th Floor
-                        </span>
-                        <span className="flex items-center gap-1 bg-white px-2.5 py-0.5 rounded-md border border-[#dcdcdc] font-semibold">
-                          👥 <strong className="text-[#1f2d2a]">Leaders:</strong> {leaders.length} Registered {leaders.length === 1 ? 'Leader' : 'Leaders'}
-                        </span>
-                        <span className="flex items-center gap-1 bg-white px-2.5 py-0.5 rounded-md border border-[#dcdcdc] font-semibold">
-                          💻 <strong className="text-[#1f2d2a]">Meet:</strong> Virtual Check-In
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* 3-Step Milestone Schedule Bar */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-[#dcdcdc] text-[11px]">
-                      <div className="flex items-center gap-2 text-[#1f2d2a]">
-                        <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-900 font-bold flex items-center justify-center text-[10px] shrink-0 border border-blue-200">1</span>
-                        <span><strong>09:50 AM:</strong> Automated Notice Broadcast & Attendance Links</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-[#1f2d2a]">
-                        <span className="w-5 h-5 rounded-full bg-orange-100 text-orange-950 font-bold flex items-center justify-center text-[10px] shrink-0 border border-orange-200">2</span>
-                        <span><strong>10:00 AM Sharp:</strong> DOM Standup Starts (Conference Room 5th Floor)</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-[#1f2d2a]">
-                        <span className="w-5 h-5 rounded-full bg-[#cfead6] text-[#2e7d32] font-bold flex items-center justify-center text-[10px] shrink-0 border border-[#2e7d32]/20">3</span>
-                        <span><strong>10:30 AM:</strong> Final Attendance Audit Frozen & Sent to Director</span>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </div>
 
-              {/* Top Stat Cards (6 States: Scheduled, Physical, Virtual, Late Approved, Leave, Absent) */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-                {/* 1. Scheduled */}
+              {/* 7 Colorful Enterprise Matrix Cards */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
+                {/* 1. Scheduled Today */}
                 <div
                   onClick={() => setStatusFilter('ALL')}
-                  className={`p-4 rounded-2xl border transition-all cursor-pointer group ${
+                  className={`p-3 rounded-2xl border transition-all cursor-pointer group relative overflow-hidden ${
                     statusFilter === 'ALL'
-                      ? 'bg-slate-50 border-[#2e7d32] ring-2 ring-[#2e7d32]/10 shadow-sm'
-                      : 'bg-white border-[#dcdcdc] hover:border-[#2e7d32] shadow-sm'
+                      ? 'bg-gradient-to-br from-indigo-50 to-white border-indigo-500 ring-2 ring-indigo-500/30 shadow-md scale-[1.02]'
+                      : 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-sm'
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="p-2 rounded-xl bg-slate-100 text-[#1f2d2a] transition-transform group-hover:scale-110 duration-200">
-                      <Users className="w-5 h-5 text-slate-700" />
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className={`p-1.5 rounded-lg transition-transform group-hover:scale-110 duration-200 ${
+                      statusFilter === 'ALL' ? 'bg-indigo-600 text-white' : 'bg-indigo-100 text-indigo-700'
+                    }`}>
+                      <Users className="w-4 h-4" />
                     </div>
-                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 uppercase tracking-wider border border-slate-200">
-                      Official {currentCadence}
+                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-indigo-100 text-indigo-800 uppercase tracking-wider font-mono">
+                      Roster
                     </span>
                   </div>
-                  <div className="text-3xl font-bold text-[#1f2d2a] leading-none mb-1 tracking-tighter">{totalLeaders}</div>
-                  <div className="text-[10px] font-bold text-slate-400 tracking-wider uppercase opacity-80">Scheduled</div>
+                  <div className="text-2xl sm:text-3xl font-black text-[#1f2d2a] leading-none mb-0.5 tracking-tight">{totalLeaders}</div>
+                  <div className="text-[10px] font-bold text-indigo-900 tracking-wider uppercase">Scheduled</div>
+                  <div className="text-[9px] text-slate-500 font-medium mt-0.5">Total Registered</div>
                 </div>
 
-                {/* 2. In-Person */}
+                {/* 2. Total Joined (Kitne Aaye) */}
+                <div
+                  onClick={() => setStatusFilter(statusFilter === 'PRESENT' ? 'ALL' : 'PRESENT')}
+                  className={`p-3 rounded-2xl border transition-all cursor-pointer group relative overflow-hidden ${
+                    statusFilter === 'PRESENT'
+                      ? 'bg-gradient-to-br from-emerald-50 to-white border-emerald-600 ring-2 ring-emerald-600/30 shadow-md scale-[1.02]'
+                      : 'bg-white border-slate-200 hover:border-emerald-300 hover:shadow-sm'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className={`p-1.5 rounded-lg transition-transform group-hover:scale-110 duration-200 ${
+                      statusFilter === 'PRESENT' ? 'bg-[#2e7d32] text-white' : 'bg-[#cfead6] text-[#2e7d32]'
+                    }`}>
+                      <CheckCircle2 className="w-4 h-4" />
+                    </div>
+                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 uppercase tracking-wider font-mono">
+                      {turnoutPercent}%
+                    </span>
+                  </div>
+                  <div className="text-2xl sm:text-3xl font-black text-emerald-700 leading-none mb-0.5 tracking-tight">{countPresent}</div>
+                  <div className="text-[10px] font-bold text-emerald-800 tracking-wider uppercase">Total Joined</div>
+                  <div className="text-[9px] text-emerald-600 font-bold mt-0.5">Kitne Aaye</div>
+                </div>
+
+                {/* 3. In-Person (Physical Room) */}
                 <div
                   onClick={() => setStatusFilter(statusFilter === 'PHYSICAL' ? 'ALL' : 'PHYSICAL')}
-                  className={`p-4 rounded-2xl border transition-all cursor-pointer group ${
+                  className={`p-3 rounded-2xl border transition-all cursor-pointer group relative overflow-hidden ${
                     statusFilter === 'PHYSICAL'
-                      ? 'bg-emerald-50/50 border-[#2e7d32] ring-2 ring-[#2e7d32]/20 shadow-sm'
-                      : 'bg-white border-[#dcdcdc] hover:border-[#2e7d32] shadow-sm'
+                      ? 'bg-gradient-to-br from-amber-50 to-white border-amber-600 ring-2 ring-amber-500/30 shadow-md scale-[1.02]'
+                      : 'bg-white border-slate-200 hover:border-amber-300 hover:shadow-sm'
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="p-2 rounded-xl bg-[#cfead6] text-[#2e7d32] transition-transform group-hover:scale-110 duration-200">
-                      <CheckCircle2 className="w-5 h-5 text-[#2e7d32]" />
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className={`p-1.5 rounded-lg transition-transform group-hover:scale-110 duration-200 ${
+                      statusFilter === 'PHYSICAL' ? 'bg-amber-600 text-white' : 'bg-amber-100 text-amber-800'
+                    }`}>
+                      <Building className="w-4 h-4" />
                     </div>
-                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-[#cfead6] text-[#2e7d32] uppercase tracking-wider border border-[#2e7d32]/20">
-                      5th Floor Conf.
+                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-800 uppercase tracking-wider font-mono">
+                      5th Flr
                     </span>
                   </div>
-                  <div className="text-3xl font-bold text-[#1f2d2a] leading-none mb-1 tracking-tighter">{countPhysical}</div>
-                  <div className="text-[10px] font-bold text-[#2e7d32] tracking-wider uppercase">In-Person</div>
+                  <div className="text-2xl sm:text-3xl font-black text-amber-700 leading-none mb-0.5 tracking-tight">{countPhysical}</div>
+                  <div className="text-[10px] font-bold text-amber-800 tracking-wider uppercase">In-Person</div>
+                  <div className="text-[9px] text-slate-500 font-medium mt-0.5">Conference Room</div>
                 </div>
 
-                {/* 3. Virtual */}
+                {/* 4. Virtual (Meet) */}
                 <div
                   onClick={() => setStatusFilter(statusFilter === 'VIRTUAL' ? 'ALL' : 'VIRTUAL')}
-                  className={`p-4 rounded-2xl border transition-all cursor-pointer group ${
+                  className={`p-3 rounded-2xl border transition-all cursor-pointer group relative overflow-hidden ${
                     statusFilter === 'VIRTUAL'
-                      ? 'bg-blue-50/50 border-blue-600 ring-2 ring-blue-500/20 shadow-sm'
-                      : 'bg-white border-[#dcdcdc] hover:border-blue-600 shadow-sm'
+                      ? 'bg-gradient-to-br from-sky-50 to-white border-sky-600 ring-2 ring-sky-500/30 shadow-md scale-[1.02]'
+                      : 'bg-white border-slate-200 hover:border-sky-300 hover:shadow-sm'
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="p-2 rounded-xl bg-blue-100 text-blue-700 transition-transform group-hover:scale-110 duration-200">
-                      <Video className="w-5 h-5 text-blue-700" />
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className={`p-1.5 rounded-lg transition-transform group-hover:scale-110 duration-200 ${
+                      statusFilter === 'VIRTUAL' ? 'bg-sky-600 text-white' : 'bg-sky-100 text-sky-800'
+                    }`}>
+                      <Video className="w-4 h-4" />
                     </div>
-                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 uppercase tracking-wider border border-blue-200">
-                      Google Meet
+                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-sky-100 text-sky-800 uppercase tracking-wider font-mono">
+                      Online
                     </span>
                   </div>
-                  <div className="text-3xl font-bold text-[#1f2d2a] leading-none mb-1 tracking-tighter">{countVirtual}</div>
-                  <div className="text-[10px] font-bold text-blue-700 tracking-wider uppercase">Virtual</div>
+                  <div className="text-2xl sm:text-3xl font-black text-sky-700 leading-none mb-0.5 tracking-tight">{countVirtual}</div>
+                  <div className="text-[10px] font-bold text-sky-800 tracking-wider uppercase">Virtual</div>
+                  <div className="text-[9px] text-slate-500 font-medium mt-0.5">Google Meet</div>
                 </div>
 
-                {/* 4. Late (Approved) */}
+                {/* 5. Late (Approved) */}
                 <div
                   onClick={() => setStatusFilter(statusFilter === 'INFORMED_LATE' ? 'ALL' : 'INFORMED_LATE')}
-                  className={`p-4 rounded-2xl border transition-all cursor-pointer group ${
+                  className={`p-3 rounded-2xl border transition-all cursor-pointer group relative overflow-hidden ${
                     statusFilter === 'INFORMED_LATE'
-                      ? 'bg-amber-50/50 border-amber-600 ring-2 ring-amber-500/20 shadow-sm'
-                      : 'bg-white border-[#dcdcdc] hover:border-amber-600 shadow-sm'
+                      ? 'bg-gradient-to-br from-yellow-50 to-white border-yellow-600 ring-2 ring-yellow-500/30 shadow-md scale-[1.02]'
+                      : 'bg-white border-slate-200 hover:border-yellow-300 hover:shadow-sm'
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="p-2 rounded-xl bg-amber-100 text-amber-800 transition-transform group-hover:scale-110 duration-200">
-                      <Clock className="w-5 h-5 text-amber-700" />
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className={`p-1.5 rounded-lg transition-transform group-hover:scale-110 duration-200 ${
+                      statusFilter === 'INFORMED_LATE' ? 'bg-yellow-600 text-white' : 'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      <Clock className="w-4 h-4" />
                     </div>
-                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 uppercase tracking-wider border border-amber-200">
-                      Admin Approved
+                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-yellow-100 text-yellow-800 uppercase tracking-wider font-mono">
+                      Delay
                     </span>
                   </div>
-                  <div className="text-3xl font-bold text-[#1f2d2a] leading-none mb-1 tracking-tighter">{countLate}</div>
-                  <div className="text-[10px] font-bold text-amber-800 tracking-wider uppercase">Late (Approved)</div>
+                  <div className="text-2xl sm:text-3xl font-black text-yellow-700 leading-none mb-0.5 tracking-tight">{countLate}</div>
+                  <div className="text-[10px] font-bold text-yellow-800 tracking-wider uppercase">Informed Late</div>
+                  <div className="text-[9px] text-slate-500 font-medium mt-0.5">Admin Approved</div>
                 </div>
 
-                {/* 5. Approved Leave */}
+                {/* 6. Approved Leave */}
                 <div
                   onClick={() => setStatusFilter(statusFilter === 'LEAVE' ? 'ALL' : 'LEAVE')}
-                  className={`p-4 rounded-2xl border transition-all cursor-pointer group ${
+                  className={`p-3 rounded-2xl border transition-all cursor-pointer group relative overflow-hidden ${
                     statusFilter === 'LEAVE'
-                      ? 'bg-purple-50/50 border-purple-600 ring-2 ring-purple-500/20 shadow-sm'
-                      : 'bg-white border-[#dcdcdc] hover:border-purple-600 shadow-sm'
+                      ? 'bg-gradient-to-br from-purple-50 to-white border-purple-600 ring-2 ring-purple-500/30 shadow-md scale-[1.02]'
+                      : 'bg-white border-slate-200 hover:border-purple-300 hover:shadow-sm'
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="p-2 rounded-xl bg-purple-100 text-purple-800 transition-transform group-hover:scale-110 duration-200">
-                      <HelpCircle className="w-5 h-5 text-purple-700" />
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className={`p-1.5 rounded-lg transition-transform group-hover:scale-110 duration-200 ${
+                      statusFilter === 'LEAVE' ? 'bg-purple-600 text-white' : 'bg-purple-100 text-purple-800'
+                    }`}>
+                      <HelpCircle className="w-4 h-4" />
                     </div>
-                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 uppercase tracking-wider border border-purple-200">
-                      Permission
+                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-purple-100 text-purple-800 uppercase tracking-wider font-mono">
+                      Leave
                     </span>
                   </div>
-                  <div className="text-3xl font-bold text-[#1f2d2a] leading-none mb-1 tracking-tighter">{countInformed}</div>
-                  <div className="text-[10px] font-bold text-purple-800 tracking-wider uppercase">Approved Leave</div>
+                  <div className="text-2xl sm:text-3xl font-black text-purple-700 leading-none mb-0.5 tracking-tight">{countInformed}</div>
+                  <div className="text-[10px] font-bold text-purple-800 tracking-wider uppercase">On Leave</div>
+                  <div className="text-[9px] text-slate-500 font-medium mt-0.5">Official Sanction</div>
                 </div>
 
-                {/* 6. Absent */}
+                {/* 7. Absent */}
                 <div
                   onClick={() => setStatusFilter(statusFilter === 'ABSENT' ? 'ALL' : 'ABSENT')}
-                  className={`p-4 rounded-2xl border transition-all cursor-pointer group ${
+                  className={`p-3 rounded-2xl border transition-all cursor-pointer group relative overflow-hidden ${
                     statusFilter === 'ABSENT'
-                      ? 'bg-rose-50/50 border-rose-600 ring-2 ring-rose-500/20 shadow-sm'
-                      : 'bg-white border-[#dcdcdc] hover:border-rose-600 shadow-sm'
+                      ? 'bg-gradient-to-br from-rose-50 to-white border-rose-600 ring-2 ring-rose-500/30 shadow-md scale-[1.02]'
+                      : 'bg-white border-slate-200 hover:border-rose-300 hover:shadow-sm'
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="p-2 rounded-xl bg-rose-100 text-rose-700 transition-transform group-hover:scale-110 duration-200">
-                      <XCircle className="w-5 h-5 text-rose-700" />
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className={`p-1.5 rounded-lg transition-transform group-hover:scale-110 duration-200 ${
+                      statusFilter === 'ABSENT' ? 'bg-rose-600 text-white' : 'bg-rose-100 text-rose-700'
+                    }`}>
+                      <XCircle className="w-4 h-4" />
                     </div>
-                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 uppercase tracking-wider border border-rose-200">
-                      Unexcused
+                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-rose-100 text-rose-800 uppercase tracking-wider font-mono">
+                      {countAbsent > 0 ? 'Action' : 'Zero'}
                     </span>
                   </div>
-                  <div className="text-3xl font-bold text-[#1f2d2a] leading-none mb-1 tracking-tighter">{countAbsent}</div>
+                  <div className="text-2xl sm:text-3xl font-black text-rose-600 leading-none mb-0.5 tracking-tight">{countAbsent}</div>
                   <div className="text-[10px] font-bold text-rose-700 tracking-wider uppercase">Absent</div>
+                  <div className="text-[9px] text-rose-500 font-semibold mt-0.5">{countAbsent > 0 ? 'Unexcused' : 'Full Attendance'}</div>
                 </div>
               </div>
 
+              {/* Active Matrix Filter Indicator Pill */}
+              {statusFilter !== 'ALL' && (
+                <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 px-3.5 py-1.5 rounded-xl text-xs">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-bold text-emerald-900 text-xs">Active Matrix Filter:</span>
+                    <span className="font-mono font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs">
+                      {statusFilter === 'PRESENT' && `Total Joined (${countPresent} Leaders)`}
+                      {statusFilter === 'PHYSICAL' && `In-Person Room (${countPhysical} Leaders)`}
+                      {statusFilter === 'VIRTUAL' && `Virtual Meet (${countVirtual} Leaders)`}
+                      {statusFilter === 'INFORMED_LATE' && `Informed Late (${countLate} Leaders)`}
+                      {statusFilter === 'LEAVE' && `On Leave (${countInformed} Leaders)`}
+                      {statusFilter === 'ABSENT' && `Absent (${countAbsent} Leaders)`}
+                    </span>
+                    <span className="text-slate-500 text-[11px]">(Showing {filteredRecords.length} of {recordsForDate.length} leaders)</span>
+                  </div>
+                  <button
+                    onClick={() => setStatusFilter('ALL')}
+                    className="flex items-center gap-1 font-bold text-emerald-800 hover:text-emerald-950 px-2 py-0.5 rounded-lg bg-white border border-emerald-300 text-xs shadow-2xs cursor-pointer transition-colors"
+                  >
+                    <X className="w-3.5 h-3.5 text-emerald-700" />
+                    <span>Clear Filter</span>
+                  </button>
+                </div>
+              )}
+
               {/* Filter & Dispatch Action Bar */}
-              <div className="bg-white p-4 rounded-2xl border border-[#dcdcdc] shadow-sm flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
+              <div className="bg-white p-3 sm:p-3.5 rounded-2xl border border-[#dcdcdc] shadow-xs flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
                 <div className="flex items-center gap-2 flex-1">
                   <div className="relative flex-1 max-w-sm">
                     <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                     <input
                       type="text"
-                      placeholder="Search leader by name or department..."
+                      placeholder="Search leader by name, department, or code..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-[#dcdcdc] rounded-xl text-xs text-[#1f2d2a] placeholder-slate-400 font-semibold focus:outline-none focus:border-[#2e7d32] focus:ring-1 focus:ring-[#2e7d32]"
@@ -1537,18 +1663,15 @@ export const UnifiedAdminDashboard: React.FC = () => {
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
-                    className="bg-slate-50 border border-[#dcdcdc] text-[#1f2d2a] text-xs px-3 py-2 rounded-xl focus:outline-none focus:border-[#2e7d32] font-bold"
+                    className="bg-slate-50 border border-[#dcdcdc] text-[#1f2d2a] text-xs px-3 py-2 rounded-xl focus:outline-none focus:border-[#2e7d32] font-bold cursor-pointer"
                   >
-                    <option value="ALL">All States</option>
-                    <option value="PHYSICAL">In-Person (Physical 5th Flr)</option>
-                    <option value="VIRTUAL">Virtual (Google Meet)</option>
-                    <option value="PRESENT">Present (Verified)</option>
-                    <option value="INFORMED_LATE">Informed Late (Admin Approved)</option>
-                    <option value="CHECKED_IN">QR Scanned (Pending)</option>
-                    <option value="INFORMED_ABSENT">Informed Leave</option>
-                    <option value="LEAVE">Approved Leave</option>
-                    <option value="PENDING">Pending / Unresolved</option>
-                    <option value="ABSENT">Absent</option>
+                    <option value="ALL">All Leaders ({totalLeaders})</option>
+                    <option value="PRESENT">Total Joined / Present ({countPresent})</option>
+                    <option value="PHYSICAL">In-Person (Room 5th Flr) ({countPhysical})</option>
+                    <option value="VIRTUAL">Virtual (Google Meet) ({countVirtual})</option>
+                    <option value="INFORMED_LATE">Informed Late ({countLate})</option>
+                    <option value="LEAVE">Approved Leave ({countInformed})</option>
+                    <option value="ABSENT">Absent ({countAbsent})</option>
                   </select>
                 </div>
 
@@ -1810,195 +1933,465 @@ export const UnifiedAdminDashboard: React.FC = () => {
           )}
 
           {/* ================= TAB 4: LEADERS & EMPLOYEES ROSTER ================= */}
-          {activeTab === 'leaders' && (
-            <div className="space-y-6">
-              <div className="fluent-card p-5 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                  <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-                    <Users className="w-5 h-5 text-orange-600" />
-                    <span>Hospital Leaders Directory ({leaders.length})</span>
-                    <span className="text-[11px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-300">
-                      Active: {leaders.filter((l) => l.is_active !== false).length}
-                    </span>
-                    {leaders.filter((l) => l.is_active === false).length > 0 && (
-                      <span className="text-[11px] bg-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded-full border border-slate-300">
-                        Disabled: {leaders.filter((l) => l.is_active === false).length}
-                      </span>
-                    )}
-                  </h3>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Official hospital leaders. Only active leaders participate in DOM attendance register & receive notifications.
-                  </p>
-                </div>
+          {activeTab === 'leaders' && (() => {
+            const filteredLeaders = leaders.filter((lead) => {
+              if (rosterStatusFilter === 'ACTIVE' && lead.is_active === false) return false;
+              if (rosterStatusFilter === 'DISABLED' && lead.is_active !== false) return false;
 
-                <div className="flex items-center gap-3 w-full sm:w-auto">
-                  {/* Status Filter */}
-                  <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+              if (leaderDeptFilter !== 'ALL') {
+                const leadDeptId = lead.department_id || lead.department?.id;
+                const leadDeptName = lead.department?.name?.trim().toLowerCase();
+                const leadDeptCode = lead.department?.code?.trim().toLowerCase();
+                const targetDept = departments.find((d) => d.id === leaderDeptFilter);
+                const targetName = targetDept?.name.trim().toLowerCase();
+                const targetCode = targetDept?.code.trim().toLowerCase();
+
+                const matches =
+                  leadDeptId === leaderDeptFilter ||
+                  (targetName && leadDeptName === targetName) ||
+                  (targetCode && leadDeptCode === targetCode);
+                if (!matches) return false;
+              }
+
+              if (leaderSearchTerm.trim()) {
+                const q = leaderSearchTerm.toLowerCase();
+                const matchName = lead.full_name?.toLowerCase().includes(q);
+                const matchEmail = lead.email?.toLowerCase().includes(q);
+                const matchPhone = lead.phone?.toLowerCase().includes(q);
+                const matchCode = lead.employee_code?.toLowerCase().includes(q);
+                const matchDept = lead.department?.name?.toLowerCase().includes(q) || lead.department?.code?.toLowerCase().includes(q);
+                if (!matchName && !matchEmail && !matchPhone && !matchCode && !matchDept) return false;
+              }
+
+              return true;
+            });
+
+            return (
+              <div className="space-y-5">
+                {/* Header & Controls Bar */}
+                <div className="bg-white rounded-2xl p-5 border border-[#dcdcdc] shadow-sm flex flex-col gap-4">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-slate-100">
+                    <div>
+                      <h3 className="text-lg font-bold text-[#1f2d2a] flex items-center gap-2 uppercase tracking-tight">
+                        <Users className="w-5 h-5 text-[#2e7d32]" />
+                        <span>Hospital Leaders <span className="text-[#2e7d32]">Roster</span></span>
+                        <span className="text-[10px] bg-[#cfead6] text-[#2e7d32] font-bold px-2.5 py-0.5 rounded-full border border-[#2e7d32]/20">
+                          {leaders.length} Registered
+                        </span>
+                        <span className="text-[10px] bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded-full border border-emerald-200">
+                          Active: {leaders.filter((l) => l.is_active !== false).length}
+                        </span>
+                        {leaders.filter((l) => l.is_active === false).length > 0 && (
+                          <span className="text-[10px] bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded-full border border-slate-200">
+                            Disabled: {leaders.filter((l) => l.is_active === false).length}
+                          </span>
+                        )}
+                      </h3>
+                      <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+                        Official hospital leadership team. Active leaders participate in morning DOM standup and receive automated notices.
+                      </p>
+                    </div>
+
                     <button
-                      type="button"
-                      onClick={() => setRosterStatusFilter('ALL')}
-                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                        rosterStatusFilter === 'ALL'
-                          ? 'bg-white text-slate-900 shadow-xs'
-                          : 'text-slate-600 hover:text-slate-900'
-                      }`}
+                      onClick={() => {
+                        setEditingLeader(null);
+                        setLeaderForm({
+                          full_name: '',
+                          email: '',
+                          phone: '',
+                          department_id: departments[0]?.id || '',
+                          employee_code: `SBH-${Date.now().toString().slice(-4)}`,
+                          expected_mode: 'PHYSICAL',
+                          role: 'LEADER',
+                          is_active: true,
+                          initialPassword: '123456',
+                        });
+                        setFormError('');
+                        setFormSuccess('');
+                        setShowAddLeaderModal(true);
+                      }}
+                      className="px-5 py-2.5 bg-[#2e7d32] hover:bg-[#256628] text-white rounded-2xl text-[10px] font-black tracking-[0.2em] shadow-sm transition-all active:scale-[0.98] flex items-center justify-center gap-2 uppercase cursor-pointer shrink-0"
                     >
-                      All ({leaders.length})
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setRosterStatusFilter('ACTIVE')}
-                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                        rosterStatusFilter === 'ACTIVE'
-                          ? 'bg-emerald-600 text-white shadow-xs'
-                          : 'text-slate-600 hover:text-emerald-700'
-                      }`}
-                    >
-                      Active ({leaders.filter((l) => l.is_active !== false).length})
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setRosterStatusFilter('DISABLED')}
-                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                        rosterStatusFilter === 'DISABLED'
-                          ? 'bg-slate-700 text-white shadow-xs'
-                          : 'text-slate-600 hover:text-slate-900'
-                      }`}
-                    >
-                      Disabled ({leaders.filter((l) => l.is_active === false).length})
+                      <UserPlus className="w-4 h-4" />
+                      <span>Add New Leader</span>
                     </button>
                   </div>
 
-                  <button
-                    onClick={() => {
-                      setEditingLeader(null);
-                      setLeaderForm({
-                        full_name: '',
-                        email: '',
-                        phone: '',
-                        department_id: departments[0]?.id || '',
-                        employee_code: `SBH-${Date.now().toString().slice(-4)}`,
-                        expected_mode: 'PHYSICAL',
-                        role: 'LEADER',
-                        is_active: true,
-                        initialPassword: '123456',
-                      });
-                      setFormError('');
-                      setFormSuccess('');
-                      setShowAddLeaderModal(true);
-                    }}
-                    className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white rounded-xl text-xs font-bold shadow-md shadow-orange-600/25 transition-all cursor-pointer shrink-0"
-                  >
-                    <UserPlus className="w-4 h-4" />
-                    <span>Add Leader</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Leaders Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {leaders
-                  .filter((lead) => {
-                    if (rosterStatusFilter === 'ACTIVE') return lead.is_active !== false;
-                    if (rosterStatusFilter === 'DISABLED') return lead.is_active === false;
-                    return true;
-                  })
-                  .map((lead) => (
-                    <div
-                      key={lead.id}
-                      className={`fluent-card p-5 rounded-2xl border-t-4 ${
-                        lead.is_active !== false ? 'border-t-orange-500' : 'border-t-slate-400 opacity-75 bg-slate-50/70'
-                      } flex flex-col justify-between fluent-card-hover transition-all`}
-                    >
-                      <div>
-                        <div className="flex justify-between items-start">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[10px] font-mono font-bold uppercase bg-orange-100 text-orange-800 px-2 py-0.5 rounded border border-orange-200">
-                              {lead.role}
-                            </span>
-                            <span
-                              className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${
-                                lead.is_active !== false
-                                  ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                                  : 'bg-slate-200 text-slate-700 border-slate-300'
-                              }`}
-                            >
-                              {lead.is_active !== false ? 'Active' : 'Disabled'}
-                            </span>
-                          </div>
-                          <span className="text-xs font-mono text-slate-400 font-semibold">{lead.employee_code}</span>
-                        </div>
-
-                        <h4 className="text-base font-black text-slate-900 mt-3">{lead.full_name}</h4>
-                        <p className="text-xs text-slate-600 font-semibold flex items-center gap-1 mt-0.5">
-                          <Building className="w-3.5 h-3.5 text-slate-400" />
-                          {lead.department?.name || 'Department'}
-                        </p>
-
-                        <div className="mt-4 space-y-1.5 text-xs text-slate-600 font-mono">
-                          <div className="flex items-center gap-2 text-slate-500">
-                            <Mail className="w-3.5 h-3.5 text-orange-600" />
-                            <span className="truncate">{lead.email}</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-slate-500">
-                            <Phone className="w-3.5 h-3.5 text-emerald-600" />
-                            <span>{lead.phone || 'No Phone'}</span>
-                          </div>
-                        </div>
+                  {/* Search, Department Filter, Status Filter & View Toggle */}
+                  <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1">
+                      {/* Search Input */}
+                      <div className="relative flex-1">
+                        <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                        <input
+                          type="text"
+                          placeholder="Search leader by name, code, email, phone, or department..."
+                          value={leaderSearchTerm}
+                          onChange={(e) => setLeaderSearchTerm(e.target.value)}
+                          className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-[#dcdcdc] rounded-xl text-xs text-[#1f2d2a] placeholder-slate-400 focus:outline-none focus:border-[#2e7d32] font-semibold"
+                        />
+                        {leaderSearchTerm && (
+                          <button
+                            onClick={() => setLeaderSearchTerm('')}
+                            className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 text-xs font-bold"
+                          >
+                            ✕
+                          </button>
+                        )}
                       </div>
 
-                      <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between">
-                        <span className="text-[11px] text-slate-500">
-                          Expected: <span className="text-slate-800 font-bold">{lead.expected_mode}</span>
-                        </span>
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => handleToggleLeaderStatus(lead)}
-                            className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                              lead.is_active !== false
-                                ? 'text-slate-400 hover:text-amber-600 hover:bg-amber-50'
-                                : 'text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50'
-                            }`}
-                            title={lead.is_active !== false ? 'Disable Leader (Hide from Attendance)' : 'Activate Leader'}
-                          >
-                            {lead.is_active !== false ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
-                          </button>
-                          <button
-                            onClick={() => openEditLeaderModal(lead)}
-                            className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
-                            title="Edit Leader"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteLeader(lead.id, lead.full_name)}
-                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                            title="Delete Leader"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
+                      {/* Department Filter Dropdown */}
+                      <div className="sm:w-56">
+                        <select
+                          value={leaderDeptFilter}
+                          onChange={(e) => setLeaderDeptFilter(e.target.value)}
+                          className="w-full px-3 py-2 bg-slate-50 border border-[#dcdcdc] rounded-xl text-xs text-[#1f2d2a] font-bold focus:outline-none focus:border-[#2e7d32] cursor-pointer"
+                        >
+                          <option value="ALL">All Departments ({departments.length})</option>
+                          {departments.map((d) => (
+                            <option key={d.id} value={d.id}>
+                              {d.name} ({d.code})
+                            </option>
+                          ))}
+                        </select>
                       </div>
                     </div>
-                  ))}
+
+                    <div className="flex items-center justify-between sm:justify-end gap-2.5 shrink-0">
+                      {/* Status Filter Tabs */}
+                      <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+                        <button
+                          type="button"
+                          onClick={() => setRosterStatusFilter('ALL')}
+                          className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                            rosterStatusFilter === 'ALL'
+                              ? 'bg-white text-[#1f2d2a] shadow-xs'
+                              : 'text-slate-500 hover:text-[#1f2d2a]'
+                          }`}
+                        >
+                          All ({leaders.length})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setRosterStatusFilter('ACTIVE')}
+                          className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                            rosterStatusFilter === 'ACTIVE'
+                              ? 'bg-[#2e7d32] text-white shadow-xs'
+                              : 'text-slate-500 hover:text-[#2e7d32]'
+                          }`}
+                        >
+                          Active ({leaders.filter((l) => l.is_active !== false).length})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setRosterStatusFilter('DISABLED')}
+                          className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                            rosterStatusFilter === 'DISABLED'
+                              ? 'bg-slate-700 text-white shadow-xs'
+                              : 'text-slate-500 hover:text-slate-900'
+                          }`}
+                        >
+                          Disabled ({leaders.filter((l) => l.is_active === false).length})
+                        </button>
+                      </div>
+
+                      {/* View Mode Toggle (List vs Grid) */}
+                      <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+                        <button
+                          type="button"
+                          onClick={() => setLeaderViewMode('list')}
+                          className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                            leaderViewMode === 'list'
+                              ? 'bg-white text-[#2e7d32] shadow-xs'
+                              : 'text-slate-400 hover:text-[#1f2d2a]'
+                          }`}
+                          title="Detailed List / Table View"
+                        >
+                          <List size={16} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setLeaderViewMode('grid')}
+                          className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                            leaderViewMode === 'grid'
+                              ? 'bg-white text-[#2e7d32] shadow-xs'
+                              : 'text-slate-400 hover:text-[#1f2d2a]'
+                          }`}
+                          title="Grid Cards View"
+                        >
+                          <Grid size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* No Results Message */}
+                {filteredLeaders.length === 0 && (
+                  <div className="bg-white rounded-2xl p-8 border border-[#dcdcdc] text-center space-y-3">
+                    <Users className="w-12 h-12 text-slate-300 mx-auto" />
+                    <h4 className="text-base font-bold text-[#1f2d2a]">No Leaders Found</h4>
+                    <p className="text-xs text-slate-500 max-w-md mx-auto">
+                      No leader matches the current search or filter criteria. Try clearing search filters or add a new leader.
+                    </p>
+                    <button
+                      onClick={() => {
+                        setLeaderSearchTerm('');
+                        setLeaderDeptFilter('ALL');
+                        setRosterStatusFilter('ALL');
+                      }}
+                      className="px-4 py-2 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-xl text-xs font-bold transition-all"
+                    >
+                      Reset Filters
+                    </button>
+                  </div>
+                )}
+
+                {/* View 1: Detailed List / Table View (Crisp, High-Legibility) */}
+                {leaderViewMode === 'list' && filteredLeaders.length > 0 && (
+                  <div className="bg-white rounded-2xl border border-[#dcdcdc] shadow-sm overflow-hidden">
+                    <div className="w-full overflow-x-auto custom-scrollbar">
+                      <table className="w-full text-left border-collapse min-w-[760px]">
+                        <thead>
+                          <tr className="bg-slate-50/80 border-b border-[#dcdcdc] text-[10px] font-black uppercase tracking-wider text-slate-500">
+                            <th className="py-3 px-4">Leader Profile</th>
+                            <th className="py-3 px-4">Department Master</th>
+                            <th className="py-3 px-4">Contact (Email & WhatsApp)</th>
+                            <th className="py-3 px-4">Expected Mode</th>
+                            <th className="py-3 px-4 text-center">Status</th>
+                            <th className="py-3 px-4 text-right">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {filteredLeaders.map((lead) => (
+                            <tr
+                              key={lead.id}
+                              className={`transition-colors hover:bg-slate-50/60 ${
+                                lead.is_active === false ? 'opacity-65 bg-slate-50/40' : ''
+                              }`}
+                            >
+                              {/* Leader Name, Role, Employee ID */}
+                              <td className="py-3.5 px-4">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-9 h-9 rounded-xl bg-[#cfead6] text-[#2e7d32] font-black text-xs flex items-center justify-center shrink-0 border border-[#2e7d32]/20 shadow-2xs">
+                                    {lead.full_name.slice(0, 2).toUpperCase()}
+                                  </div>
+                                  <div>
+                                    <div className="font-bold text-[#1f2d2a] text-sm leading-snug">
+                                      {lead.full_name}
+                                    </div>
+                                    <div className="flex items-center gap-1.5 mt-0.5">
+                                      <span className="text-[10px] font-mono font-bold text-slate-500 bg-slate-100 px-1.5 py-0.2 rounded border border-slate-200">
+                                        {lead.employee_code || 'ID-N/A'}
+                                      </span>
+                                      <span className="text-[9px] font-bold uppercase px-1.5 py-0.2 rounded bg-orange-50 text-orange-700 border border-orange-200">
+                                        {lead.role || 'LEADER'}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+
+                              {/* Department */}
+                              <td className="py-3.5 px-4">
+                                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-900 bg-[#cfead6]/70 border border-[#2e7d32]/20 px-2.5 py-1 rounded-lg">
+                                  <Building size={13} className="text-[#2e7d32]" />
+                                  <span>{lead.department?.name || 'Department'}</span>
+                                  <span className="text-[10px] font-mono text-slate-500 font-semibold">
+                                    ({lead.department?.code || 'DEPT'})
+                                  </span>
+                                </span>
+                              </td>
+
+                              {/* Contact Info */}
+                              <td className="py-3.5 px-4">
+                                <div className="space-y-1 text-xs font-mono">
+                                  <a
+                                    href={`mailto:${lead.email}`}
+                                    className="flex items-center gap-1.5 text-slate-600 hover:text-orange-600 truncate max-w-[220px]"
+                                    title={lead.email}
+                                  >
+                                    <Mail size={13} className="text-orange-500 shrink-0" />
+                                    <span className="truncate">{lead.email}</span>
+                                  </a>
+                                  <a
+                                    href={`https://wa.me/${(lead.phone || '').replace(/\D/g, '')}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-1.5 text-slate-600 hover:text-emerald-600"
+                                  >
+                                    <Phone size={13} className="text-[#2e7d32] shrink-0" />
+                                    <span>{lead.phone || 'No Phone'}</span>
+                                  </a>
+                                </div>
+                              </td>
+
+                              {/* Expected Attendance Mode */}
+                              <td className="py-3.5 px-4">
+                                <span
+                                  className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-lg border ${
+                                    lead.expected_mode === 'VIRTUAL'
+                                      ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                      : 'bg-orange-50 text-orange-800 border-orange-200'
+                                  }`}
+                                >
+                                  {lead.expected_mode === 'VIRTUAL' ? <Video size={13} /> : <Building size={13} />}
+                                  <span>{lead.expected_mode === 'VIRTUAL' ? 'Virtual (Meet)' : 'Physical (Room)'}</span>
+                                </span>
+                              </td>
+
+                              {/* Status Toggle */}
+                              <td className="py-3.5 px-4 text-center">
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleLeaderStatus(lead)}
+                                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border cursor-pointer transition-all hover:scale-105 ${
+                                    lead.is_active !== false
+                                      ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                      : 'bg-slate-200 text-slate-700 border-slate-300'
+                                  }`}
+                                  title={lead.is_active !== false ? 'Click to Disable' : 'Click to Activate'}
+                                >
+                                  <span className={`w-1.5 h-1.5 rounded-full ${lead.is_active !== false ? 'bg-[#2e7d32] animate-pulse' : 'bg-slate-400'}`} />
+                                  <span>{lead.is_active !== false ? 'Active' : 'Disabled'}</span>
+                                </button>
+                              </td>
+
+                              {/* Actions */}
+                              <td className="py-3.5 px-4 text-right">
+                                <div className="flex items-center justify-end gap-1.5">
+                                  <button
+                                    onClick={() => openEditLeaderModal(lead)}
+                                    className="p-1.5 text-slate-600 hover:text-[#2e7d32] hover:bg-[#cfead6]/30 rounded-lg transition-colors cursor-pointer border border-transparent hover:border-[#2e7d32]/20"
+                                    title="Edit Leader Profile"
+                                  >
+                                    <Edit2 size={14} />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteLeader(lead.id, lead.full_name)}
+                                    className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer border border-transparent hover:border-rose-200"
+                                    title="Delete Leader"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* View 2: Grid View (Cards) */}
+                {leaderViewMode === 'grid' && filteredLeaders.length > 0 && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {filteredLeaders.map((lead) => (
+                      <div
+                        key={lead.id}
+                        className={`bg-white p-5 rounded-2xl border transition-all flex flex-col justify-between hover:border-[#2e7d32] shadow-sm ${
+                          lead.is_active !== false ? 'border-[#dcdcdc]' : 'border-slate-300 opacity-75 bg-slate-50/70'
+                        }`}
+                      >
+                        <div>
+                          <div className="flex justify-between items-start">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[10px] font-mono font-bold uppercase bg-orange-50 text-orange-700 px-2 py-0.5 rounded border border-orange-200">
+                                {lead.role || 'LEADER'}
+                              </span>
+                              <span
+                                className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${
+                                  lead.is_active !== false
+                                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                    : 'bg-slate-200 text-slate-700 border-slate-300'
+                                }`}
+                              >
+                                {lead.is_active !== false ? 'Active' : 'Disabled'}
+                              </span>
+                            </div>
+                            <span className="text-xs font-mono text-slate-400 font-bold">{lead.employee_code}</span>
+                          </div>
+
+                          <div className="flex items-center gap-3 mt-3">
+                            <div className="w-10 h-10 rounded-xl bg-[#cfead6] text-[#2e7d32] font-black text-sm flex items-center justify-center shrink-0 border border-[#2e7d32]/20">
+                              {lead.full_name.slice(0, 2).toUpperCase()}
+                            </div>
+                            <div className="min-w-0">
+                              <h4 className="text-base font-bold text-[#1f2d2a] truncate">{lead.full_name}</h4>
+                              <p className="text-xs text-slate-600 font-semibold flex items-center gap-1 mt-0.5 truncate">
+                                <Building className="w-3.5 h-3.5 text-[#2e7d32] shrink-0" />
+                                <span className="truncate">{lead.department?.name || 'Department'}</span>
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="mt-4 space-y-1.5 text-xs text-slate-600 font-mono">
+                            <div className="flex items-center gap-2 text-slate-500">
+                              <Mail className="w-3.5 h-3.5 text-orange-600 shrink-0" />
+                              <span className="truncate">{lead.email}</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-slate-500">
+                              <Phone className="w-3.5 h-3.5 text-[#2e7d32] shrink-0" />
+                              <span>{lead.phone || 'No Phone'}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between">
+                          <span className="text-[11px] text-slate-500">
+                            Expected: <strong className="text-[#1f2d2a]">{lead.expected_mode}</strong>
+                          </span>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => handleToggleLeaderStatus(lead)}
+                              className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                                lead.is_active !== false
+                                  ? 'text-slate-400 hover:text-amber-600 hover:bg-amber-50'
+                                  : 'text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50'
+                              }`}
+                              title={lead.is_active !== false ? 'Disable Leader' : 'Activate Leader'}
+                            >
+                              {lead.is_active !== false ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
+                            </button>
+                            <button
+                              onClick={() => openEditLeaderModal(lead)}
+                              className="p-1.5 text-slate-500 hover:text-[#2e7d32] hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                              title="Edit Leader"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteLeader(lead.id, lead.full_name)}
+                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                              title="Delete Leader"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* ================= TAB 5: DEPARTMENTS MASTER (24 OFFICIAL DEPARTMENTS) ================= */}
           {activeTab === 'departments' && (
             <div className="space-y-6">
-              <div className="fluent-card p-5 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="bg-white p-5 rounded-2xl border border-[#dcdcdc] shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                  <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-                    <Building className="w-5 h-5 text-orange-600" />
-                    <span>Hospital Departments Master ({departments.length})</span>
-                    <span className="text-[11px] bg-emerald-100 text-emerald-800 font-bold px-2.5 py-0.5 rounded-full border border-emerald-300">
+                  <h3 className="text-lg font-bold text-[#1f2d2a] flex items-center gap-2 uppercase tracking-tight">
+                    <Building className="w-5 h-5 text-[#2e7d32]" />
+                    <span>Hospital Departments <span className="text-[#2e7d32]">Master</span> ({departments.length})</span>
+                    <span className="text-[10px] bg-[#cfead6] text-[#2e7d32] font-bold px-2.5 py-0.5 rounded-full border border-[#2e7d32]/20">
                       Official 24 Departments Active
                     </span>
                   </h3>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Official departments for hospital leaders & operations. You can add, edit, or delete departments.
+                    Official hospital departments roster. View assigned leaders, add new departments, or assign leaders to a department.
                   </p>
                 </div>
 
@@ -2010,7 +2403,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                       placeholder="Search departments..."
                       value={deptSearchTerm}
                       onChange={(e) => setDeptSearchTerm(e.target.value)}
-                      className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-orange-500"
+                      className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-[#dcdcdc] rounded-xl text-xs text-[#1f2d2a] placeholder-slate-400 focus:outline-none focus:border-[#2e7d32] font-semibold"
                     />
                   </div>
 
@@ -2022,7 +2415,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                       setDeptFormSuccess('');
                       setShowAddDeptModal(true);
                     }}
-                    className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white rounded-xl text-xs font-bold shadow-md shadow-orange-600/25 transition-all cursor-pointer shrink-0"
+                    className="flex items-center gap-1.5 px-4 py-2 bg-[#2e7d32] hover:bg-[#256628] text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer shrink-0"
                   >
                     <Plus className="w-4 h-4" />
                     <span>Add Department</span>
@@ -2030,52 +2423,152 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 </div>
               </div>
 
-              {/* Departments Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {/* Departments Grid with Assigned Leaders List */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {filteredDepartments.map((dept, idx) => {
-                  const assignedCount = leaders.filter((l) => l.department_id === dept.id).length;
+                  const deptLeaders = leaders.filter(
+                    (l) =>
+                      l.department_id === dept.id ||
+                      l.department?.id === dept.id ||
+                      (l.department?.name && l.department.name.trim().toLowerCase() === dept.name.trim().toLowerCase()) ||
+                      (l.department?.code && l.department.code.trim().toLowerCase() === dept.code.trim().toLowerCase())
+                  );
+
                   return (
                     <div
                       key={dept.id}
-                      className="fluent-card p-4 rounded-2xl border-t-4 border-t-emerald-600 flex flex-col justify-between fluent-card-hover"
+                      className="bg-white p-5 rounded-2xl border border-[#dcdcdc] hover:border-[#2e7d32] shadow-sm flex flex-col justify-between transition-all"
                     >
                       <div>
                         <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-mono text-slate-500 uppercase font-black bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                          <span className="text-[10px] font-mono font-black text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
                             {dept.code || `DEP-${idx + 1}`}
                           </span>
-                          <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-300">
+                          <span className="text-[10px] bg-[#cfead6] text-[#2e7d32] font-bold px-2 py-0.5 rounded-full border border-[#2e7d32]/20">
                             Active
                           </span>
                         </div>
 
-                        <h4 className="text-sm font-black text-slate-900 mt-2.5 truncate" title={dept.name}>
+                        <h4 className="text-base font-bold text-[#1f2d2a] mt-2.5 truncate" title={dept.name}>
                           {dept.name}
                         </h4>
 
-                        <div className="mt-3 text-xs text-slate-600 flex items-center justify-between bg-slate-50 p-2 rounded-xl border border-slate-100">
-                          <span className="text-[11px] text-slate-500">Assigned Leaders:</span>
-                          <span className="font-bold text-slate-900 bg-white px-2 py-0.5 rounded-md border border-slate-200 text-xs">
-                            {assignedCount}
+                        <div className="mt-2 text-xs text-slate-600 flex items-center justify-between bg-slate-50 px-2.5 py-1.5 rounded-xl border border-slate-100">
+                          <span className="text-[11px] font-bold text-slate-500">Assigned Leaders:</span>
+                          <span className={`font-black px-2 py-0.5 rounded-md text-xs border ${
+                            deptLeaders.length > 0
+                              ? 'bg-[#cfead6] text-[#2e7d32] border-[#2e7d32]/20'
+                              : 'bg-white text-slate-400 border-slate-200'
+                          }`}>
+                            {deptLeaders.length}
                           </span>
+                        </div>
+
+                        {/* List of Leaders in this Department */}
+                        <div className="mt-3">
+                          {deptLeaders.length > 0 ? (
+                            <div className="space-y-1.5 max-h-36 overflow-y-auto custom-scrollbar pr-1">
+                              {deptLeaders.map((lead) => (
+                                <div
+                                  key={lead.id}
+                                  className="flex items-center justify-between p-2 rounded-xl bg-slate-50 border border-slate-200/80 hover:bg-white hover:border-[#2e7d32]/40 transition-all text-xs"
+                                >
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <div className="w-6 h-6 rounded-lg bg-[#cfead6] text-[#2e7d32] font-black text-[10px] flex items-center justify-center shrink-0">
+                                      {lead.full_name.slice(0, 2).toUpperCase()}
+                                    </div>
+                                    <div className="min-w-0">
+                                      <div className="font-bold text-[#1f2d2a] truncate text-xs">{lead.full_name}</div>
+                                      <div className="text-[10px] text-slate-400 font-mono truncate">{lead.employee_code} • {lead.expected_mode}</div>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <span className={`text-[8px] font-bold px-1.5 py-0.2 rounded-full ${
+                                      lead.is_active !== false ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-600'
+                                    }`}>
+                                      {lead.is_active !== false ? 'Active' : 'Off'}
+                                    </span>
+                                    <button
+                                      onClick={() => openEditLeaderModal(lead)}
+                                      className="p-1 text-slate-400 hover:text-[#2e7d32] hover:bg-slate-100 rounded-md cursor-pointer"
+                                      title="Edit Leader"
+                                    >
+                                      <Edit2 size={12} />
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="p-3 rounded-xl bg-slate-50 border border-dashed border-slate-200 text-center">
+                              <p className="text-[11px] text-slate-400 font-medium">No leader assigned yet</p>
+                              <button
+                                onClick={() => {
+                                  setEditingLeader(null);
+                                  setLeaderForm({
+                                    full_name: '',
+                                    email: '',
+                                    phone: '',
+                                    department_id: dept.id,
+                                    employee_code: `SBH-${dept.code}-${Date.now().toString().slice(-4)}`,
+                                    expected_mode: 'PHYSICAL',
+                                    role: 'LEADER',
+                                    is_active: true,
+                                    initialPassword: '123456',
+                                  });
+                                  setFormError('');
+                                  setFormSuccess('');
+                                  setShowAddLeaderModal(true);
+                                }}
+                                className="mt-1.5 text-[10px] font-bold text-[#2e7d32] hover:underline inline-flex items-center gap-1 cursor-pointer"
+                              >
+                                <Plus size={11} /> Assign Leader
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </div>
 
-                      <div className="mt-4 pt-2.5 border-t border-slate-100 flex items-center justify-end gap-1.5">
+                      <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
                         <button
-                          onClick={() => openEditDeptModal(dept)}
-                          className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
-                          title="Edit Department"
+                          onClick={() => {
+                            setEditingLeader(null);
+                            setLeaderForm({
+                              full_name: '',
+                              email: '',
+                              phone: '',
+                              department_id: dept.id,
+                              employee_code: `SBH-${dept.code}-${Date.now().toString().slice(-4)}`,
+                              expected_mode: 'PHYSICAL',
+                              role: 'LEADER',
+                              is_active: true,
+                              initialPassword: '123456',
+                            });
+                            setFormError('');
+                            setFormSuccess('');
+                            setShowAddLeaderModal(true);
+                          }}
+                          className="text-[10px] font-bold text-[#2e7d32] hover:text-[#256628] flex items-center gap-1 cursor-pointer"
                         >
-                          <Edit2 className="w-3.5 h-3.5" />
+                          <UserPlus size={12} />
+                          <span>+ Add Leader</span>
                         </button>
-                        <button
-                          onClick={() => handleDeleteDepartment(dept.id, dept.name)}
-                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                          title="Delete Department"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => openEditDeptModal(dept)}
+                            className="p-1.5 text-slate-500 hover:text-[#2e7d32] hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                            title="Edit Department"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteDepartment(dept.id, dept.name)}
+                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                            title="Delete Department"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   );
@@ -2599,8 +3092,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
       {/* ================= MODAL: RESCHEDULE / CADENCE EDIT ================= */}
       {showScheduleEditModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200">
+        <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-[300] p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-lg w-full max-h-[92vh] overflow-y-auto custom-scrollbar p-6 shadow-2xl border border-slate-200 animate-in fade-in zoom-in duration-200">
             <h3 className="text-base font-black text-slate-900 mb-1 flex items-center gap-2">
               <Calendar className="w-5 h-5 text-orange-600" />
               <span>Modify Date Cadence & Schedule: {selectedDate}</span>
@@ -2747,18 +3240,18 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
       {/* ================= MODAL: ADD / EDIT LEADER ================= */}
       {showAddLeaderModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 animate-in fade-in zoom-in duration-200">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2.5 bg-orange-100 text-orange-700 rounded-2xl">
+        <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-[300] p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-lg w-full max-h-[92vh] overflow-hidden flex flex-col shadow-2xl border border-slate-200 animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center justify-between p-5 border-b border-slate-100 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-[#cfead6] text-[#2e7d32] rounded-2xl border border-[#2e7d32]/20">
                   <Users className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-black text-slate-900">
+                  <h3 className="text-base font-bold text-[#1f2d2a]">
                     {editingLeader ? 'Edit Hospital Leader Profile' : 'Add New Hospital Leader'}
                   </h3>
-                  <p className="text-[11px] text-slate-500 font-semibold">
+                  <p className="text-[11px] text-slate-500 font-medium">
                     Configure leader credentials, department, and active roster participation.
                   </p>
                 </div>
@@ -2766,27 +3259,27 @@ export const UnifiedAdminDashboard: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setShowAddLeaderModal(false)}
-                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 cursor-pointer"
+                className="p-1.5 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100 cursor-pointer"
               >
-                <XCircle className="w-5 h-5" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
             {formError && (
-              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl mb-3 flex items-center gap-2 font-semibold">
+              <div className="mx-5 mt-4 p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-center gap-2 font-semibold">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{formError}</span>
               </div>
             )}
 
             {formSuccess && (
-              <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-xl mb-3 flex items-center gap-2 font-bold animate-pulse">
+              <div className="mx-5 mt-4 p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-xl flex items-center gap-2 font-bold animate-pulse">
                 <Check className="w-4 h-4 shrink-0" />
                 <span>{formSuccess}</span>
               </div>
             )}
 
-            <form onSubmit={handleSaveLeader} className="space-y-3.5">
+            <form onSubmit={handleSaveLeader} className="p-5 sm:p-6 overflow-y-auto custom-scrollbar flex-1 space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">Full Name & Title</label>
                 <input
@@ -2795,11 +3288,11 @@ export const UnifiedAdminDashboard: React.FC = () => {
                   placeholder="e.g. Mr Naman Mishra"
                   value={leaderForm.full_name}
                   onChange={(e) => setLeaderForm({ ...leaderForm, full_name: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-orange-500 font-bold"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-[#1f2d2a] focus:outline-none focus:border-[#2e7d32] font-bold"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">Email Address</label>
                   <input
@@ -2808,7 +3301,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                     placeholder="e.g. name@domain.com"
                     value={leaderForm.email}
                     onChange={(e) => setLeaderForm({ ...leaderForm, email: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-orange-500 font-mono"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-[#1f2d2a] focus:outline-none focus:border-[#2e7d32] font-mono"
                   />
                 </div>
 
@@ -2820,18 +3313,18 @@ export const UnifiedAdminDashboard: React.FC = () => {
                     placeholder="+91 98765 43210"
                     value={leaderForm.phone}
                     onChange={(e) => setLeaderForm({ ...leaderForm, phone: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-orange-500 font-mono"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-[#1f2d2a] focus:outline-none focus:border-[#2e7d32] font-mono"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">Department Master</label>
                   <select
                     value={leaderForm.department_id}
                     onChange={(e) => setLeaderForm({ ...leaderForm, department_id: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-orange-500 font-bold"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-[#1f2d2a] focus:outline-none focus:border-[#2e7d32] font-bold cursor-pointer"
                   >
                     <option value="">Select Department</option>
                     {departments.map((d) => (
@@ -2839,6 +3332,11 @@ export const UnifiedAdminDashboard: React.FC = () => {
                         {d.name} ({d.code})
                       </option>
                     ))}
+                    {leaderForm.department_id && !departments.some((d) => d.id === leaderForm.department_id) && (
+                      <option value={leaderForm.department_id}>
+                        {editingLeader?.department?.name || 'Assigned Department'} ({editingLeader?.department?.code || 'DEPT'})
+                      </option>
+                    )}
                   </select>
                 </div>
 
@@ -2849,18 +3347,18 @@ export const UnifiedAdminDashboard: React.FC = () => {
                     placeholder="e.g. SBH-LEAD-101"
                     value={leaderForm.employee_code}
                     onChange={(e) => setLeaderForm({ ...leaderForm, employee_code: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-orange-500 font-mono"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-[#1f2d2a] focus:outline-none focus:border-[#2e7d32] font-mono"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">Expected Mode</label>
                   <select
                     value={leaderForm.expected_mode}
                     onChange={(e) => setLeaderForm({ ...leaderForm, expected_mode: e.target.value as any })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-orange-500"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-[#1f2d2a] focus:outline-none focus:border-[#2e7d32] font-bold cursor-pointer"
                   >
                     <option value="PHYSICAL">Physical (In-Person)</option>
                     <option value="VIRTUAL">Virtual (Google Meet)</option>
@@ -2876,20 +3374,20 @@ export const UnifiedAdminDashboard: React.FC = () => {
                     placeholder={editingLeader ? 'Leave empty to keep current' : '123456'}
                     value={leaderForm.initialPassword}
                     onChange={(e) => setLeaderForm({ ...leaderForm, initialPassword: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-orange-500 font-mono"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-[#1f2d2a] focus:outline-none focus:border-[#2e7d32] font-mono"
                   />
                 </div>
               </div>
 
               {/* ACTIVE STATUS TOGGLE / DISABLE USER OPTION */}
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between">
+              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between gap-3">
                 <div>
                   <div className="text-xs font-black text-slate-800 flex items-center gap-2">
                     <span>Account Participation Status:</span>
                     <span
                       className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border ${
                         leaderForm.is_active
-                          ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                          ? 'bg-[#cfead6] text-[#2e7d32] border-[#2e7d32]/20'
                           : 'bg-slate-200 text-slate-700 border-slate-300'
                       }`}
                     >
@@ -2907,7 +3405,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                   type="button"
                   onClick={() => setLeaderForm({ ...leaderForm, is_active: !leaderForm.is_active })}
                   className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                    leaderForm.is_active ? 'bg-emerald-600' : 'bg-slate-300'
+                    leaderForm.is_active ? 'bg-[#2e7d32]' : 'bg-slate-300'
                   }`}
                   title={leaderForm.is_active ? 'Click to Disable' : 'Click to Activate'}
                 >
@@ -2919,18 +3417,18 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 </button>
               </div>
 
-              <div className="flex justify-end gap-2 pt-3">
+              <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setShowAddLeaderModal(false)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer"
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSavingLeader}
-                  className="px-5 py-2.5 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white rounded-xl text-xs font-bold shadow-md shadow-orange-600/25 cursor-pointer disabled:opacity-60 flex items-center gap-2 active:scale-95 transition-transform"
+                  className="px-6 py-2.5 bg-[#2e7d32] hover:bg-[#256628] text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-700/20 cursor-pointer disabled:opacity-60 flex items-center gap-2 active:scale-95 transition-transform"
                 >
                   {isSavingLeader ? (
                     <>
@@ -2949,8 +3447,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
       {/* ================= MODAL: ADD / EDIT DEPARTMENT MASTER ================= */}
       {showAddDeptModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-in fade-in zoom-in duration-200">
+        <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-[300] p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-md w-full max-h-[92vh] overflow-y-auto custom-scrollbar p-6 shadow-2xl border border-slate-200 animate-in fade-in zoom-in duration-200">
             <h3 className="text-base font-black text-slate-900 mb-1 flex items-center gap-2">
               <Building className="w-5 h-5 text-orange-600" />
               <span>{editingDept ? 'Edit Hospital Department' : 'Add New Hospital Department'}</span>
@@ -3027,8 +3525,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
       {/* ================= MODAL: CHANGE ADMIN CREDENTIALS & USERNAME (STORED IN SUPABASE SQL) ================= */}
       {showPasswordModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
+        <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-[300] p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-md w-full max-h-[92vh] overflow-y-auto custom-scrollbar p-6 shadow-2xl border border-slate-200 animate-in fade-in zoom-in duration-200">
             <h3 className="text-base font-black text-slate-900 mb-1 flex items-center gap-2">
               <KeyRound className="w-4 h-4 text-orange-600" />
               Administrator Profile & Security
@@ -3133,8 +3631,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
       {/* ================= MODAL: GOOGLE MEET VIRTUAL SCREEN QR CODE ================= */}
       {showVirtualQrModal && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-8 text-center shadow-2xl relative border border-slate-200">
+        <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-[300] p-3 sm:p-4 overflow-y-auto animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-lg w-full max-h-[92vh] overflow-y-auto custom-scrollbar p-6 sm:p-8 text-center shadow-2xl relative border border-slate-200">
             <button
               onClick={() => setShowVirtualQrModal(false)}
               className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-800 rounded-full bg-slate-100 cursor-pointer text-sm"
@@ -3178,8 +3676,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
       {/* ================= MODAL: ADMIN INFORMED LEAVE VERIFICATION ================= */}
       {informedLeaveModal.isOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-in fade-in">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
+        <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-[300] p-3 sm:p-4 overflow-y-auto animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-md w-full max-h-[92vh] overflow-y-auto custom-scrollbar p-6 shadow-2xl border border-slate-200">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold">
@@ -3283,8 +3781,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
       {/* ================= MODAL: ADMIN INFORMED LATE VERIFICATION & APPROVAL ================= */}
       {informedLateModal.isOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-in fade-in">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
+        <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-[300] p-3 sm:p-4 overflow-y-auto animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-md w-full max-h-[92vh] overflow-y-auto custom-scrollbar p-6 shadow-2xl border border-slate-200">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold">
@@ -3471,8 +3969,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
       {/* ================= MODAL: DIRECTOR FORMAL EMAIL REPORT ================= */}
       {showEmailModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-[300] p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 flex flex-col max-h-[92vh]">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center font-bold">
@@ -3547,8 +4045,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
       {/* Dedicated Official WhatsApp Group Dispatch Modal (100% Group Only, Ex-Employee Protected) */}
       {groupDispatchModal && groupDispatchModal.isOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-[300] p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 flex flex-col max-h-[92vh]">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2.5">
                 <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600">

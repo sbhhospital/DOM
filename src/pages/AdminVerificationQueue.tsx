@@ -124,7 +124,7 @@ export const AdminVerificationQueue: React.FC = () => {
 
       {/* Rejection Modal with Mandatory Reason */}
       {rejectModalRecordId && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
             <div className="flex items-center gap-2 text-rose-600 mb-3">
               <AlertTriangle className="w-5 h-5" />

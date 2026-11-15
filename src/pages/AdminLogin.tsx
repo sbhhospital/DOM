@@ -24,7 +24,7 @@ import {
   Copy,
 } from 'lucide-react';
 import { useAuthSession } from '../context/AuthSessionContext';
-import { useDomApp } from '../context/DomAppContext';
+import { useDomApp, INITIAL_LEADERS } from '../context/DomAppContext';
 import { supabase } from '../lib/supabase';
 import { Leader } from '../types/database';
 import sbhLogo from '../assets/sbh-logo.png';
@@ -40,6 +40,36 @@ export const AdminLogin: React.FC = () => {
     fetchLiveAdminProfile,
   } = useAuthSession();
   const { leaders } = useDomApp();
+
+  // Always seed with initial leaders so dropdown is NEVER empty on first render
+  const [dbLeaders, setDbLeaders] = useState<Leader[]>(() => {
+    return leaders && leaders.length > 0 ? leaders : INITIAL_LEADERS;
+  });
+
+  // Direct fetch from Supabase on mount
+  useEffect(() => {
+    const fetchDirect = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('leaders')
+          .select('*')
+          .order('full_name', { ascending: true });
+        if (!error && data && data.length > 0) {
+          setDbLeaders(data as Leader[]);
+        }
+      } catch (e) {
+        console.warn('Direct leader fetch error:', e);
+      }
+    };
+    fetchDirect();
+  }, []);
+
+  // Sync if context updates
+  useEffect(() => {
+    if (leaders && leaders.length > 0) {
+      setDbLeaders(leaders);
+    }
+  }, [leaders]);
 
   const [usernameInput, setUsernameInput] = useState('');
   const [selectedLeader, setSelectedLeader] = useState<Leader | null>(null);
@@ -187,10 +217,11 @@ export const AdminLogin: React.FC = () => {
     generateCaptcha();
   }, []);
 
-  // Active leaders only for login selection
+  // Active leaders only for login selection (using dbLeaders fallback)
   const activeLeaders = useMemo(() => {
-    return leaders.filter((l) => l.is_active !== false);
-  }, [leaders]);
+    const list = dbLeaders && dbLeaders.length > 0 ? dbLeaders : leaders;
+    return list.filter((l) => l.is_active !== false);
+  }, [dbLeaders, leaders]);
 
   // Filter leaders based on the single input search value
   const filteredLeaders = useMemo(() => {
@@ -206,31 +237,47 @@ export const AdminLogin: React.FC = () => {
   }, [activeLeaders, usernameInput]);
 
   // Verify Real Google Account against Hospital Leadership Database
-  const handleVerifyGoogleEmail = (emailClean: string) => {
+  const handleVerifyGoogleEmail = async (emailClean: string) => {
     setIsGoogleLoading(false);
     sessionStorage.removeItem('sbh_google_auth_in_progress');
 
     const email = (emailClean || '').trim().toLowerCase();
     if (!email) return;
 
-    // 1. Check if email matches Administrator (Loaded from Supabase SQL)
+    // 1. Fetch live admin profile from SQL database
+    const currentAdmin = await fetchLiveAdminProfile();
+    const adminEmail = (currentAdmin?.email || adminProfile?.email || 'it.head@sbhhospital.com').trim().toLowerCase();
+
+    // Check if email matches Administrator
     if (
+      email === adminEmail ||
       email === 'admin@sbhhospital.com' ||
       email === 'it.head@sbhhospital.com' ||
-      email === 'it@sbhhospital.com' ||
-      email === (adminProfile.email || '').toLowerCase()
+      email === 'it@sbhhospital.com'
     ) {
       loginAdminDirectly();
-      setLoggedInName(adminProfile.full_name || 'Administrator');
+      setLoggedInName(currentAdmin?.full_name || 'Administrator');
       setShowSuccessPopup(true);
+      window.history.replaceState({}, document.title, window.location.pathname);
       setTimeout(() => {
         navigate('/dashboard');
       }, 1200);
       return;
     }
 
-    // 2. Check in leaders database
-    const matched = leaders.find((l) => l.email.trim().toLowerCase() === email);
+    // 2. Fetch fresh leaders from Supabase to guarantee 100% accurate match
+    let leaderList = dbLeaders && dbLeaders.length > 0 ? dbLeaders : leaders;
+    try {
+      const { data: supaLeaders } = await supabase.from('leaders').select('*');
+      if (supaLeaders && supaLeaders.length > 0) {
+        leaderList = supaLeaders as Leader[];
+        setDbLeaders(leaderList);
+      }
+    } catch (e) {
+      console.warn('Error refreshing leaders for Google Auth:', e);
+    }
+
+    const matched = leaderList.find((l) => l.email.trim().toLowerCase() === email);
 
     if (!matched) {
       setUnauthorizedModal({
@@ -238,6 +285,7 @@ export const AdminLogin: React.FC = () => {
         attemptedEmail: email,
         reason: 'This Google account is not registered in the DOM Clinical Leadership database.',
       });
+      window.history.replaceState({}, document.title, window.location.pathname);
       return;
     }
 
@@ -247,6 +295,7 @@ export const AdminLogin: React.FC = () => {
         attemptedEmail: email,
         reason: 'This leadership account has been deactivated. Access is currently disabled.',
       });
+      window.history.replaceState({}, document.title, window.location.pathname);
       return;
     }
 
@@ -254,6 +303,7 @@ export const AdminLogin: React.FC = () => {
     loginLeaderDirectlyWithoutPassword(matched);
     setLoggedInName(matched.full_name);
     setShowSuccessPopup(true);
+    window.history.replaceState({}, document.title, window.location.pathname);
     const params = new URLSearchParams(window.location.search);
     const targetPath = params.get('mode') === 'room_qr' ? '/boardroom-checkin' : '/portal';
     setTimeout(() => {
@@ -530,13 +580,13 @@ export const AdminLogin: React.FC = () => {
               {/* Suggestions Dropdown List right beneath the single input */}
               {isDropdownOpen && (
                 <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-white border border-slate-200 rounded-xl shadow-xl max-h-56 overflow-y-auto p-1 divide-y divide-slate-100">
-                  {/* Administrator Item (Fetched directly from Supabase SQL) */}
+                  {/* Administrator Item (Fetched directly from Supabase SQL table) */}
                   {isAdminVisible && (
                     <button
                       type="button"
                       onMouseDown={(e) => {
                         e.preventDefault();
-                        setUsernameInput(adminProfile.full_name || 'Administrator (Mr. Naman Mishra)');
+                        setUsernameInput(adminProfile.full_name || 'Administrator');
                         setIsAdminSelected(true);
                         setSelectedLeader(null);
                         setIsUserSelectedFromList(true);
@@ -544,26 +594,23 @@ export const AdminLogin: React.FC = () => {
                         setErrorMsg('');
                         setTimeout(() => passwordRef.current?.focus(), 80);
                       }}
-                      className={`w-full text-left p-2.5 rounded-lg text-xs font-bold transition-colors flex items-center justify-between cursor-pointer ${
+                      className={`w-full text-left p-3 rounded-xl text-xs font-bold transition-colors flex items-center justify-between cursor-pointer border-b border-slate-100 ${
                         isAdminSelected && isUserSelectedFromList
-                          ? 'bg-orange-100 text-orange-950 font-black'
-                          : 'hover:bg-orange-50 text-slate-900'
+                          ? 'bg-slate-100 text-[#1f2d2a] font-black'
+                          : 'hover:bg-slate-50 text-[#1f2d2a]'
                       }`}
                     >
-                      <div className="flex items-center gap-2">
-                        <Crown className="w-4 h-4 text-orange-600 shrink-0" />
-                        <div>
-                          <div className="text-xs font-black text-slate-900">
-                            {adminProfile.full_name || 'Administrator (Mr. Naman Mishra)'}
-                          </div>
-                          <div className="text-[10px] text-orange-700 font-semibold">
-                            {adminProfile.username} • Command Center & Full Dashboard
-                          </div>
+                      <div>
+                        <div className="text-xs font-black text-[#1f2d2a]">
+                          {adminProfile.full_name || 'Administrator'}
+                        </div>
+                        <div className="text-[10px] text-slate-500 font-normal">
+                          {adminProfile.username || 'admin'} • Command Center & Full Dashboard
                         </div>
                       </div>
-                      <span className="text-[9px] font-black uppercase bg-orange-100 text-orange-800 px-2 py-0.5 rounded-full border border-orange-300">
-                        ADMIN
-                      </span>
+                      {isAdminSelected && isUserSelectedFromList && (
+                        <span className="text-[#2e7d32] font-bold text-xs">✓ Selected</span>
+                      )}
                     </button>
                   )}
 
@@ -743,7 +790,7 @@ export const AdminLogin: React.FC = () => {
 
       {/* ================= MODAL: GOOGLE OAUTH PROVIDER SETUP (Shown when Supabase provider toggle is needed) ================= */}
       {showGoogleProviderSetupModal && (
-        <div className="fixed inset-0 flex items-center justify-center z-[35000] bg-slate-950/70 backdrop-blur-xs p-4">
+        <div className="fixed inset-0 flex items-center justify-center z-[35000] modal-backdrop p-4">
           <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 animate-in fade-in zoom-in duration-150 max-h-[90vh] overflow-y-auto">
             {/* Google Brand Header */}
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
@@ -877,7 +924,7 @@ export const AdminLogin: React.FC = () => {
 
       {/* ================= MODAL: ACCOUNT NOT FOUND - CONTACT WEB ADMINISTRATOR MR. NAMAN MISHRA ================= */}
       {unauthorizedModal.isOpen && (
-        <div className="fixed inset-0 flex items-center justify-center z-[40000] bg-slate-950/80 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 flex items-center justify-center z-[40000] modal-backdrop p-4">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 text-center shadow-2xl border border-rose-300 animate-in fade-in zoom-in duration-200">
             <div className="w-14 h-14 mx-auto mb-3 bg-rose-100 rounded-2xl flex items-center justify-center text-rose-600 shadow-inner">
               <ShieldAlert className="w-8 h-8" />
@@ -939,7 +986,7 @@ export const AdminLogin: React.FC = () => {
 
       {/* Success Modal */}
       {showSuccessPopup && (
-        <div className="fixed inset-0 flex items-center justify-center z-[45000] bg-slate-950/80 backdrop-blur-md">
+        <div className="fixed inset-0 flex items-center justify-center z-[45000] modal-backdrop">
           <div className="bg-white rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl border border-emerald-200">
             <CheckCircle2 size={40} className="text-emerald-600 mx-auto mb-3 animate-bounce" />
             <h3 className="text-lg font-black text-slate-900 uppercase">Access Granted</h3>
