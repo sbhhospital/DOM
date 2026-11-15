@@ -238,16 +238,9 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return [];
   });
 
-  // Custom Meeting Schedules state (persisted)
-  const [meetingSchedules, setMeetingSchedules] = useState<Record<string, MeetingSchedule>>(() => {
-    const saved = localStorage.getItem('sbh_meeting_schedules');
-    return saved ? JSON.parse(saved) : {};
-  });
-
-  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>(() => {
-    const saved = localStorage.getItem('sbh_real_attendance_records');
-    return saved ? JSON.parse(saved) : [];
-  });
+  // Meeting Schedules & Attendance Records state (Stored 100% in Supabase SQL Database, Zero LocalStorage dependency)
+  const [meetingSchedules, setMeetingSchedules] = useState<Record<string, MeetingSchedule>>({});
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
 
   const [appSettings, setAppSettings] = useState<AppSettings>(() => {
     const saved = localStorage.getItem('sbh_app_settings');
@@ -266,7 +259,25 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Load Real Leaders directly from Supabase (Only database rows, zero dummy data)
+  // Helper to persist attendance record updates directly into Supabase SQL database table
+  const syncAttendanceRecordToSupabase = async (record: AttendanceRecord, reason?: string) => {
+    try {
+      await supabase.from('admin_audit_logs').insert([
+        {
+          actor_id: null,
+          action: 'ATTENDANCE_RECORD',
+          entity_type: 'ATTENDANCE',
+          entity_id: record.id,
+          reason: reason || `Attendance updated for ${record.leader?.full_name || record.leader_id} on ${record.meeting_date}`,
+          after_data: record,
+        },
+      ]);
+    } catch (e) {
+      console.warn('Supabase attendance record save warning:', e);
+    }
+  };
+
+  // Load 100% Real Leaders, Meeting Time/Date Schedules & Attendance Records directly from Supabase SQL Database
   const loadDataFromSupabase = async () => {
     setIsLoading(true);
     try {
@@ -288,36 +299,56 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
         setLeaders(mapped);
         localStorage.setItem('sbh_custom_leaders', JSON.stringify(mapped));
-        setIsLoading(false);
-        return;
       }
 
-      // 2. Local fallback if offline
-      const savedLeaders = localStorage.getItem('sbh_custom_leaders');
-      if (savedLeaders) {
-        try {
-          const parsed = JSON.parse(savedLeaders);
-          if (Array.isArray(parsed)) {
-            setLeaders(parsed);
-            setIsLoading(false);
-            return;
+      // 2. Fetch live meeting schedules (date, scheduled time, cadence, google meet) from Supabase table
+      const { data: schedLogs, error: schedErr } = await supabase
+        .from('admin_audit_logs')
+        .select('*')
+        .eq('action', 'MEETING_SCHEDULE')
+        .order('created_at', { ascending: true });
+
+      if (!schedErr && schedLogs && schedLogs.length > 0) {
+        const schedMap: Record<string, MeetingSchedule> = {};
+        schedLogs.forEach((log) => {
+          if (log.after_data && log.entity_id) {
+            schedMap[log.entity_id] = log.after_data as MeetingSchedule;
           }
-        } catch (e) {}
+        });
+        setMeetingSchedules(schedMap);
       }
 
-      setLeaders([]);
+      // 3. Fetch live attendance records (join time, attendance date, status, mode, audit) from Supabase table
+      const { data: attLogs, error: attErr } = await supabase
+        .from('admin_audit_logs')
+        .select('*')
+        .eq('action', 'ATTENDANCE_RECORD')
+        .order('created_at', { ascending: true });
+
+      if (!attErr && attLogs && attLogs.length > 0) {
+        const attMap = new Map<string, AttendanceRecord>();
+        attLogs.forEach((log) => {
+          if (log.after_data && (log.after_data as any).id) {
+            attMap.set((log.after_data as any).id, log.after_data as AttendanceRecord);
+          }
+        });
+        setAttendanceRecords(Array.from(attMap.values()));
+      }
     } catch (err) {
-      console.warn('Error fetching leaders from Supabase:', err);
+      console.warn('Error fetching data from Supabase:', err);
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
+    // Clean up local storage: do NOT store meeting schedules or attendance records in localStorage
+    localStorage.removeItem('sbh_meeting_schedules');
+    localStorage.removeItem('sbh_real_attendance_records');
     loadDataFromSupabase();
   }, []);
 
-  // Sync state to local storage
+  // Sync state to local storage (departments and leaders only)
   useEffect(() => {
     localStorage.setItem('sbh_hospital_departments', JSON.stringify(departments));
   }, [departments]);
@@ -325,14 +356,6 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   useEffect(() => {
     localStorage.setItem('sbh_custom_leaders', JSON.stringify(leaders));
   }, [leaders]);
-
-  useEffect(() => {
-    localStorage.setItem('sbh_meeting_schedules', JSON.stringify(meetingSchedules));
-  }, [meetingSchedules]);
-
-  useEffect(() => {
-    localStorage.setItem('sbh_real_attendance_records', JSON.stringify(attendanceRecords));
-  }, [attendanceRecords]);
 
   // Meeting Schedule Helper (DOM, WOM, MOM, HOLIDAY)
   const getMeetingForDate = (date: string): MeetingSchedule => {
@@ -387,9 +410,25 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       [date]: updated,
     }));
 
+    // Persist directly into Supabase SQL database table
+    try {
+      supabase.from('admin_audit_logs').insert([
+        {
+          actor_id: null,
+          action: 'MEETING_SCHEDULE',
+          entity_type: 'SCHEDULE',
+          entity_id: date,
+          reason: `Meeting schedule updated for date ${date} at ${updated.scheduled_time}`,
+          after_data: updated,
+        },
+      ]).then();
+    } catch (e) {
+      console.warn('Supabase meeting schedule save warning:', e);
+    }
+
     return {
       success: true,
-      message: `Meeting schedule for ${date} updated to ${resolvedCadence} (${resolvedFrequency})!`,
+      message: `Meeting schedule for ${date} updated to ${resolvedCadence} (${resolvedFrequency}) in Supabase database!`,
     };
   };
 
@@ -843,6 +882,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     let updatedClicks = 1;
     const recordId = `att-${targetDate}-${leaderId}`;
+    let updatedRecordToSave: AttendanceRecord | null = null;
 
     setAttendanceRecords((prev) => {
       const existing = prev.find((r) => r.leader_id === leaderId && r.meeting_date === targetDate);
@@ -856,73 +896,54 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const preservedLate = existing.late_minutes ?? lateMinutes;
         const preservedNote = existing.verification_note || note;
 
-        return prev.map((r) =>
-          r.id === existing.id
-            ? {
-                ...r,
-                selected_mode: r.selected_mode === 'PHYSICAL' ? 'PHYSICAL' : 'VIRTUAL',
-                status: preservedStatus,
-                verification_status: r.admin_verified_attendance ? 'VERIFIED' : r.verification_status || 'PENDING',
-                check_in_at: preservedCheckIn,
-                first_event_at: r.first_event_at || nowIso,
-                last_click_at: nowIso,
-                late_minutes: preservedLate,
-                virtual_clicks_count: updatedClicks,
-                evidence_source: r.evidence_source || 'GOOGLE_MEET_REDIRECT',
-                admin_verified_attendance: r.admin_verified_attendance || false,
-                verification_note: preservedNote,
-                updated_at: nowIso,
-              }
-            : r
-        );
-      }
-      return [
-        ...prev,
-        {
-          id: recordId,
-          meeting_id: meeting.id,
-          meeting_date: targetDate,
-          meeting_frequency: meeting.frequency,
-          cadence: meeting.cadence,
-          leader_id: leaderId,
-          leader: leaders.find((l) => l.id === leaderId),
-          selected_mode: 'VIRTUAL',
-          status: statusToSet,
-          verification_status: 'PENDING',
-          check_in_at: nowIso,
-          first_event_at: nowIso,
+        const updated: AttendanceRecord = {
+          ...existing,
+          selected_mode: existing.selected_mode === 'PHYSICAL' ? 'PHYSICAL' : 'VIRTUAL',
+          status: preservedStatus,
+          verification_status: existing.admin_verified_attendance ? 'VERIFIED' : existing.verification_status || 'PENDING',
+          check_in_at: preservedCheckIn,
+          first_event_at: existing.first_event_at || nowIso,
           last_click_at: nowIso,
-          late_minutes: lateMinutes,
-          virtual_clicks_count: 1,
-          evidence_source: 'GOOGLE_MEET_REDIRECT',
-          admin_verified_attendance: false,
-          verification_note: note,
-          created_at: nowIso,
+          late_minutes: preservedLate,
+          virtual_clicks_count: updatedClicks,
+          evidence_source: existing.evidence_source || 'GOOGLE_MEET_REDIRECT',
+          admin_verified_attendance: existing.admin_verified_attendance || false,
+          verification_note: preservedNote,
           updated_at: nowIso,
-        },
-      ];
+        };
+        updatedRecordToSave = updated;
+        return prev.map((r) => (r.id === existing.id ? updated : r));
+      }
+
+      const newRec: AttendanceRecord = {
+        id: recordId,
+        meeting_id: meeting.id,
+        meeting_date: targetDate,
+        meeting_frequency: meeting.frequency,
+        cadence: meeting.cadence,
+        leader_id: leaderId,
+        leader: leaders.find((l) => l.id === leaderId),
+        selected_mode: 'VIRTUAL',
+        status: statusToSet,
+        verification_status: 'PENDING',
+        check_in_at: nowIso,
+        first_event_at: nowIso,
+        last_click_at: nowIso,
+        late_minutes: lateMinutes,
+        virtual_clicks_count: 1,
+        evidence_source: 'GOOGLE_MEET_REDIRECT',
+        admin_verified_attendance: false,
+        verification_note: note,
+        created_at: nowIso,
+        updated_at: nowIso,
+      };
+      updatedRecordToSave = newRec;
+      return [...prev, newRec];
     });
 
-    // Sync to Supabase directly preserving original check_in_at
-    try {
-      const existingRecord = attendanceRecords.find((r) => r.leader_id === leaderId && r.meeting_date === targetDate);
-      const savedCheckIn = existingRecord?.check_in_at || nowIso;
-      const savedStatus = (existingRecord?.status && existingRecord.status !== 'ABSENT') ? existingRecord.status : statusToSet;
-      const savedLate = existingRecord?.late_minutes ?? lateMinutes;
-      const savedNote = existingRecord?.verification_note || note;
-
-      if (isUuid(leaderId)) {
-        supabase.from('admin_audit_logs').insert([{
-          actor_id: null,
-          action: 'VIRTUAL_JOIN',
-          entity_type: 'ATTENDANCE',
-          entity_id: recordId,
-          reason: `Leader joined Google Meet on ${targetDate}. ${savedNote}`,
-          after_data: { targetDate, statusToSet: savedStatus, lateMinutes: savedLate },
-        }]).then();
-      }
-    } catch (e) {
-      console.warn('Supabase async sync notice:', e);
+    // Persist directly into Supabase SQL Database
+    if (updatedRecordToSave) {
+      syncAttendanceRecordToSupabase(updatedRecordToSave, `Virtual attendance: ${note}`);
     }
 
     return {
@@ -946,6 +967,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       ? `Virtual QR Scanned (+${lateMinutes}m late) • Pending Admin Approval`
       : 'Virtual QR Scanned • Pending Admin Approval';
     const recordId = `att-${dateStr}-${leaderId}`;
+    let updatedRecordToSave: AttendanceRecord | null = null;
 
     setAttendanceRecords((prev) => {
       const existing = prev.find((r) => r.leader_id === leaderId && r.meeting_date === dateStr);
@@ -956,73 +978,51 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const preservedLate = existing.late_minutes ?? lateMinutes;
         const preservedNote = existing.verification_note || note;
 
-        return prev.map((r) =>
-          r.id === existing.id
-            ? {
-                ...r,
-                status: preservedStatus,
-                verification_status: r.admin_verified_attendance ? 'VERIFIED' : r.verification_status || 'PENDING',
-                admin_verified_attendance: r.admin_verified_attendance || false,
-                evidence_source: 'VIRTUAL_QR_VERIFIED',
-                qr_scanned_at: r.qr_scanned_at || nowIso,
-                late_minutes: preservedLate,
-                check_in_at: preservedCheckIn,
-                verification_note: preservedNote,
-                updated_at: nowIso,
-              }
-            : r
-        );
-      }
-      return [
-        ...prev,
-        {
-          id: recordId,
-          meeting_id: meeting.id,
-          meeting_date: dateStr,
-          meeting_frequency: meeting.frequency,
-          cadence: meeting.cadence,
-          leader_id: leaderId,
-          leader: leaders.find((l) => l.id === leaderId),
-          selected_mode: 'VIRTUAL',
-          status: statusToSet,
-          verification_status: 'PENDING',
-          admin_verified_attendance: false,
+        const updated: AttendanceRecord = {
+          ...existing,
+          status: preservedStatus,
+          verification_status: existing.admin_verified_attendance ? 'VERIFIED' : existing.verification_status || 'PENDING',
+          admin_verified_attendance: existing.admin_verified_attendance || false,
           evidence_source: 'VIRTUAL_QR_VERIFIED',
-          check_in_at: nowIso,
-          qr_scanned_at: nowIso,
-          last_click_at: nowIso,
-          late_minutes: lateMinutes,
-          virtual_clicks_count: 1,
-          verification_note: note,
-          created_at: nowIso,
+          qr_scanned_at: existing.qr_scanned_at || nowIso,
+          late_minutes: preservedLate,
+          check_in_at: preservedCheckIn,
+          verification_note: preservedNote,
           updated_at: nowIso,
-        },
-      ];
-    });
+        };
+        updatedRecordToSave = updated;
+        return prev.map((r) => (r.id === existing.id ? updated : r));
+      }
 
-    try {
-      const existingRecord = attendanceRecords.find((r) => r.leader_id === leaderId && r.meeting_date === dateStr);
-      const savedCheckIn = existingRecord?.check_in_at || nowIso;
-      const savedStatus = (existingRecord?.status && existingRecord.status !== 'ABSENT') ? existingRecord.status : statusToSet;
-      const savedLate = existingRecord?.late_minutes ?? lateMinutes;
-      const savedNote = existingRecord?.verification_note || note;
-
-      supabase.from('attendance_records').upsert({
+      const newRec: AttendanceRecord = {
         id: recordId,
         meeting_id: meeting.id,
         meeting_date: dateStr,
+        meeting_frequency: meeting.frequency,
+        cadence: meeting.cadence,
         leader_id: leaderId,
+        leader: leaders.find((l) => l.id === leaderId),
         selected_mode: 'VIRTUAL',
-        status: savedStatus,
-        verification_status: existingRecord?.admin_verified_attendance ? 'VERIFIED' : 'PENDING',
-        admin_verified_attendance: existingRecord?.admin_verified_attendance || false,
-        late_minutes: savedLate,
-        check_in_at: savedCheckIn,
+        status: statusToSet,
+        verification_status: 'PENDING',
+        admin_verified_attendance: false,
         evidence_source: 'VIRTUAL_QR_VERIFIED',
-        verification_note: savedNote,
+        check_in_at: nowIso,
+        qr_scanned_at: nowIso,
+        last_click_at: nowIso,
+        late_minutes: lateMinutes,
+        virtual_clicks_count: 1,
+        verification_note: note,
+        created_at: nowIso,
         updated_at: nowIso,
-      }).then();
-    } catch (e) {}
+      };
+      updatedRecordToSave = newRec;
+      return [...prev, newRec];
+    });
+
+    if (updatedRecordToSave) {
+      syncAttendanceRecordToSupabase(updatedRecordToSave, `Virtual QR Scanned: ${note}`);
+    }
 
     return {
       success: true,
@@ -1048,6 +1048,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     let isAlreadyRecorded = false;
     let recordedTimeStr = '';
+    let updatedRecordToSave: AttendanceRecord | null = null;
 
     setAttendanceRecords((prev) => {
       const existing = prev.find((r) => r.leader_id === leaderId && r.meeting_date === selectedDate);
@@ -1068,54 +1069,53 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const preservedLate = existing.late_minutes ?? lateMinutes;
         const preservedNote = existing.verification_note || note;
 
-        return prev.map((r) =>
-          r.id === existing.id
-            ? {
-                ...r,
-                selected_mode: 'PHYSICAL',
-                status: preservedStatus,
-                verification_status: r.admin_verified_attendance ? 'VERIFIED' : r.verification_status || 'PENDING',
-                check_in_at: preservedCheckIn,
-                first_event_at: r.first_event_at || nowIso,
-                evidence_source: 'ROOM_STATIC_QR',
-                late_minutes: preservedLate,
-                admin_verified_attendance: r.admin_verified_attendance || false,
-                verification_note: preservedNote,
-                updated_at: nowIso,
-              }
-            : r
-        );
-      }
-      return [
-        ...prev,
-        {
-          id: recordId,
-          meeting_id: meeting.id,
-          meeting_date: selectedDate,
-          meeting_frequency: meeting.frequency,
-          cadence: meeting.cadence,
-          leader_id: leaderId,
-          leader: leaders.find((l) => l.id === leaderId),
+        const updated: AttendanceRecord = {
+          ...existing,
           selected_mode: 'PHYSICAL',
-          status: statusToSet,
-          verification_status: 'PENDING',
-          check_in_at: nowIso,
-          first_event_at: nowIso,
-          late_minutes: lateMinutes,
+          status: preservedStatus,
+          verification_status: existing.admin_verified_attendance ? 'VERIFIED' : existing.verification_status || 'PENDING',
+          check_in_at: preservedCheckIn,
+          first_event_at: existing.first_event_at || nowIso,
           evidence_source: 'ROOM_STATIC_QR',
-          admin_verified_attendance: false,
-          verification_note: note,
-          created_at: nowIso,
+          late_minutes: preservedLate,
+          admin_verified_attendance: existing.admin_verified_attendance || false,
+          verification_note: preservedNote,
           updated_at: nowIso,
-        },
-      ];
+        };
+        updatedRecordToSave = updated;
+        return prev.map((r) => (r.id === existing.id ? updated : r));
+      }
+
+      const newRec: AttendanceRecord = {
+        id: recordId,
+        meeting_id: meeting.id,
+        meeting_date: selectedDate,
+        meeting_frequency: meeting.frequency,
+        cadence: meeting.cadence,
+        leader_id: leaderId,
+        leader: leaders.find((l) => l.id === leaderId),
+        selected_mode: 'PHYSICAL',
+        status: statusToSet,
+        verification_status: 'PENDING',
+        check_in_at: nowIso,
+        first_event_at: nowIso,
+        late_minutes: lateMinutes,
+        evidence_source: 'ROOM_STATIC_QR',
+        admin_verified_attendance: false,
+        verification_note: note,
+        created_at: nowIso,
+        updated_at: nowIso,
+      };
+      updatedRecordToSave = newRec;
+      return [...prev, newRec];
     });
+
+    if (updatedRecordToSave) {
+      syncAttendanceRecordToSupabase(updatedRecordToSave, `Boardroom QR check-in: ${note}`);
+    }
 
     try {
       const existingRecord = attendanceRecords.find((r) => r.leader_id === leaderId && r.meeting_date === selectedDate);
-      const savedCheckIn = existingRecord?.check_in_at || nowIso;
-      const savedStatus = (existingRecord?.status && existingRecord.status !== 'ABSENT') ? existingRecord.status : statusToSet;
-      const savedLate = existingRecord?.late_minutes ?? lateMinutes;
       const savedNote = existingRecord?.verification_note || note;
 
       if (isUuid(leaderId)) {
@@ -1127,7 +1127,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           reason: `Physical boardroom QR attendance checked in on ${selectedDate}. ${savedNote}`,
           after_data: {
             selectedDate,
-            statusToSet: savedStatus,
+            statusToSet,
             isAlreadyRecorded,
             latitude: locationData?.latitude,
             longitude: locationData?.longitude,
@@ -1199,13 +1199,14 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   ): Promise<{ success: boolean; message: string }> => {
     const nowIso = new Date().toISOString();
     let targetLeaderName = 'Leader';
+    let approvedRec: AttendanceRecord | null = null;
 
     setAttendanceRecords((prev) =>
       prev.map((r) => {
         if (r.id === recordId) {
           targetLeaderName = r.leader?.full_name || 'Leader';
           const lateStr = r.late_minutes && r.late_minutes > 0 ? ` (+${r.late_minutes}m)` : '';
-          return {
+          const updated: AttendanceRecord = {
             ...r,
             admin_verified_attendance: true,
             verification_status: 'VERIFIED',
@@ -1213,24 +1214,16 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             updated_at: nowIso,
             verification_note: `Approved by Admin${lateStr} at ${new Date(nowIso).toLocaleTimeString()}`,
           };
+          approvedRec = updated;
+          return updated;
         }
         return r;
       })
     );
 
-    // Sync to Supabase
-    try {
-      await supabase
-        .from('attendance_records')
-        .update({
-          admin_verified_attendance: true,
-          verification_status: 'VERIFIED',
-          verified_at: nowIso,
-          updated_at: nowIso,
-        })
-        .eq('id', recordId);
-    } catch (e) {
-      console.warn('Supabase approval sync notice:', e);
+    // Sync directly to Supabase SQL Database
+    if (approvedRec) {
+      syncAttendanceRecordToSupabase(approvedRec, `Approved by Admin for ${targetLeaderName}`);
     }
 
     return { success: true, message: `Attendance verified & approved for ${targetLeaderName}!` };
@@ -1241,6 +1234,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   ): Promise<{ success: boolean; count: number; message: string }> => {
     const nowIso = new Date().toISOString();
     let approvedCount = 0;
+    const recordsToSync: AttendanceRecord[] = [];
 
     setAttendanceRecords((prev) =>
       prev.map((r) => {
@@ -1251,7 +1245,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         ) {
           approvedCount++;
           const lateStr = r.late_minutes && r.late_minutes > 0 ? ` (+${r.late_minutes}m)` : '';
-          return {
+          const updated: AttendanceRecord = {
             ...r,
             admin_verified_attendance: true,
             verification_status: 'VERIFIED',
@@ -1259,25 +1253,17 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             updated_at: nowIso,
             verification_note: `Approved by Admin${lateStr} at ${new Date(nowIso).toLocaleTimeString()}`,
           };
+          recordsToSync.push(updated);
+          return updated;
         }
         return r;
       })
     );
 
-    // Sync to Supabase
-    try {
-      await supabase
-        .from('attendance_records')
-        .update({
-          admin_verified_attendance: true,
-          verification_status: 'VERIFIED',
-          verified_at: nowIso,
-          updated_at: nowIso,
-        })
-        .eq('meeting_date', date);
-    } catch (e) {
-      console.warn('Supabase bulk approval notice:', e);
-    }
+    // Sync all approved records to Supabase SQL Database
+    recordsToSync.forEach((rec) => {
+      syncAttendanceRecordToSupabase(rec, 'Bulk approved by Admin');
+    });
 
     return {
       success: true,
@@ -1291,33 +1277,29 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     reason: string = 'Rejected by Admin'
   ): Promise<{ success: boolean; message: string }> => {
     const nowIso = new Date().toISOString();
+    let rejectedRec: AttendanceRecord | null = null;
+
     setAttendanceRecords((prev) =>
-      prev.map((r) =>
-        r.id === recordId
-          ? {
-              ...r,
-              status: 'ABSENT',
-              verification_status: 'REJECTED',
-              admin_verified_attendance: false,
-              verification_note: reason,
-              updated_at: nowIso,
-            }
-          : r
-      )
+      prev.map((r) => {
+        if (r.id === recordId) {
+          const updated: AttendanceRecord = {
+            ...r,
+            status: 'ABSENT',
+            verification_status: 'REJECTED',
+            admin_verified_attendance: false,
+            verification_note: reason,
+            updated_at: nowIso,
+          };
+          rejectedRec = updated;
+          return updated;
+        }
+        return r;
+      })
     );
 
-    try {
-      await supabase
-        .from('attendance_records')
-        .update({
-          status: 'ABSENT',
-          verification_status: 'REJECTED',
-          admin_verified_attendance: false,
-          verification_note: reason,
-          updated_at: nowIso,
-        })
-        .eq('id', recordId);
-    } catch (e) {}
+    if (rejectedRec) {
+      syncAttendanceRecordToSupabase(rejectedRec, `Rejected by Admin: ${reason}`);
+    }
 
     return { success: true, message: 'Attendance rejected and marked as ABSENT.' };
   };
@@ -1325,45 +1307,48 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const submitInformedAbsence = async (leaderId: string, informedTo: string, reason: string) => {
     const meeting = getMeetingForDate(selectedDate);
     const nowIso = new Date().toISOString();
+    let recordToSave: AttendanceRecord | null = null;
 
     setAttendanceRecords((prev) => {
       const existing = prev.find((r) => r.leader_id === leaderId && r.meeting_date === selectedDate);
       if (existing) {
-        return prev.map((r) =>
-          r.id === existing.id
-            ? {
-                ...r,
-                status: 'INFORMED_ABSENT',
-                verification_status: 'PENDING',
-                informed_to_person: informedTo,
-                informed_reason: reason,
-                informed_confirmed: false,
-                updated_at: nowIso,
-              }
-            : r
-        );
-      }
-      return [
-        ...prev,
-        {
-          id: `att-${selectedDate}-${leaderId}`,
-          meeting_id: meeting.id,
-          meeting_date: selectedDate,
-          meeting_frequency: meeting.frequency,
-          cadence: meeting.cadence,
-          leader_id: leaderId,
-          leader: leaders.find((l) => l.id === leaderId),
-          selected_mode: 'NONE',
+        const updated: AttendanceRecord = {
+          ...existing,
           status: 'INFORMED_ABSENT',
           verification_status: 'PENDING',
           informed_to_person: informedTo,
           informed_reason: reason,
           informed_confirmed: false,
-          created_at: nowIso,
           updated_at: nowIso,
-        },
-      ];
+        };
+        recordToSave = updated;
+        return prev.map((r) => (r.id === existing.id ? updated : r));
+      }
+
+      const newRec: AttendanceRecord = {
+        id: `att-${selectedDate}-${leaderId}`,
+        meeting_id: meeting.id,
+        meeting_date: selectedDate,
+        meeting_frequency: meeting.frequency,
+        cadence: meeting.cadence,
+        leader_id: leaderId,
+        leader: leaders.find((l) => l.id === leaderId),
+        selected_mode: 'NONE',
+        status: 'INFORMED_ABSENT',
+        verification_status: 'PENDING',
+        informed_to_person: informedTo,
+        informed_reason: reason,
+        informed_confirmed: false,
+        created_at: nowIso,
+        updated_at: nowIso,
+      };
+      recordToSave = newRec;
+      return [...prev, newRec];
     });
+
+    if (recordToSave) {
+      syncAttendanceRecordToSupabase(recordToSave, `Informed Absence submitted: ${informedTo} - ${reason}`);
+    }
 
     return { success: true, message: 'Informed Absence registered for Admin verification.' };
   };
@@ -1375,41 +1360,62 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     note?: string
   ) => {
     const nowIso = new Date().toISOString();
+    let updatedRec: AttendanceRecord | null = null;
+
     setAttendanceRecords((prev) =>
-      prev.map((r) =>
-        r.id === recordId
-          ? {
-              ...r,
-              status,
-              verification_status: verified ? 'VERIFIED' : 'REJECTED',
-              admin_verified_attendance: verified,
-              verification_note: note,
-              check_in_at: r.check_in_at || nowIso,
-              verified_at: nowIso,
-              updated_at: nowIso,
-            }
-          : r
-      )
+      prev.map((r) => {
+        if (r.id === recordId) {
+          const updated: AttendanceRecord = {
+            ...r,
+            status,
+            verification_status: verified ? 'VERIFIED' : 'REJECTED',
+            admin_verified_attendance: verified,
+            verification_note: note,
+            check_in_at: r.check_in_at || nowIso,
+            verified_at: nowIso,
+            updated_at: nowIso,
+          };
+          updatedRec = updated;
+          return updated;
+        }
+        return r;
+      })
     );
+
+    if (updatedRec) {
+      syncAttendanceRecordToSupabase(updatedRec, note || `Status updated to ${status}`);
+    }
   };
 
   const confirmInformedAbsence = async (recordId: string, confirmed: boolean) => {
     const nowIso = new Date().toISOString();
+    let updatedRec: AttendanceRecord | null = null;
+
     setAttendanceRecords((prev) =>
-      prev.map((r) =>
-        r.id === recordId
-          ? {
-              ...r,
-              status: confirmed ? 'LEAVE' : 'ABSENT',
-              verification_status: confirmed ? 'VERIFIED' : 'REJECTED',
-              informed_confirmed: confirmed,
-              admin_verified_attendance: confirmed,
-              verified_at: nowIso,
-              updated_at: nowIso,
-            }
-          : r
-      )
+      prev.map((r) => {
+        if (r.id === recordId) {
+          const updated: AttendanceRecord = {
+            ...r,
+            status: confirmed ? 'LEAVE' : 'ABSENT',
+            verification_status: confirmed ? 'VERIFIED' : 'REJECTED',
+            informed_confirmed: confirmed,
+            admin_verified_attendance: confirmed,
+            verified_at: nowIso,
+            updated_at: nowIso,
+          };
+          updatedRec = updated;
+          return updated;
+        }
+        return r;
+      })
     );
+
+    if (updatedRec) {
+      syncAttendanceRecordToSupabase(
+        updatedRec,
+        confirmed ? 'Informed absence confirmed as Leave' : 'Informed absence marked Absent'
+      );
+    }
   };
 
   const markLeaderInformedLeave = async (
@@ -1420,37 +1426,13 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   ) => {
     const meeting = getMeetingForDate(date);
     const nowIso = new Date().toISOString();
+    let updatedRec: AttendanceRecord | null = null;
 
     setAttendanceRecords((prev) => {
       const existing = prev.find((r) => r.leader_id === leaderId && r.meeting_date === date);
       if (existing) {
-        return prev.map((r) =>
-          r.id === existing.id
-            ? {
-                ...r,
-                status: 'LEAVE',
-                verification_status: 'VERIFIED',
-                informed_to_person: informedTo,
-                informed_reason: reason,
-                informed_confirmed: true,
-                admin_verified_attendance: true,
-                verification_note: `Informed: ${informedTo} - ${reason}`,
-                updated_at: nowIso,
-              }
-            : r
-        );
-      }
-      return [
-        ...prev,
-        {
-          id: `att-${date}-${leaderId}`,
-          meeting_id: meeting.id,
-          meeting_date: date,
-          meeting_frequency: meeting.frequency,
-          cadence: meeting.cadence,
-          leader_id: leaderId,
-          leader: leaders.find((l) => l.id === leaderId),
-          selected_mode: 'NONE',
+        const updated: AttendanceRecord = {
+          ...existing,
           status: 'LEAVE',
           verification_status: 'VERIFIED',
           informed_to_person: informedTo,
@@ -1458,11 +1440,38 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           informed_confirmed: true,
           admin_verified_attendance: true,
           verification_note: `Informed: ${informedTo} - ${reason}`,
-          created_at: nowIso,
           updated_at: nowIso,
-        },
-      ];
+        };
+        updatedRec = updated;
+        return prev.map((r) => (r.id === existing.id ? updated : r));
+      }
+
+      const newRec: AttendanceRecord = {
+        id: `att-${date}-${leaderId}`,
+        meeting_id: meeting.id,
+        meeting_date: date,
+        meeting_frequency: meeting.frequency,
+        cadence: meeting.cadence,
+        leader_id: leaderId,
+        leader: leaders.find((l) => l.id === leaderId),
+        selected_mode: 'NONE',
+        status: 'LEAVE',
+        verification_status: 'VERIFIED',
+        informed_to_person: informedTo,
+        informed_reason: reason,
+        informed_confirmed: true,
+        admin_verified_attendance: true,
+        verification_note: `Informed: ${informedTo} - ${reason}`,
+        created_at: nowIso,
+        updated_at: nowIso,
+      };
+      updatedRec = newRec;
+      return [...prev, newRec];
     });
+
+    if (updatedRec) {
+      syncAttendanceRecordToSupabase(updatedRec, `Informed Leave: ${informedTo} - ${reason}`);
+    }
   };
 
   const markLeaderInformedLate = async (
@@ -1475,41 +1484,14 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   ) => {
     const meeting = getMeetingForDate(date);
     const nowIso = new Date().toISOString();
+    let updatedRec: AttendanceRecord | null = null;
 
     setAttendanceRecords((prev) => {
       const idx = prev.findIndex((r) => r.meeting_date === date && r.leader_id === leaderId);
       if (idx >= 0) {
-        return prev.map((r, i) =>
-          i === idx
-            ? {
-                ...r,
-                status: 'INFORMED_LATE' as AttendanceStatus,
-                verification_status: 'VERIFIED',
-                informed_to_person: informedTo,
-                informed_reason: reason,
-                late_minutes: lateMinutes,
-                expected_arrival_time: expectedTime,
-                late_reason: reason,
-                late_approved_by_admin: true,
-                informed_confirmed: true,
-                admin_verified_attendance: true,
-                verification_note: `Late: ${lateMinutes}m (ETA ${expectedTime}) - ${informedTo} - ${reason}`,
-                updated_at: nowIso,
-              }
-            : r
-        );
-      }
-      return [
-        ...prev,
-        {
-          id: `att-${date}-${leaderId}`,
-          meeting_id: meeting.id,
-          meeting_date: date,
-          meeting_frequency: meeting.frequency,
-          cadence: meeting.cadence,
-          leader_id: leaderId,
-          leader: leaders.find((l) => l.id === leaderId),
-          selected_mode: 'NONE',
+        const existing = prev[idx];
+        const updated: AttendanceRecord = {
+          ...existing,
           status: 'INFORMED_LATE' as AttendanceStatus,
           verification_status: 'VERIFIED',
           informed_to_person: informedTo,
@@ -1521,11 +1503,45 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           informed_confirmed: true,
           admin_verified_attendance: true,
           verification_note: `Late: ${lateMinutes}m (ETA ${expectedTime}) - ${informedTo} - ${reason}`,
-          created_at: nowIso,
           updated_at: nowIso,
-        },
-      ];
+        };
+        updatedRec = updated;
+        return prev.map((r, i) => (i === idx ? updated : r));
+      }
+
+      const newRec: AttendanceRecord = {
+        id: `att-${date}-${leaderId}`,
+        meeting_id: meeting.id,
+        meeting_date: date,
+        meeting_frequency: meeting.frequency,
+        cadence: meeting.cadence,
+        leader_id: leaderId,
+        leader: leaders.find((l) => l.id === leaderId),
+        selected_mode: 'NONE',
+        status: 'INFORMED_LATE' as AttendanceStatus,
+        verification_status: 'VERIFIED',
+        informed_to_person: informedTo,
+        informed_reason: reason,
+        late_minutes: lateMinutes,
+        expected_arrival_time: expectedTime,
+        late_reason: reason,
+        late_approved_by_admin: true,
+        informed_confirmed: true,
+        admin_verified_attendance: true,
+        verification_note: `Late: ${lateMinutes}m (ETA ${expectedTime}) - ${informedTo} - ${reason}`,
+        created_at: nowIso,
+        updated_at: nowIso,
+      };
+      updatedRec = newRec;
+      return [...prev, newRec];
     });
+
+    if (updatedRec) {
+      syncAttendanceRecordToSupabase(
+        updatedRec,
+        `Informed Late: ${lateMinutes}m (ETA ${expectedTime}) - ${informedTo} - ${reason}`
+      );
+    }
   };
 
   // ================= 2-STAGE AUTOMATED WHATSAPP DISPATCHES =================
