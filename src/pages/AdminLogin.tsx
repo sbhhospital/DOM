@@ -164,8 +164,10 @@ export const AdminLogin: React.FC = () => {
       if (res.success) {
         setLoggedInName(selectedLeader.full_name);
         setShowSuccessPopup(true);
+        const params = new URLSearchParams(window.location.search);
+        const targetPath = params.get('mode') === 'room_qr' ? '/boardroom-checkin' : '/portal';
         setTimeout(() => {
-          navigate('/portal');
+          navigate(targetPath);
         }, 1200);
       } else {
         setErrorMsg(res.message);

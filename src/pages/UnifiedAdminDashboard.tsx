@@ -662,11 +662,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
           {/* 🏠 Homepage Button */}
           <button
             onClick={() => setActiveTab('attendance')}
-            className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
-              activeTab === 'attendance'
+            className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${activeTab === 'attendance'
                 ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/25'
                 : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-            }`}
+              }`}
           >
             <span className="flex items-center gap-2.5">
               <Home className={`w-4 h-4 ${activeTab === 'attendance' ? 'text-white' : 'text-emerald-600'}`} />
@@ -680,11 +679,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
           {/* 🔗 Daily Meeting Links Button */}
           <button
             onClick={() => setActiveTab('links')}
-            className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
-              activeTab === 'links'
+            className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${activeTab === 'links'
                 ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/25'
                 : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-            }`}
+              }`}
           >
             <span className="flex items-center gap-2.5">
               <Video className={`w-4 h-4 ${activeTab === 'links' ? 'text-white' : 'text-teal-600'}`} />
@@ -698,11 +696,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
           {/* 👥 Leaders Roster Button */}
           <button
             onClick={() => setActiveTab('leaders')}
-            className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
-              activeTab === 'leaders'
+            className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${activeTab === 'leaders'
                 ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/25'
                 : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-            }`}
+              }`}
           >
             <span className="flex items-center gap-2.5">
               <Users className={`w-4 h-4 ${activeTab === 'leaders' ? 'text-white' : 'text-purple-600'}`} />
@@ -716,11 +713,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
           {/* 🏢 Departments Master Button */}
           <button
             onClick={() => setActiveTab('departments')}
-            className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
-              activeTab === 'departments'
+            className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${activeTab === 'departments'
                 ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/25'
                 : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-            }`}
+              }`}
           >
             <span className="flex items-center gap-2.5">
               <Building className={`w-4 h-4 ${activeTab === 'departments' ? 'text-white' : 'text-amber-600'}`} />
@@ -734,11 +730,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
           {/* 📅 DOM / WOM / MOM Calendar Button */}
           <button
             onClick={() => setActiveTab('calendar')}
-            className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
-              activeTab === 'calendar'
+            className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${activeTab === 'calendar'
                 ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/25'
                 : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-            }`}
+              }`}
           >
             <span className="flex items-center gap-2.5">
               <Calendar className={`w-4 h-4 ${activeTab === 'calendar' ? 'text-white' : 'text-orange-500'}`} />
@@ -752,11 +747,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
           {/* 📊 Graphical Analytics Button */}
           <button
             onClick={() => setActiveTab('reports')}
-            className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
-              activeTab === 'reports'
+            className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${activeTab === 'reports'
                 ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/25'
                 : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-            }`}
+              }`}
           >
             <span className="flex items-center gap-2.5">
               <BarChart3 className={`w-4 h-4 ${activeTab === 'reports' ? 'text-white' : 'text-blue-500'}`} />
@@ -770,11 +764,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
           {/* ⚙️ WhatsApp & Settings Button */}
           <button
             onClick={() => setActiveTab('settings')}
-            className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
-              activeTab === 'settings'
+            className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${activeTab === 'settings'
                 ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/25'
                 : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-            }`}
+              }`}
           >
             <span className="flex items-center gap-2.5">
               <Shield className={`w-4 h-4 ${activeTab === 'settings' ? 'text-white' : 'text-slate-500'}`} />
@@ -856,13 +849,12 @@ export const UnifiedAdminDashboard: React.FC = () => {
       <div className="flex-1 min-w-0 flex flex-col min-h-screen bg-slate-50/70 pb-16">
         {/* Toast Alert Banner */}
         {toastAlert && (
-          <div className={`p-3 text-xs font-bold text-center flex items-center justify-center gap-2 sticky top-0 z-40 transition-all ${
-            toastAlert.type === 'success'
+          <div className={`p-3 text-xs font-bold text-center flex items-center justify-center gap-2 sticky top-0 z-40 transition-all ${toastAlert.type === 'success'
               ? 'bg-emerald-600 text-white shadow-md'
               : toastAlert.type === 'info'
-              ? 'bg-blue-600 text-white shadow-md'
-              : 'bg-rose-600 text-white shadow-md'
-          }`}>
+                ? 'bg-blue-600 text-white shadow-md'
+                : 'bg-rose-600 text-white shadow-md'
+            }`}>
             <Zap className="w-4 h-4 animate-bounce" />
             <span>{toastAlert.text}</span>
             {toastAlert.url && (
@@ -940,1364 +932,1358 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
         {/* Main Body Container Attached Directly to the Right of Sidebar */}
         <div className="flex-1 p-4 sm:p-6 space-y-6 max-w-[1600px] w-full mx-auto">
-        {/* Meeting Type & Schedule Header Banner (Clean Enterprise Hospital Aesthetic) */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition-all">
-          <div className="h-1 w-full bg-gradient-to-r from-orange-500 via-emerald-500 to-teal-500 absolute top-0 left-0" />
-          <div className="flex items-center gap-4">
-            <div
-              className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-white shadow-xs text-sm shrink-0 ${
-                currentCadence === 'MOM'
-                  ? 'bg-purple-600'
-                  : currentCadence === 'WOM'
-                  ? 'bg-blue-600'
-                  : currentMeeting.is_holiday_or_shifted
-                  ? 'bg-amber-600'
-                  : 'bg-gradient-to-br from-orange-500 to-amber-600'
-              }`}
-            >
-              {currentCadence}
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] font-bold text-orange-800 bg-orange-50 border border-orange-200 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1.5">
-                  {currentCadence === 'MOM' && 'MOM — Monthly Strategic Session (1st Monday)'}
-                  {currentCadence === 'WOM' && 'WOM — Weekly Review Session (Every Monday)'}
-                  {currentCadence === 'DOM' && 'DOM — Daily Operations Standup'}
-                  {currentCadence === 'HOLIDAY' && 'HOLIDAY — Standing Off-Day'}
-                </span>
-                {currentMeeting.is_holiday_or_shifted && (
-                  <span className="text-[10px] bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded-full border border-amber-300 flex items-center gap-1">
-                    <AlertTriangle className="w-3 h-3 text-amber-600" /> Rescheduled / Shifted
-                  </span>
-                )}
+          {/* Meeting Type & Schedule Header Banner (Clean Enterprise Hospital Aesthetic) */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition-all">
+            <div className="h-1 w-full bg-gradient-to-r from-orange-500 via-emerald-500 to-teal-500 absolute top-0 left-0" />
+            <div className="flex items-center gap-4">
+              <div
+                className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-white shadow-xs text-sm shrink-0 ${currentCadence === 'MOM'
+                    ? 'bg-purple-600'
+                    : currentCadence === 'WOM'
+                      ? 'bg-blue-600'
+                      : currentMeeting.is_holiday_or_shifted
+                        ? 'bg-amber-600'
+                        : 'bg-gradient-to-br from-orange-500 to-amber-600'
+                  }`}
+              >
+                {currentCadence}
               </div>
-              <h2 className="text-xl font-black text-slate-900 mt-1 tracking-tight">{currentMeeting.title}</h2>
-              <div className="flex flex-wrap items-center gap-2 mt-1 text-xs">
-                <span className="inline-flex items-center gap-1.5 font-bold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200 font-mono">
-                  <Clock className="w-3.5 h-3.5 text-orange-600" />
-                  Scheduled: {currentMeeting.scheduled_time}
-                </span>
-                <span className="text-slate-300">•</span>
-                <a
-                  href={currentMeeting.google_meet_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1 transition-colors"
-                >
-                  <Video className="w-3.5 h-3.5 text-blue-500" />
-                  <span>Meet: {currentMeeting.google_meet_url}</span>
-                </a>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={() => {
-                setSchedForm({
-                  title: currentMeeting.title,
-                  frequency: currentMeeting.frequency,
-                  cadence: currentCadence,
-                  scheduled_time: currentMeeting.scheduled_time,
-                  is_holiday_or_shifted: currentMeeting.is_holiday_or_shifted,
-                  shift_reason: currentMeeting.shift_reason || '',
-                  google_meet_url: currentMeeting.google_meet_url,
-                });
-                setShowScheduleEditModal(true);
-              }}
-              className="flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer"
-            >
-              <Settings2 className="w-3.5 h-3.5 text-orange-600" />
-              <span>Modify Date / Cadence</span>
-            </button>
-
-            <button
-              onClick={handleSendReminderNotice}
-              className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer"
-            >
-              <Send className="w-3.5 h-3.5" />
-              <span>Send {currentCadence} WhatsApp Notice</span>
-            </button>
-
-            <button
-              onClick={() => sendNonAttendeesEscalationNotice(selectedDate)}
-              className="flex items-center gap-1.5 px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer"
-            >
-              <AlertCircle className="w-3.5 h-3.5" />
-              <span>Escalate Non-Attendees</span>
-            </button>
-          </div>
-        </div>
-
-        {/* ================= TAB 1: ATTENDANCE REGISTER ================= */}
-        {activeTab === 'attendance' && (
-          <div className="space-y-6">
-            {/* Live Command Center Countdown Banner (Crisp White + Clean High-Contrast Theme) */}
-            <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs relative overflow-hidden space-y-4">
-              <div className="absolute inset-0 bg-gradient-to-b from-white via-slate-50/40 to-emerald-50/15 pointer-events-none" />
-
-              <div className="relative z-10 space-y-4">
-                {/* Top Row: Digital Clock (IST) + Modern Tabular Countdown + Target Milestone */}
-                <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
-                  {/* Digital Clock Box showing Live India Standard Time (IST) */}
-                  <div className="flex items-center gap-3 bg-slate-50/80 px-4 py-2.5 rounded-xl border border-slate-200 shadow-2xs shrink-0">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
-                      <Clock className="w-5 h-5 text-emerald-700 animate-pulse" />
-                    </div>
-                    <div>
-                      <div className="text-[10px] font-black uppercase tracking-wider text-emerald-800 flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                        <span>Live India Time (IST)</span>
-                        <span className="text-[9px] font-mono bg-white text-slate-600 px-1.5 py-0.2 rounded border border-slate-200 font-bold">Asia/Kolkata</span>
-                      </div>
-                      <div className="text-xl sm:text-2xl font-mono font-black text-slate-900 tracking-wider">
-                        {countdown.liveIndiaTime}
-                      </div>
-                      <div className="text-[10px] text-slate-500 font-medium">
-                        {countdown.liveIndiaDate}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Real-time Second-by-Second Countdown Display (Executive Slate Dark Card) */}
-                  <div className="flex items-center justify-center gap-3 bg-slate-900 text-white px-6 py-2.5 rounded-xl shadow-xs">
-                    <div className="text-center min-w-[42px]">
-                      <div className="text-2xl sm:text-3xl font-mono font-black text-emerald-400 tracking-wider">
-                        {countdown.hoursStr}
-                      </div>
-                      <div className="text-[9px] font-black text-slate-400 uppercase tracking-wider">HRS</div>
-                    </div>
-                    <span className="text-2xl font-mono font-bold text-slate-500 animate-pulse">:</span>
-                    <div className="text-center min-w-[42px]">
-                      <div className="text-2xl sm:text-3xl font-mono font-black text-amber-400 tracking-wider">
-                        {countdown.minsStr}
-                      </div>
-                      <div className="text-[9px] font-black text-slate-400 uppercase tracking-wider">MIN</div>
-                    </div>
-                    <span className="text-2xl font-mono font-bold text-slate-500 animate-pulse">:</span>
-                    <div className="text-center min-w-[42px]">
-                      <div className="text-2xl sm:text-3xl font-mono font-black text-white tracking-wider">
-                        {countdown.secsStr}
-                      </div>
-                      <div className="text-[9px] font-black text-slate-400 uppercase tracking-wider">SEC</div>
-                    </div>
-                  </div>
-
-                  {/* Active Target Milestone Badge */}
-                  <div className="bg-slate-50/80 px-4 py-2.5 rounded-xl border border-slate-200 shadow-2xs flex flex-col justify-center min-w-[210px]">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
-                        countdown.statusColor === 'amber'
-                          ? 'bg-amber-100 text-amber-900 border-amber-300'
-                          : countdown.statusColor === 'blue'
-                          ? 'bg-blue-100 text-blue-900 border-blue-300'
-                          : countdown.statusColor === 'purple'
-                          ? 'bg-purple-100 text-purple-900 border-purple-300'
-                          : 'bg-emerald-100 text-emerald-900 border-emerald-300'
-                      }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${
-                          countdown.statusColor === 'amber' ? 'bg-amber-500 animate-ping' : 'bg-emerald-500 animate-ping'
-                        }`} />
-                        {countdown.statusBadge}
-                      </span>
-                      <span className="text-[11px] text-slate-700 font-bold bg-white px-2 py-0.5 rounded border border-slate-200">
-                        Target: {countdown.targetMilestone}
-                      </span>
-                    </div>
-                    <div className="text-xs text-slate-900 font-bold mt-1 truncate">
-                      {countdown.stageTitle}
-                    </div>
-                    <div className="text-[11px] text-slate-500 truncate">
-                      {countdown.subtext}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Operations Action Bar with Clean Enterprise Buttons */}
-                <div className="flex flex-wrap items-center justify-between gap-2.5 pt-3 border-t border-slate-200">
-                  <div className="flex flex-wrap items-center gap-2">
-                    {/* Master Automated 09:50 AM Trigger Button */}
-                    <button
-                      onClick={handleTriggerAutomatedTransmission}
-                      className="px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-2 cursor-pointer transition-all active:scale-95"
-                      title={`Broadcast 09:50 AM Alerts to WhatsApp Group and all ${leaders.length} registered leaders with 15-Minute Magic Links`}
-                    >
-                      <Zap className="w-4 h-4 text-yellow-200 fill-yellow-200" />
-                      <span>⚡ Auto-Broadcast 09:50 AM (Group + {leaders.length} {leaders.length === 1 ? 'Leader' : 'Leaders'})</span>
-                    </button>
-
-                    {/* Approve All Pending Attendance Button */}
-                    <button
-                      onClick={async () => {
-                        const res = await approveAllPendingRecords(selectedDate);
-                        setToastAlert({ type: 'success', text: res.message });
-                        setTimeout(() => setToastAlert(null), 5000);
-                      }}
-                      className="px-3.5 py-2 bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-300 rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
-                      title="Approve all leaders who have joined on this date"
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>Approve All Joined Today</span>
-                    </button>
-
-                    {/* Stage 1 (09:50 AM) Manual Button */}
-                    <button
-                      onClick={() => handleSendGroupCeoitbox('0950')}
-                      className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer transition-all"
-                      title="Send 09:50 AM Meeting Reminder to Official WhatsApp Group"
-                    >
-                      <Send className="w-3.5 h-3.5 text-slate-500" />
-                      <span>Send 09:50 AM Reminder</span>
-                    </button>
-
-                    {/* Stage 2 (10:30 AM) Button */}
-                    <button
-                      onClick={() => handleSendGroupCeoitbox('1030')}
-                      className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer transition-all"
-                      title="Send 10:30 AM Final Attendance & Absentee Audit to WhatsApp Group"
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>Send 10:30 AM Report</span>
-                    </button>
-
-                    {/* Official WhatsApp Group Modal Link */}
-                    <button
-                      onClick={() => handleSendGroupCeoitbox('0950')}
-                      className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer transition-all"
-                      title="Open Official WhatsApp Group Broadcast Center"
-                    >
-                      <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>Official WhatsApp Group</span>
-                    </button>
-                  </div>
-
-                  {/* Auto-Scheduler Status Pill */}
-                  <button
-                    onClick={() => {
-                      const nextState = !autoCeoitboxDispatch;
-                      setAutoCeoitboxDispatch(nextState);
-                      localStorage.setItem('sbh_auto_ceoitbox_enabled', nextState.toString());
-                      setToastAlert({
-                        type: nextState ? 'success' : 'info',
-                        text: nextState
-                          ? '⚡ Daily Auto-Dispatch (09:50 AM & 10:30 AM) is ACTIVE!'
-                          : 'Daily Auto-Dispatch paused. You can still trigger via buttons.',
-                      });
-                      setTimeout(() => setToastAlert(null), 4000);
-                    }}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all border shrink-0 ${
-                      autoCeoitboxDispatch
-                        ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
-                        : 'bg-white text-slate-600 border-slate-200 hover:text-slate-900'
-                    }`}
-                  >
-                    <Clock className={`w-3.5 h-3.5 ${autoCeoitboxDispatch ? 'text-emerald-600' : 'text-slate-400'}`} />
-                    <span>Auto-Scheduler: {autoCeoitboxDispatch ? 'ACTIVE' : 'PAUSED'}</span>
-                  </button>
-                </div>
-
-                {/* OPERATIONS PURPOSE EXPLANATION & MILESTONES CARD */}
-                <div className="pt-3 border-t border-slate-200 bg-slate-50/70 -mx-5 -mb-5 px-5 py-3.5 rounded-b-2xl space-y-2.5">
-                  <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs">
-                    <div className="flex items-start sm:items-center gap-2 flex-wrap">
-                      <span className="px-2.5 py-0.5 rounded-md bg-emerald-600 text-white font-bold text-[11px] shadow-2xs shrink-0">
-                        🎯 ACTIVE SESSION OBJECTIVE:
-                      </span>
-                      <span className="font-bold text-slate-900 text-xs">
-                        {countdown.countdownForTitle}
-                      </span>
-                      <span className="text-slate-500 text-xs hidden xl:inline">
-                        — {countdown.countdownForDescription}
-                      </span>
-                    </div>
-
-                    {/* Venue & Leader Assembly Details */}
-                    <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-600 shrink-0">
-                      <span className="flex items-center gap-1 bg-white px-2 py-0.5 rounded-md border border-slate-200 font-medium">
-                        📍 <strong className="text-slate-800">Venue:</strong> Conference Room, 5th Floor
-                      </span>
-                      <span className="flex items-center gap-1 bg-white px-2 py-0.5 rounded-md border border-slate-200 font-medium">
-                        👥 <strong className="text-slate-800">Leaders:</strong> {leaders.length} Registered {leaders.length === 1 ? 'Leader' : 'Leaders'}
-                      </span>
-                      <span className="flex items-center gap-1 bg-white px-2 py-0.5 rounded-md border border-slate-200 font-medium">
-                        💻 <strong className="text-slate-800">Meet:</strong> Virtual Check-In
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* 3-Step Milestone Schedule Bar */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-slate-200/80 text-[11px]">
-                    <div className="flex items-center gap-2 text-slate-700">
-                      <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-800 font-bold flex items-center justify-center text-[10px] shrink-0 border border-blue-200">1</span>
-                      <span><strong>09:50 AM:</strong> Automated Notice Broadcast & Attendance Links</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-slate-700">
-                      <span className="w-5 h-5 rounded-full bg-orange-100 text-orange-900 font-bold flex items-center justify-center text-[10px] shrink-0 border border-orange-200">2</span>
-                      <span><strong>10:00 AM Sharp:</strong> DOM Standup Starts (Conference Room 5th Floor)</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-slate-700">
-                      <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-900 font-bold flex items-center justify-center text-[10px] shrink-0 border border-emerald-200">3</span>
-                      <span><strong>10:30 AM:</strong> Final Attendance Audit Frozen & Sent to Director</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Top Stat Cards (6 States: Scheduled, Physical, Virtual, Late Approved, Leave, Absent) */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-              <div className="fluent-card p-4 rounded-2xl border-t-4 border-t-slate-600 fluent-card-hover">
-                <div className="text-slate-500 text-xs font-bold flex items-center justify-between">
-                  <span>Scheduled</span>
-                  <Users className="w-4 h-4 text-slate-400" />
-                </div>
-                <div className="text-2xl font-black text-slate-900 mt-2">{totalLeaders}</div>
-                <div className="text-[11px] text-slate-500 mt-1">Official {currentCadence}</div>
-              </div>
-
-              <div className="fluent-card p-4 rounded-2xl border-t-4 border-t-emerald-600 bg-emerald-50/20 fluent-card-hover">
-                <div className="text-emerald-700 text-xs font-bold flex items-center justify-between">
-                  <span>In-Person</span>
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                </div>
-                <div className="text-2xl font-black text-emerald-700 mt-2">{countPhysical}</div>
-                <div className="text-[11px] text-emerald-600 font-semibold mt-1">5th Floor Conf.</div>
-              </div>
-
-              <div className="fluent-card p-4 rounded-2xl border-t-4 border-t-blue-600 bg-blue-50/20 fluent-card-hover">
-                <div className="text-blue-700 text-xs font-bold flex items-center justify-between">
-                  <span>Virtual</span>
-                  <Video className="w-4 h-4 text-blue-600" />
-                </div>
-                <div className="text-2xl font-black text-blue-700 mt-2">{countVirtual}</div>
-                <div className="text-[11px] text-blue-600 font-semibold mt-1">Google Meet</div>
-              </div>
-
-              <div className="fluent-card p-4 rounded-2xl border-t-4 border-t-amber-500 bg-amber-50/20 fluent-card-hover">
-                <div className="text-amber-800 text-xs font-bold flex items-center justify-between">
-                  <span>Late (Approved)</span>
-                  <Clock className="w-4 h-4 text-amber-600" />
-                </div>
-                <div className="text-2xl font-black text-amber-800 mt-2">{countLate}</div>
-                <div className="text-[11px] text-amber-700 font-semibold mt-1">Admin Approved ✅</div>
-              </div>
-
-              <div className="fluent-card p-4 rounded-2xl border-t-4 border-t-purple-600 bg-purple-50/20 fluent-card-hover">
-                <div className="text-purple-800 text-xs font-bold flex items-center justify-between">
-                  <span>Approved Leave</span>
-                  <HelpCircle className="w-4 h-4 text-purple-600" />
-                </div>
-                <div className="text-2xl font-black text-purple-800 mt-2">{countInformed}</div>
-                <div className="text-[11px] text-purple-700 font-semibold mt-1">Permission Recorded</div>
-              </div>
-
-              <div className="fluent-card p-4 rounded-2xl border-t-4 border-t-rose-600 bg-rose-50/20 fluent-card-hover">
-                <div className="text-rose-700 text-xs font-bold flex items-center justify-between">
-                  <span>Absent</span>
-                  <XCircle className="w-4 h-4 text-rose-600" />
-                </div>
-                <div className="text-2xl font-black text-rose-700 mt-2">{countAbsent}</div>
-                <div className="text-[11px] text-rose-600 font-semibold mt-1">Unexcused List</div>
-              </div>
-            </div>
-
-            {/* Filter & Dispatch Action Bar */}
-            <div className="fluent-card p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
-              <div className="flex items-center gap-2 flex-1">
-                <div className="relative flex-1 max-w-sm">
-                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                  <input
-                    type="text"
-                    placeholder="Search leader by name or department..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-orange-500"
-                  />
-                </div>
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="bg-slate-50 border border-slate-300 text-slate-800 text-xs px-3 py-1.5 rounded-xl focus:outline-none focus:border-orange-500 font-semibold"
-                >
-                  <option value="ALL">All States</option>
-                  <option value="PRESENT">Present (Verified)</option>
-                  <option value="INFORMED_LATE">Informed Late (Admin Approved)</option>
-                  <option value="CHECKED_IN">QR Scanned (Pending)</option>
-                  <option value="INFORMED_ABSENT">Informed Leave</option>
-                  <option value="PENDING">Pending / Unresolved</option>
-                  <option value="ABSENT">Absent</option>
-                </select>
-              </div>
-
-              {/* Action Buttons: PDF Download, Print & Email Report */}
-              <div className="flex flex-wrap items-center gap-2 justify-end">
-                <button
-                  onClick={() => downloadPdfReport(selectedDate)}
-                  className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-600/20 flex items-center gap-1.5 transition-all cursor-pointer"
-                  title="Download Official PDF Report for Director Sir"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Download Director PDF</span>
-                </button>
-
-                <button
-                  onClick={() => openPdfReport(selectedDate)}
-                  className="px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
-                  title="Print official PDF report"
-                >
-                  <Printer className="w-3.5 h-3.5 text-orange-600" />
-                  <span>Print PDF</span>
-                </button>
-
-                <button
-                  onClick={() => setShowEmailModal(true)}
-                  className="px-3.5 py-2 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white rounded-xl text-xs font-bold shadow-md shadow-orange-600/20 flex items-center gap-1.5 transition-all cursor-pointer"
-                >
-                  <Mail className="w-3.5 h-3.5" />
-                  <span>Email Report Draft</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Attendance Register Table */}
-            <div className="fluent-card rounded-2xl overflow-hidden shadow-sm">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
-                      <th className="py-3 px-4">Leader Name</th>
-                      <th className="py-3 px-4">Department</th>
-                      <th className="py-3 px-4 text-center">Expected Mode</th>
-                      <th className="py-3 px-4 text-center">Actual Join Mode</th>
-                      <th className="py-3 px-4 text-center">Accurate Join Time</th>
-                      <th className="py-3 px-4 text-center">Status</th>
-                      <th className="py-3 px-4 text-right">Verification Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {filteredRecords.length === 0 ? (
-                      <tr>
-                        <td colSpan={7} className="py-8 text-center text-slate-400 font-medium">
-                          No leaders match the current search or filters.
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredRecords.map((rec) => (
-                        <tr key={rec.id} className="hover:bg-slate-50/80 transition-colors">
-                          <td className="py-3 px-4">
-                            <div className="font-bold text-slate-900">{rec.leader?.full_name}</div>
-                            <div className="text-[11px] text-slate-400 font-mono">{rec.leader?.employee_code}</div>
-                          </td>
-                          <td className="py-3 px-4 text-slate-600 font-medium">
-                            {rec.leader?.department?.name || 'Department'}
-                          </td>
-                          <td className="py-3 px-4 text-center">
-                            <span className="text-[10px] font-mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-semibold border border-slate-200">
-                              {rec.leader?.expected_mode || 'PHYSICAL'}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4 text-center">
-                            {rec.selected_mode === 'PHYSICAL' ? (
-                              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 inline-flex items-center gap-1">
-                                <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Physical (5th Flr)
-                              </span>
-                            ) : rec.selected_mode === 'VIRTUAL' ? (
-                              <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200 inline-flex items-center gap-1">
-                                <Video className="w-3 h-3 text-blue-600" /> Virtual (Meet)
-                              </span>
-                            ) : (
-                              <span className="text-[10px] text-slate-400">—</span>
-                            )}
-                          </td>
-                          <td className="py-3 px-4 text-center font-mono text-[11px] text-slate-600 font-semibold">
-                            {rec.check_in_at ? (
-                              new Date(rec.check_in_at).toLocaleTimeString('en-IN', {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                                second: '2-digit',
-                                hour12: true,
-                              })
-                            ) : (
-                              <span className="text-slate-400">—</span>
-                            )}
-                          </td>
-                          <td className="py-3 px-4 text-center">
-                            {!rec.admin_verified_attendance &&
-                            (rec.status === 'PRESENT' || rec.status === 'INFORMED_LATE' || rec.selected_mode !== 'NONE') ? (
-                              <span className="text-[10px] bg-amber-100 text-amber-900 font-black px-2.5 py-0.5 rounded-full border border-amber-300 inline-flex items-center gap-1 shadow-2xs">
-                                <Clock className="w-3 h-3 text-amber-600 animate-pulse" />
-                                <span>Approval Pending from Admin</span>
-                                {rec.late_minutes && rec.late_minutes > 0 ? (
-                                  <span className="text-[9px] bg-amber-200 text-amber-950 px-1.5 py-0.2 rounded font-black">
-                                    +{rec.late_minutes}m Late
-                                  </span>
-                                ) : null}
-                              </span>
-                            ) : rec.admin_verified_attendance ? (
-                              <span className="text-[10px] bg-emerald-100 text-emerald-800 font-black px-2.5 py-0.5 rounded-full border border-emerald-300 inline-flex items-center gap-1">
-                                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                <span>PRESENT (Approved)</span>
-                                {rec.late_minutes && rec.late_minutes > 0 ? (
-                                  <span className="text-[9px] bg-emerald-200 text-emerald-900 px-1.5 py-0.2 rounded font-black">
-                                    +{rec.late_minutes}m Late
-                                  </span>
-                                ) : null}
-                              </span>
-                            ) : rec.status === 'LEAVE' ? (
-                              <span className="text-[10px] bg-purple-100 text-purple-800 font-bold px-2.5 py-0.5 rounded-full border border-purple-300">
-                                APPROVED LEAVE {rec.informed_to_person ? `(${rec.informed_to_person})` : ''}
-                              </span>
-                            ) : rec.status === 'INFORMED_ABSENT' ? (
-                              <span className="text-[10px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full border border-amber-300">
-                                INFORMED ({rec.informed_to_person || 'Admin'})
-                              </span>
-                            ) : (
-                              <span className="text-[10px] bg-rose-100 text-rose-800 font-black px-2.5 py-0.5 rounded-full border border-rose-300">
-                                ABSENT
-                              </span>
-                            )}
-                          </td>
-                          <td className="py-3 px-4 text-right">
-                            <div className="flex items-center justify-end gap-1.5">
-                              {/* Admin Direct Approval Button for pending attendance */}
-                              {!rec.admin_verified_attendance &&
-                                (rec.status === 'PRESENT' || rec.status === 'INFORMED_LATE' || rec.selected_mode !== 'NONE') && (
-                                  <button
-                                    onClick={async () => {
-                                      const res = await approveAttendanceRecord(rec.id);
-                                      setToastAlert({ type: 'success', text: res.message });
-                                      setTimeout(() => setToastAlert(null), 4000);
-                                    }}
-                                    className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-black shadow-xs cursor-pointer flex items-center gap-1"
-                                    title="Approve Leader Attendance"
-                                  >
-                                    <CheckCircle2 className="w-3 h-3" />
-                                    <span>Approve</span>
-                                  </button>
-                                )}
-
-                              {rec.status !== 'PRESENT' && !rec.admin_verified_attendance && (
-                                <button
-                                  onClick={() => adminVerifyStatus(rec.id, 'PRESENT', true, 'Manual Conference Room Check')}
-                                  className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold shadow-xs cursor-pointer"
-                                  title="Mark Present & Verified"
-                                >
-                                  Mark Present
-                                </button>
-                              )}
-                              {rec.status !== 'INFORMED_LATE' && rec.status !== 'PRESENT' && (
-                                <button
-                                  onClick={() => {
-                                    setInformedLateModal({
-                                      isOpen: true,
-                                      leaderId: rec.leader_id,
-                                      leaderName: rec.leader?.full_name || 'Leader',
-                                      departmentName: rec.leader?.department?.name || 'Hospital Staff',
-                                      lateMinutes: 15,
-                                      expectedTime: '10:15 AM',
-                                      informedTo: rec.informed_to_person || 'Director Sir',
-                                      reason: rec.late_reason || 'Ward Rounds / Patient Emergency',
-                                      adminApproved: true,
-                                    });
-                                  }}
-                                  className="px-2 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[11px] font-bold shadow-xs cursor-pointer flex items-center gap-1"
-                                  title="Document Late Arrival (Admin Approval Required)"
-                                >
-                                  <Clock className="w-3 h-3" />
-                                  <span>Informed Late</span>
-                                </button>
-                              )}
-                              {rec.status !== 'LEAVE' && (
-                                <button
-                                  onClick={() => {
-                                    setInformedLeaveModal({
-                                      isOpen: true,
-                                      leaderId: rec.leader_id,
-                                      leaderName: rec.leader?.full_name || 'Leader',
-                                      departmentName: rec.leader?.department?.name || 'Hospital Staff',
-                                      informedTo: rec.informed_to_person || 'Director Sir',
-                                      reason: rec.informed_reason || 'Emergency Hospital Duty',
-                                    });
-                                  }}
-                                  className="px-2 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-[11px] font-bold shadow-xs cursor-pointer flex items-center gap-1"
-                                  title="Mark Informed Leave (Admin Verified)"
-                                >
-                                  <HelpCircle className="w-3 h-3" />
-                                  <span>Informed Leave</span>
-                                </button>
-                              )}
-                              {rec.status === 'INFORMED_ABSENT' && (
-                                <button
-                                  onClick={() => confirmInformedAbsence(rec.id, true)}
-                                  className="px-2 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-[11px] font-bold shadow-xs cursor-pointer"
-                                  title="Approve Leave"
-                                >
-                                  Approve Leave
-                                </button>
-                              )}
-                              {rec.status !== 'ABSENT' && (
-                                <button
-                                  onClick={async () => {
-                                    const res = await rejectAttendanceRecord(rec.id, 'Unexcused / Rejected by Admin');
-                                    setToastAlert({ type: 'info', text: res.message });
-                                    setTimeout(() => setToastAlert(null), 4000);
-                                  }}
-                                  className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-[11px] font-semibold cursor-pointer"
-                                  title="Reject Attendance / Mark Absent"
-                                >
-                                  Mark Absent
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ================= TAB 2: INTERACTIVE MEETING CALENDAR ================= */}
-        {activeTab === 'calendar' && (
-          <MeetingCalendarView
-            selectedDate={selectedDate}
-            onSelectDate={(date) => setSelectedDate(date)}
-            onOpenReschedule={() => {
-              const m = getMeetingForDate(selectedDate);
-              setSchedForm({
-                title: m.title,
-                frequency: m.frequency,
-                cadence: m.cadence || 'DOM',
-                scheduled_time: m.scheduled_time,
-                is_holiday_or_shifted: m.is_holiday_or_shifted,
-                shift_reason: m.shift_reason || '',
-                google_meet_url: m.google_meet_url,
-              });
-              setShowScheduleEditModal(true);
-            }}
-          />
-        )}
-
-        {/* ================= TAB 3: GRAPHICAL ANALYTICS & AUDITS ================= */}
-        {activeTab === 'reports' && (
-          <AnalyticsReportsView selectedDate={selectedDate} />
-        )}
-
-        {/* ================= TAB 4: LEADERS & EMPLOYEES ROSTER ================= */}
-        {activeTab === 'leaders' && (
-          <div className="space-y-6">
-            <div className="fluent-card p-5 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
-                <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-                  <Users className="w-5 h-5 text-orange-600" />
-                  <span>Hospital Leaders Directory ({leaders.length})</span>
-                  <span className="text-[11px] bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded-full border border-slate-200">
-                    Domain: @{appSettings.allowed_domain}
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-bold text-orange-800 bg-orange-50 border border-orange-200 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1.5">
+                    {currentCadence === 'MOM' && 'MOM — Monthly Strategic Session (1st Monday)'}
+                    {currentCadence === 'WOM' && 'WOM — Weekly Review Session (Every Monday)'}
+                    {currentCadence === 'DOM' && 'DOM — Daily Operations Standup'}
+                    {currentCadence === 'HOLIDAY' && 'HOLIDAY — Standing Off-Day'}
                   </span>
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Manage hospital leadership and assign them to the official 24 departments.
-                </p>
+                  {currentMeeting.is_holiday_or_shifted && (
+                    <span className="text-[10px] bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded-full border border-amber-300 flex items-center gap-1">
+                      <AlertTriangle className="w-3 h-3 text-amber-600" /> Rescheduled / Shifted
+                    </span>
+                  )}
+                </div>
+                <h2 className="text-xl font-black text-slate-900 mt-1 tracking-tight">{currentMeeting.title}</h2>
+                <div className="flex flex-wrap items-center gap-2 mt-1 text-xs">
+                  <span className="inline-flex items-center gap-1.5 font-bold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200 font-mono">
+                    <Clock className="w-3.5 h-3.5 text-orange-600" />
+                    Scheduled: {currentMeeting.scheduled_time}
+                  </span>
+                  <span className="text-slate-300">•</span>
+                  <a
+                    href={currentMeeting.google_meet_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1 transition-colors"
+                  >
+                    <Video className="w-3.5 h-3.5 text-blue-500" />
+                    <span>Meet: {currentMeeting.google_meet_url}</span>
+                  </a>
+                </div>
               </div>
+            </div>
 
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={() => {
-                  setEditingLeader(null);
-                  setLeaderForm({
-                    full_name: '',
-                    email: '',
-                    phone: '',
-                    department_id: departments[0]?.id || '',
-                    employee_code: `SBH-${Date.now().toString().slice(-4)}`,
-                    expected_mode: 'PHYSICAL',
-                    role: 'LEADER',
-                    is_active: true,
-                    initialPassword: '123456',
+                  setSchedForm({
+                    title: currentMeeting.title,
+                    frequency: currentMeeting.frequency,
+                    cadence: currentCadence,
+                    scheduled_time: currentMeeting.scheduled_time,
+                    is_holiday_or_shifted: currentMeeting.is_holiday_or_shifted,
+                    shift_reason: currentMeeting.shift_reason || '',
+                    google_meet_url: currentMeeting.google_meet_url,
                   });
-                  setFormError('');
-                  setFormSuccess('');
-                  setShowAddLeaderModal(true);
+                  setShowScheduleEditModal(true);
                 }}
-                className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white rounded-xl text-xs font-bold shadow-md shadow-orange-600/25 transition-all cursor-pointer"
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer"
               >
-                <UserPlus className="w-4 h-4" />
-                <span>Add New Hospital Leader</span>
+                <Settings2 className="w-3.5 h-3.5 text-orange-600" />
+                <span>Modify Date / Cadence</span>
+              </button>
+
+              <button
+                onClick={handleSendReminderNotice}
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer"
+              >
+                <Send className="w-3.5 h-3.5" />
+                <span>Send {currentCadence} WhatsApp Notice</span>
+              </button>
+
+              <button
+                onClick={() => sendNonAttendeesEscalationNotice(selectedDate)}
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer"
+              >
+                <AlertCircle className="w-3.5 h-3.5" />
+                <span>Escalate Non-Attendees</span>
               </button>
             </div>
-
-            {/* Leaders Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {leaders.map((lead) => (
-                <div
-                  key={lead.id}
-                  className="fluent-card p-5 rounded-2xl border-t-4 border-t-orange-500 flex flex-col justify-between fluent-card-hover"
-                >
-                  <div>
-                    <div className="flex justify-between items-start">
-                      <span className="text-[10px] font-mono font-bold uppercase bg-orange-100 text-orange-800 px-2 py-0.5 rounded border border-orange-200">
-                        {lead.role}
-                      </span>
-                      <span className="text-xs font-mono text-slate-400 font-semibold">{lead.employee_code}</span>
-                    </div>
-
-                    <h4 className="text-base font-black text-slate-900 mt-3">{lead.full_name}</h4>
-                    <p className="text-xs text-slate-600 font-semibold flex items-center gap-1 mt-0.5">
-                      <Building className="w-3.5 h-3.5 text-slate-400" />
-                      {lead.department?.name || 'Department'}
-                    </p>
-
-                    <div className="mt-4 space-y-1.5 text-xs text-slate-600 font-mono">
-                      <div className="flex items-center gap-2 text-slate-500">
-                        <Mail className="w-3.5 h-3.5 text-orange-600" />
-                        <span className="truncate">{lead.email}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-slate-500">
-                        <Phone className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>{lead.phone}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between">
-                    <span className="text-[11px] text-slate-500">
-                      Expected: <span className="text-slate-800 font-bold">{lead.expected_mode}</span>
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => openEditLeaderModal(lead)}
-                        className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
-                        title="Edit Leader"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteLeader(lead.id, lead.full_name)}
-                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                        title="Delete Leader"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
-        )}
 
-        {/* ================= TAB 5: DEPARTMENTS MASTER (24 OFFICIAL DEPARTMENTS) ================= */}
-        {activeTab === 'departments' && (
-          <div className="space-y-6">
-            <div className="fluent-card p-5 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div>
-                <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-                  <Building className="w-5 h-5 text-orange-600" />
-                  <span>Hospital Departments Master ({departments.length})</span>
-                  <span className="text-[11px] bg-emerald-100 text-emerald-800 font-bold px-2.5 py-0.5 rounded-full border border-emerald-300">
-                    Official 24 Departments Active
-                  </span>
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Official departments for hospital leaders & operations. You can add, edit, or delete departments.
-                </p>
+          {/* ================= TAB 1: ATTENDANCE REGISTER ================= */}
+          {activeTab === 'attendance' && (
+            <div className="space-y-6">
+              {/* Live Command Center Countdown Banner (Crisp White + Clean High-Contrast Theme) */}
+              <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs relative overflow-hidden space-y-4">
+                <div className="absolute inset-0 bg-gradient-to-b from-white via-slate-50/40 to-emerald-50/15 pointer-events-none" />
+
+                <div className="relative z-10 space-y-4">
+                  {/* Top Row: Digital Clock (IST) + Modern Tabular Countdown + Target Milestone */}
+                  <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
+                    {/* Digital Clock Box showing Live India Standard Time (IST) */}
+                    <div className="flex items-center gap-3 bg-slate-50/80 px-4 py-2.5 rounded-xl border border-slate-200 shadow-2xs shrink-0">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
+                        <Clock className="w-5 h-5 text-emerald-700 animate-pulse" />
+                      </div>
+                      <div>
+                        <div className="text-[10px] font-black uppercase tracking-wider text-emerald-800 flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                          <span>Live India Time (IST)</span>
+                          <span className="text-[9px] font-mono bg-white text-slate-600 px-1.5 py-0.2 rounded border border-slate-200 font-bold">Asia/Kolkata</span>
+                        </div>
+                        <div className="text-xl sm:text-2xl font-mono font-black text-slate-900 tracking-wider">
+                          {countdown.liveIndiaTime}
+                        </div>
+                        <div className="text-[10px] text-slate-500 font-medium">
+                          {countdown.liveIndiaDate}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Real-time Second-by-Second Countdown Display (Executive Slate Dark Card) */}
+                    <div className="flex items-center justify-center gap-3 bg-slate-900 text-white px-6 py-2.5 rounded-xl shadow-xs">
+                      <div className="text-center min-w-[42px]">
+                        <div className="text-2xl sm:text-3xl font-mono font-black text-emerald-400 tracking-wider">
+                          {countdown.hoursStr}
+                        </div>
+                        <div className="text-[9px] font-black text-slate-400 uppercase tracking-wider">HRS</div>
+                      </div>
+                      <span className="text-2xl font-mono font-bold text-slate-500 animate-pulse">:</span>
+                      <div className="text-center min-w-[42px]">
+                        <div className="text-2xl sm:text-3xl font-mono font-black text-amber-400 tracking-wider">
+                          {countdown.minsStr}
+                        </div>
+                        <div className="text-[9px] font-black text-slate-400 uppercase tracking-wider">MIN</div>
+                      </div>
+                      <span className="text-2xl font-mono font-bold text-slate-500 animate-pulse">:</span>
+                      <div className="text-center min-w-[42px]">
+                        <div className="text-2xl sm:text-3xl font-mono font-black text-white tracking-wider">
+                          {countdown.secsStr}
+                        </div>
+                        <div className="text-[9px] font-black text-slate-400 uppercase tracking-wider">SEC</div>
+                      </div>
+                    </div>
+
+                    {/* Active Target Milestone Badge */}
+                    <div className="bg-slate-50/80 px-4 py-2.5 rounded-xl border border-slate-200 shadow-2xs flex flex-col justify-center min-w-[210px]">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${countdown.statusColor === 'amber'
+                            ? 'bg-amber-100 text-amber-900 border-amber-300'
+                            : countdown.statusColor === 'blue'
+                              ? 'bg-blue-100 text-blue-900 border-blue-300'
+                              : countdown.statusColor === 'purple'
+                                ? 'bg-purple-100 text-purple-900 border-purple-300'
+                                : 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                          }`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${countdown.statusColor === 'amber' ? 'bg-amber-500 animate-ping' : 'bg-emerald-500 animate-ping'
+                            }`} />
+                          {countdown.statusBadge}
+                        </span>
+                        <span className="text-[11px] text-slate-700 font-bold bg-white px-2 py-0.5 rounded border border-slate-200">
+                          Target: {countdown.targetMilestone}
+                        </span>
+                      </div>
+                      <div className="text-xs text-slate-900 font-bold mt-1 truncate">
+                        {countdown.stageTitle}
+                      </div>
+                      <div className="text-[11px] text-slate-500 truncate">
+                        {countdown.subtext}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Operations Action Bar with Clean Enterprise Buttons */}
+                  <div className="flex flex-wrap items-center justify-between gap-2.5 pt-3 border-t border-slate-200">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {/* Master Automated 09:50 AM Trigger Button */}
+                      <button
+                        onClick={handleTriggerAutomatedTransmission}
+                        className="px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-2 cursor-pointer transition-all active:scale-95"
+                        title={`Broadcast 09:50 AM Alerts to WhatsApp Group and all ${leaders.length} registered leaders with 15-Minute Magic Links`}
+                      >
+                        <Zap className="w-4 h-4 text-yellow-200 fill-yellow-200" />
+                        <span>⚡ Auto-Broadcast 09:50 AM (Group + {leaders.length} {leaders.length === 1 ? 'Leader' : 'Leaders'})</span>
+                      </button>
+
+                      {/* Approve All Pending Attendance Button */}
+                      <button
+                        onClick={async () => {
+                          const res = await approveAllPendingRecords(selectedDate);
+                          setToastAlert({ type: 'success', text: res.message });
+                          setTimeout(() => setToastAlert(null), 5000);
+                        }}
+                        className="px-3.5 py-2 bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-300 rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
+                        title="Approve all leaders who have joined on this date"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Approve All Joined Today</span>
+                      </button>
+
+                      {/* Stage 1 (09:50 AM) Manual Button */}
+                      <button
+                        onClick={() => handleSendGroupCeoitbox('0950')}
+                        className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer transition-all"
+                        title="Send 09:50 AM Meeting Reminder to Official WhatsApp Group"
+                      >
+                        <Send className="w-3.5 h-3.5 text-slate-500" />
+                        <span>Send 09:50 AM Reminder</span>
+                      </button>
+
+                      {/* Stage 2 (10:30 AM) Button */}
+                      <button
+                        onClick={() => handleSendGroupCeoitbox('1030')}
+                        className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer transition-all"
+                        title="Send 10:30 AM Final Attendance & Absentee Audit to WhatsApp Group"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Send 10:30 AM Report</span>
+                      </button>
+
+                      {/* Official WhatsApp Group Modal Link */}
+                      <button
+                        onClick={() => handleSendGroupCeoitbox('0950')}
+                        className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer transition-all"
+                        title="Open Official WhatsApp Group Broadcast Center"
+                      >
+                        <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Official WhatsApp Group</span>
+                      </button>
+                    </div>
+
+                    {/* Auto-Scheduler Status Pill */}
+                    <button
+                      onClick={() => {
+                        const nextState = !autoCeoitboxDispatch;
+                        setAutoCeoitboxDispatch(nextState);
+                        localStorage.setItem('sbh_auto_ceoitbox_enabled', nextState.toString());
+                        setToastAlert({
+                          type: nextState ? 'success' : 'info',
+                          text: nextState
+                            ? '⚡ Daily Auto-Dispatch (09:50 AM & 10:30 AM) is ACTIVE!'
+                            : 'Daily Auto-Dispatch paused. You can still trigger via buttons.',
+                        });
+                        setTimeout(() => setToastAlert(null), 4000);
+                      }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all border shrink-0 ${autoCeoitboxDispatch
+                          ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
+                          : 'bg-white text-slate-600 border-slate-200 hover:text-slate-900'
+                        }`}
+                    >
+                      <Clock className={`w-3.5 h-3.5 ${autoCeoitboxDispatch ? 'text-emerald-600' : 'text-slate-400'}`} />
+                      <span>Auto-Scheduler: {autoCeoitboxDispatch ? 'ACTIVE' : 'PAUSED'}</span>
+                    </button>
+                  </div>
+
+                  {/* OPERATIONS PURPOSE EXPLANATION & MILESTONES CARD */}
+                  <div className="pt-3 border-t border-slate-200 bg-slate-50/70 -mx-5 -mb-5 px-5 py-3.5 rounded-b-2xl space-y-2.5">
+                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs">
+                      <div className="flex items-start sm:items-center gap-2 flex-wrap">
+                        <span className="px-2.5 py-0.5 rounded-md bg-emerald-600 text-white font-bold text-[11px] shadow-2xs shrink-0">
+                          🎯 ACTIVE SESSION OBJECTIVE:
+                        </span>
+                        <span className="font-bold text-slate-900 text-xs">
+                          {countdown.countdownForTitle}
+                        </span>
+                        <span className="text-slate-500 text-xs hidden xl:inline">
+                          — {countdown.countdownForDescription}
+                        </span>
+                      </div>
+
+                      {/* Venue & Leader Assembly Details */}
+                      <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-600 shrink-0">
+                        <span className="flex items-center gap-1 bg-white px-2 py-0.5 rounded-md border border-slate-200 font-medium">
+                          📍 <strong className="text-slate-800">Venue:</strong> Conference Room, 5th Floor
+                        </span>
+                        <span className="flex items-center gap-1 bg-white px-2 py-0.5 rounded-md border border-slate-200 font-medium">
+                          👥 <strong className="text-slate-800">Leaders:</strong> {leaders.length} Registered {leaders.length === 1 ? 'Leader' : 'Leaders'}
+                        </span>
+                        <span className="flex items-center gap-1 bg-white px-2 py-0.5 rounded-md border border-slate-200 font-medium">
+                          💻 <strong className="text-slate-800">Meet:</strong> Virtual Check-In
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* 3-Step Milestone Schedule Bar */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-slate-200/80 text-[11px]">
+                      <div className="flex items-center gap-2 text-slate-700">
+                        <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-800 font-bold flex items-center justify-center text-[10px] shrink-0 border border-blue-200">1</span>
+                        <span><strong>09:50 AM:</strong> Automated Notice Broadcast & Attendance Links</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-slate-700">
+                        <span className="w-5 h-5 rounded-full bg-orange-100 text-orange-900 font-bold flex items-center justify-center text-[10px] shrink-0 border border-orange-200">2</span>
+                        <span><strong>10:00 AM Sharp:</strong> DOM Standup Starts (Conference Room 5th Floor)</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-slate-700">
+                        <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-900 font-bold flex items-center justify-center text-[10px] shrink-0 border border-emerald-200">3</span>
+                        <span><strong>10:30 AM:</strong> Final Attendance Audit Frozen & Sent to Director</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <div className="flex items-center gap-2.5 w-full sm:w-auto">
-                <div className="relative flex-1 sm:w-64">
-                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                  <input
-                    type="text"
-                    placeholder="Search departments..."
-                    value={deptSearchTerm}
-                    onChange={(e) => setDeptSearchTerm(e.target.value)}
-                    className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-orange-500"
-                  />
+              {/* Top Stat Cards (6 States: Scheduled, Physical, Virtual, Late Approved, Leave, Absent) */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                <div className="fluent-card p-4 rounded-2xl border-t-4 border-t-slate-600 fluent-card-hover">
+                  <div className="text-slate-500 text-xs font-bold flex items-center justify-between">
+                    <span>Scheduled</span>
+                    <Users className="w-4 h-4 text-slate-400" />
+                  </div>
+                  <div className="text-2xl font-black text-slate-900 mt-2">{totalLeaders}</div>
+                  <div className="text-[11px] text-slate-500 mt-1">Official {currentCadence}</div>
                 </div>
 
-                <button
-                  onClick={() => {
-                    setEditingDept(null);
-                    setDeptForm({ name: '', code: '', is_active: true });
-                    setDeptFormError('');
-                    setDeptFormSuccess('');
-                    setShowAddDeptModal(true);
-                  }}
-                  className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white rounded-xl text-xs font-bold shadow-md shadow-orange-600/25 transition-all cursor-pointer shrink-0"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Add Department</span>
-                </button>
-              </div>
-            </div>
+                <div className="fluent-card p-4 rounded-2xl border-t-4 border-t-emerald-600 bg-emerald-50/20 fluent-card-hover">
+                  <div className="text-emerald-700 text-xs font-bold flex items-center justify-between">
+                    <span>In-Person</span>
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  </div>
+                  <div className="text-2xl font-black text-emerald-700 mt-2">{countPhysical}</div>
+                  <div className="text-[11px] text-emerald-600 font-semibold mt-1">5th Floor Conf.</div>
+                </div>
 
-            {/* Departments Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {filteredDepartments.map((dept, idx) => {
-                const assignedCount = leaders.filter((l) => l.department_id === dept.id).length;
-                return (
-                  <div
-                    key={dept.id}
-                    className="fluent-card p-4 rounded-2xl border-t-4 border-t-emerald-600 flex flex-col justify-between fluent-card-hover"
+                <div className="fluent-card p-4 rounded-2xl border-t-4 border-t-blue-600 bg-blue-50/20 fluent-card-hover">
+                  <div className="text-blue-700 text-xs font-bold flex items-center justify-between">
+                    <span>Virtual</span>
+                    <Video className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <div className="text-2xl font-black text-blue-700 mt-2">{countVirtual}</div>
+                  <div className="text-[11px] text-blue-600 font-semibold mt-1">Google Meet</div>
+                </div>
+
+                <div className="fluent-card p-4 rounded-2xl border-t-4 border-t-amber-500 bg-amber-50/20 fluent-card-hover">
+                  <div className="text-amber-800 text-xs font-bold flex items-center justify-between">
+                    <span>Late (Approved)</span>
+                    <Clock className="w-4 h-4 text-amber-600" />
+                  </div>
+                  <div className="text-2xl font-black text-amber-800 mt-2">{countLate}</div>
+                  <div className="text-[11px] text-amber-700 font-semibold mt-1">Admin Approved ✅</div>
+                </div>
+
+                <div className="fluent-card p-4 rounded-2xl border-t-4 border-t-purple-600 bg-purple-50/20 fluent-card-hover">
+                  <div className="text-purple-800 text-xs font-bold flex items-center justify-between">
+                    <span>Approved Leave</span>
+                    <HelpCircle className="w-4 h-4 text-purple-600" />
+                  </div>
+                  <div className="text-2xl font-black text-purple-800 mt-2">{countInformed}</div>
+                  <div className="text-[11px] text-purple-700 font-semibold mt-1">Permission Recorded</div>
+                </div>
+
+                <div className="fluent-card p-4 rounded-2xl border-t-4 border-t-rose-600 bg-rose-50/20 fluent-card-hover">
+                  <div className="text-rose-700 text-xs font-bold flex items-center justify-between">
+                    <span>Absent</span>
+                    <XCircle className="w-4 h-4 text-rose-600" />
+                  </div>
+                  <div className="text-2xl font-black text-rose-700 mt-2">{countAbsent}</div>
+                  <div className="text-[11px] text-rose-600 font-semibold mt-1">Unexcused List</div>
+                </div>
+              </div>
+
+              {/* Filter & Dispatch Action Bar */}
+              <div className="fluent-card p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
+                <div className="flex items-center gap-2 flex-1">
+                  <div className="relative flex-1 max-w-sm">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                    <input
+                      type="text"
+                      placeholder="Search leader by name or department..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-orange-500"
+                    />
+                  </div>
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="bg-slate-50 border border-slate-300 text-slate-800 text-xs px-3 py-1.5 rounded-xl focus:outline-none focus:border-orange-500 font-semibold"
                   >
-                    <div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-mono text-slate-500 uppercase font-black bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
-                          {dept.code || `DEP-${idx + 1}`}
-                        </span>
-                        <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-300">
-                          Active
-                        </span>
-                      </div>
-
-                      <h4 className="text-sm font-black text-slate-900 mt-2.5 truncate" title={dept.name}>
-                        {dept.name}
-                      </h4>
-
-                      <div className="mt-3 text-xs text-slate-600 flex items-center justify-between bg-slate-50 p-2 rounded-xl border border-slate-100">
-                        <span className="text-[11px] text-slate-500">Assigned Leaders:</span>
-                        <span className="font-bold text-slate-900 bg-white px-2 py-0.5 rounded-md border border-slate-200 text-xs">
-                          {assignedCount}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="mt-4 pt-2.5 border-t border-slate-100 flex items-center justify-end gap-1.5">
-                      <button
-                        onClick={() => openEditDeptModal(dept)}
-                        className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
-                        title="Edit Department"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteDepartment(dept.id, dept.name)}
-                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                        title="Delete Department"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* ================= TAB 7: DAILY MEETING LINKS & VIRTUAL TRACKING ================= */}
-        {activeTab === 'links' && (
-          <div className="space-y-6">
-            {/* Top Overview Banner & Live Stats */}
-            <div className="fluent-card p-6 rounded-3xl border-2 border-teal-500/30 bg-gradient-to-r from-teal-50/50 via-white to-emerald-50/50 shadow-md">
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-5 border-b border-slate-200/80">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-teal-100 text-teal-800 border border-teal-300">
-                      {currentCadence} Cadence
-                    </span>
-                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                      {currentMeeting.frequency}
-                    </span>
-                  </div>
-                  <h2 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-                    <Video className="w-5 h-5 text-teal-600" />
-                    Daily Meeting Links & Virtual Attendance Hub
-                  </h2>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Every leader receives an individual tracking link. Clicks and QR code verifications are recorded
-                    user-wise and date-wise.
-                  </p>
+                    <option value="ALL">All States</option>
+                    <option value="PRESENT">Present (Verified)</option>
+                    <option value="INFORMED_LATE">Informed Late (Admin Approved)</option>
+                    <option value="CHECKED_IN">QR Scanned (Pending)</option>
+                    <option value="INFORMED_ABSENT">Informed Leave</option>
+                    <option value="PENDING">Pending / Unresolved</option>
+                    <option value="ABSENT">Absent</option>
+                  </select>
                 </div>
 
-                {/* Target Google Meet Link & Controls */}
-                <div className="flex flex-wrap items-center gap-2.5">
-                  <div className="px-3.5 py-2 rounded-2xl bg-white border border-slate-200 shadow-xs flex items-center gap-2">
-                    <Video className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <div className="text-left">
-                      <div className="text-[10px] uppercase font-bold text-slate-400">Target Google Meet</div>
-                      <a
-                        href={currentMeeting.google_meet_url || appSettings.google_meet_url || 'https://meet.google.com/jrz-jfku-gir'}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs font-mono font-bold text-teal-700 hover:text-teal-900 flex items-center gap-1 underline"
-                      >
-                        {currentMeeting.google_meet_url || 'https://meet.google.com/jrz-jfku-gir'}
-                        <ExternalLink className="w-3 h-3" />
-                      </a>
-                    </div>
-                  </div>
+                {/* Action Buttons: PDF Download, Print & Email Report */}
+                <div className="flex flex-wrap items-center gap-2 justify-end">
+                  <button
+                    onClick={() => downloadPdfReport(selectedDate)}
+                    className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-600/20 flex items-center gap-1.5 transition-all cursor-pointer"
+                    title="Download Official PDF Report for Director Sir"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Download Director PDF</span>
+                  </button>
 
                   <button
-                    onClick={() => setShowVirtualQrModal(true)}
-                    className="px-4 py-2.5 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-2 shadow-sm cursor-pointer transition-all hover:scale-[1.02]"
+                    onClick={() => openPdfReport(selectedDate)}
+                    className="px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                    title="Print official PDF report"
                   >
-                    <QrCode className="w-4 h-4 text-teal-400" />
-                    <span>Project Virtual Screen QR</span>
+                    <Printer className="w-3.5 h-3.5 text-orange-600" />
+                    <span>Print PDF</span>
+                  </button>
+
+                  <button
+                    onClick={() => setShowEmailModal(true)}
+                    className="px-3.5 py-2 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white rounded-xl text-xs font-bold shadow-md shadow-orange-600/20 flex items-center gap-1.5 transition-all cursor-pointer"
+                  >
+                    <Mail className="w-3.5 h-3.5" />
+                    <span>Email Report Draft</span>
                   </button>
                 </div>
               </div>
 
-              {/* Stats Cards Row */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 pt-5">
-                <div className="p-3.5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Total Leaders</span>
-                  <div className="text-2xl font-black text-slate-900 mt-0.5">{leaders.length}</div>
-                  <span className="text-[11px] text-slate-500 font-medium">Scheduled in Roster</span>
-                </div>
-
-                <div className="p-3.5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-teal-600">Virtual Clicks Logged</span>
-                  <div className="text-2xl font-black text-teal-600 mt-0.5">
-                    {
-                      attendanceRecords.filter(
-                        (r) =>
-                          r.meeting_date === selectedDate &&
-                          ((r.virtual_clicks_count || 0) > 0 || r.selected_mode === 'VIRTUAL')
-                      ).length
-                    }
-                  </div>
-                  <span className="text-[11px] text-slate-500 font-medium">Unique Daily Links Opened</span>
-                </div>
-
-                <div className="p-3.5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600">QR Verified (Virtual)</span>
-                  <div className="text-2xl font-black text-emerald-600 mt-0.5">
-                    {
-                      attendanceRecords.filter(
-                        (r) =>
-                          r.meeting_date === selectedDate &&
-                          (r.evidence_source === 'VIRTUAL_QR_VERIFIED' || r.qr_scanned_at)
-                      ).length
-                    }
-                  </div>
-                  <span className="text-[11px] text-slate-500 font-medium">Confirmed by Camera Scan</span>
-                </div>
-
-                <div className="p-3.5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-orange-600">In-Person Boardroom</span>
-                  <div className="text-2xl font-black text-orange-600 mt-0.5">
-                    {
-                      attendanceRecords.filter(
-                        (r) =>
-                          r.meeting_date === selectedDate &&
-                          r.selected_mode === 'PHYSICAL' &&
-                          (r.status === 'PRESENT' || r.admin_verified_attendance)
-                      ).length
-                    }
-                  </div>
-                  <span className="text-[11px] text-slate-500 font-medium">5th Floor Conference Room</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Action Bar & Filter */}
-            <div className="fluent-card p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3">
-              <div className="relative w-full sm:w-80">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-2.5" />
-                <input
-                  type="text"
-                  placeholder="Search leader or department..."
-                  value={linksSearchTerm}
-                  onChange={(e) => setLinksSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:border-teal-500"
-                />
-              </div>
-
-              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const allLinksText = leaders
-                      .map((lead, idx) => {
-                        const { url } = generateDailyMeetingLink(
-                          lead,
-                          selectedDate,
-                          undefined,
-                          currentMeeting.google_meet_url || appSettings.google_meet_url
-                        );
-                        return `${idx + 1}. ${lead.full_name} (${lead.department?.name || 'Dept'}): ${url}`;
-                      })
-                      .join('\n\n');
-
-                    navigator.clipboard.writeText(allLinksText);
-                    setCopiedAllLinks(true);
-                    setTimeout(() => setCopiedAllLinks(false), 3000);
-                  }}
-                  className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs flex items-center gap-1.5 border border-slate-200 cursor-pointer"
-                >
-                  {copiedAllLinks ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
-                  <span>{copiedAllLinks ? 'All Links Copied!' : 'Copy All Daily Links'}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleCeoitboxBroadcastReminders}
-                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm cursor-pointer"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>Broadcast on WhatsApp</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Table of Leaders & Individual Meeting Links */}
-            <div className="fluent-card rounded-3xl overflow-hidden border border-slate-200 shadow-md">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-600 uppercase text-[10px] font-black tracking-wider">
-                      <th className="py-3.5 px-4">Leader & Department</th>
-                      <th className="py-3.5 px-3">Expected Mode</th>
-                      <th className="py-3.5 px-3">Dedicated Daily Meet Link</th>
-                      <th className="py-3.5 px-3 text-center">Click Count</th>
-                      <th className="py-3.5 px-3">Attendance Status</th>
-                      <th className="py-3.5 px-4 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {leaders
-                      .filter(
-                        (l) =>
-                          l.full_name.toLowerCase().includes(linksSearchTerm.toLowerCase()) ||
-                          l.department?.name.toLowerCase().includes(linksSearchTerm.toLowerCase()) ||
-                          l.phone?.includes(linksSearchTerm)
-                      )
-                      .map((lead) => {
-                        const { url: personalMeetUrl } = generateDailyMeetingLink(
-                          lead,
-                          selectedDate,
-                          undefined,
-                          currentMeeting.google_meet_url || appSettings.google_meet_url
-                        );
-
-                        const record = attendanceRecords.find(
-                          (r) => r.leader_id === lead.id && r.meeting_date === selectedDate
-                        );
-
-                        const isVirtualClicked =
-                          (record?.virtual_clicks_count || 0) > 0 || record?.evidence_source === 'GOOGLE_MEET_REDIRECT';
-                        const isQrScanned =
-                          record?.evidence_source === 'VIRTUAL_QR_VERIFIED' || !!record?.qr_scanned_at;
-                        const isPhysical =
-                          record?.selected_mode === 'PHYSICAL' &&
-                          (record.status === 'PRESENT' || record.admin_verified_attendance);
-
-                        const clicks = record?.virtual_clicks_count || (isVirtualClicked ? 1 : 0);
-
-                        const waMsg = `🏥 *SBH GROUP OF HOSPITAL, RAIPUR*\n🔔 *DAILY OPERATIONS MEETING (DOM) — ${selectedDate}*\n\nDear ${lead.full_name},\nYour personal meeting tracking link for today is ready:\n👉 ${personalMeetUrl}\n\nTap above to enter Google Meet and auto-record your virtual attendance.\n\nDOM Operations Command | SBH Raipur`;
-                        const waUrl = `https://api.whatsapp.com/send?phone=91${lead.phone?.replace(/\D/g, '')}&text=${encodeURIComponent(
-                          waMsg
-                        )}`;
-
-                        return (
-                          <tr key={lead.id} className="hover:bg-slate-50/70 transition-colors">
-                            {/* Leader Info */}
+              {/* Attendance Register Table */}
+              <div className="fluent-card rounded-2xl overflow-hidden shadow-sm">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+                        <th className="py-3 px-4">Leader Name</th>
+                        <th className="py-3 px-4">Department</th>
+                        <th className="py-3 px-4 text-center">Expected Mode</th>
+                        <th className="py-3 px-4 text-center">Actual Join Mode</th>
+                        <th className="py-3 px-4 text-center">Accurate Join Time</th>
+                        <th className="py-3 px-4 text-center">Status</th>
+                        <th className="py-3 px-4 text-right">Verification Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {filteredRecords.length === 0 ? (
+                        <tr>
+                          <td colSpan={7} className="py-8 text-center text-slate-400 font-medium">
+                            No leaders match the current search or filters.
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredRecords.map((rec) => (
+                          <tr key={rec.id} className="hover:bg-slate-50/80 transition-colors">
                             <td className="py-3 px-4">
-                              <div className="flex items-center gap-2.5">
-                                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-teal-500 to-emerald-500 text-white font-bold flex items-center justify-center text-xs shadow-2xs shrink-0">
-                                  {lead.full_name.charAt(0)}
-                                </div>
-                                <div>
-                                  <div className="font-black text-slate-900">{lead.full_name}</div>
-                                  <div className="text-[11px] text-slate-500 font-semibold flex items-center gap-1.5">
-                                    <span className="text-teal-700">{lead.department?.name || 'Leadership'}</span>
-                                    <span>•</span>
-                                    <span className="font-mono text-slate-400">{lead.phone}</span>
-                                  </div>
-                                </div>
-                              </div>
+                              <div className="font-bold text-slate-900">{rec.leader?.full_name}</div>
+                              <div className="text-[11px] text-slate-400 font-mono">{rec.leader?.employee_code}</div>
                             </td>
-
-                            {/* Expected Mode */}
-                            <td className="py-3 px-3">
-                              <span
-                                className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                  lead.expected_mode === 'VIRTUAL'
-                                    ? 'bg-blue-100 text-blue-800 border border-blue-200'
-                                    : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                                }`}
-                              >
-                                {lead.expected_mode}
+                            <td className="py-3 px-4 text-slate-600 font-medium">
+                              {rec.leader?.department?.name || 'Department'}
+                            </td>
+                            <td className="py-3 px-4 text-center">
+                              <span className="text-[10px] font-mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-semibold border border-slate-200">
+                                {rec.leader?.expected_mode || 'PHYSICAL'}
                               </span>
                             </td>
-
-                            {/* Dedicated Daily Link */}
-                            <td className="py-3 px-3">
-                              <div className="flex items-center gap-1.5 max-w-xs">
-                                <input
-                                  type="text"
-                                  readOnly
-                                  value={personalMeetUrl}
-                                  className="px-2.5 py-1 bg-slate-100 rounded-lg text-[11px] font-mono text-slate-700 w-48 truncate border border-slate-200 select-all"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    navigator.clipboard.writeText(personalMeetUrl);
-                                    setCopiedLeaderId(lead.id);
-                                    setTimeout(() => setCopiedLeaderId(null), 2500);
-                                  }}
-                                  title="Copy personal daily join link"
-                                  className="p-1.5 text-slate-500 hover:text-teal-700 hover:bg-teal-50 rounded-lg border border-slate-200 cursor-pointer transition-colors"
-                                >
-                                  {copiedLeaderId === lead.id ? (
-                                    <Check className="w-3.5 h-3.5 text-emerald-600" />
-                                  ) : (
-                                    <Copy className="w-3.5 h-3.5" />
-                                  )}
-                                </button>
-                                <a
-                                  href={personalMeetUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  title="Open link in new tab"
-                                  className="p-1.5 text-slate-500 hover:text-teal-700 hover:bg-teal-50 rounded-lg border border-slate-200 transition-colors"
-                                >
-                                  <ExternalLink className="w-3.5 h-3.5" />
-                                </a>
-                              </div>
-                            </td>
-
-                            {/* Click Count */}
-                            <td className="py-3 px-3 text-center">
-                              <span
-                                className={`px-2.5 py-0.5 rounded-full font-mono text-[11px] font-black inline-block ${
-                                  clicks > 0
-                                    ? 'bg-teal-100 text-teal-900 border border-teal-300'
-                                    : 'bg-slate-100 text-slate-400'
-                                }`}
-                              >
-                                {clicks} {clicks === 1 ? 'click' : 'clicks'}
-                              </span>
-                            </td>
-
-                            {/* Status */}
-                            <td className="py-3 px-3">
-                              {record?.admin_verified_attendance ? (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300">
-                                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                  <span>Present (Approved)</span>
-                                  {record.late_minutes && record.late_minutes > 0 ? (
-                                    <span className="text-[9px] bg-emerald-200 text-emerald-950 px-1 py-0.2 rounded font-black">
-                                      +{record.late_minutes}m Late
-                                    </span>
-                                  ) : null}
+                            <td className="py-3 px-4 text-center">
+                              {rec.selected_mode === 'PHYSICAL' ? (
+                                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 inline-flex items-center gap-1">
+                                  <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Physical (5th Flr)
                                 </span>
-                              ) : isVirtualClicked || isQrScanned || isPhysical ? (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs">
-                                  <Clock className="w-3 h-3 text-amber-600 animate-pulse" />
-                                  <span>Approval Pending from Admin</span>
-                                  {record?.late_minutes && record.late_minutes > 0 ? (
-                                    <span className="text-[9px] bg-amber-200 text-amber-950 px-1 py-0.2 rounded font-black">
-                                      +{record.late_minutes}m Late
-                                    </span>
-                                  ) : null}
+                              ) : rec.selected_mode === 'VIRTUAL' ? (
+                                <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200 inline-flex items-center gap-1">
+                                  <Video className="w-3 h-3 text-blue-600" /> Virtual (Meet)
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-slate-100 text-slate-500 border border-slate-200">
-                                  <Clock className="w-3 h-3 text-slate-400" /> Not Joined
+                                <span className="text-[10px] text-slate-400">—</span>
+                              )}
+                            </td>
+                            <td className="py-3 px-4 text-center font-mono text-[11px] text-slate-600 font-semibold">
+                              {rec.check_in_at ? (
+                                new Date(rec.check_in_at).toLocaleTimeString('en-IN', {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                  second: '2-digit',
+                                  hour12: true,
+                                })
+                              ) : (
+                                <span className="text-slate-400">—</span>
+                              )}
+                            </td>
+                            <td className="py-3 px-4 text-center">
+                              {!rec.admin_verified_attendance &&
+                                (rec.status === 'PRESENT' || rec.status === 'INFORMED_LATE' || rec.selected_mode !== 'NONE') ? (
+                                <span className="text-[10px] bg-amber-100 text-amber-900 font-black px-2.5 py-0.5 rounded-full border border-amber-300 inline-flex items-center gap-1 shadow-2xs">
+                                  <Clock className="w-3 h-3 text-amber-600 animate-pulse" />
+                                  <span>Approval Pending from Admin</span>
+                                  {rec.late_minutes && rec.late_minutes > 0 ? (
+                                    <span className="text-[9px] bg-amber-200 text-amber-950 px-1.5 py-0.2 rounded font-black">
+                                      +{rec.late_minutes}m Late
+                                    </span>
+                                  ) : null}
+                                </span>
+                              ) : rec.admin_verified_attendance ? (
+                                <span className="text-[10px] bg-emerald-100 text-emerald-800 font-black px-2.5 py-0.5 rounded-full border border-emerald-300 inline-flex items-center gap-1">
+                                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                  <span>PRESENT (Approved)</span>
+                                  {rec.late_minutes && rec.late_minutes > 0 ? (
+                                    <span className="text-[9px] bg-emerald-200 text-emerald-900 px-1.5 py-0.2 rounded font-black">
+                                      +{rec.late_minutes}m Late
+                                    </span>
+                                  ) : null}
+                                </span>
+                              ) : rec.status === 'LEAVE' ? (
+                                <span className="text-[10px] bg-purple-100 text-purple-800 font-bold px-2.5 py-0.5 rounded-full border border-purple-300">
+                                  APPROVED LEAVE {rec.informed_to_person ? `(${rec.informed_to_person})` : ''}
+                                </span>
+                              ) : rec.status === 'INFORMED_ABSENT' ? (
+                                <span className="text-[10px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full border border-amber-300">
+                                  INFORMED ({rec.informed_to_person || 'Admin'})
+                                </span>
+                              ) : (
+                                <span className="text-[10px] bg-rose-100 text-rose-800 font-black px-2.5 py-0.5 rounded-full border border-rose-300">
+                                  ABSENT
                                 </span>
                               )}
                             </td>
-
-                            {/* Actions */}
                             <td className="py-3 px-4 text-right">
                               <div className="flex items-center justify-end gap-1.5">
-                                {record && !record.admin_verified_attendance && (isVirtualClicked || isQrScanned || isPhysical) && (
+                                {/* Admin Direct Approval Button for pending attendance */}
+                                {!rec.admin_verified_attendance &&
+                                  (rec.status === 'PRESENT' || rec.status === 'INFORMED_LATE' || rec.selected_mode !== 'NONE') && (
+                                    <button
+                                      onClick={async () => {
+                                        const res = await approveAttendanceRecord(rec.id);
+                                        setToastAlert({ type: 'success', text: res.message });
+                                        setTimeout(() => setToastAlert(null), 4000);
+                                      }}
+                                      className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-black shadow-xs cursor-pointer flex items-center gap-1"
+                                      title="Approve Leader Attendance"
+                                    >
+                                      <CheckCircle2 className="w-3 h-3" />
+                                      <span>Approve</span>
+                                    </button>
+                                  )}
+
+                                {rec.status !== 'PRESENT' && !rec.admin_verified_attendance && (
                                   <button
-                                    onClick={async () => {
-                                      const res = await approveAttendanceRecord(record.id);
-                                      setToastAlert({ type: 'success', text: res.message });
-                                      setTimeout(() => setToastAlert(null), 4000);
-                                    }}
-                                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[11px] rounded-xl shadow-xs transition-colors cursor-pointer"
-                                    title="Approve Leader Attendance"
+                                    onClick={() => adminVerifyStatus(rec.id, 'PRESENT', true, 'Manual Conference Room Check')}
+                                    className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold shadow-xs cursor-pointer"
+                                    title="Mark Present & Verified"
                                   >
-                                    <CheckCircle2 className="w-3 h-3" />
-                                    <span>Approve</span>
+                                    Mark Present
                                   </button>
                                 )}
-                                <a
-                                  href={waUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1 px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] rounded-xl border border-slate-200 transition-colors"
-                                >
-                                  <Share2 className="w-3 h-3 text-emerald-600" />
-                                  <span>WhatsApp</span>
-                                </a>
+                                {rec.status !== 'INFORMED_LATE' && rec.status !== 'PRESENT' && (
+                                  <button
+                                    onClick={() => {
+                                      setInformedLateModal({
+                                        isOpen: true,
+                                        leaderId: rec.leader_id,
+                                        leaderName: rec.leader?.full_name || 'Leader',
+                                        departmentName: rec.leader?.department?.name || 'Hospital Staff',
+                                        lateMinutes: 15,
+                                        expectedTime: '10:15 AM',
+                                        informedTo: rec.informed_to_person || 'Director Sir',
+                                        reason: rec.late_reason || 'Ward Rounds / Patient Emergency',
+                                        adminApproved: true,
+                                      });
+                                    }}
+                                    className="px-2 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[11px] font-bold shadow-xs cursor-pointer flex items-center gap-1"
+                                    title="Document Late Arrival (Admin Approval Required)"
+                                  >
+                                    <Clock className="w-3 h-3" />
+                                    <span>Informed Late</span>
+                                  </button>
+                                )}
+                                {rec.status !== 'LEAVE' && (
+                                  <button
+                                    onClick={() => {
+                                      setInformedLeaveModal({
+                                        isOpen: true,
+                                        leaderId: rec.leader_id,
+                                        leaderName: rec.leader?.full_name || 'Leader',
+                                        departmentName: rec.leader?.department?.name || 'Hospital Staff',
+                                        informedTo: rec.informed_to_person || 'Director Sir',
+                                        reason: rec.informed_reason || 'Emergency Hospital Duty',
+                                      });
+                                    }}
+                                    className="px-2 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-[11px] font-bold shadow-xs cursor-pointer flex items-center gap-1"
+                                    title="Mark Informed Leave (Admin Verified)"
+                                  >
+                                    <HelpCircle className="w-3 h-3" />
+                                    <span>Informed Leave</span>
+                                  </button>
+                                )}
+                                {rec.status === 'INFORMED_ABSENT' && (
+                                  <button
+                                    onClick={() => confirmInformedAbsence(rec.id, true)}
+                                    className="px-2 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-[11px] font-bold shadow-xs cursor-pointer"
+                                    title="Approve Leave"
+                                  >
+                                    Approve Leave
+                                  </button>
+                                )}
+                                {rec.status !== 'ABSENT' && (
+                                  <button
+                                    onClick={async () => {
+                                      const res = await rejectAttendanceRecord(rec.id, 'Unexcused / Rejected by Admin');
+                                      setToastAlert({ type: 'info', text: res.message });
+                                      setTimeout(() => setToastAlert(null), 4000);
+                                    }}
+                                    className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-[11px] font-semibold cursor-pointer"
+                                    title="Reject Attendance / Mark Absent"
+                                  >
+                                    Mark Absent
+                                  </button>
+                                )}
                               </div>
                             </td>
                           </tr>
-                        );
-                      })}
-                  </tbody>
-                </table>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {activeTab === 'settings' && (
-          <div className="max-w-2xl mx-auto space-y-6">
-            <div className="fluent-card p-6 rounded-2xl space-y-4 border-2 border-emerald-500/30">
-              <div className="flex items-center justify-between">
-                <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-                  <Zap className="w-5 h-5 text-emerald-600" />
-                  CEOITBOX WhatsApp Gateway Integration
-                </h3>
-                <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2.5 py-0.5 rounded-full border border-emerald-300">
-                  Active Gateway
-                </span>
+          {/* ================= TAB 2: INTERACTIVE MEETING CALENDAR ================= */}
+          {activeTab === 'calendar' && (
+            <MeetingCalendarView
+              selectedDate={selectedDate}
+              onSelectDate={(date) => setSelectedDate(date)}
+              onOpenReschedule={() => {
+                const m = getMeetingForDate(selectedDate);
+                setSchedForm({
+                  title: m.title,
+                  frequency: m.frequency,
+                  cadence: m.cadence || 'DOM',
+                  scheduled_time: m.scheduled_time,
+                  is_holiday_or_shifted: m.is_holiday_or_shifted,
+                  shift_reason: m.shift_reason || '',
+                  google_meet_url: m.google_meet_url,
+                });
+                setShowScheduleEditModal(true);
+              }}
+            />
+          )}
+
+          {/* ================= TAB 3: GRAPHICAL ANALYTICS & AUDITS ================= */}
+          {activeTab === 'reports' && (
+            <AnalyticsReportsView selectedDate={selectedDate} />
+          )}
+
+          {/* ================= TAB 4: LEADERS & EMPLOYEES ROSTER ================= */}
+          {activeTab === 'leaders' && (
+            <div className="space-y-6">
+              <div className="fluent-card p-5 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+                    <Users className="w-5 h-5 text-orange-600" />
+                    <span>Hospital Leaders Directory ({leaders.length})</span>
+                    <span className="text-[11px] bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded-full border border-slate-200">
+                      Domain: @{appSettings.allowed_domain}
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Manage hospital leadership and assign them to the official 24 departments.
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setEditingLeader(null);
+                    setLeaderForm({
+                      full_name: '',
+                      email: '',
+                      phone: '',
+                      department_id: departments[0]?.id || '',
+                      employee_code: `SBH-${Date.now().toString().slice(-4)}`,
+                      expected_mode: 'PHYSICAL',
+                      role: 'LEADER',
+                      is_active: true,
+                      initialPassword: '123456',
+                    });
+                    setFormError('');
+                    setFormSuccess('');
+                    setShowAddLeaderModal(true);
+                  }}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white rounded-xl text-xs font-bold shadow-md shadow-orange-600/25 transition-all cursor-pointer"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  <span>Add New Hospital Leader</span>
+                </button>
               </div>
-              <p className="text-xs text-slate-500">
-                Automated official WhatsApp message delivery service for DOM/WOM/MOM reminders, Director reports, and non-attendee alerts.
-              </p>
 
-              <div className="space-y-3.5 pt-2">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Director WhatsApp Mobile Number
-                    </label>
-                    <input
-                      type="text"
-                      value={appSettings.director_whatsapp}
-                      onChange={(e) => updateAppSettings({ director_whatsapp: e.target.value })}
-                      placeholder="9644404741"
-                      className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-emerald-500 font-mono font-bold"
-                    />
-                  </div>
+              {/* Leaders Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {leaders.map((lead) => (
+                  <div
+                    key={lead.id}
+                    className="fluent-card p-5 rounded-2xl border-t-4 border-t-orange-500 flex flex-col justify-between fluent-card-hover"
+                  >
+                    <div>
+                      <div className="flex justify-between items-start">
+                        <span className="text-[10px] font-mono font-bold uppercase bg-orange-100 text-orange-800 px-2 py-0.5 rounded border border-orange-200">
+                          {lead.role}
+                        </span>
+                        <span className="text-xs font-mono text-slate-400 font-semibold">{lead.employee_code}</span>
+                      </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Director Name / Salutation
-                    </label>
-                    <input
-                      type="text"
-                      value={appSettings.director_name}
-                      onChange={(e) => updateAppSettings({ director_name: e.target.value })}
-                      placeholder="Director Sir"
-                      className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-emerald-500 font-bold"
-                    />
-                  </div>
+                      <h4 className="text-base font-black text-slate-900 mt-3">{lead.full_name}</h4>
+                      <p className="text-xs text-slate-600 font-semibold flex items-center gap-1 mt-0.5">
+                        <Building className="w-3.5 h-3.5 text-slate-400" />
+                        {lead.department?.name || 'Department'}
+                      </p>
 
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Official WhatsApp Group ID (JID)
-                    </label>
-                    <input
-                      type="text"
-                      value={appSettings.admin_whatsapp_group}
-                      onChange={(e) => updateAppSettings({ admin_whatsapp_group: e.target.value })}
-                      placeholder="919977881452-1431506963@g.us"
-                      className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-emerald-500 font-mono font-bold"
-                    />
-                    <div className="flex items-center justify-between mt-1 text-[11px] text-slate-500">
-                      <span>Target Group for 09:50 AM, 10:10 AM & 10:30 AM broadcasts</span>
-                      <a
-                        href="https://app.ceoitbox.com/customer/channel/23642/group/919977881452-1431506963@g.us"
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-emerald-700 font-bold underline"
-                      >
-                        Open in CEOITBOX (Channel 23642) ↗
-                      </a>
+                      <div className="mt-4 space-y-1.5 text-xs text-slate-600 font-mono">
+                        <div className="flex items-center gap-2 text-slate-500">
+                          <Mail className="w-3.5 h-3.5 text-orange-600" />
+                          <span className="truncate">{lead.email}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-slate-500">
+                          <Phone className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>{lead.phone}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between">
+                      <span className="text-[11px] text-slate-500">
+                        Expected: <span className="text-slate-800 font-bold">{lead.expected_mode}</span>
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => openEditLeaderModal(lead)}
+                          className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                          title="Edit Leader"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteLeader(lead.id, lead.full_name)}
+                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                          title="Delete Leader"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                   </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ================= TAB 5: DEPARTMENTS MASTER (24 OFFICIAL DEPARTMENTS) ================= */}
+          {activeTab === 'departments' && (
+            <div className="space-y-6">
+              <div className="fluent-card p-5 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+                    <Building className="w-5 h-5 text-orange-600" />
+                    <span>Hospital Departments Master ({departments.length})</span>
+                    <span className="text-[11px] bg-emerald-100 text-emerald-800 font-bold px-2.5 py-0.5 rounded-full border border-emerald-300">
+                      Official 24 Departments Active
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Official departments for hospital leaders & operations. You can add, edit, or delete departments.
+                  </p>
                 </div>
 
-                <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl space-y-3">
-                  <div className="text-xs font-bold text-emerald-950 flex items-center justify-between">
-                    <span>CEOITBOX Production Endpoint</span>
-                    <span className="font-mono text-[10px] text-emerald-700 bg-white px-2 py-0.5 rounded border border-emerald-300">
-                      https://app.ceoitbox.com/message/new
-                    </span>
+                <div className="flex items-center gap-2.5 w-full sm:w-auto">
+                  <div className="relative flex-1 sm:w-64">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                    <input
+                      type="text"
+                      placeholder="Search departments..."
+                      value={deptSearchTerm}
+                      onChange={(e) => setDeptSearchTerm(e.target.value)}
+                      className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-orange-500"
+                    />
                   </div>
 
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    <button
-                      onClick={() => handleSendGroupCeoitbox('0950')}
-                      className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-600/20 flex items-center gap-1.5 transition-all cursor-pointer"
+                  <button
+                    onClick={() => {
+                      setEditingDept(null);
+                      setDeptForm({ name: '', code: '', is_active: true });
+                      setDeptFormError('');
+                      setDeptFormSuccess('');
+                      setShowAddDeptModal(true);
+                    }}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white rounded-xl text-xs font-bold shadow-md shadow-orange-600/25 transition-all cursor-pointer shrink-0"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Add Department</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Departments Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {filteredDepartments.map((dept, idx) => {
+                  const assignedCount = leaders.filter((l) => l.department_id === dept.id).length;
+                  return (
+                    <div
+                      key={dept.id}
+                      className="fluent-card p-4 rounded-2xl border-t-4 border-t-emerald-600 flex flex-col justify-between fluent-card-hover"
                     >
-                      <Zap className="w-3.5 h-3.5" />
-                      <span>Send Test Notice to WhatsApp Group</span>
-                    </button>
+                      <div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-mono text-slate-500 uppercase font-black bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                            {dept.code || `DEP-${idx + 1}`}
+                          </span>
+                          <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-300">
+                            Active
+                          </span>
+                        </div>
+
+                        <h4 className="text-sm font-black text-slate-900 mt-2.5 truncate" title={dept.name}>
+                          {dept.name}
+                        </h4>
+
+                        <div className="mt-3 text-xs text-slate-600 flex items-center justify-between bg-slate-50 p-2 rounded-xl border border-slate-100">
+                          <span className="text-[11px] text-slate-500">Assigned Leaders:</span>
+                          <span className="font-bold text-slate-900 bg-white px-2 py-0.5 rounded-md border border-slate-200 text-xs">
+                            {assignedCount}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 pt-2.5 border-t border-slate-100 flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => openEditDeptModal(dept)}
+                          className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                          title="Edit Department"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteDepartment(dept.id, dept.name)}
+                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                          title="Delete Department"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* ================= TAB 7: DAILY MEETING LINKS & VIRTUAL TRACKING ================= */}
+          {activeTab === 'links' && (
+            <div className="space-y-6">
+              {/* Top Overview Banner & Live Stats */}
+              <div className="fluent-card p-6 rounded-3xl border-2 border-teal-500/30 bg-gradient-to-r from-teal-50/50 via-white to-emerald-50/50 shadow-md">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-5 border-b border-slate-200/80">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-teal-100 text-teal-800 border border-teal-300">
+                        {currentCadence} Cadence
+                      </span>
+                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                        {currentMeeting.frequency}
+                      </span>
+                    </div>
+                    <h2 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                      <Video className="w-5 h-5 text-teal-600" />
+                      Daily Meeting Links & Virtual Attendance Hub
+                    </h2>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Every leader receives an individual tracking link. Clicks and QR code verifications are recorded
+                      user-wise and date-wise.
+                    </p>
+                  </div>
+
+                  {/* Target Google Meet Link & Controls */}
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <div className="px-3.5 py-2 rounded-2xl bg-white border border-slate-200 shadow-xs flex items-center gap-2">
+                      <Video className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <div className="text-left">
+                        <div className="text-[10px] uppercase font-bold text-slate-400">Target Google Meet</div>
+                        <a
+                          href={currentMeeting.google_meet_url || appSettings.google_meet_url || 'https://meet.google.com/jrz-jfku-gir'}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs font-mono font-bold text-teal-700 hover:text-teal-900 flex items-center gap-1 underline"
+                        >
+                          {currentMeeting.google_meet_url || 'https://meet.google.com/jrz-jfku-gir'}
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </div>
+                    </div>
 
                     <button
-                      onClick={handleCeoitboxDirectorReport}
-                      className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-600/20 flex items-center gap-1.5 transition-all cursor-pointer"
+                      onClick={() => setShowVirtualQrModal(true)}
+                      className="px-4 py-2.5 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-2 shadow-sm cursor-pointer transition-all hover:scale-[1.02]"
                     >
-                      <Zap className="w-3.5 h-3.5" />
-                      <span>Test Broadcast to Director</span>
+                      <QrCode className="w-4 h-4 text-teal-400" />
+                      <span>Project Virtual Screen QR</span>
                     </button>
+                  </div>
+                </div>
 
-                    <button
-                      onClick={handleCeoitboxBroadcastReminders}
-                      className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
-                    >
-                      <Send className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>Broadcast Reminders to Staff</span>
-                    </button>
+                {/* Stats Cards Row */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 pt-5">
+                  <div className="p-3.5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Total Leaders</span>
+                    <div className="text-2xl font-black text-slate-900 mt-0.5">{leaders.length}</div>
+                    <span className="text-[11px] text-slate-500 font-medium">Scheduled in Roster</span>
+                  </div>
 
-                    <button
-                      onClick={handleCeoitboxEscalateNonAttendees}
-                      className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-md shadow-rose-600/20 flex items-center gap-1.5 transition-all cursor-pointer"
-                    >
-                      <AlertCircle className="w-3.5 h-3.5" />
-                      <span>Broadcast Non-Attendees Alert</span>
-                    </button>
+                  <div className="p-3.5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-teal-600">Virtual Clicks Logged</span>
+                    <div className="text-2xl font-black text-teal-600 mt-0.5">
+                      {
+                        attendanceRecords.filter(
+                          (r) =>
+                            r.meeting_date === selectedDate &&
+                            ((r.virtual_clicks_count || 0) > 0 || r.selected_mode === 'VIRTUAL')
+                        ).length
+                      }
+                    </div>
+                    <span className="text-[11px] text-slate-500 font-medium">Unique Daily Links Opened</span>
+                  </div>
+
+                  <div className="p-3.5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600">QR Verified (Virtual)</span>
+                    <div className="text-2xl font-black text-emerald-600 mt-0.5">
+                      {
+                        attendanceRecords.filter(
+                          (r) =>
+                            r.meeting_date === selectedDate &&
+                            (r.evidence_source === 'VIRTUAL_QR_VERIFIED' || r.qr_scanned_at)
+                        ).length
+                      }
+                    </div>
+                    <span className="text-[11px] text-slate-500 font-medium">Confirmed by Camera Scan</span>
+                  </div>
+
+                  <div className="p-3.5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-orange-600">In-Person Boardroom</span>
+                    <div className="text-2xl font-black text-orange-600 mt-0.5">
+                      {
+                        attendanceRecords.filter(
+                          (r) =>
+                            r.meeting_date === selectedDate &&
+                            r.selected_mode === 'PHYSICAL' &&
+                            (r.status === 'PRESENT' || r.admin_verified_attendance)
+                        ).length
+                      }
+                    </div>
+                    <span className="text-[11px] text-slate-500 font-medium">5th Floor Conference Room</span>
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* General Settings */}
-            <div className="fluent-card p-6 rounded-2xl space-y-4">
-              <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-                <Settings2 className="w-5 h-5 text-orange-600" />
-                Hospital Meeting & Domain Settings
-              </h3>
-
-              <div className="space-y-3 pt-2">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Google Meet Room Link</label>
+              {/* Action Bar & Filter */}
+              <div className="fluent-card p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="relative w-full sm:w-80">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-2.5" />
                   <input
-                    type="url"
-                    value={appSettings.google_meet_url}
-                    onChange={(e) => updateAppSettings({ google_meet_url: e.target.value })}
-                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-orange-500 font-mono"
+                    type="text"
+                    placeholder="Search leader or department..."
+                    value={linksSearchTerm}
+                    onChange={(e) => setLinksSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:border-teal-500"
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const allLinksText = leaders
+                        .map((lead, idx) => {
+                          const { url } = generateDailyMeetingLink(
+                            lead,
+                            selectedDate,
+                            undefined,
+                            currentMeeting.google_meet_url || appSettings.google_meet_url
+                          );
+                          return `${idx + 1}. ${lead.full_name} (${lead.department?.name || 'Dept'}): ${url}`;
+                        })
+                        .join('\n\n');
+
+                      navigator.clipboard.writeText(allLinksText);
+                      setCopiedAllLinks(true);
+                      setTimeout(() => setCopiedAllLinks(false), 3000);
+                    }}
+                    className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs flex items-center gap-1.5 border border-slate-200 cursor-pointer"
+                  >
+                    {copiedAllLinks ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
+                    <span>{copiedAllLinks ? 'All Links Copied!' : 'Copy All Daily Links'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleCeoitboxBroadcastReminders}
+                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm cursor-pointer"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span>Broadcast on WhatsApp</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Table of Leaders & Individual Meeting Links */}
+              <div className="fluent-card rounded-3xl overflow-hidden border border-slate-200 shadow-md">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-600 uppercase text-[10px] font-black tracking-wider">
+                        <th className="py-3.5 px-4">Leader & Department</th>
+                        <th className="py-3.5 px-3">Expected Mode</th>
+                        <th className="py-3.5 px-3">Dedicated Daily Meet Link</th>
+                        <th className="py-3.5 px-3 text-center">Click Count</th>
+                        <th className="py-3.5 px-3">Attendance Status</th>
+                        <th className="py-3.5 px-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {leaders
+                        .filter(
+                          (l) =>
+                            l.full_name.toLowerCase().includes(linksSearchTerm.toLowerCase()) ||
+                            l.department?.name.toLowerCase().includes(linksSearchTerm.toLowerCase()) ||
+                            l.phone?.includes(linksSearchTerm)
+                        )
+                        .map((lead) => {
+                          const { url: personalMeetUrl } = generateDailyMeetingLink(
+                            lead,
+                            selectedDate,
+                            undefined,
+                            currentMeeting.google_meet_url || appSettings.google_meet_url
+                          );
+
+                          const record = attendanceRecords.find(
+                            (r) => r.leader_id === lead.id && r.meeting_date === selectedDate
+                          );
+
+                          const isVirtualClicked =
+                            (record?.virtual_clicks_count || 0) > 0 || record?.evidence_source === 'GOOGLE_MEET_REDIRECT';
+                          const isQrScanned =
+                            record?.evidence_source === 'VIRTUAL_QR_VERIFIED' || !!record?.qr_scanned_at;
+                          const isPhysical =
+                            record?.selected_mode === 'PHYSICAL' &&
+                            (record.status === 'PRESENT' || record.admin_verified_attendance);
+
+                          const clicks = record?.virtual_clicks_count || (isVirtualClicked ? 1 : 0);
+
+                          const waMsg = `🏥 *SBH GROUP OF HOSPITAL, RAIPUR*\n🔔 *DAILY OPERATIONS MEETING (DOM) — ${selectedDate}*\n\nDear ${lead.full_name},\nYour personal meeting tracking link for today is ready:\n👉 ${personalMeetUrl}\n\nTap above to enter Google Meet and auto-record your virtual attendance.\n\nDOM Operations Command | SBH Raipur`;
+                          const waUrl = `https://api.whatsapp.com/send?phone=91${lead.phone?.replace(/\D/g, '')}&text=${encodeURIComponent(
+                            waMsg
+                          )}`;
+
+                          return (
+                            <tr key={lead.id} className="hover:bg-slate-50/70 transition-colors">
+                              {/* Leader Info */}
+                              <td className="py-3 px-4">
+                                <div className="flex items-center gap-2.5">
+                                  <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-teal-500 to-emerald-500 text-white font-bold flex items-center justify-center text-xs shadow-2xs shrink-0">
+                                    {lead.full_name.charAt(0)}
+                                  </div>
+                                  <div>
+                                    <div className="font-black text-slate-900">{lead.full_name}</div>
+                                    <div className="text-[11px] text-slate-500 font-semibold flex items-center gap-1.5">
+                                      <span className="text-teal-700">{lead.department?.name || 'Leadership'}</span>
+                                      <span>•</span>
+                                      <span className="font-mono text-slate-400">{lead.phone}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+
+                              {/* Expected Mode */}
+                              <td className="py-3 px-3">
+                                <span
+                                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${lead.expected_mode === 'VIRTUAL'
+                                      ? 'bg-blue-100 text-blue-800 border border-blue-200'
+                                      : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                    }`}
+                                >
+                                  {lead.expected_mode}
+                                </span>
+                              </td>
+
+                              {/* Dedicated Daily Link */}
+                              <td className="py-3 px-3">
+                                <div className="flex items-center gap-1.5 max-w-xs">
+                                  <input
+                                    type="text"
+                                    readOnly
+                                    value={personalMeetUrl}
+                                    className="px-2.5 py-1 bg-slate-100 rounded-lg text-[11px] font-mono text-slate-700 w-48 truncate border border-slate-200 select-all"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(personalMeetUrl);
+                                      setCopiedLeaderId(lead.id);
+                                      setTimeout(() => setCopiedLeaderId(null), 2500);
+                                    }}
+                                    title="Copy personal daily join link"
+                                    className="p-1.5 text-slate-500 hover:text-teal-700 hover:bg-teal-50 rounded-lg border border-slate-200 cursor-pointer transition-colors"
+                                  >
+                                    {copiedLeaderId === lead.id ? (
+                                      <Check className="w-3.5 h-3.5 text-emerald-600" />
+                                    ) : (
+                                      <Copy className="w-3.5 h-3.5" />
+                                    )}
+                                  </button>
+                                  <a
+                                    href={personalMeetUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    title="Open link in new tab"
+                                    className="p-1.5 text-slate-500 hover:text-teal-700 hover:bg-teal-50 rounded-lg border border-slate-200 transition-colors"
+                                  >
+                                    <ExternalLink className="w-3.5 h-3.5" />
+                                  </a>
+                                </div>
+                              </td>
+
+                              {/* Click Count */}
+                              <td className="py-3 px-3 text-center">
+                                <span
+                                  className={`px-2.5 py-0.5 rounded-full font-mono text-[11px] font-black inline-block ${clicks > 0
+                                      ? 'bg-teal-100 text-teal-900 border border-teal-300'
+                                      : 'bg-slate-100 text-slate-400'
+                                    }`}
+                                >
+                                  {clicks} {clicks === 1 ? 'click' : 'clicks'}
+                                </span>
+                              </td>
+
+                              {/* Status */}
+                              <td className="py-3 px-3">
+                                {record?.admin_verified_attendance ? (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                    <span>Present (Approved)</span>
+                                    {record.late_minutes && record.late_minutes > 0 ? (
+                                      <span className="text-[9px] bg-emerald-200 text-emerald-950 px-1 py-0.2 rounded font-black">
+                                        +{record.late_minutes}m Late
+                                      </span>
+                                    ) : null}
+                                  </span>
+                                ) : isVirtualClicked || isQrScanned || isPhysical ? (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs">
+                                    <Clock className="w-3 h-3 text-amber-600 animate-pulse" />
+                                    <span>Approval Pending from Admin</span>
+                                    {record?.late_minutes && record.late_minutes > 0 ? (
+                                      <span className="text-[9px] bg-amber-200 text-amber-950 px-1 py-0.2 rounded font-black">
+                                        +{record.late_minutes}m Late
+                                      </span>
+                                    ) : null}
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-slate-100 text-slate-500 border border-slate-200">
+                                    <Clock className="w-3 h-3 text-slate-400" /> Not Joined
+                                  </span>
+                                )}
+                              </td>
+
+                              {/* Actions */}
+                              <td className="py-3 px-4 text-right">
+                                <div className="flex items-center justify-end gap-1.5">
+                                  {record && !record.admin_verified_attendance && (isVirtualClicked || isQrScanned || isPhysical) && (
+                                    <button
+                                      onClick={async () => {
+                                        const res = await approveAttendanceRecord(record.id);
+                                        setToastAlert({ type: 'success', text: res.message });
+                                        setTimeout(() => setToastAlert(null), 4000);
+                                      }}
+                                      className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[11px] rounded-xl shadow-xs transition-colors cursor-pointer"
+                                      title="Approve Leader Attendance"
+                                    >
+                                      <CheckCircle2 className="w-3 h-3" />
+                                      <span>Approve</span>
+                                    </button>
+                                  )}
+                                  <a
+                                    href={waUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] rounded-xl border border-slate-200 transition-colors"
+                                  >
+                                    <Share2 className="w-3 h-3 text-emerald-600" />
+                                    <span>WhatsApp</span>
+                                  </a>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'settings' && (
+            <div className="max-w-2xl mx-auto space-y-6">
+              <div className="fluent-card p-6 rounded-2xl space-y-4 border-2 border-emerald-500/30">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+                    <Zap className="w-5 h-5 text-emerald-600" />
+                    CEOITBOX WhatsApp Gateway Integration
+                  </h3>
+                  <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2.5 py-0.5 rounded-full border border-emerald-300">
+                    Active Gateway
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500">
+                  Automated official WhatsApp message delivery service for DOM/WOM/MOM reminders, Director reports, and non-attendee alerts.
+                </p>
+
+                <div className="space-y-3.5 pt-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Director WhatsApp Mobile Number
+                      </label>
+                      <input
+                        type="text"
+                        value={appSettings.director_whatsapp}
+                        onChange={(e) => updateAppSettings({ director_whatsapp: e.target.value })}
+                        placeholder="9644404741"
+                        className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-emerald-500 font-mono font-bold"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Director Name / Salutation
+                      </label>
+                      <input
+                        type="text"
+                        value={appSettings.director_name}
+                        onChange={(e) => updateAppSettings({ director_name: e.target.value })}
+                        placeholder="Director Sir"
+                        className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-emerald-500 font-bold"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Official WhatsApp Group ID (JID)
+                      </label>
+                      <input
+                        type="text"
+                        value={appSettings.admin_whatsapp_group}
+                        onChange={(e) => updateAppSettings({ admin_whatsapp_group: e.target.value })}
+                        placeholder="919977881452-1431506963@g.us"
+                        className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-emerald-500 font-mono font-bold"
+                      />
+                      <div className="flex items-center justify-between mt-1 text-[11px] text-slate-500">
+                        <span>Target Group for 09:50 AM, 10:10 AM & 10:30 AM broadcasts</span>
+                        <a
+                          href="https://app.ceoitbox.com/customer/channel/23642/group/919977881452-1431506963@g.us"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-emerald-700 font-bold underline"
+                        >
+                          Open in CEOITBOX (Channel 23642) ↗
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl space-y-3">
+                    <div className="text-xs font-bold text-emerald-950 flex items-center justify-between">
+                      <span>CEOITBOX Production Endpoint</span>
+                      <span className="font-mono text-[10px] text-emerald-700 bg-white px-2 py-0.5 rounded border border-emerald-300">
+                        https://app.ceoitbox.com/message/new
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      <button
+                        onClick={() => handleSendGroupCeoitbox('0950')}
+                        className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-600/20 flex items-center gap-1.5 transition-all cursor-pointer"
+                      >
+                        <Zap className="w-3.5 h-3.5" />
+                        <span>Send Test Notice to WhatsApp Group</span>
+                      </button>
+
+                      <button
+                        onClick={handleCeoitboxDirectorReport}
+                        className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-600/20 flex items-center gap-1.5 transition-all cursor-pointer"
+                      >
+                        <Zap className="w-3.5 h-3.5" />
+                        <span>Test Broadcast to Director</span>
+                      </button>
+
+                      <button
+                        onClick={handleCeoitboxBroadcastReminders}
+                        className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        <Send className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Broadcast Reminders to Staff</span>
+                      </button>
+
+                      <button
+                        onClick={handleCeoitboxEscalateNonAttendees}
+                        className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-md shadow-rose-600/20 flex items-center gap-1.5 transition-all cursor-pointer"
+                      >
+                        <AlertCircle className="w-3.5 h-3.5" />
+                        <span>Broadcast Non-Attendees Alert</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* General Settings */}
+              <div className="fluent-card p-6 rounded-2xl space-y-4">
+                <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+                  <Settings2 className="w-5 h-5 text-orange-600" />
+                  Hospital Meeting & Domain Settings
+                </h3>
+
+                <div className="space-y-3 pt-2">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Allowed Domain</label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Google Meet Room Link</label>
                     <input
-                      type="text"
-                      value={appSettings.allowed_domain}
-                      onChange={(e) => updateAppSettings({ allowed_domain: e.target.value })}
+                      type="url"
+                      value={appSettings.google_meet_url}
+                      onChange={(e) => updateAppSettings({ google_meet_url: e.target.value })}
                       className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-orange-500 font-mono"
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Boardroom Name</label>
-                    <input
-                      type="text"
-                      value={appSettings.conference_room_name}
-                      onChange={(e) => updateAppSettings({ conference_room_name: e.target.value })}
-                      className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-orange-500"
-                    />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Allowed Domain</label>
+                      <input
+                        type="text"
+                        value={appSettings.allowed_domain}
+                        onChange={(e) => updateAppSettings({ allowed_domain: e.target.value })}
+                        className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-orange-500 font-mono"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Boardroom Name</label>
+                      <input
+                        type="text"
+                        value={appSettings.conference_room_name}
+                        onChange={(e) => updateAppSettings({ conference_room_name: e.target.value })}
+                        className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-orange-500"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
         </div>
       </div>
@@ -2322,11 +2308,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => handleCadenceSelectionInModal('DOM')}
-                    className={`p-3 rounded-xl border text-xs font-black transition-all flex items-center justify-between cursor-pointer ${
-                      schedForm.cadence === 'DOM' && !schedForm.is_holiday_or_shifted
+                    className={`p-3 rounded-xl border text-xs font-black transition-all flex items-center justify-between cursor-pointer ${schedForm.cadence === 'DOM' && !schedForm.is_holiday_or_shifted
                         ? 'bg-orange-600 text-white border-orange-600 shadow-md shadow-orange-600/20'
                         : 'bg-slate-50 hover:bg-orange-50 text-slate-700 border-slate-200'
-                    }`}
+                      }`}
                   >
                     <div>
                       <span className="block text-xs font-black">DOM</span>
@@ -2338,11 +2323,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => handleCadenceSelectionInModal('WOM')}
-                    className={`p-3 rounded-xl border text-xs font-black transition-all flex items-center justify-between cursor-pointer ${
-                      schedForm.cadence === 'WOM' && !schedForm.is_holiday_or_shifted
+                    className={`p-3 rounded-xl border text-xs font-black transition-all flex items-center justify-between cursor-pointer ${schedForm.cadence === 'WOM' && !schedForm.is_holiday_or_shifted
                         ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-600/20'
                         : 'bg-slate-50 hover:bg-blue-50 text-slate-700 border-slate-200'
-                    }`}
+                      }`}
                   >
                     <div>
                       <span className="block text-xs font-black">WOM</span>
@@ -2354,11 +2338,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => handleCadenceSelectionInModal('MOM')}
-                    className={`p-3 rounded-xl border text-xs font-black transition-all flex items-center justify-between cursor-pointer ${
-                      schedForm.cadence === 'MOM' && !schedForm.is_holiday_or_shifted
+                    className={`p-3 rounded-xl border text-xs font-black transition-all flex items-center justify-between cursor-pointer ${schedForm.cadence === 'MOM' && !schedForm.is_holiday_or_shifted
                         ? 'bg-purple-600 text-white border-purple-600 shadow-md shadow-purple-600/20'
                         : 'bg-slate-50 hover:bg-purple-50 text-slate-700 border-slate-200'
-                    }`}
+                      }`}
                   >
                     <div>
                       <span className="block text-xs font-black">MOM</span>
@@ -2370,11 +2353,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => handleCadenceSelectionInModal('HOLIDAY')}
-                    className={`p-3 rounded-xl border text-xs font-black transition-all flex items-center justify-between cursor-pointer ${
-                      schedForm.cadence === 'HOLIDAY' || schedForm.is_holiday_or_shifted
+                    className={`p-3 rounded-xl border text-xs font-black transition-all flex items-center justify-between cursor-pointer ${schedForm.cadence === 'HOLIDAY' || schedForm.is_holiday_or_shifted
                         ? 'bg-amber-600 text-white border-amber-600 shadow-md shadow-amber-600/20'
                         : 'bg-slate-50 hover:bg-amber-50 text-slate-700 border-slate-200'
-                    }`}
+                      }`}
                   >
                     <div>
                       <span className="block text-xs font-black">HOLIDAY / OFF</span>
@@ -2485,7 +2467,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Dr. Rajesh Sharma"
+                  placeholder="e.g. Mr Naman Mishra"
                   value={leaderForm.full_name}
                   onChange={(e) => setLeaderForm({ ...leaderForm, full_name: e.target.value })}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-orange-500 font-bold"
@@ -2676,11 +2658,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
             {passMsg && (
               <div
-                className={`p-3 text-xs rounded-xl mb-3 font-semibold ${
-                  passMsg.success
+                className={`p-3 text-xs rounded-xl mb-3 font-semibold ${passMsg.success
                     ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
                     : 'bg-rose-50 border border-rose-200 text-rose-700'
-                }`}
+                  }`}
               >
                 {passMsg.text}
               </div>
@@ -2941,11 +2922,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
                           expectedTime: etaStr,
                         }));
                       }}
-                      className={`py-1.5 rounded-xl text-xs font-black cursor-pointer transition-all border ${
-                        informedLateModal.lateMinutes === mins
+                      className={`py-1.5 rounded-xl text-xs font-black cursor-pointer transition-all border ${informedLateModal.lateMinutes === mins
                           ? 'bg-amber-600 text-white border-amber-700 shadow-xs'
                           : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
-                      }`}
+                        }`}
                     >
                       +{mins} min
                     </button>
@@ -3063,11 +3043,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
                   });
                   setTimeout(() => setToastAlert(null), 4000);
                 }}
-                className={`px-4 py-2 text-white text-xs font-bold rounded-xl shadow-md transition-all ${
-                  informedLateModal.adminApproved
+                className={`px-4 py-2 text-white text-xs font-bold rounded-xl shadow-md transition-all ${informedLateModal.adminApproved
                     ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/20 cursor-pointer'
                     : 'bg-slate-300 cursor-not-allowed'
-                }`}
+                  }`}
               >
                 Confirm & Approve Late Arrival
               </button>

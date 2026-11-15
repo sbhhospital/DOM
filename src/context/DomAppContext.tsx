@@ -55,7 +55,11 @@ interface DomAppContextType {
     dateStr: string,
     scannedData: string
   ) => Promise<{ success: boolean; message: string }>;
-  markRoomQrCheckIn: (leaderId: string) => Promise<{ success: boolean; message: string; alreadyRecorded?: boolean; timeStr?: string }>;
+  markRoomQrCheckIn: (
+    leaderId: string,
+    locationData?: { latitude?: number; longitude?: number; accuracy?: number; device?: string }
+  ) => Promise<{ success: boolean; message: string; alreadyRecorded?: boolean; timeStr?: string }>;
+  logMeetingRejoin: (leaderId: string, meetUrl: string) => Promise<void>;
   submitInformedAbsence: (leaderId: string, informedTo: string, reason: string) => Promise<{ success: boolean; message: string }>;
   markLeaderInformedLeave: (leaderId: string, date: string, informedTo: string, reason: string) => Promise<void>;
   markLeaderInformedLate: (
@@ -909,7 +913,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       if (isUuid(leaderId)) {
         supabase.from('admin_audit_logs').insert([{
-          actor_id: leaderId,
+          actor_id: null,
           action: 'VIRTUAL_JOIN',
           entity_type: 'ATTENDANCE',
           entity_id: recordId,
@@ -1028,7 +1032,10 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
   };
 
-  const markRoomQrCheckIn = async (leaderId: string): Promise<{ success: boolean; message: string; alreadyRecorded?: boolean; timeStr?: string }> => {
+  const markRoomQrCheckIn = async (
+    leaderId: string,
+    locationData?: { latitude?: number; longitude?: number; accuracy?: number; device?: string }
+  ): Promise<{ success: boolean; message: string; alreadyRecorded?: boolean; timeStr?: string }> => {
     const meeting = getMeetingForDate(selectedDate);
     const nowIso = new Date().toISOString();
     const lateMinutes = calculateLateMinutes(selectedDate, meeting.scheduled_time, new Date());
@@ -1113,12 +1120,22 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       if (isUuid(leaderId)) {
         supabase.from('admin_audit_logs').insert([{
-          actor_id: leaderId,
+          actor_id: null,
           action: 'ROOM_QR_CHECKIN',
           entity_type: 'ATTENDANCE',
           entity_id: recordId,
           reason: `Physical boardroom QR attendance checked in on ${selectedDate}. ${savedNote}`,
-          after_data: { selectedDate, statusToSet: savedStatus, isAlreadyRecorded },
+          after_data: {
+            selectedDate,
+            statusToSet: savedStatus,
+            isAlreadyRecorded,
+            latitude: locationData?.latitude,
+            longitude: locationData?.longitude,
+            accuracy_meters: locationData?.accuracy,
+            device: locationData?.device || (typeof navigator !== 'undefined' ? navigator.userAgent : 'Unknown'),
+            method: 'LIVE_CAMERA_QR_SCAN',
+            verified_at: nowIso,
+          },
         }]).then();
       }
     } catch (e) {}
@@ -1140,6 +1157,39 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         ? `Boardroom QR Scanned (+${lateMinutes}m late). Physical attendance submitted for Admin approval.`
         : 'Boardroom QR Scanned On-Time! Physical attendance confirmed.',
     };
+  };
+
+  // Silent Rejoin Logging in Supabase SQL Database (Zero frontend clutter)
+  const logMeetingRejoin = async (leaderId: string, meetUrl: string): Promise<void> => {
+    try {
+      const leader = leaders.find((l) => l.id === leaderId);
+      const nowIso = new Date().toISOString();
+      await supabase.from('admin_audit_logs').insert([
+        {
+          actor_id: null,
+          action: 'MEETING_REJOIN',
+          entity_type: 'REJOIN_EVENT',
+          entity_id: leaderId,
+          reason: `Leader ${leader?.full_name || leaderId} rejoined Google Meet session`,
+          after_data: {
+            leader_id: leaderId,
+            leader_name: leader?.full_name || '',
+            date: selectedDate,
+            rejoin_time: nowIso,
+            rejoin_time_ist: new Date().toLocaleTimeString('en-IN', {
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+              hour12: true,
+            }),
+            mode: 'VIRTUAL_REJOIN',
+            meet_url: meetUrl,
+          },
+        },
+      ]);
+    } catch (e) {
+      console.warn('Silent rejoin audit log note:', e);
+    }
   };
 
   // ================= ADMIN APPROVAL ENGINE =================
@@ -2054,6 +2104,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         markVirtualJoin,
         verifyVirtualMeetingQr,
         markRoomQrCheckIn,
+        logMeetingRejoin,
         submitInformedAbsence,
         markLeaderInformedLeave,
         markLeaderInformedLate,

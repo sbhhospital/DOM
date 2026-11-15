@@ -14,15 +14,27 @@ import {
   LogOut,
   Clock,
   Lock,
+  ShieldCheck,
+  Camera,
 } from 'lucide-react';
 import { useDomApp } from '../context/DomAppContext';
 import { useAuthSession } from '../context/AuthSessionContext';
 import { Leader } from '../types/database';
 import { verifyLeaderMagicLink } from '../lib/magicLink';
+import { LiveRoomQrScannerModal } from '../components/LiveRoomQrScannerModal';
 import sbhLogo from '../assets/sbh-logo.png';
 
 export const LeaderPortal: React.FC = () => {
-  const { leaders, selectedDate, markVirtualJoin, markRoomQrCheckIn, submitInformedAbsence, getMeetingForDate } = useDomApp();
+  const {
+    leaders,
+    selectedDate,
+    markVirtualJoin,
+    markRoomQrCheckIn,
+    logMeetingRejoin,
+    submitInformedAbsence,
+    getMeetingForDate,
+    attendanceRecords,
+  } = useDomApp();
   const { currentUser, logoutUser, updateUserPassword, isUserAuthenticated } = useAuthSession();
 
   const currentMeeting = getMeetingForDate(selectedDate);
@@ -104,16 +116,62 @@ export const LeaderPortal: React.FC = () => {
 
   const activeLeader = currentUser || selectedLeader;
 
+  const [showScannerModal, setShowScannerModal] = useState(false);
+
   const filteredLeaders = leaders.filter(
     (l) =>
       l.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       l.department?.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleAttendPhysically = async () => {
+  const todayRecord = attendanceRecords.find(
+    (r) =>
+      r.leader_id === activeLeader?.id &&
+      (r.meeting_date === selectedDate || (r as any).attendance_date === selectedDate)
+  );
+
+  const hasJoinedToday = Boolean(
+    todayRecord &&
+      (todayRecord.check_in_at ||
+        (todayRecord as any).join_time ||
+        todayRecord.status === 'PRESENT' ||
+        todayRecord.status === 'INFORMED_LATE')
+  );
+
+  const formattedCheckInTime = todayRecord?.check_in_at
+    ? new Date(todayRecord.check_in_at).toLocaleTimeString('en-IN', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true,
+      })
+    : (todayRecord as any)?.join_time || 'Recorded Today';
+
+  const handleAttendPhysically = () => {
     if (!activeLeader) return;
-    const res = await markRoomQrCheckIn(activeLeader.id);
-    setActionMessage({ success: res.success, text: res.message });
+    setShowScannerModal(true);
+  };
+
+  const handleLiveCameraQrSuccess = async (scanResult: {
+    scannedData: string;
+    latitude?: number;
+    longitude?: number;
+    accuracy?: number;
+  }) => {
+    if (!activeLeader) return;
+    setShowScannerModal(false);
+
+    const res = await markRoomQrCheckIn(activeLeader.id, {
+      latitude: scanResult.latitude,
+      longitude: scanResult.longitude,
+      accuracy: scanResult.accuracy,
+      device: typeof navigator !== 'undefined' ? navigator.userAgent : 'Live Camera',
+    });
+
+    setActionMessage({
+      success: res.success,
+      text: res.message || 'Boardroom physical attendance confirmed via live camera scan!',
+    });
   };
 
   const handleJoinVirtually = async () => {
@@ -124,6 +182,17 @@ export const LeaderPortal: React.FC = () => {
       text: `Virtual attendance recorded! Launching official Google Meet: ${res.meetUrl}`,
     });
     window.open(res.meetUrl, '_blank');
+  };
+
+  const handleRejoinMeeting = async () => {
+    if (!activeLeader) return;
+    const meetUrl = currentMeeting.google_meet_url || 'https://meet.google.com/jrz-jfku-gir';
+    await logMeetingRejoin(activeLeader.id, meetUrl);
+    window.open(meetUrl, '_blank');
+    setActionMessage({
+      success: true,
+      text: `Rejoining DOM session! Telemetry logged in SQL database: ${meetUrl}`,
+    });
   };
 
   const handleInformedSubmit = async (e: React.FormEvent) => {
@@ -349,56 +418,128 @@ export const LeaderPortal: React.FC = () => {
               )}
             </div>
 
-            <div>
-              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
-                Confirm Today's DOM Presence
-              </h4>
+            {hasJoinedToday ? (
+              /* State A: Attendance is ALREADY Recorded Today -> Clean Rejoin Option Only */
+              <div className="space-y-4">
+                <div className="p-5 rounded-2xl bg-gradient-to-br from-emerald-50 via-teal-50/40 to-white border-2 border-emerald-400 shadow-sm space-y-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <span className="text-[10px] uppercase font-mono tracking-wider text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-300 font-bold inline-flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Attendance Confirmed Today
+                      </span>
+                      <h4 className="text-base font-black text-slate-900 mt-2">
+                        You have already joined today's DOM meeting
+                      </h4>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Official attendance timestamp locked in audit register.
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="text-[10px] text-slate-400 uppercase font-black">Join Time</div>
+                      <div className="text-xs font-mono font-black text-emerald-700 bg-white px-2.5 py-1 rounded-lg border border-emerald-200 mt-0.5 shadow-2xs">
+                        {formattedCheckInTime}
+                      </div>
+                    </div>
+                  </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                {/* Mode 1: Physical Check-In (In-Room) */}
-                <button
-                  onClick={handleAttendPhysically}
-                  className="p-5 rounded-2xl bg-gradient-to-br from-emerald-50 to-white border-2 border-emerald-400 hover:border-emerald-600 text-left transition-all group cursor-pointer shadow-sm hover:shadow-md"
-                >
-                  <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center mb-3 shadow-sm">
-                    <QrCode className="w-5 h-5" />
+                  {/* Mode & Director Sign-Off Info */}
+                  <div className="grid grid-cols-2 gap-2.5 text-xs pt-1">
+                    <div className="bg-white/80 border border-slate-200 rounded-xl p-2.5">
+                      <div className="text-[10px] text-slate-400 font-bold uppercase">Recorded Mode</div>
+                      <div className="font-bold text-slate-800 mt-0.5 flex items-center gap-1.5 text-xs truncate">
+                        {todayRecord?.selected_mode === 'PHYSICAL' ? (
+                          <><QrCode className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> In-Room Physical</>
+                        ) : (
+                          <><Video className="w-3.5 h-3.5 text-blue-600 shrink-0" /> Virtual (Google Meet)</>
+                        )}
+                      </div>
+                    </div>
+                    <div className="bg-white/80 border border-slate-200 rounded-xl p-2.5">
+                      <div className="text-[10px] text-slate-400 font-bold uppercase">Audit Verification</div>
+                      <div className="font-bold mt-0.5 flex items-center gap-1.5 text-xs truncate">
+                        {todayRecord?.admin_verified_attendance ? (
+                          <span className="text-emerald-700 font-black flex items-center gap-1">
+                            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> APPROVED
+                          </span>
+                        ) : (
+                          <span className="text-amber-700 font-bold flex items-center gap-1">
+                            <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0" /> Awaiting Admin
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <div className="font-black text-slate-900 text-sm group-hover:text-emerald-700">
-                    Attending In-Person
-                  </div>
-                  <p className="text-[11px] text-slate-500 mt-1">
-                    Physically in SBH Boardroom. Click here to confirm your in-room attendance.
-                  </p>
-                </button>
+                </div>
 
-                {/* Mode 2: Virtual Join (Google Meet) */}
-                <button
-                  onClick={handleJoinVirtually}
-                  className="p-5 rounded-2xl bg-gradient-to-br from-blue-50 to-white border-2 border-blue-400 hover:border-blue-600 text-left transition-all group cursor-pointer shadow-sm hover:shadow-md"
-                >
-                  <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center mb-3 shadow-sm">
-                    <Video className="w-5 h-5" />
-                  </div>
-                  <div className="font-black text-slate-900 text-sm group-hover:text-blue-700">
-                    Join Online (Google Meet)
-                  </div>
-                  <p className="text-[11px] text-slate-500 mt-1">
-                    Opens official Google Meet. Records your login count automatically as virtual attendee.
+                {/* Rejoin Meeting Action (Silent SQL Telemetry Log, Zero Frontend Clutter) */}
+                <div className="pt-1">
+                  <button
+                    onClick={handleRejoinMeeting}
+                    className="w-full py-3.5 px-5 bg-gradient-to-r from-emerald-600 via-teal-600 to-green-700 hover:from-emerald-700 hover:to-green-800 text-white rounded-2xl font-black text-xs uppercase tracking-wider shadow-md shadow-emerald-600/25 flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-95"
+                  >
+                    <Video className="w-4 h-4 text-white" />
+                    <span>Rejoin Official Meeting (Google Meet) &rarr;</span>
+                  </button>
+                  <p className="text-[10px] text-slate-400 text-center mt-1.5 font-medium">
+                    Rejoining does not increment attendance count. Rejoin timestamp is logged silently in SQL database.
                   </p>
-                </button>
+                </div>
               </div>
-            </div>
+            ) : (
+              /* State B: Not Checked In Yet -> Show Physical QR Camera Scanner & Virtual Options */
+              <>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
+                    Confirm Today's DOM Presence
+                  </h4>
 
-            {/* Mode 3: Cannot Attend? Submit Informed Notice */}
-            <div className="pt-2">
-              <button
-                onClick={() => setShowInformedModal(true)}
-                className="w-full py-3 px-4 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
-              >
-                <HelpCircle className="w-4 h-4 text-amber-700" />
-                <span>Cannot attend? Submit prior informed notice / leave</span>
-              </button>
-            </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    {/* Mode 1: Physical Check-In (In-Room Camera Scanner) */}
+                    <button
+                      onClick={handleAttendPhysically}
+                      className="p-5 rounded-2xl bg-gradient-to-br from-emerald-50 to-white border-2 border-emerald-400 hover:border-emerald-600 text-left transition-all group cursor-pointer shadow-sm hover:shadow-md"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center mb-3 shadow-sm">
+                        <Camera className="w-5 h-5" />
+                      </div>
+                      <div className="font-black text-slate-900 text-sm group-hover:text-emerald-700">
+                        Attending In-Person
+                      </div>
+                      <p className="text-[11px] text-slate-500 mt-1">
+                        Opens live camera to scan Boardroom QR code in 5th Floor Conference Hall.
+                      </p>
+                    </button>
+
+                    {/* Mode 2: Virtual Join (Google Meet) */}
+                    <button
+                      onClick={handleJoinVirtually}
+                      className="p-5 rounded-2xl bg-gradient-to-br from-blue-50 to-white border-2 border-blue-400 hover:border-blue-600 text-left transition-all group cursor-pointer shadow-sm hover:shadow-md"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center mb-3 shadow-sm">
+                        <Video className="w-5 h-5" />
+                      </div>
+                      <div className="font-black text-slate-900 text-sm group-hover:text-blue-700">
+                        Join Online (Google Meet)
+                      </div>
+                      <p className="text-[11px] text-slate-500 mt-1">
+                        Opens official Google Meet. Records your login automatically as virtual attendee.
+                      </p>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Mode 3: Cannot Attend? Submit Informed Notice */}
+                <div className="pt-2">
+                  <button
+                    onClick={() => setShowInformedModal(true)}
+                    className="w-full py-3 px-4 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
+                  >
+                    <HelpCircle className="w-4 h-4 text-amber-700" />
+                    <span>Cannot attend? Submit prior informed notice / leave</span>
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         )}
 
@@ -420,7 +561,7 @@ export const LeaderPortal: React.FC = () => {
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Director Sir / Medical Superintendent / Dr. Neha"
+                    placeholder="e.g. Director Sir / Mr. Naman Mishra / Medical Superintendent"
                     value={informedToPerson}
                     onChange={(e) => setInformedToPerson(e.target.value)}
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-orange-500"
@@ -534,6 +675,16 @@ export const LeaderPortal: React.FC = () => {
           </a>
         </div>
       </div>
+
+      {/* Live In-Room Camera Scanner Modal (Live Feed & GPS Telemetry Only, No Gallery Upload) */}
+      {showScannerModal && activeLeader && (
+        <LiveRoomQrScannerModal
+          isOpen={showScannerModal}
+          onClose={() => setShowScannerModal(false)}
+          onScanSuccess={handleLiveCameraQrSuccess}
+          leaderName={activeLeader.full_name}
+        />
+      )}
     </div>
   );
 };

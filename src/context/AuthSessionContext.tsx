@@ -230,6 +230,8 @@ export const AuthSessionProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const logoutUser = () => {
     setCurrentUser(null);
     localStorage.removeItem('sbh_active_user_session');
+    sessionStorage.clear();
+    window.location.href = '/login';
   };
 
   const updateUserPassword = async (

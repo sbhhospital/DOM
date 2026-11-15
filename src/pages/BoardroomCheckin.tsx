@@ -22,7 +22,7 @@ import sbhLogo from '../assets/sbh-logo.png';
 export const BoardroomCheckin: React.FC = () => {
   const navigate = useNavigate();
   const { leaders, selectedDate, markRoomQrCheckIn, getMeetingForDate } = useDomApp();
-  const { currentUser, loginLeaderDirect } = useAuthSession();
+  const { currentUser, loginLeaderDirect, logoutUser } = useAuthSession();
 
   const currentMeeting = getMeetingForDate(selectedDate);
 
@@ -85,8 +85,29 @@ export const BoardroomCheckin: React.FC = () => {
         }
       }
 
-      // Mark physical boardroom check-in with single-daily count lock
-      const checkinRes = await markRoomQrCheckIn(selectedLeader.id);
+      // Capture live GPS location telemetry for audit
+      let locData: { latitude?: number; longitude?: number; accuracy?: number; device?: string } = {
+        device: typeof navigator !== 'undefined' ? navigator.userAgent : 'Mobile Browser',
+      };
+      if ('geolocation' in navigator) {
+        try {
+          const pos: any = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              timeout: 4000,
+              enableHighAccuracy: true,
+              maximumAge: 30000,
+            });
+          });
+          locData.latitude = pos.coords.latitude;
+          locData.longitude = pos.coords.longitude;
+          locData.accuracy = Math.round(pos.coords.accuracy);
+        } catch (gpsErr) {
+          console.warn('GPS location fetch note:', gpsErr);
+        }
+      }
+
+      // Mark physical boardroom check-in with single-daily count lock & GPS audit
+      const checkinRes = await markRoomQrCheckIn(selectedLeader.id, locData);
 
       if (checkinRes.success) {
         setConfirmationData({
@@ -175,8 +196,15 @@ export const BoardroomCheckin: React.FC = () => {
                 <div className="text-xs text-slate-600 font-semibold mt-0.5">
                   Department: <strong className="text-orange-700">{currentUser.department?.name || 'Department'}</strong>
                 </div>
-                <div className="text-[11px] text-slate-500 font-mono mt-0.5">
-                  Mode: <span className="text-emerald-700 font-bold">Physical / Conference Room</span>
+                <div className="flex items-center justify-between text-[11px] text-slate-500 font-mono mt-2 pt-2 border-t border-emerald-200">
+                  <span>Mode: <strong className="text-emerald-700">Physical / Conference Room</strong></span>
+                  <button
+                    type="button"
+                    onClick={() => logoutUser()}
+                    className="text-rose-600 hover:text-rose-700 font-bold flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>Sign Out &rarr;</span>
+                  </button>
                 </div>
               </div>
             ) : (
