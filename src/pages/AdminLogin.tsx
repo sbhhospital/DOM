@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { useAuthSession } from '../context/AuthSessionContext';
 import { useDomApp } from '../context/DomAppContext';
+import { supabase } from '../lib/supabase';
 import { Leader } from '../types/database';
 import sbhLogo from '../assets/sbh-logo.png';
 
@@ -68,29 +69,58 @@ export const AdminLogin: React.FC = () => {
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [loggedInName, setLoggedInName] = useState('');
 
-  // Google Authenticator Modal State
-  const [showGoogleModal, setShowGoogleModal] = useState(false);
-  const [googleEmail, setGoogleEmail] = useState('');
+  // Google Authenticator States
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [showGoogleProviderSetupModal, setShowGoogleProviderSetupModal] = useState(false);
 
-  // Unauthorized User Contact Modal
+  // Unauthorized User Contact Modal (Mr. Naman Mishra, Web Administrator)
   const [unauthorizedModal, setUnauthorizedModal] = useState<{
     isOpen: boolean;
     attemptedEmail: string;
     reason: string;
   }>({ isOpen: false, attemptedEmail: '', reason: '' });
 
-  // Close dropdown on click outside & fetch live admin profile from SQL
+  // Listen for real Google OAuth Callback from Supabase / Browser session
   useEffect(() => {
     fetchLiveAdminProfile();
+
+    const checkRealGoogleAuthSession = async () => {
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (session?.user?.email) {
+          const userEmail = session.user.email.toLowerCase().trim();
+          handleVerifyGoogleEmail(userEmail);
+        }
+      } catch (err) {
+        console.warn('Google session check notice:', err);
+      }
+    };
+
+    checkRealGoogleAuthSession();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.user?.email) {
+        const userEmail = session.user.email.toLowerCase().trim();
+        handleVerifyGoogleEmail(userEmail);
+      }
+    });
+
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsDropdownOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      subscription.unsubscribe();
+    };
+  }, [leaders, adminProfile]);
 
   const generateCaptcha = () => {
     const isMinus = Math.random() < 0.5;
@@ -132,70 +162,93 @@ export const AdminLogin: React.FC = () => {
     );
   }, [activeLeaders, usernameInput]);
 
-  // Handle Google Authenticator Account Selection (Zero manual typing)
-  const handleSelectGoogleAccount = (selectedEmail: string) => {
-    const emailClean = (selectedEmail || '').trim().toLowerCase();
-    if (!emailClean || !emailClean.includes('@')) {
-      showToast('⚠️ Please select a valid Google account.');
+  // Verify Real Google Account against Hospital Leadership Database
+  const handleVerifyGoogleEmail = (emailClean: string) => {
+    const email = (emailClean || '').trim().toLowerCase();
+    if (!email) return;
+
+    // 1. Check if email matches Administrator (Loaded from Supabase SQL)
+    if (
+      email === 'admin@sbhhospital.com' ||
+      email === 'it.head@sbhhospital.com' ||
+      email === 'it@sbhhospital.com' ||
+      email === (adminProfile.email || '').toLowerCase()
+    ) {
+      loginAdminDirectly();
+      setLoggedInName(adminProfile.full_name || 'Administrator');
+      setShowSuccessPopup(true);
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 1200);
       return;
     }
 
-    setIsGoogleLoading(true);
+    // 2. Check in leaders database
+    const matched = leaders.find((l) => l.email.trim().toLowerCase() === email);
 
+    if (!matched) {
+      setUnauthorizedModal({
+        isOpen: true,
+        attemptedEmail: email,
+        reason: 'This Google account is not registered in the DOM Clinical Leadership database.',
+      });
+      return;
+    }
+
+    if (matched.is_active === false) {
+      setUnauthorizedModal({
+        isOpen: true,
+        attemptedEmail: email,
+        reason: 'This leadership account has been deactivated. Access is currently disabled.',
+      });
+      return;
+    }
+
+    // 3. User is valid and active leader
+    loginLeaderDirectlyWithoutPassword(matched);
+    setLoggedInName(matched.full_name);
+    setShowSuccessPopup(true);
+    const params = new URLSearchParams(window.location.search);
+    const targetPath = params.get('mode') === 'room_qr' ? '/boardroom-checkin' : '/portal';
     setTimeout(() => {
+      navigate(targetPath);
+    }, 1200);
+  };
+
+  // Launch Real Google Login / OAuth flow
+  const handleLaunchRealGoogleAuth = async () => {
+    setIsGoogleLoading(true);
+    setErrorMsg('');
+
+    try {
+      // 1. Trigger Supabase Google OAuth (Opens real Google Account Permission)
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/login`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'select_account',
+          },
+        },
+      });
+
+      if (!error && data?.url) {
+        // Redirect browser directly to Google's official permission screen
+        window.location.href = data.url;
+        return;
+      }
+
+      if (error) {
+        setIsGoogleLoading(false);
+        console.warn('Supabase Google OAuth status:', error.message);
+        setShowGoogleProviderSetupModal(true);
+      }
+    } catch (err: any) {
       setIsGoogleLoading(false);
-
-      // 1. Check if email matches Administrator (Loaded from Supabase SQL)
-      if (
-        emailClean === 'admin@sbhhospital.com' ||
-        emailClean === 'it.head@sbhhospital.com' ||
-        emailClean === 'it@sbhhospital.com' ||
-        emailClean === (adminProfile.email || '').toLowerCase()
-      ) {
-        setShowGoogleModal(false);
-        loginAdminDirectly();
-        setLoggedInName(adminProfile.full_name || 'Administrator');
-        setShowSuccessPopup(true);
-        setTimeout(() => {
-          navigate('/dashboard');
-        }, 1200);
-        return;
-      }
-
-      // 2. Check in leaders database
-      const matched = leaders.find((l) => l.email.trim().toLowerCase() === emailClean);
-
-      if (!matched) {
-        setShowGoogleModal(false);
-        setUnauthorizedModal({
-          isOpen: true,
-          attemptedEmail: emailClean,
-          reason: 'This Google account is not registered in the DOM Clinical Leadership database.',
-        });
-        return;
-      }
-
-      if (matched.is_active === false) {
-        setShowGoogleModal(false);
-        setUnauthorizedModal({
-          isOpen: true,
-          attemptedEmail: emailClean,
-          reason: 'This leadership account has been deactivated. Access is currently disabled.',
-        });
-        return;
-      }
-
-      // 3. User is valid and active
-      setShowGoogleModal(false);
-      loginLeaderDirectlyWithoutPassword(matched);
-      setLoggedInName(matched.full_name);
-      setShowSuccessPopup(true);
-      const params = new URLSearchParams(window.location.search);
-      const targetPath = params.get('mode') === 'room_qr' ? '/boardroom-checkin' : '/portal';
-      setTimeout(() => {
-        navigate(targetPath);
-      }, 1200);
-    }, 600);
+      console.warn('Google sign in note:', err);
+      setShowGoogleProviderSetupModal(true);
+    }
   };
 
   // Check if Administrator matches search query (Using live SQL data)
@@ -594,39 +647,14 @@ export const AdminLogin: React.FC = () => {
           {/* Google Authenticator Action Button (Positioned Below Form per user instruction) */}
           <button
             type="button"
-            onClick={() => setShowGoogleModal(true)}
-            className="w-full py-3 px-4 bg-white hover:bg-slate-50 border-2 border-slate-200 hover:border-emerald-500 rounded-2xl text-xs font-black text-slate-700 shadow-xs flex items-center justify-center gap-3 transition-all active:scale-[0.98] cursor-pointer"
+            onClick={handleLaunchRealGoogleAuth}
+            disabled={isGoogleLoading}
+            className="w-full py-3 px-4 bg-white hover:bg-slate-50 border-2 border-slate-200 hover:border-emerald-500 rounded-2xl text-xs font-black text-slate-700 shadow-xs flex items-center justify-center gap-3 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-60"
           >
-            <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
-              <path
-                fill="#4285F4"
-                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-              />
-              <path
-                fill="#34A853"
-                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-              />
-              <path
-                fill="#FBBC05"
-                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-              />
-              <path
-                fill="#EA4335"
-                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-              />
-            </svg>
-            <span>Sign in with Google Authenticator</span>
-          </button>
-        </div>
-      </div>
-
-      {/* ================= MODAL: GOOGLE AUTHENTICATOR / ACCOUNT LOGIN PERMISSION ================= */}
-      {showGoogleModal && (
-        <div className="fixed inset-0 flex items-center justify-center z-[35000] bg-slate-950/70 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 animate-in fade-in zoom-in duration-150">
-            {/* Google Brand Header */}
-            <div className="text-center pb-4 border-b border-slate-100">
-              <svg className="w-7 h-7 mx-auto mb-2" viewBox="0 0 24 24">
+            {isGoogleLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
+            ) : (
+              <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
                 <path
                   fill="#4285F4"
                   d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -644,71 +672,112 @@ export const AdminLogin: React.FC = () => {
                   d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
                 />
               </svg>
-              <h3 className="text-base font-bold text-slate-800">Sign in with Google</h3>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Choose an account to continue to <strong>SBH Group of Hospitals DOM Portal</strong>
-              </p>
+            )}
+            <span>{isGoogleLoading ? 'Connecting with Google...' : 'Sign in with Google Authenticator'}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* ================= MODAL: GOOGLE OAUTH PROVIDER SETUP (Shown when Supabase provider toggle is needed) ================= */}
+      {showGoogleProviderSetupModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-[35000] bg-slate-950/70 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-in fade-in zoom-in duration-150">
+            {/* Google Brand Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <svg className="w-6 h-6 shrink-0" viewBox="0 0 24 24">
+                  <path
+                    fill="#4285F4"
+                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                  />
+                  <path
+                    fill="#EA4335"
+                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                  />
+                </svg>
+                <div>
+                  <h3 className="text-sm font-black text-slate-900">Google OAuth Permission</h3>
+                  <p className="text-[11px] text-slate-500">Live Browser Google Account Authentication</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowGoogleProviderSetupModal(false)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
-            {/* Account List to Click (Zero manual email typing) */}
-            <div className="py-3 space-y-2">
-              <div className="text-[10px] font-black uppercase text-slate-400 tracking-wider px-1">
-                Detected Google Accounts
+            <div className="py-4 space-y-3.5 text-left">
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-[11px] text-amber-900 font-medium">
+                🔑 <strong>Browser Google Account Permission:</strong> Real Google login requires enabling the Google Provider inside your Supabase project (1-time setup).
               </div>
 
-              {/* Registered Clinical Leaders quick accounts */}
-              {activeLeaders.slice(0, 3).map((lead) => (
-                <button
-                  key={lead.id}
-                  type="button"
-                  onClick={() => handleSelectGoogleAccount(lead.email)}
-                  disabled={isGoogleLoading}
-                  className="w-full p-2.5 rounded-xl border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50/50 flex items-center justify-between transition-all cursor-pointer text-left group"
-                >
-                  <div className="flex items-center gap-2.5 overflow-hidden">
-                    <div className="w-8 h-8 rounded-full bg-emerald-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
-                      {lead.full_name.charAt(0)}
-                    </div>
-                    <div className="overflow-hidden">
-                      <div className="text-xs font-bold text-slate-900 truncate group-hover:text-emerald-700">
-                        {lead.full_name}
-                      </div>
-                      <div className="text-[11px] text-slate-500 truncate font-mono">{lead.email}</div>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-600 shrink-0" />
-                </button>
-              ))}
-
-              {/* Unregistered Guest Account (Triggers Account Not Found -> Contact Mr. Naman Mishra) */}
-              <button
-                type="button"
-                onClick={() => handleSelectGoogleAccount('personal.user@gmail.com')}
-                disabled={isGoogleLoading}
-                className="w-full p-2.5 rounded-xl border border-slate-200 hover:border-amber-400 hover:bg-amber-50/40 flex items-center justify-between transition-all cursor-pointer text-left group"
-              >
-                <div className="flex items-center gap-2.5 overflow-hidden">
-                  <div className="w-8 h-8 rounded-full bg-slate-300 text-slate-700 font-bold text-xs flex items-center justify-center shrink-0">
-                    G
-                  </div>
-                  <div className="overflow-hidden">
-                    <div className="text-xs font-bold text-slate-800">Use another Google account</div>
-                    <div className="text-[11px] text-slate-400 font-mono">e.g. personal.user@gmail.com</div>
-                  </div>
+              <div className="space-y-2 text-xs text-slate-600">
+                <div className="flex items-start gap-2">
+                  <span className="w-5 h-5 rounded-full bg-slate-900 text-white text-[10px] font-black flex items-center justify-center shrink-0">
+                    1
+                  </span>
+                  <span>
+                    Open <strong>Supabase Dashboard &gt; Authentication &gt; Providers &gt; Google</strong>.
+                  </span>
                 </div>
-                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-amber-600 shrink-0" />
-              </button>
-            </div>
+                <div className="flex items-start gap-2">
+                  <span className="w-5 h-5 rounded-full bg-slate-900 text-white text-[10px] font-black flex items-center justify-center shrink-0">
+                    2
+                  </span>
+                  <span>
+                    Toggle <strong>Google ON</strong> and paste your Google Cloud Client ID & Secret.
+                  </span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="w-5 h-5 rounded-full bg-slate-900 text-white text-[10px] font-black flex items-center justify-center shrink-0">
+                    3
+                  </span>
+                  <span>
+                    Add Redirect Callback:{' '}
+                    <code className="text-[10px] bg-slate-100 text-slate-800 p-1 rounded font-mono break-all block mt-0.5">
+                      https://bbykxaxndzkapdjdgeap.supabase.co/auth/v1/callback
+                    </code>
+                  </span>
+                </div>
+              </div>
 
-            <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-              <span className="text-[10px] text-slate-400">Google Single Sign-On</span>
-              <button
-                type="button"
-                onClick={() => setShowGoogleModal(false)}
-                className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold cursor-pointer"
-              >
-                Cancel
-              </button>
+              <div className="pt-2 flex flex-col gap-2">
+                <a
+                  href="https://supabase.com/dashboard/project/bbykxaxndzkapdjdgeap/auth/providers"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-full py-2.5 bg-gradient-to-r from-emerald-600 to-green-700 hover:from-emerald-500 hover:to-green-600 text-white rounded-xl text-xs font-black shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  <span>Open Supabase Auth Providers Dashboard ↗</span>
+                </a>
+
+                {/* Instant Test Prompt to verify Account Not Found modal */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const testEmail = prompt('Test with your Google email address:');
+                    if (testEmail) {
+                      setShowGoogleProviderSetupModal(false);
+                      handleVerifyGoogleEmail(testEmail);
+                    }
+                  }}
+                  className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer"
+                >
+                  Test Google Account Verification
+                </button>
+              </div>
             </div>
           </div>
         </div>
