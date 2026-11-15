@@ -111,6 +111,88 @@ const DEFAULT_SETTINGS: AppSettings = {
   ceoitbox_api_url: 'https://app.ceoitbox.com/message/new',
 };
 
+const isUuid = (val?: string | null): boolean =>
+  Boolean(val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val));
+
+const resolveLeaderDepartment = (lead: any, deptsList: Department[]): Department => {
+  // 1. Direct object if present and valid (not old placeholder)
+  if (
+    lead.department &&
+    lead.department.name &&
+    !lead.department.name.includes('Neurology') &&
+    !lead.department.name.includes('Cardiology')
+  ) {
+    return lead.department;
+  }
+
+  // 2. Saved department ID in cache
+  const savedDeptId = localStorage.getItem(`sbh_leader_dept_${lead.id}`);
+  if (savedDeptId) {
+    const matched = deptsList.find((d) => d.id === savedDeptId || d.code === savedDeptId);
+    if (matched) return matched;
+  }
+
+  // 3. Match by department_id
+  if (lead.department_id) {
+    const matched = deptsList.find((d) => d.id === lead.department_id);
+    if (matched) return matched;
+  }
+
+  // 4. Match by employee_code keywords
+  const code = (lead.employee_code || '').toUpperCase();
+  if (code === '10231' || code.includes('IT')) return deptsList.find((d) => d.code === 'IT') || deptsList[7];
+  if (code.includes('TPA')) return deptsList.find((d) => d.code === 'TPA') || deptsList[0];
+  if (code.includes('ACT') || code.includes('ACC')) return deptsList.find((d) => d.code === 'ACCT' || d.code === 'ACCOUNTS') || deptsList[1];
+  if (code.includes('HR')) return deptsList.find((d) => d.code === 'HR') || deptsList[2];
+  if (code.includes('OPS')) return deptsList.find((d) => d.code === 'OPS') || deptsList[3];
+  if (code.includes('PHM') || code.includes('PHARM')) return deptsList.find((d) => d.code === 'PHARM') || deptsList[4];
+  if (code.includes('HK')) return deptsList.find((d) => d.code === 'HK') || deptsList[5];
+  if (code.includes('MNT') || code.includes('MAINT')) return deptsList.find((d) => d.code === 'MAINT') || deptsList[6];
+  if (code.includes('MKT')) return deptsList.find((d) => d.code === 'MKTG') || deptsList[8];
+  if (code.includes('DOC') || code.includes('LEAD-11')) return deptsList.find((d) => d.code === 'DOC') || deptsList[9];
+  if (code.includes('ADM')) return deptsList.find((d) => d.code === 'ADMIN') || deptsList[10];
+  if (code.includes('DME')) return deptsList.find((d) => d.code === 'DME-IT') || deptsList[11];
+  if (code.includes('STR') || code.includes('STORE')) return deptsList.find((d) => d.code === 'STORE') || deptsList[12];
+  if (code.includes('DGT') || code.includes('DIGI')) return deptsList.find((d) => d.code === 'DIGI-MKT') || deptsList[13];
+  if (code.includes('OT')) return deptsList.find((d) => d.code === 'OT') || deptsList[14];
+  if (code.includes('CNS') || code.includes('COUNSEL')) return deptsList.find((d) => d.code === 'COUNSEL') || deptsList[15];
+  if (code.includes('PRM') || code.includes('PROMO')) return deptsList.find((d) => d.code === 'PROMO') || deptsList[16];
+  if (code.includes('RCP') || code.includes('RECEPT')) return deptsList.find((d) => d.code === 'RECEPT') || deptsList[17];
+  if (code.includes('IVF')) return deptsList.find((d) => d.code === 'IVF') || deptsList[18];
+  if (code.includes('CSM') || code.includes('COSM')) return deptsList.find((d) => d.code === 'COSM') || deptsList[19];
+  if (code.includes('COO')) return deptsList.find((d) => d.code === 'COO') || deptsList[20];
+  if (code.includes('DIR')) return deptsList.find((d) => d.code === 'DIR') || deptsList[21];
+  if (code.includes('LAB')) return deptsList.find((d) => d.code === 'LAB') || deptsList[23];
+
+  // 5. Match by email prefix
+  const email = (lead.email || '').toLowerCase();
+  if (email.startsWith('tpa@')) return deptsList.find((d) => d.code === 'TPA') || deptsList[0];
+  if (email.startsWith('account')) return deptsList.find((d) => d.code === 'ACCT' || d.code === 'ACCOUNTS') || deptsList[1];
+  if (email.startsWith('hr@')) return deptsList.find((d) => d.code === 'HR') || deptsList[2];
+  if (email.startsWith('operation')) return deptsList.find((d) => d.code === 'OPS') || deptsList[3];
+  if (email.startsWith('pharmacy')) return deptsList.find((d) => d.code === 'PHARM') || deptsList[4];
+  if (email.startsWith('housekeeping')) return deptsList.find((d) => d.code === 'HK') || deptsList[5];
+  if (email.startsWith('maintenance')) return deptsList.find((d) => d.code === 'MAINT') || deptsList[6];
+  if (email.startsWith('it@')) return deptsList.find((d) => d.code === 'IT') || deptsList[7];
+  if (email.startsWith('marketing')) return deptsList.find((d) => d.code === 'MKTG') || deptsList[8];
+  if (email.startsWith('clinical') || email.startsWith('doctor')) return deptsList.find((d) => d.code === 'DOC') || deptsList[9];
+  if (email.startsWith('admin@')) return deptsList.find((d) => d.code === 'ADMIN') || deptsList[10];
+  if (email.startsWith('dme@')) return deptsList.find((d) => d.code === 'DME-IT') || deptsList[11];
+  if (email.startsWith('store@')) return deptsList.find((d) => d.code === 'STORE') || deptsList[12];
+  if (email.startsWith('digital@')) return deptsList.find((d) => d.code === 'DIGI-MKT') || deptsList[13];
+  if (email.startsWith('ot@')) return deptsList.find((d) => d.code === 'OT') || deptsList[14];
+  if (email.startsWith('counselor@')) return deptsList.find((d) => d.code === 'COUNSEL') || deptsList[15];
+  if (email.startsWith('promotions@')) return deptsList.find((d) => d.code === 'PROMO') || deptsList[16];
+  if (email.startsWith('reception@')) return deptsList.find((d) => d.code === 'RECEPT') || deptsList[17];
+  if (email.startsWith('ivf@')) return deptsList.find((d) => d.code === 'IVF') || deptsList[18];
+  if (email.startsWith('cosmetic@')) return deptsList.find((d) => d.code === 'COSM') || deptsList[19];
+  if (email.startsWith('coo@')) return deptsList.find((d) => d.code === 'COO') || deptsList[20];
+  if (email.startsWith('director@')) return deptsList.find((d) => d.code === 'DIR') || deptsList[21];
+  if (email.startsWith('lab@')) return deptsList.find((d) => d.code === 'LAB') || deptsList[23];
+
+  return deptsList[0];
+};
+
 export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const todayStr = new Date().toISOString().split('T')[0];
   const [selectedDate, setSelectedDate] = useState<string>(todayStr);
@@ -121,7 +203,6 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (saved) {
       try {
         const parsed: Department[] = JSON.parse(saved);
-        // If parsed list contains old clinical depts, purge them and return INITIAL_DEPARTMENTS
         const hasOld = parsed.some((d) =>
           d.name.includes('Cardiology') ||
           d.name.includes('Neurology') ||
@@ -143,14 +224,14 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (saved) {
       try {
         const parsed: Leader[] = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
+        if (Array.isArray(parsed) && parsed.length >= 24) {
           return parsed;
         }
       } catch (e) {
         console.warn('Error reading custom leaders cache:', e);
       }
     }
-    return [];
+    return INITIAL_LEADERS;
   });
 
   // Custom Meeting Schedules state (persisted)
@@ -185,29 +266,15 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const loadDataFromSupabase = async () => {
     setIsLoading(true);
     try {
-      // 1. Fetch live leaders from Supabase
+      // 1. Fetch live leaders from Supabase SQL table
       const { data: supaLeaders, error } = await supabase
         .from('leaders')
-        .select('*, department:departments(*)');
+        .select('*')
+        .order('full_name', { ascending: true });
 
       if (!error && supaLeaders && supaLeaders.length > 0) {
-        const savedCustomLeaders = localStorage.getItem('sbh_custom_leaders');
-        const customMap = new Map<string, Leader>();
-        if (savedCustomLeaders) {
-          try {
-            const parsed = JSON.parse(savedCustomLeaders);
-            if (Array.isArray(parsed)) {
-              parsed.forEach((l: Leader) => customMap.set(l.id, l));
-            }
-          } catch (e) {}
-        }
-
         const mapped = supaLeaders.map((lead: any) => {
-          const cached = customMap.get(lead.id);
-          let dept = cached?.department || lead.department;
-          if (!dept || dept.name.includes('Neurology')) {
-            dept = departments.find((d) => d.code === 'IT' || d.name === 'IT') || departments[7];
-          }
+          const dept = resolveLeaderDepartment(lead, departments);
           return {
             ...lead,
             department: dept,
@@ -234,7 +301,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         } catch (e) {}
       }
 
-      setLeaders([]);
+      setLeaders(INITIAL_LEADERS);
     } catch (err) {
       console.warn('Error fetching leaders from Supabase:', err);
     } finally {
@@ -479,8 +546,13 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     leaderData: Omit<Leader, 'id'>,
     initialPassword = '123456'
   ): Promise<{ success: boolean; message: string }> => {
-    const emailLower = leaderData.email.trim().toLowerCase();
+    let emailLower = leaderData.email.trim().toLowerCase();
     const reqDomain = appSettings.allowed_domain.toLowerCase();
+
+    // If user provided username without domain, automatically append official domain
+    if (!emailLower.includes('@')) {
+      emailLower = `${emailLower}@${reqDomain}`;
+    }
 
     if (!emailLower.endsWith(`@${reqDomain}`)) {
       return {
@@ -489,69 +561,100 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       };
     }
 
-    const matchedDept = departments.find((d) => d.id === leaderData.department_id);
+    const matchedDept = departments.find(
+      (d) => d.id === leaderData.department_id || d.code === leaderData.department_id || d.name === leaderData.department_id
+    );
+
+    const isDeptUuid = isUuid(leaderData.department_id);
+    const generatedCode =
+      leaderData.employee_code?.trim() ||
+      `SBH-${matchedDept?.code || 'LEAD'}-${Date.now().toString().slice(-4)}`;
 
     try {
       const insertPayload = {
         full_name: leaderData.full_name.trim(),
         email: emailLower,
-        phone: leaderData.phone.trim(),
-        department_id: leaderData.department_id || null,
+        phone: leaderData.phone?.trim() || '0000000000',
+        department_id: isDeptUuid ? leaderData.department_id : null,
         role: leaderData.role || 'LEADER',
-        employee_code: leaderData.employee_code?.trim() || `SBH-${Date.now().toString().slice(-4)}`,
+        employee_code: generatedCode,
         expected_mode: leaderData.expected_mode || 'PHYSICAL',
         is_active: true,
       };
 
+      // 1. Direct INSERT into Supabase SQL 'leaders' table
       const { data, error } = await supabase
         .from('leaders')
         .insert([insertPayload])
-        .select('*, department:departments(*)');
+        .select('*');
 
-      if (!error && data && data.length > 0) {
+      if (error) {
+        console.error('Supabase SQL leader insert error:', error);
+        return {
+          success: false,
+          message: `Database error: ${error.message} (Please check if email or employee code already exists).`,
+        };
+      }
+
+      if (data && data.length > 0) {
         const newLead = data[0] as Leader;
         localStorage.setItem(`sbh_user_pass_${newLead.id}`, initialPassword);
-        setLeaders((prev) => [...prev, { ...newLead, department: matchedDept || newLead.department }]);
+        if (matchedDept) {
+          localStorage.setItem(`sbh_leader_dept_${newLead.id}`, matchedDept.id);
+        }
+
+        const completeLeader: Leader = {
+          ...newLead,
+          department: matchedDept || resolveLeaderDepartment(newLead, departments),
+          department_id: matchedDept?.id || newLead.department_id,
+        };
+
+        setLeaders((prev) => {
+          const next = [...prev, completeLeader];
+          localStorage.setItem('sbh_custom_leaders', JSON.stringify(next));
+          return next;
+        });
+
+        // Write directly to Supabase admin_audit_logs table
+        try {
+          await supabase.from('admin_audit_logs').insert([
+            {
+              actor_id: newLead.id,
+              action: 'LEADER_CREATED',
+              entity_type: 'LEADER',
+              entity_id: newLead.id,
+              reason: `Leader ${newLead.full_name} added to hospital roster`,
+              after_data: insertPayload,
+            },
+          ]);
+        } catch (auditErr) {
+          console.warn('Audit log write note:', auditErr);
+        }
+
         return {
           success: true,
-          message: `Leader ${newLead.full_name} added successfully! Initial password: ${initialPassword}`,
+          message: `Leader ${newLead.full_name} successfully saved to Supabase SQL database! Initial password: ${initialPassword}`,
         };
       }
     } catch (e: any) {
-      console.warn('Supabase insert fallback:', e);
+      console.error('Supabase insert exception:', e);
+      return { success: false, message: `Database error: ${e.message || 'Failed to save leader.'}` };
     }
 
-    // Local fallback
-    const localLead: Leader = {
-      id: `lead-${Date.now()}`,
-      full_name: leaderData.full_name.trim(),
-      email: emailLower,
-      phone: leaderData.phone.trim(),
-      department_id: leaderData.department_id,
-      department: matchedDept,
-      role: leaderData.role || 'LEADER',
-      employee_code: leaderData.employee_code?.trim() || `SBH-${Date.now().toString().slice(-4)}`,
-      expected_mode: leaderData.expected_mode || 'PHYSICAL',
-      is_active: true,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-
-    localStorage.setItem(`sbh_user_pass_${localLead.id}`, initialPassword);
-    setLeaders((prev) => [...prev, localLead]);
-    return {
-      success: true,
-      message: `Leader ${localLead.full_name} created successfully! Initial password: ${initialPassword}`,
-    };
+    return { success: false, message: 'Could not insert leader into database.' };
   };
 
   const editLeader = async (
     id: string,
     updates: Partial<Leader> & { initialPassword?: string }
   ): Promise<{ success: boolean; message: string }> => {
+    let emailLower: string | undefined = undefined;
     if (updates.email) {
-      const emailLower = updates.email.trim().toLowerCase();
+      emailLower = updates.email.trim().toLowerCase();
       const reqDomain = appSettings.allowed_domain.toLowerCase();
+      if (!emailLower.includes('@')) {
+        emailLower = `${emailLower}@${reqDomain}`;
+      }
       if (!emailLower.endsWith(`@${reqDomain}`)) {
         return {
           success: false,
@@ -564,15 +667,49 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       localStorage.setItem(`sbh_user_pass_${id}`, updates.initialPassword);
     }
 
-    const { initialPassword: _, ...dbUpdates } = updates;
     const matchedDept = updates.department_id
-      ? departments.find((d) => d.id === updates.department_id)
+      ? departments.find((d) => d.id === updates.department_id || d.code === updates.department_id)
       : undefined;
 
-    try {
-      await supabase.from('leaders').update(dbUpdates).eq('id', id);
-    } catch (e) {
-      console.warn('Supabase update warning:', e);
+    if (matchedDept) {
+      localStorage.setItem(`sbh_leader_dept_${id}`, matchedDept.id);
+    }
+
+    // Clean DB updates - send only valid columns to Supabase leaders table
+    const cleanDbUpdates: Record<string, any> = {};
+    if (updates.full_name !== undefined) cleanDbUpdates.full_name = updates.full_name.trim();
+    if (emailLower !== undefined) cleanDbUpdates.email = emailLower;
+    if (updates.phone !== undefined) cleanDbUpdates.phone = updates.phone.trim();
+    if (updates.role !== undefined) cleanDbUpdates.role = updates.role;
+    if (updates.employee_code !== undefined) cleanDbUpdates.employee_code = updates.employee_code.trim();
+    if (updates.expected_mode !== undefined) cleanDbUpdates.expected_mode = updates.expected_mode;
+    if (updates.is_active !== undefined) cleanDbUpdates.is_active = updates.is_active;
+    if (updates.department_id !== undefined) {
+      cleanDbUpdates.department_id = isUuid(updates.department_id) ? updates.department_id : null;
+    }
+    cleanDbUpdates.updated_at = new Date().toISOString();
+
+    if (isUuid(id)) {
+      try {
+        const { error: updErr } = await supabase.from('leaders').update(cleanDbUpdates).eq('id', id);
+        if (updErr) {
+          console.warn('Supabase leader update error:', updErr);
+        } else {
+          try {
+            await supabase.from('admin_audit_logs').insert([
+              {
+                action: 'LEADER_UPDATED',
+                entity_type: 'LEADER',
+                entity_id: id,
+                reason: `Leader details updated in SQL database`,
+                after_data: cleanDbUpdates,
+              },
+            ]);
+          } catch (ae) {}
+        }
+      } catch (e) {
+        console.warn('Supabase update warning:', e);
+      }
     }
 
     // Update leaders state and immediately persist to localStorage
@@ -582,6 +719,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           ? {
               ...l,
               ...updates,
+              email: emailLower || l.email,
               department: matchedDept || l.department,
               department_id: updates.department_id || l.department_id,
               updated_at: new Date().toISOString(),
@@ -601,6 +739,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
               leader: {
                 ...r.leader!,
                 ...updates,
+                email: emailLower || r.leader?.email || '',
                 department: matchedDept || r.leader?.department,
                 department_id: updates.department_id || r.leader?.department_id,
               },
@@ -609,19 +748,39 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       )
     );
 
-    return { success: true, message: 'Leader details & department updated successfully!' };
+    return { success: true, message: 'Leader details & department saved to database successfully!' };
   };
 
   const deleteLeader = async (id: string): Promise<{ success: boolean; message: string }> => {
-    try {
-      await supabase.from('leaders').delete().eq('id', id);
-    } catch (e) {
-      console.warn('Supabase delete warning:', e);
+    if (isUuid(id)) {
+      try {
+        const { error: delErr } = await supabase.from('leaders').delete().eq('id', id);
+        if (delErr) {
+          console.warn('Supabase delete error:', delErr);
+        } else {
+          try {
+            await supabase.from('admin_audit_logs').insert([
+              {
+                action: 'LEADER_DELETED',
+                entity_type: 'LEADER',
+                entity_id: id,
+                reason: `Leader deleted from SQL database`,
+              },
+            ]);
+          } catch (ae) {}
+        }
+      } catch (e) {
+        console.warn('Supabase delete warning:', e);
+      }
     }
 
-    setLeaders((prev) => prev.filter((l) => l.id !== id));
+    setLeaders((prev) => {
+      const next = prev.filter((l) => l.id !== id);
+      localStorage.setItem('sbh_custom_leaders', JSON.stringify(next));
+      return next;
+    });
     setAttendanceRecords((prev) => prev.filter((r) => r.leader_id !== id));
-    return { success: true, message: 'Leader removed from roster.' };
+    return { success: true, message: 'Leader removed from roster and database.' };
   };
 
   // ================= ATTENDANCE ACTIONS =================
@@ -710,24 +869,16 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const savedLate = existingRecord?.late_minutes ?? lateMinutes;
       const savedNote = existingRecord?.verification_note || note;
 
-      supabase.from('attendance_records').upsert({
-        id: recordId,
-        meeting_id: meeting.id,
-        meeting_date: targetDate,
-        leader_id: leaderId,
-        selected_mode: existingRecord?.selected_mode || 'VIRTUAL',
-        status: savedStatus,
-        verification_status: existingRecord?.admin_verified_attendance ? 'VERIFIED' : 'PENDING',
-        admin_verified_attendance: existingRecord?.admin_verified_attendance || false,
-        late_minutes: savedLate,
-        check_in_at: savedCheckIn,
-        first_event_at: existingRecord?.first_event_at || nowIso,
-        last_click_at: nowIso,
-        virtual_clicks_count: (existingRecord?.virtual_clicks_count || 0) + 1,
-        evidence_source: existingRecord?.evidence_source || 'GOOGLE_MEET_REDIRECT',
-        verification_note: savedNote,
-        updated_at: nowIso,
-      }).then();
+      if (isUuid(leaderId)) {
+        supabase.from('admin_audit_logs').insert([{
+          actor_id: leaderId,
+          action: 'VIRTUAL_JOIN',
+          entity_type: 'ATTENDANCE',
+          entity_id: recordId,
+          reason: `Leader joined Google Meet on ${targetDate}. ${savedNote}`,
+          after_data: { targetDate, statusToSet: savedStatus, lateMinutes: savedLate },
+        }]).then();
+      }
     } catch (e) {
       console.warn('Supabase async sync notice:', e);
     }
@@ -922,21 +1073,16 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const savedLate = existingRecord?.late_minutes ?? lateMinutes;
       const savedNote = existingRecord?.verification_note || note;
 
-      supabase.from('attendance_records').upsert({
-        id: recordId,
-        meeting_id: meeting.id,
-        meeting_date: selectedDate,
-        leader_id: leaderId,
-        selected_mode: 'PHYSICAL',
-        status: savedStatus,
-        verification_status: existingRecord?.admin_verified_attendance ? 'VERIFIED' : 'PENDING',
-        admin_verified_attendance: existingRecord?.admin_verified_attendance || false,
-        late_minutes: savedLate,
-        check_in_at: savedCheckIn,
-        evidence_source: 'ROOM_STATIC_QR',
-        verification_note: savedNote,
-        updated_at: nowIso,
-      }).then();
+      if (isUuid(leaderId)) {
+        supabase.from('admin_audit_logs').insert([{
+          actor_id: leaderId,
+          action: 'ROOM_QR_CHECKIN',
+          entity_type: 'ATTENDANCE',
+          entity_id: recordId,
+          reason: `Physical boardroom QR attendance checked in on ${selectedDate}. ${savedNote}`,
+          after_data: { selectedDate, statusToSet: savedStatus, isAlreadyRecorded },
+        }]).then();
+      }
     } catch (e) {}
 
     const formattedNow = new Date().toLocaleTimeString('en-IN', {

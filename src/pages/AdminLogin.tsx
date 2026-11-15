@@ -34,6 +34,7 @@ export const AdminLogin: React.FC = () => {
   // Dropdown open state
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
 
   // Password & visibility
   const [password, setPassword] = useState('');
@@ -329,6 +330,7 @@ export const AdminLogin: React.FC = () => {
                         setIsUserSelectedFromList(true);
                         setIsDropdownOpen(false);
                         setErrorMsg('');
+                        setTimeout(() => passwordRef.current?.focus(), 80);
                       }}
                       className={`w-full text-left p-2.5 rounded-lg text-xs font-bold transition-colors flex items-center justify-between cursor-pointer ${
                         isAdminSelected && isUserSelectedFromList
@@ -365,6 +367,7 @@ export const AdminLogin: React.FC = () => {
                             setIsUserSelectedFromList(true);
                             setIsDropdownOpen(false);
                             setErrorMsg('');
+                            setTimeout(() => passwordRef.current?.focus(), 80);
                           }}
                           className={`w-full text-left p-2.5 rounded-lg text-xs font-bold transition-colors flex items-center justify-between cursor-pointer ${
                             isSelected
@@ -400,6 +403,7 @@ export const AdminLogin: React.FC = () => {
               </label>
               <div className="relative">
                 <input
+                  ref={passwordRef}
                   type={visible ? 'text' : 'password'}
                   required
                   placeholder="••••••••"
