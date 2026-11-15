@@ -2,14 +2,34 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Leader } from '../types/database';
 
+export interface AdminProfile {
+  username: string;
+  full_name: string;
+  display_name: string;
+  email: string;
+  password?: string;
+  role?: string;
+  updated_at?: string;
+}
+
 interface AuthSessionContextType {
   // Admin Session
   isAdminAuthenticated: boolean;
   adminUsername: string;
   adminName: string;
+  adminProfile: AdminProfile;
+  fetchLiveAdminProfile: () => Promise<AdminProfile>;
   loginAdmin: (username: string, pass: string) => Promise<{ success: boolean; message: string }>;
   logoutAdmin: () => void;
   updateAdminPassword: (oldPass: string, newPass: string) => Promise<{ success: boolean; message: string }>;
+  updateAdminProfileAndCredentials: (updates: {
+    username?: string;
+    full_name?: string;
+    display_name?: string;
+    email?: string;
+    oldPass: string;
+    newPass?: string;
+  }) => Promise<{ success: boolean; message: string }>;
 
   // Employee / Leader User Session
   isUserAuthenticated: boolean;
@@ -28,6 +48,25 @@ export const AuthSessionProvider: React.FC<{ children: React.ReactNode }> = ({ c
   // 2-Hour Auto Logout Constant (120 Minutes = 7,200,000 ms)
   const ADMIN_SESSION_TIMEOUT_MS = 2 * 60 * 60 * 1000;
 
+  // Admin Profile State (Loaded directly from Supabase SQL database)
+  const [adminProfile, setAdminProfile] = useState<AdminProfile>(() => {
+    const saved = localStorage.getItem('sbh_admin_profile');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.warn('Error reading admin profile cache:', e);
+      }
+    }
+    return {
+      username: 'admin',
+      full_name: 'Administrator (Mr. Naman Mishra)',
+      display_name: 'Mr. Naman Mishra',
+      email: 'it.head@sbhhospital.com',
+      role: 'ADMIN',
+    };
+  });
+
   // Admin Session State
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
     const isLoggedIn = localStorage.getItem('sbh_admin_logged_in') === 'true';
@@ -43,10 +82,13 @@ export const AuthSessionProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
     return false;
   });
+
   const [adminUsername, setAdminUsername] = useState<string>(() => {
     return localStorage.getItem('sbh_admin_username') || 'admin';
   });
-  const [adminName, setAdminName] = useState<string>('SBH DOM Administrator');
+  const [adminName, setAdminName] = useState<string>(() => {
+    return localStorage.getItem('sbh_admin_fullname') || 'Administrator (Mr. Naman Mishra)';
+  });
 
   // User / Leader Session State
   const [currentUser, setCurrentUser] = useState<Leader | null>(() => {
@@ -54,8 +96,8 @@ export const AuthSessionProvider: React.FC<{ children: React.ReactNode }> = ({ c
     return saved ? JSON.parse(saved) : null;
   });
 
-  // Fetch live Admin password from Supabase database table
-  const getLiveAdminPassword = async (): Promise<string> => {
+  // Fetch live Admin Profile & credentials from Supabase SQL table (admin_audit_logs)
+  const fetchLiveAdminProfile = async (): Promise<AdminProfile> => {
     try {
       const { data, error } = await supabase
         .from('admin_audit_logs')
@@ -65,16 +107,44 @@ export const AuthSessionProvider: React.FC<{ children: React.ReactNode }> = ({ c
         .order('created_at', { ascending: false })
         .limit(1);
 
-      if (!error && data && data.length > 0 && data[0].after_data?.password) {
-        const supaPass = String(data[0].after_data.password);
-        localStorage.setItem('sbh_admin_password', supaPass);
-        return supaPass;
+      if (!error && data && data.length > 0 && data[0].after_data) {
+        const after = data[0].after_data;
+        const profile: AdminProfile = {
+          username: after.username || 'admin',
+          full_name: after.full_name || 'Administrator (Mr. Naman Mishra)',
+          display_name: after.display_name || after.full_name || 'Mr. Naman Mishra',
+          email: after.email || 'it.head@sbhhospital.com',
+          password: after.password || 'Naman@123',
+          role: after.role || 'ADMIN',
+          updated_at: after.updated_at || data[0].created_at,
+        };
+        setAdminProfile(profile);
+        setAdminUsername(profile.username);
+        setAdminName(profile.full_name);
+        localStorage.setItem('sbh_admin_profile', JSON.stringify(profile));
+        localStorage.setItem('sbh_admin_password', profile.password || 'Naman@123');
+        localStorage.setItem('sbh_admin_username', profile.username);
+        localStorage.setItem('sbh_admin_fullname', profile.full_name);
+        return profile;
       }
     } catch (e) {
-      console.warn('Supabase fetch admin password error:', e);
+      console.warn('Supabase fetch admin profile error:', e);
     }
-    return localStorage.getItem('sbh_admin_password') || 'admin123';
+
+    const fallback: AdminProfile = {
+      username: localStorage.getItem('sbh_admin_username') || 'admin',
+      full_name: localStorage.getItem('sbh_admin_fullname') || 'Administrator (Mr. Naman Mishra)',
+      display_name: 'Mr. Naman Mishra',
+      email: 'it.head@sbhhospital.com',
+      password: localStorage.getItem('sbh_admin_password') || 'Naman@123',
+      role: 'ADMIN',
+    };
+    return fallback;
   };
+
+  useEffect(() => {
+    fetchLiveAdminProfile();
+  }, []);
 
   // Fetch live Leader password from Supabase database table
   const getLiveLeaderPassword = async (leaderId: string): Promise<string> => {
@@ -98,32 +168,52 @@ export const AuthSessionProvider: React.FC<{ children: React.ReactNode }> = ({ c
     return localStorage.getItem(`sbh_user_pass_${leaderId}`) || '123456';
   };
 
-  // Admin Login with Live Supabase Password Verification & 2-Hour Auto-Logout
+  // Admin Login with Live Supabase SQL Verification & 2-Hour Auto-Logout
   const loginAdmin = async (user: string, pass: string): Promise<{ success: boolean; message: string }> => {
+    const liveProf = await fetchLiveAdminProfile();
     const trimmedUser = user.trim().toLowerCase();
-    if (trimmedUser !== 'admin') {
-      return { success: false, message: 'Invalid admin username. Please try again.' };
+
+    const allowedMatches = [
+      (liveProf.username || 'admin').toLowerCase(),
+      (liveProf.full_name || '').toLowerCase(),
+      (liveProf.display_name || '').toLowerCase(),
+      'admin',
+      'administrator',
+      'hospital command',
+      'naman',
+      'naman mishra',
+      'mr naman mishra',
+      'mr. naman mishra',
+    ];
+
+    const isUserValid = allowedMatches.some((m) => m && (trimmedUser === m || trimmedUser.includes(m) || m.includes(trimmedUser)));
+
+    if (!isUserValid) {
+      return { success: false, message: 'Invalid admin username. Please select Administrator from the list.' };
     }
 
-    const currentPass = await getLiveAdminPassword();
+    const currentPass = liveProf.password || 'Naman@123';
 
     if (pass === currentPass) {
       setIsAdminAuthenticated(true);
-      setAdminUsername('admin');
+      setAdminUsername(liveProf.username || 'admin');
+      setAdminName(liveProf.full_name || 'Administrator (Mr. Naman Mishra)');
       const now = Date.now().toString();
       localStorage.setItem('sbh_admin_logged_in', 'true');
-      localStorage.setItem('sbh_admin_username', 'admin');
+      localStorage.setItem('sbh_admin_username', liveProf.username || 'admin');
+      localStorage.setItem('sbh_admin_fullname', liveProf.full_name || 'Administrator (Mr. Naman Mishra)');
       localStorage.setItem('sbh_admin_login_time', now);
       return { success: true, message: 'Admin login successful!' };
     }
 
-    return { success: false, message: 'Invalid admin username or password. Please try again.' };
+    return { success: false, message: 'Invalid administrator password. Please try again.' };
   };
 
   const logoutAdmin = () => {
     setIsAdminAuthenticated(false);
     localStorage.removeItem('sbh_admin_logged_in');
     localStorage.removeItem('sbh_admin_login_time');
+    localStorage.removeItem('sbh_admin_username');
   };
 
   // Periodic Check for 2-Hour Auto-Logout
@@ -145,17 +235,42 @@ export const AuthSessionProvider: React.FC<{ children: React.ReactNode }> = ({ c
     return () => clearInterval(interval);
   }, [isAdminAuthenticated]);
 
-  // Update Admin Password - Persisted directly into Supabase SQL Database
-  const updateAdminPassword = async (oldPass: string, newPass: string): Promise<{ success: boolean; message: string }> => {
-    const currentPass = await getLiveAdminPassword();
-    if (oldPass !== currentPass) {
-      return { success: false, message: 'Current admin password does not match.' };
+  // Update Admin Profile & Credentials - Persisted 100% directly into Supabase SQL Database
+  const updateAdminProfileAndCredentials = async (updates: {
+    username?: string;
+    full_name?: string;
+    display_name?: string;
+    email?: string;
+    oldPass: string;
+    newPass?: string;
+  }): Promise<{ success: boolean; message: string }> => {
+    const liveProf = await fetchLiveAdminProfile();
+    const currentPass = liveProf.password || 'Naman@123';
+
+    if (updates.oldPass !== currentPass) {
+      return { success: false, message: 'Current administrator password does not match.' };
     }
-    if (newPass.length < 5) {
+
+    if (updates.newPass && updates.newPass.trim().length > 0 && updates.newPass.trim().length < 5) {
       return { success: false, message: 'New password must be at least 5 characters long.' };
     }
 
-    // 1. Direct INSERT into Supabase database table
+    const nextUsername = updates.username?.trim() || liveProf.username || 'admin';
+    const nextFullName = updates.full_name?.trim() || liveProf.full_name || 'Administrator (Mr. Naman Mishra)';
+    const nextDisplayName = updates.display_name?.trim() || liveProf.display_name || 'Mr. Naman Mishra';
+    const nextEmail = updates.email?.trim() || liveProf.email || 'it.head@sbhhospital.com';
+    const nextPassword = updates.newPass && updates.newPass.trim().length >= 4 ? updates.newPass.trim() : currentPass;
+
+    const payload = {
+      role: 'ADMIN',
+      username: nextUsername,
+      full_name: nextFullName,
+      display_name: nextDisplayName,
+      email: nextEmail,
+      password: nextPassword,
+      updated_at: new Date().toISOString(),
+    };
+
     try {
       const { error } = await supabase.from('admin_audit_logs').insert([
         {
@@ -163,24 +278,39 @@ export const AuthSessionProvider: React.FC<{ children: React.ReactNode }> = ({ c
           action: 'ADMIN_CREDENTIAL',
           entity_type: 'SYSTEM_SECURITY',
           entity_id: 'admin',
-          reason: 'Master Administrator Password Updated',
-          after_data: {
-            username: 'admin',
-            password: newPass,
-            role: 'ADMIN',
-            updated_at: new Date().toISOString(),
-          },
+          reason: `Master Administrator Profile & Credentials Updated in SQL by ${nextFullName}`,
+          after_data: payload,
         },
       ]);
+
       if (error) {
-        console.warn('Supabase admin credential save warning:', error);
+        console.error('Supabase admin credential SQL error:', error);
+        return { success: false, message: 'Failed to update admin profile in database. Please try again.' };
       }
-    } catch (e) {
-      console.warn('Supabase admin credential update error:', e);
+    } catch (e: any) {
+      console.error('Supabase admin credential save error:', e);
+      return { success: false, message: e.message || 'Error updating credentials.' };
     }
 
-    localStorage.setItem('sbh_admin_password', newPass);
-    return { success: true, message: 'Admin password changed and saved to Supabase SQL table successfully!' };
+    const updatedProfile: AdminProfile = {
+      ...payload,
+    };
+    setAdminProfile(updatedProfile);
+    setAdminUsername(nextUsername);
+    setAdminName(nextFullName);
+    localStorage.setItem('sbh_admin_profile', JSON.stringify(updatedProfile));
+    localStorage.setItem('sbh_admin_password', nextPassword);
+    localStorage.setItem('sbh_admin_username', nextUsername);
+    localStorage.setItem('sbh_admin_fullname', nextFullName);
+
+    return {
+      success: true,
+      message: 'Administrator account details and credentials updated in Supabase SQL successfully!',
+    };
+  };
+
+  const updateAdminPassword = async (oldPass: string, newPass: string) => {
+    return updateAdminProfileAndCredentials({ oldPass, newPass });
   };
 
   // User / Leader Login with Live Supabase Password Verification
@@ -237,7 +367,7 @@ export const AuthSessionProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const loginAdminDirectly = () => {
     setIsAdminAuthenticated(true);
     localStorage.setItem('sbh_admin_logged_in', 'true');
-    localStorage.setItem('sbh_admin_username', 'admin');
+    localStorage.setItem('sbh_admin_username', adminProfile.username || 'admin');
     localStorage.setItem('sbh_admin_login_time', Date.now().toString());
   };
 
@@ -292,9 +422,12 @@ export const AuthSessionProvider: React.FC<{ children: React.ReactNode }> = ({ c
         isAdminAuthenticated,
         adminUsername,
         adminName,
+        adminProfile,
+        fetchLiveAdminProfile,
         loginAdmin,
         logoutAdmin,
         updateAdminPassword,
+        updateAdminProfileAndCredentials,
         isUserAuthenticated: !!currentUser,
         currentUser,
         loginUser,

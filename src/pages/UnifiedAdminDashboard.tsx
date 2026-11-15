@@ -58,7 +58,14 @@ import { BoardroomQrPosterModal } from '../components/BoardroomQrPosterModal';
 
 export const UnifiedAdminDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { logoutAdmin, updateAdminPassword, adminName } = useAuthSession();
+  const {
+    logoutAdmin,
+    updateAdminPassword,
+    updateAdminProfileAndCredentials,
+    adminName,
+    adminProfile,
+    fetchLiveAdminProfile,
+  } = useAuthSession();
   const {
     leaders,
     departments,
@@ -382,10 +389,24 @@ export const UnifiedAdminDashboard: React.FC = () => {
     google_meet_url: currentMeeting.google_meet_url,
   });
 
-  // Password Change state
+  // Admin Credentials & Profile State (Stored in Supabase SQL)
+  const [adminUsernameInput, setAdminUsernameInput] = useState(adminProfile?.username || 'admin');
+  const [adminFullNameInput, setAdminFullNameInput] = useState(adminProfile?.full_name || 'Administrator (Mr. Naman Mishra)');
+  const [isSavingAdmin, setIsSavingAdmin] = useState(false);
   const [oldPass, setOldPass] = useState('');
   const [newPass, setNewPass] = useState('');
   const [passMsg, setPassMsg] = useState<{ success?: boolean; text?: string } | null>(null);
+
+  // Synchronize inputs when modal opens
+  useEffect(() => {
+    if (showPasswordModal && adminProfile) {
+      setAdminUsernameInput(adminProfile.username || 'admin');
+      setAdminFullNameInput(adminProfile.full_name || 'Administrator (Mr. Naman Mishra)');
+      setOldPass('');
+      setNewPass('');
+      setPassMsg(null);
+    }
+  }, [showPasswordModal, adminProfile]);
 
   // Filter & Search
   const [searchTerm, setSearchTerm] = useState('');
@@ -577,11 +598,23 @@ export const UnifiedAdminDashboard: React.FC = () => {
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
     setPassMsg(null);
-    const res = await updateAdminPassword(oldPass, newPass);
-    setPassMsg({ success: res.success, text: res.message });
-    if (res.success) {
-      setOldPass('');
-      setNewPass('');
+    setIsSavingAdmin(true);
+    try {
+      const res = await updateAdminProfileAndCredentials({
+        username: adminUsernameInput,
+        full_name: adminFullNameInput,
+        oldPass,
+        newPass: newPass && newPass.trim().length >= 4 ? newPass.trim() : undefined,
+      });
+      setPassMsg({ success: res.success, text: res.message });
+      if (res.success) {
+        setOldPass('');
+        setNewPass('');
+      }
+    } catch (err: any) {
+      setPassMsg({ success: false, text: err?.message || 'Error updating administrator credentials.' });
+    } finally {
+      setIsSavingAdmin(false);
     }
   };
 
@@ -858,9 +891,19 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
         {/* Sidebar Footer with Admin Controls & Clean Logout */}
         <div className="p-3 border-t border-slate-200 bg-slate-50/70 space-y-2 shrink-0">
-          <div className="flex items-center gap-2 px-2 py-1 text-slate-600 text-[11px]">
-            <Shield className="w-3.5 h-3.5 text-emerald-600" />
-            <span className="truncate font-bold">{adminName || 'Hospital Admin'}</span>
+          <div className="flex items-center gap-2 px-2 py-1 text-slate-800 text-[11px]">
+            <div className="w-6 h-6 rounded-full bg-orange-600 text-white flex items-center justify-center text-[10px] font-black shrink-0 shadow-xs">
+              NM
+            </div>
+            <div className="overflow-hidden">
+              <div className="truncate font-black text-slate-900 leading-tight">
+                {adminProfile?.full_name || adminName || 'Administrator (Mr. Naman Mishra)'}
+              </div>
+              <div className="text-[10px] text-emerald-600 font-bold flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping inline-block" />
+                <span className="truncate">{adminProfile?.username || 'admin'} • Supabase SQL</span>
+              </div>
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-1.5">
             <button
@@ -2838,15 +2881,17 @@ export const UnifiedAdminDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* ================= MODAL: CHANGE ADMIN PASSWORD ================= */}
+      {/* ================= MODAL: CHANGE ADMIN CREDENTIALS & USERNAME (STORED IN SUPABASE SQL) ================= */}
       {showPasswordModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-200">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
             <h3 className="text-base font-black text-slate-900 mb-1 flex items-center gap-2">
               <KeyRound className="w-4 h-4 text-orange-600" />
-              Change Admin Password
+              Administrator Profile & Security
             </h3>
-            <p className="text-xs text-slate-500 mb-4">Update login credentials for DOM Administrator account.</p>
+            <p className="text-xs text-slate-500 mb-4">
+              Stored 100% in Supabase SQL database. Update your admin username, name and security password.
+            </p>
 
             {passMsg && (
               <div
@@ -2861,23 +2906,54 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
             <form onSubmit={handlePasswordChange} className="space-y-3">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Current Password</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Administrator Username (SQL Database)
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={adminUsernameInput}
+                  onChange={(e) => setAdminUsernameInput(e.target.value)}
+                  placeholder="e.g. admin or naman"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-orange-500 font-mono font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Full Name / Designation
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={adminFullNameInput}
+                  onChange={(e) => setAdminFullNameInput(e.target.value)}
+                  placeholder="e.g. Administrator (Mr. Naman Mishra)"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-orange-500 font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Current Password (Required)</label>
                 <input
                   type="password"
                   required
                   value={oldPass}
                   onChange={(e) => setOldPass(e.target.value)}
+                  placeholder="Enter current password"
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-orange-500 font-mono"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">New Password</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  New Password (Leave blank to keep current)
+                </label>
                 <input
                   type="password"
-                  required
                   value={newPass}
                   onChange={(e) => setNewPass(e.target.value)}
+                  placeholder="Enter new password (optional)"
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-orange-500 font-mono"
                 />
               </div>
@@ -2886,15 +2962,17 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowPasswordModal(false)}
-                  className="px-3.5 py-1.5 bg-slate-100 text-slate-700 rounded-xl text-xs font-bold cursor-pointer"
+                  className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer transition-colors"
                 >
                   Close
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-1.5 bg-orange-600 hover:bg-orange-500 text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer"
+                  disabled={isSavingAdmin}
+                  className="px-4 py-2 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white rounded-xl text-xs font-bold shadow-md cursor-pointer flex items-center gap-1.5 disabled:opacity-50 transition-all"
                 >
-                  Save Password
+                  {isSavingAdmin ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                  <span>{isSavingAdmin ? 'Saving to SQL...' : 'Save to SQL Database'}</span>
                 </button>
               </div>
             </form>

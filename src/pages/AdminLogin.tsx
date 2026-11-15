@@ -28,7 +28,14 @@ import sbhLogo from '../assets/sbh-logo.png';
 
 export const AdminLogin: React.FC = () => {
   const navigate = useNavigate();
-  const { loginAdmin, loginLeaderDirect, loginLeaderDirectlyWithoutPassword, loginAdminDirectly } = useAuthSession();
+  const {
+    loginAdmin,
+    loginLeaderDirect,
+    loginLeaderDirectlyWithoutPassword,
+    loginAdminDirectly,
+    adminProfile,
+    fetchLiveAdminProfile,
+  } = useAuthSession();
   const { leaders } = useDomApp();
 
   const [usernameInput, setUsernameInput] = useState('');
@@ -72,8 +79,9 @@ export const AdminLogin: React.FC = () => {
     reason: string;
   }>({ isOpen: false, attemptedEmail: '', reason: '' });
 
-  // Close dropdown on click outside
+  // Close dropdown on click outside & fetch live admin profile from SQL
   useEffect(() => {
+    fetchLiveAdminProfile();
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsDropdownOpen(false);
@@ -137,15 +145,16 @@ export const AdminLogin: React.FC = () => {
     setTimeout(() => {
       setIsGoogleLoading(false);
 
-      // 1. Check if email matches Administrator (Mr. Naman Mishra or admin)
+      // 1. Check if email matches Administrator (Loaded from Supabase SQL)
       if (
         emailClean === 'admin@sbhhospital.com' ||
         emailClean === 'it.head@sbhhospital.com' ||
-        emailClean === 'it@sbhhospital.com'
+        emailClean === 'it@sbhhospital.com' ||
+        emailClean === (adminProfile.email || '').toLowerCase()
       ) {
         setShowGoogleModal(false);
         loginAdminDirectly();
-        setLoggedInName('Administrator (Mr. Naman Mishra)');
+        setLoggedInName(adminProfile.full_name || 'Administrator (Mr. Naman Mishra)');
         setShowSuccessPopup(true);
         setTimeout(() => {
           navigate('/dashboard');
@@ -189,12 +198,19 @@ export const AdminLogin: React.FC = () => {
     }, 700);
   };
 
-  // Check if Administrator matches search query
+  // Check if Administrator matches search query (Using live SQL data)
   const isAdminVisible = useMemo(() => {
     const q = usernameInput.toLowerCase().trim();
     if (!q) return true;
-    return 'admin'.includes(q) || 'administrator'.includes(q) || 'hospital command'.includes(q);
-  }, [usernameInput]);
+    return (
+      'admin'.includes(q) ||
+      'administrator'.includes(q) ||
+      'hospital command'.includes(q) ||
+      (adminProfile.username && adminProfile.username.toLowerCase().includes(q)) ||
+      (adminProfile.full_name && adminProfile.full_name.toLowerCase().includes(q)) ||
+      (adminProfile.display_name && adminProfile.display_name.toLowerCase().includes(q))
+    );
+  }, [usernameInput, adminProfile]);
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
@@ -233,11 +249,11 @@ export const AdminLogin: React.FC = () => {
     setLoading(true);
 
     if (isAdminSelected) {
-      // 1. Admin Login
-      const res = await loginAdmin('admin', password);
+      // 1. Admin Login with live SQL credentials
+      const res = await loginAdmin(usernameInput, password);
       setLoading(false);
       if (res.success) {
-        setLoggedInName('Administrator');
+        setLoggedInName(adminProfile.full_name || 'Administrator');
         setShowSuccessPopup(true);
         setTimeout(() => {
           navigate('/dashboard');
@@ -449,13 +465,13 @@ export const AdminLogin: React.FC = () => {
               {/* Suggestions Dropdown List right beneath the single input */}
               {isDropdownOpen && (
                 <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-white border border-slate-200 rounded-xl shadow-xl max-h-56 overflow-y-auto p-1 divide-y divide-slate-100">
-                  {/* Administrator Item */}
+                  {/* Administrator Item (Fetched directly from Supabase SQL) */}
                   {isAdminVisible && (
                     <button
                       type="button"
                       onMouseDown={(e) => {
                         e.preventDefault();
-                        setUsernameInput('Administrator');
+                        setUsernameInput(adminProfile.full_name || 'Administrator (Mr. Naman Mishra)');
                         setIsAdminSelected(true);
                         setSelectedLeader(null);
                         setIsUserSelectedFromList(true);
@@ -472,8 +488,12 @@ export const AdminLogin: React.FC = () => {
                       <div className="flex items-center gap-2">
                         <Crown className="w-4 h-4 text-orange-600 shrink-0" />
                         <div>
-                          <div className="text-xs font-black text-slate-900">Administrator</div>
-                          <div className="text-[10px] text-orange-700 font-semibold">Command Center & Full Dashboard</div>
+                          <div className="text-xs font-black text-slate-900">
+                            {adminProfile.full_name || 'Administrator (Mr. Naman Mishra)'}
+                          </div>
+                          <div className="text-[10px] text-orange-700 font-semibold">
+                            {adminProfile.username} • Command Center & Full Dashboard
+                          </div>
                         </div>
                       </div>
                       <span className="text-[9px] font-black uppercase bg-orange-100 text-orange-800 px-2 py-0.5 rounded-full border border-orange-300">
