@@ -1,5 +1,6 @@
 import React from 'react';
 import { ShieldCheck, Activity } from 'lucide-react';
+import nmLogo from '../assets/nm-logo.png';
 
 export const HospitalFooter: React.FC = () => {
   return (
@@ -24,10 +25,11 @@ export const HospitalFooter: React.FC = () => {
             </span>
           </a>
           <a
-            href="https://www.linkedin.com/in/ignamanmishra/"
+            href="https://www.namanmishra.in"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1 no-underline mt-0.5 opacity-90 hover:opacity-100 text-white"
+            className="flex items-center gap-1.5 no-underline mt-0.5 opacity-90 hover:opacity-100 text-white transition-opacity"
+            title="Visit Developer Portfolio — Naman Mishra"
           >
             <span className="text-[7.5px] font-bold text-white uppercase tracking-widest italic leading-none">
               Architected by{' '}
@@ -35,10 +37,8 @@ export const HospitalFooter: React.FC = () => {
                 Naman Mishra
               </span>
             </span>
-            <span className="bg-white rounded-[2px] p-[1px] flex items-center justify-center">
-              <svg className="w-2 h-2 fill-[#0077b5]" viewBox="0 0 24 24">
-                <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 10.9v8.37H9.2V10.9H6.46M7.83 6.64a1.64 1.64 0 1 0 0 3.28 1.64 1.64 0 0 0 0-3.28" />
-              </svg>
+            <span className="bg-white/95 rounded-[3px] p-[1.5px] flex items-center justify-center shadow-xs">
+              <img src={nmLogo} alt="Naman Mishra" className="h-3 w-auto object-contain" />
             </span>
           </a>
         </div>
@@ -72,20 +72,19 @@ export const HospitalFooter: React.FC = () => {
           </a>
 
           <a
-            href="https://www.linkedin.com/in/ignamanmishra/"
+            href="https://www.namanmishra.in"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex flex-col text-right group no-underline hover:opacity-90 text-white"
+            className="flex flex-col text-right group no-underline hover:opacity-95 text-white transition-opacity"
+            title="Visit Developer Portfolio — Naman Mishra"
           >
             <span className="text-[7px] font-bold text-white/80 uppercase tracking-widest italic leading-none mb-0.5">
               Architected by
             </span>
-            <span className="text-[9px] font-black text-white uppercase tracking-widest flex items-center justify-end gap-1 leading-none text-white">
+            <span className="text-[9px] font-black text-white uppercase tracking-widest flex items-center justify-end gap-1.5 leading-none text-white">
               Naman Mishra
-              <span className="bg-white rounded-[2px] p-[1px] flex items-center justify-center ml-1">
-                <svg className="w-2 h-2 fill-[#0077b5]" viewBox="0 0 24 24">
-                  <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 10.9v8.37H9.2V10.9H6.46M7.83 6.64a1.64 1.64 0 1 0 0 3.28 1.64 1.64 0 0 0 0-3.28" />
-                </svg>
+              <span className="bg-white/95 rounded-[3px] p-[1.5px] flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform">
+                <img src={nmLogo} alt="Naman Mishra" className="h-3.5 w-auto object-contain" />
               </span>
             </span>
           </a>
