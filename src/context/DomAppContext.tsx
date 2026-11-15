@@ -626,6 +626,20 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
               reason: `Leader ${newLead.full_name} added to hospital roster`,
               after_data: insertPayload,
             },
+            {
+              actor_id: null,
+              action: 'LEADER_PASSWORD',
+              entity_type: 'USER_PASSWORD',
+              entity_id: newLead.id,
+              reason: `Initial password set for leader ${newLead.full_name}`,
+              after_data: {
+                leader_id: newLead.id,
+                full_name: newLead.full_name,
+                email: newLead.email,
+                password: initialPassword,
+                updated_at: new Date().toISOString(),
+              },
+            },
           ]);
         } catch (auditErr) {
           console.warn('Audit log write note:', auditErr);
@@ -704,6 +718,32 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
     }
 
+    // Persist new password directly to Supabase admin_audit_logs if provided
+    if (updates.initialPassword && updates.initialPassword.trim().length >= 4) {
+      const newPass = updates.initialPassword.trim();
+      localStorage.setItem(`sbh_user_pass_${id}`, newPass);
+      try {
+        await supabase.from('admin_audit_logs').insert([
+          {
+            actor_id: null,
+            action: 'LEADER_PASSWORD',
+            entity_type: 'USER_PASSWORD',
+            entity_id: id,
+            reason: `Password updated for leader ${updates.full_name || id}`,
+            after_data: {
+              leader_id: id,
+              full_name: updates.full_name || '',
+              email: emailLower || '',
+              password: newPass,
+              updated_at: new Date().toISOString(),
+            },
+          },
+        ]);
+      } catch (passErr) {
+        console.warn('Password audit log save note:', passErr);
+      }
+    }
+
     // Update leaders state and immediately persist to localStorage
     setLeaders((prev) => {
       const next = prev.map((l) =>
@@ -753,6 +793,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       try {
         // Clean up any foreign key constraints before deleting leader
         await supabase.from('admin_audit_logs').delete().eq('actor_id', id);
+        await supabase.from('admin_audit_logs').delete().eq('entity_id', id);
         await supabase.from('attendance_records').delete().eq('leader_id', id);
         await supabase.from('leave_requests').delete().eq('leader_id', id);
         await supabase.from('departments').update({ head_leader_id: null }).eq('head_leader_id', id);

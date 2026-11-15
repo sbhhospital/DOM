@@ -184,16 +184,16 @@ export function generateDirectorPdf(
           statusDisplay = `Late (+${rec.late_minutes}m)`;
           auditDisplay = 'APPROVED';
         } else {
-          statusDisplay = 'Present (Approved)';
+          statusDisplay = 'Present';
           auditDisplay = 'APPROVED';
         }
       } else {
         // ADMIN APPROVAL IS PENDING
         if (isLate) {
-          statusDisplay = `Late (+${rec.late_minutes}m) [Pending]`;
+          statusDisplay = `Late (+${rec.late_minutes}m)`;
           auditDisplay = 'PENDING';
         } else {
-          statusDisplay = 'Approval Pending';
+          statusDisplay = 'Present (Unverified)';
           auditDisplay = 'PENDING';
         }
       }
@@ -236,19 +236,19 @@ export function generateDirectorPdf(
       fillColor: [234, 88, 12], // #ea580c Hospital Orange
       textColor: [255, 255, 255],
       fontStyle: 'bold',
-      fontSize: 7.8,
+      fontSize: 7.2,
       halign: 'center',
     },
     columnStyles: {
-      0: { halign: 'center', cellWidth: 8 },
-      1: { fontStyle: 'bold', halign: 'left', cellWidth: 35 },
-      2: { halign: 'left', cellWidth: 26 },
-      3: { halign: 'center', cellWidth: 14 },
-      4: { halign: 'center', cellWidth: 17 },
+      0: { halign: 'center', cellWidth: 7 },
+      1: { fontStyle: 'bold', halign: 'left', cellWidth: 34 },
+      2: { halign: 'left', cellWidth: 25 },
+      3: { halign: 'center', cellWidth: 12 },
+      4: { halign: 'center', cellWidth: 20 },
       5: { halign: 'center', cellWidth: 22 },
       6: { halign: 'center', cellWidth: 18 },
-      7: { halign: 'center', cellWidth: 24 },
-      8: { halign: 'center', cellWidth: 18 },
+      7: { halign: 'center', cellWidth: 23 },
+      8: { halign: 'center', cellWidth: 21 },
     },
     didParseCell: (data) => {
       if (data.section === 'body') {
