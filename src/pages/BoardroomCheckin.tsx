@@ -1,0 +1,361 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  MapPin,
+  Clock,
+  ShieldCheck,
+  CheckCircle2,
+  AlertCircle,
+  Building,
+  KeyRound,
+  User,
+  ChevronDown,
+  Sparkles,
+  ArrowRight,
+  Video,
+} from 'lucide-react';
+import { useDomApp } from '../context/DomAppContext';
+import { useAuthSession } from '../context/AuthSessionContext';
+import { Leader } from '../types/database';
+import sbhLogo from '../assets/sbh-logo.png';
+
+export const BoardroomCheckin: React.FC = () => {
+  const navigate = useNavigate();
+  const { leaders, selectedDate, markRoomQrCheckIn, getMeetingForDate } = useDomApp();
+  const { currentUser, loginLeaderDirect } = useAuthSession();
+
+  const currentMeeting = getMeetingForDate(selectedDate);
+
+  // Leader selection state (if not logged in)
+  const [selectedLeader, setSelectedLeader] = useState<Leader | null>(currentUser);
+  const [leaderSearch, setLeaderSearch] = useState('');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [password, setPassword] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Stylish Thank You Modal State
+  const [showThankYouModal, setShowThankYouModal] = useState(false);
+  const [confirmationData, setConfirmationData] = useState<{
+    leaderName: string;
+    department: string;
+    timeStr: string;
+    isAlreadyRecorded: boolean;
+  } | null>(null);
+
+  useEffect(() => {
+    if (currentUser) {
+      setSelectedLeader(currentUser);
+    }
+  }, [currentUser]);
+
+  const filteredLeaders = leaders.filter(
+    (l) =>
+      l.full_name.toLowerCase().includes(leaderSearch.toLowerCase()) ||
+      l.department?.name.toLowerCase().includes(leaderSearch.toLowerCase()) ||
+      l.email.toLowerCase().includes(leaderSearch.toLowerCase())
+  );
+
+  const handleSelectLeader = (lead: Leader) => {
+    setSelectedLeader(lead);
+    setLeaderSearch(lead.full_name);
+    setIsDropdownOpen(false);
+    setErrorMessage('');
+  };
+
+  const handleConfirmAttendance = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMessage('');
+
+    if (!selectedLeader) {
+      setErrorMessage('Please select your name from the department leaders list.');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // If not logged in, authenticate password first
+      if (!currentUser || currentUser.id !== selectedLeader.id) {
+        const authRes = await loginLeaderDirect(selectedLeader, password);
+        if (!authRes.success) {
+          setErrorMessage(authRes.message || 'Incorrect password. Please verify and try again.');
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
+      // Mark physical boardroom check-in with single-daily count lock
+      const checkinRes = await markRoomQrCheckIn(selectedLeader.id);
+
+      if (checkinRes.success) {
+        setConfirmationData({
+          leaderName: selectedLeader.full_name,
+          department: selectedLeader.department?.name || 'Department Head',
+          timeStr: checkinRes.timeStr || new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }),
+          isAlreadyRecorded: checkinRes.alreadyRecorded || false,
+        });
+        setShowThankYouModal(true);
+      } else {
+        setErrorMessage(checkinRes.message || 'Check-in failed. Please try again.');
+      }
+    } catch (err: any) {
+      setErrorMessage(err.message || 'An error occurred during check-in.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans p-4 sm:p-6 pb-24 items-center justify-center">
+      <div className="w-full max-w-lg space-y-6">
+        {/* Main Check-In Card */}
+        <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-200 relative overflow-hidden">
+          {/* Top Tricolor Accent Line */}
+          <div className="h-2 w-full bg-gradient-to-r from-orange-500 via-emerald-500 to-green-700 absolute top-0 left-0" />
+
+          {/* Hospital Logo & Header */}
+          <div className="text-center pt-2 pb-5 border-b border-slate-100">
+            <img
+              src={sbhLogo}
+              alt="SBH Group of Hospitals"
+              className="h-14 sm:h-16 w-auto object-contain mx-auto mb-3 drop-shadow-xs"
+            />
+            <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-black bg-emerald-50 text-emerald-800 border border-emerald-300 uppercase tracking-wider mb-2">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> 5th Floor Conference Hall Check-In
+            </span>
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              BOARDROOM PHYSICAL ATTENDANCE
+            </h1>
+            <p className="text-xs text-slate-500 mt-1">
+              Daily Operations Standup (DOM) • Sharp 10:00 AM IST
+            </p>
+          </div>
+
+          {/* Session Venue & Time Badges */}
+          <div className="grid grid-cols-2 gap-2.5 my-4 text-center">
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5">
+              <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider flex items-center justify-center gap-1">
+                <MapPin className="w-3 h-3 text-orange-600" /> Physical Venue
+              </span>
+              <span className="text-xs font-bold text-slate-800 block mt-0.5">
+                Conference Room, 5th Floor
+              </span>
+            </div>
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5">
+              <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider flex items-center justify-center gap-1">
+                <Clock className="w-3 h-3 text-emerald-600" /> Today's Date
+              </span>
+              <span className="text-xs font-bold text-slate-800 block mt-0.5">
+                {selectedDate} ({currentMeeting.scheduled_time})
+              </span>
+            </div>
+          </div>
+
+          {/* Error Message */}
+          {errorMessage && (
+            <div className="mb-4 p-3.5 bg-rose-50 border border-rose-300 text-rose-900 rounded-2xl text-xs font-bold flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+              <span>{errorMessage}</span>
+            </div>
+          )}
+
+          {/* Form */}
+          <form onSubmit={handleConfirmAttendance} className="space-y-4">
+            {/* If user is already authenticated */}
+            {currentUser ? (
+              <div className="p-4 bg-emerald-50/80 border border-emerald-300 rounded-2xl">
+                <div className="text-[11px] font-black uppercase text-emerald-800 tracking-wider flex items-center gap-1.5 mb-1">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Authenticated Leader Profile</span>
+                </div>
+                <div className="text-base font-black text-slate-900">
+                  {currentUser.full_name}
+                </div>
+                <div className="text-xs text-slate-600 font-semibold mt-0.5">
+                  Department: <strong className="text-orange-700">{currentUser.department?.name || 'Department'}</strong>
+                </div>
+                <div className="text-[11px] text-slate-500 font-mono mt-0.5">
+                  Mode: <span className="text-emerald-700 font-bold">Physical / Conference Room</span>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Searchable Leader Combobox */}
+                <div className="space-y-1.5 relative">
+                  <label className="block text-xs font-bold text-slate-700">
+                    Select Your Name <span className="text-orange-600">*</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Type or click to search your name..."
+                      value={leaderSearch}
+                      onChange={(e) => {
+                        setLeaderSearch(e.target.value);
+                        setIsDropdownOpen(true);
+                      }}
+                      onFocus={() => setIsDropdownOpen(true)}
+                      className="w-full pl-3.5 pr-10 py-3 bg-slate-50 border border-slate-300 rounded-2xl text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-600 focus:bg-white transition-all shadow-xs"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                      className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 cursor-pointer"
+                    >
+                      <ChevronDown className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Dropdown Options */}
+                  {isDropdownOpen && (
+                    <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-2xl shadow-2xl max-h-56 overflow-y-auto z-50 p-1.5 space-y-1">
+                      {filteredLeaders.length === 0 ? (
+                        <div className="p-3 text-center text-xs text-slate-400">
+                          No registered leaders match search
+                        </div>
+                      ) : (
+                        filteredLeaders.map((lead) => (
+                          <div
+                            key={lead.id}
+                            onClick={() => handleSelectLeader(lead)}
+                            className="p-2.5 hover:bg-emerald-50 rounded-xl cursor-pointer transition-colors flex items-center justify-between"
+                          >
+                            <div>
+                              <div className="text-xs font-bold text-slate-900">
+                                {lead.full_name}
+                              </div>
+                              <div className="text-[10px] text-slate-500">
+                                {lead.department?.name || 'Dept'} • {lead.email}
+                              </div>
+                            </div>
+                            <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-mono">
+                              Select
+                            </span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Password / PIN Input */}
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-slate-700">
+                    Leader PIN / Password <span className="text-orange-600">*</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="password"
+                      placeholder="Enter your password (default: 123456)"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full pl-10 pr-3.5 py-3 bg-slate-50 border border-slate-300 rounded-2xl text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-600 focus:bg-white transition-all shadow-xs"
+                    />
+                    <KeyRound className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Submit Physical Check-in Button */}
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-green-700 hover:from-emerald-700 hover:to-green-800 text-white rounded-2xl font-black text-sm shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 active:scale-[0.98]"
+            >
+              <CheckCircle2 className="w-4 h-4 text-white" />
+              <span>
+                {isSubmitting
+                  ? 'Verifying Physical Attendance...'
+                  : 'Confirm My Physical Presence in Boardroom'}
+              </span>
+            </button>
+          </form>
+
+          {/* Quick Notice */}
+          <div className="mt-5 pt-4 border-t border-slate-100 text-[11px] text-slate-500 text-center">
+            🔒 Single Daily Count Enforced • Verified for Hospital Director's 10:30 AM Audit
+          </div>
+        </div>
+      </div>
+
+      {/* ================= STYLISH THANK YOU POPUP MODAL ================= */}
+      {showThankYouModal && confirmationData && (
+        <div className="fixed inset-0 z-[20000] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 text-center shadow-2xl border border-slate-200 relative overflow-hidden">
+            {/* Top Glowing Gradient Accent */}
+            <div className="h-3 w-full bg-gradient-to-r from-orange-500 via-emerald-500 to-green-700 absolute top-0 left-0" />
+
+            {/* Hospital Logo */}
+            <img
+              src={sbhLogo}
+              alt="SBH Group of Hospitals"
+              className="h-12 w-auto object-contain mx-auto mb-4"
+            />
+
+            {/* Glowing Emerald Checkmark Icon */}
+            <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-500 text-white flex items-center justify-center mx-auto mb-4 shadow-xl shadow-emerald-500/30 ring-8 ring-emerald-100 animate-in zoom-in-75">
+              <CheckCircle2 className="w-10 h-10 text-white" />
+            </div>
+
+            {/* Thank You Title */}
+            <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+              Thank You, {confirmationData.leaderName}!
+            </h2>
+
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-900 border border-emerald-300 mt-2">
+              <Sparkles className="w-3.5 h-3.5 text-emerald-600" /> Physical Attendance Confirmed
+            </div>
+
+            <p className="text-xs text-slate-600 mt-3 max-w-xs mx-auto leading-relaxed">
+              Your in-person attendance inside the <strong className="text-slate-800">5th Floor Conference Room</strong> has been officially timestamped and locked in today's DOM register for Hospital Director review.
+            </p>
+
+            {/* Audit Details Card */}
+            <div className="my-5 p-4 bg-slate-50 rounded-2xl border border-slate-200 text-left text-xs space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 font-semibold">Department:</span>
+                <span className="font-bold text-slate-900">{confirmationData.department}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 font-semibold">Recorded Time:</span>
+                <span className="font-mono font-bold text-emerald-700">{confirmationData.timeStr} IST</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 font-semibold">Audit Status:</span>
+                <span className="font-bold text-emerald-700">PRESENT (Physical / Verified)</span>
+              </div>
+              <div className="flex items-center justify-between pt-1 border-t border-slate-200">
+                <span className="text-slate-500 font-semibold">Single Count Lock:</span>
+                <span className="font-bold text-orange-600">Active (1 Count / Day)</span>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="space-y-2">
+              <button
+                onClick={() => {
+                  setShowThankYouModal(false);
+                  navigate('/login');
+                }}
+                className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-xs shadow-md transition-all cursor-pointer"
+              >
+                Close & Return
+              </button>
+              <a
+                href="https://meet.google.com/jrz-jfku-gir"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+              >
+                <Video className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Open Google Meet (Follow Slides)</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
