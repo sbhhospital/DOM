@@ -277,10 +277,31 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  // Load 100% Real Leaders, Meeting Time/Date Schedules & Attendance Records directly from Supabase SQL Database
+  // Load 100% Real Leaders, Departments, Meeting Time/Date Schedules & Attendance Records directly from Supabase SQL Database
   const loadDataFromSupabase = async () => {
     setIsLoading(true);
     try {
+      // 0. Fetch live departments from Supabase SQL table
+      let liveDepts = departments;
+      const { data: supaDepts, error: deptErr } = await supabase
+        .from('departments')
+        .select('*')
+        .order('name', { ascending: true });
+
+      if (!deptErr && supaDepts && supaDepts.length > 0) {
+        liveDepts = supaDepts.map((d: any) => ({
+          id: d.id,
+          name: d.name,
+          code: d.code,
+          head_leader_id: d.head_leader_id,
+          is_active: d.is_active ?? true,
+          created_at: d.created_at,
+          updated_at: d.updated_at,
+        }));
+        setDepartments(liveDepts);
+        localStorage.setItem('sbh_hospital_departments', JSON.stringify(liveDepts));
+      }
+
       // 1. Fetch live leaders from Supabase SQL table
       const { data: supaLeaders, error } = await supabase
         .from('leaders')
@@ -289,9 +310,10 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       if (!error && supaLeaders) {
         const mapped = supaLeaders.map((lead: any) => {
-          const dept = resolveLeaderDepartment(lead, departments);
+          const dept = liveDepts.find((d) => d.id === lead.department_id) || resolveLeaderDepartment(lead, liveDepts);
           return {
             ...lead,
+            is_active: lead.is_active !== undefined ? lead.is_active : true,
             department: dept,
             department_id: dept?.id || lead.department_id,
           } as Leader;
@@ -434,20 +456,23 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Ensure attendance records exist ONLY for active leaders currently in database
   useEffect(() => {
-    if (leaders.length === 0) {
+    // Only ACTIVE leaders participate in daily operations and attendance
+    const activeLeaders = leaders.filter((l) => l.is_active !== false);
+
+    if (activeLeaders.length === 0) {
       setAttendanceRecords([]);
       return;
     }
 
     const currentMeeting = getMeetingForDate(selectedDate);
-    const activeLeaderIds = new Set(leaders.map((l) => l.id));
+    const activeLeaderIds = new Set(activeLeaders.map((l) => l.id));
 
     setAttendanceRecords((prev) => {
-      // 1. Filter out attendance records for deleted or dummy leaders not in DB
+      // 1. Filter out attendance records for inactive or deleted leaders
       const filtered = prev
         .filter((r) => activeLeaderIds.has(r.leader_id) || activeLeaderIds.has(r.leader?.id || ''))
         .map((r) => {
-          const matchedLead = leaders.find((l) => l.id === r.leader_id || l.id === r.leader?.id);
+          const matchedLead = activeLeaders.find((l) => l.id === r.leader_id || l.id === r.leader?.id);
           if (matchedLead) {
             return {
               ...r,
@@ -462,7 +487,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const existingLeaderIds = new Set(existingForDate.map((r) => r.leader_id));
 
       const newRecords: AttendanceRecord[] = [];
-      leaders.forEach((lead) => {
+      activeLeaders.forEach((lead) => {
         if (!existingLeaderIds.has(lead.id)) {
           newRecords.push({
             id: `att-${selectedDate}-${lead.id}`,
@@ -484,6 +509,24 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
   }, [leaders, selectedDate]);
 
+  // Clean, user-friendly error formatting without SQL/technical database jargon
+  const formatFriendlyErrorMessage = (errorMsg: string): string => {
+    const lower = (errorMsg || '').toLowerCase();
+    if (lower.includes('leaders_email_key') || (lower.includes('duplicate') && lower.includes('email'))) {
+      return 'This email address is already registered with another leader. Please use a unique email.';
+    }
+    if (lower.includes('employee_code') || lower.includes('leaders_employee_code_key')) {
+      return 'This Employee Code is already in use. Please enter a unique employee code.';
+    }
+    if (lower.includes('departments_name_key') || (lower.includes('duplicate') && lower.includes('department'))) {
+      return 'A department with this name already exists in the roster.';
+    }
+    if (lower.includes('duplicate') || lower.includes('unique constraint')) {
+      return 'A record with these details already exists. Please verify the entered information.';
+    }
+    return 'Unable to save details. Please check the information and try again.';
+  };
+
   // ================= DEPARTMENT MASTER CRUD =================
 
   const addDepartment = async (deptData: { name: string; code?: string }): Promise<{ success: boolean; message: string }> => {
@@ -499,6 +542,27 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       deptData.code?.trim().toUpperCase() ||
       trimmedName.replace(/[^A-Z0-9]/g, '-').slice(0, 8);
 
+    try {
+      const { data, error } = await supabase
+        .from('departments')
+        .insert([{ name: trimmedName, code, is_active: true }])
+        .select('*');
+
+      if (error) {
+        console.error('Supabase dept insert error:', error);
+        return { success: false, message: formatFriendlyErrorMessage(error.message) };
+      }
+
+      if (data && data.length > 0) {
+        const created = data[0] as Department;
+        setDepartments((prev) => [...prev, created]);
+        return { success: true, message: `Department "${trimmedName}" added successfully!` };
+      }
+    } catch (e: any) {
+      console.warn('Supabase dept insert warning:', e);
+      return { success: false, message: formatFriendlyErrorMessage(e.message || '') };
+    }
+
     const newDept: Department = {
       id: `dept-${Date.now()}`,
       name: trimmedName,
@@ -507,15 +571,8 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
-
-    try {
-      await supabase.from('departments').insert([{ name: trimmedName, code, is_active: true }]);
-    } catch (e) {
-      console.warn('Supabase dept insert warning (using local):', e);
-    }
-
     setDepartments((prev) => [...prev, newDept]);
-    return { success: true, message: `Department "${trimmedName}" added successfully to Master!` };
+    return { success: true, message: `Department "${trimmedName}" added successfully!` };
   };
 
   const editDepartment = async (id: string, updates: Partial<Department>): Promise<{ success: boolean; message: string }> => {
@@ -525,13 +582,26 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const updatedName = updates.name ? updates.name.trim().toUpperCase() : target.name;
     const updatedCode = updates.code ? updates.code.trim().toUpperCase() : target.code;
 
-    try {
-      await supabase
-        .from('departments')
-        .update({ name: updatedName, code: updatedCode, is_active: updates.is_active ?? target.is_active })
-        .eq('id', id);
-    } catch (e) {
-      console.warn('Supabase dept update warning:', e);
+    if (isUuid(id)) {
+      try {
+        const { error } = await supabase
+          .from('departments')
+          .update({
+            name: updatedName,
+            code: updatedCode,
+            is_active: updates.is_active ?? target.is_active,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', id);
+
+        if (error) {
+          console.error('Supabase dept update error:', error);
+          return { success: false, message: formatFriendlyErrorMessage(error.message) };
+        }
+      } catch (e: any) {
+        console.warn('Supabase dept update warning:', e);
+        return { success: false, message: formatFriendlyErrorMessage(e.message || '') };
+      }
     }
 
     setDepartments((prev) =>
@@ -573,14 +643,21 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       };
     }
 
-    try {
-      await supabase.from('departments').delete().eq('id', id);
-    } catch (e) {
-      console.warn('Supabase dept delete warning:', e);
+    if (isUuid(id)) {
+      try {
+        const { error } = await supabase.from('departments').delete().eq('id', id);
+        if (error) {
+          console.error('Supabase dept delete error:', error);
+          return { success: false, message: formatFriendlyErrorMessage(error.message) };
+        }
+      } catch (e: any) {
+        console.warn('Supabase dept delete warning:', e);
+        return { success: false, message: formatFriendlyErrorMessage(e.message || '') };
+      }
     }
 
     setDepartments((prev) => prev.filter((d) => d.id !== id));
-    return { success: true, message: 'Department removed from Master successfully!' };
+    return { success: true, message: 'Department removed successfully!' };
   };
 
   // ================= LEADER CRUD =================
@@ -589,18 +666,11 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     leaderData: Omit<Leader, 'id'>,
     initialPassword = '123456'
   ): Promise<{ success: boolean; message: string }> => {
-    let emailLower = leaderData.email.trim().toLowerCase();
-    const reqDomain = appSettings.allowed_domain.toLowerCase();
-
-    // If user provided username without domain, automatically append official domain
-    if (!emailLower.includes('@')) {
-      emailLower = `${emailLower}@${reqDomain}`;
-    }
-
-    if (!emailLower.endsWith(`@${reqDomain}`)) {
+    const emailClean = (leaderData.email || '').trim().toLowerCase();
+    if (!emailClean || !emailClean.includes('@')) {
       return {
         success: false,
-        message: `Official email must belong to hospital domain: @${reqDomain} (e.g. name@${reqDomain})`,
+        message: 'Please enter a valid email address (e.g. name@example.com).',
       };
     }
 
@@ -616,13 +686,13 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     try {
       const insertPayload = {
         full_name: leaderData.full_name.trim(),
-        email: emailLower,
-        phone: leaderData.phone?.trim() || '0000000000',
+        email: emailClean,
+        phone: leaderData.phone?.trim() || '',
         department_id: isDeptUuid ? leaderData.department_id : null,
         role: leaderData.role || 'LEADER',
         employee_code: generatedCode,
         expected_mode: leaderData.expected_mode || 'PHYSICAL',
-        is_active: true,
+        is_active: leaderData.is_active !== undefined ? leaderData.is_active : true,
       };
 
       // 1. Direct INSERT into Supabase SQL 'leaders' table
@@ -635,7 +705,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         console.error('Supabase SQL leader insert error:', error);
         return {
           success: false,
-          message: `Database error: ${error.message} (Please check if email or employee code already exists).`,
+          message: formatFriendlyErrorMessage(error.message),
         };
       }
 
@@ -648,6 +718,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
         const completeLeader: Leader = {
           ...newLead,
+          is_active: newLead.is_active !== undefined ? newLead.is_active : true,
           department: matchedDept || resolveLeaderDepartment(newLead, departments),
           department_id: matchedDept?.id || newLead.department_id,
         };
@@ -658,7 +729,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           return next;
         });
 
-        // Write to Supabase admin_audit_logs table with actor_id: null so foreign key does not block delete
+        // Audit log
         try {
           await supabase.from('admin_audit_logs').insert([
             {
@@ -690,32 +761,28 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
         return {
           success: true,
-          message: `Leader ${newLead.full_name} successfully saved to Supabase SQL database! Initial password: ${initialPassword}`,
+          message: `Leader ${newLead.full_name} added successfully! Initial password: ${initialPassword}`,
         };
       }
     } catch (e: any) {
       console.error('Supabase insert exception:', e);
-      return { success: false, message: `Database error: ${e.message || 'Failed to save leader.'}` };
+      return { success: false, message: formatFriendlyErrorMessage(e.message || '') };
     }
 
-    return { success: false, message: 'Could not insert leader into database.' };
+    return { success: false, message: 'Could not add leader. Please try again.' };
   };
 
   const editLeader = async (
     id: string,
     updates: Partial<Leader> & { initialPassword?: string }
   ): Promise<{ success: boolean; message: string }> => {
-    let emailLower: string | undefined = undefined;
-    if (updates.email) {
-      emailLower = updates.email.trim().toLowerCase();
-      const reqDomain = appSettings.allowed_domain.toLowerCase();
-      if (!emailLower.includes('@')) {
-        emailLower = `${emailLower}@${reqDomain}`;
-      }
-      if (!emailLower.endsWith(`@${reqDomain}`)) {
+    let emailClean: string | undefined = undefined;
+    if (updates.email !== undefined) {
+      emailClean = updates.email.trim().toLowerCase();
+      if (!emailClean || !emailClean.includes('@')) {
         return {
           success: false,
-          message: `Official email must belong to domain: @${reqDomain}`,
+          message: 'Please enter a valid email address (e.g. name@example.com).',
         };
       }
     }
@@ -737,7 +804,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     // Clean DB updates - send only valid columns to Supabase leaders table
     const cleanDbUpdates: Record<string, any> = {};
     if (updates.full_name !== undefined) cleanDbUpdates.full_name = updates.full_name.trim();
-    if (emailLower !== undefined) cleanDbUpdates.email = emailLower;
+    if (emailClean !== undefined) cleanDbUpdates.email = emailClean;
     if (updates.phone !== undefined) cleanDbUpdates.phone = updates.phone.trim();
     if (updates.role !== undefined) cleanDbUpdates.role = updates.role;
     if (updates.employee_code !== undefined) cleanDbUpdates.employee_code = updates.employee_code.trim();
@@ -753,11 +820,11 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const { error: updErr } = await supabase.from('leaders').update(cleanDbUpdates).eq('id', id);
         if (updErr) {
           console.error('Supabase leader update error:', updErr);
-          return { success: false, message: `Database update error: ${updErr.message}` };
+          return { success: false, message: formatFriendlyErrorMessage(updErr.message) };
         }
       } catch (e: any) {
         console.error('Supabase update warning:', e);
-        return { success: false, message: `Database update error: ${e.message || 'Failed to update'}` };
+        return { success: false, message: formatFriendlyErrorMessage(e.message || '') };
       }
     }
 
@@ -776,7 +843,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             after_data: {
               leader_id: id,
               full_name: updates.full_name || '',
-              email: emailLower || '',
+              email: emailClean || '',
               password: newPass,
               updated_at: new Date().toISOString(),
             },
@@ -797,7 +864,8 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
               full_name: updates.full_name?.trim() || l.full_name,
               phone: updates.phone?.trim() || l.phone,
               employee_code: updates.employee_code?.trim() || l.employee_code,
-              email: emailLower || l.email,
+              email: emailClean || l.email,
+              is_active: updates.is_active !== undefined ? updates.is_active : l.is_active,
               department: matchedDept || l.department,
               department_id: updates.department_id || l.department_id,
               updated_at: new Date().toISOString(),
@@ -808,7 +876,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return next;
     });
 
-    // Also update any attendance records for this leader so the change reflects everywhere live!
+    // Also update any attendance records for this leader
     setAttendanceRecords((prev) =>
       prev.map((r) =>
         r.leader_id === id
@@ -819,7 +887,8 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 ...updates,
                 full_name: updates.full_name?.trim() || r.leader?.full_name || '',
                 phone: updates.phone?.trim() || r.leader?.phone || '',
-                email: emailLower || r.leader?.email || '',
+                email: emailClean || r.leader?.email || '',
+                is_active: updates.is_active !== undefined ? updates.is_active : (r.leader?.is_active ?? true),
                 department: matchedDept || r.leader?.department,
                 department_id: updates.department_id || r.leader?.department_id,
               },
@@ -828,7 +897,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       )
     );
 
-    return { success: true, message: 'Leader details & department saved to database successfully!' };
+    return { success: true, message: 'Leader details updated successfully!' };
   };
 
   const deleteLeader = async (id: string): Promise<{ success: boolean; message: string }> => {
@@ -844,11 +913,11 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const { error: delErr } = await supabase.from('leaders').delete().eq('id', id);
         if (delErr) {
           console.error('Supabase delete error:', delErr);
-          return { success: false, message: `Database delete failed: ${delErr.message}` };
+          return { success: false, message: formatFriendlyErrorMessage(delErr.message) };
         }
       } catch (e: any) {
         console.error('Supabase delete warning:', e);
-        return { success: false, message: `Database error: ${e.message || 'Failed to delete'}` };
+        return { success: false, message: formatFriendlyErrorMessage(e.message || '') };
       }
     }
 
@@ -861,7 +930,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return next;
     });
     setAttendanceRecords((prev) => prev.filter((r) => r.leader_id !== id));
-    return { success: true, message: 'Leader removed from roster and database successfully.' };
+    return { success: true, message: 'Leader removed from roster successfully.' };
   };
 
   // ================= ATTENDANCE ACTIONS =================

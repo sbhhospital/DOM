@@ -41,6 +41,9 @@ import {
   Home,
   ExternalLink,
   Share2,
+  UserX,
+  UserCheck,
+  Loader2,
 } from 'lucide-react';
 import { useDomApp } from '../context/DomAppContext';
 import { useAuthSession } from '../context/AuthSessionContext';
@@ -263,11 +266,15 @@ export const UnifiedAdminDashboard: React.FC = () => {
   // Modals
   const [showAddLeaderModal, setShowAddLeaderModal] = useState(false);
   const [editingLeader, setEditingLeader] = useState<Leader | null>(null);
+  const [isSavingLeader, setIsSavingLeader] = useState(false);
   const [showAddDeptModal, setShowAddDeptModal] = useState(false);
   const [editingDept, setEditingDept] = useState<Department | null>(null);
+  const [isSavingDept, setIsSavingDept] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showQrDisplayModal, setShowQrDisplayModal] = useState(false);
   const [showScheduleEditModal, setShowScheduleEditModal] = useState(false);
+  const [isSavingSchedule, setIsSavingSchedule] = useState(false);
+  const [rosterStatusFilter, setRosterStatusFilter] = useState<'ALL' | 'ACTIVE' | 'DISABLED'>('ALL');
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [copiedEmail, setCopiedEmail] = useState(false);
   const [toastAlert, setToastAlert] = useState<{ type: 'success' | 'error' | 'info'; text: string; url?: string } | null>(null);
@@ -406,43 +413,76 @@ export const UnifiedAdminDashboard: React.FC = () => {
     (r) => r.status === 'ABSENT' || (r.status === 'PENDING' && r.selected_mode === 'NONE')
   ).length;
 
-  // Handle Leader Add / Edit Submit
+  // Handle Leader Add / Edit Submit with Loading Animation
   const handleSaveLeader = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError('');
     setFormSuccess('');
+    setIsSavingLeader(true);
 
-    if (editingLeader) {
-      const res = await editLeader(editingLeader.id, leaderForm);
-      if (res.success) {
-        setFormSuccess(res.message);
-        setTimeout(() => {
-          setShowAddLeaderModal(false);
-          setEditingLeader(null);
-        }, 1200);
+    try {
+      if (editingLeader) {
+        const res = await editLeader(editingLeader.id, leaderForm);
+        setIsSavingLeader(false);
+        if (res.success) {
+          setFormSuccess(res.message);
+          setTimeout(() => {
+            setShowAddLeaderModal(false);
+            setEditingLeader(null);
+          }, 1000);
+        } else {
+          setFormError(res.message);
+        }
       } else {
-        setFormError(res.message);
+        const res = await addLeader(leaderForm, leaderForm.initialPassword);
+        setIsSavingLeader(false);
+        if (res.success) {
+          setFormSuccess(res.message);
+          setTimeout(() => {
+            setShowAddLeaderModal(false);
+            setLeaderForm({
+              full_name: '',
+              email: '',
+              phone: '',
+              department_id: departments[0]?.id || '',
+              employee_code: '',
+              expected_mode: 'PHYSICAL',
+              role: 'LEADER',
+              is_active: true,
+              initialPassword: '123456',
+            });
+          }, 1000);
+        } else {
+          setFormError(res.message);
+        }
       }
-    } else {
-      const res = await addLeader(leaderForm, leaderForm.initialPassword);
+    } catch (err: any) {
+      setIsSavingLeader(false);
+      setFormError('Unable to save leader details. Please check the information.');
+    }
+  };
+
+  const handleToggleLeaderStatus = async (leader: Leader) => {
+    const nextStatus = !leader.is_active;
+    const actionLabel = nextStatus ? 'ACTIVATE' : 'DISABLE';
+    if (
+      window.confirm(
+        `Are you sure you want to ${actionLabel} ${leader.full_name}?\n\n${
+          nextStatus
+            ? 'This leader will be restored to the attendance register and notifications.'
+            : 'This leader will be hidden from daily attendance and excluded from reminders.'
+        }`
+      )
+    ) {
+      const res = await editLeader(leader.id, { is_active: nextStatus });
       if (res.success) {
-        setFormSuccess(res.message);
-        setTimeout(() => {
-          setShowAddLeaderModal(false);
-          setLeaderForm({
-            full_name: '',
-            email: '',
-            phone: '',
-            department_id: departments[0]?.id || '',
-            employee_code: '',
-            expected_mode: 'PHYSICAL',
-            role: 'LEADER',
-            is_active: true,
-            initialPassword: '123456',
-          });
-        }, 1200);
+        setToastAlert({
+          type: 'success',
+          text: `${leader.full_name} is now ${nextStatus ? 'ACTIVE' : 'DISABLED'}.`,
+        });
+        setTimeout(() => setToastAlert(null), 3500);
       } else {
-        setFormError(res.message);
+        alert(res.message);
       }
     }
   };
@@ -479,29 +519,37 @@ export const UnifiedAdminDashboard: React.FC = () => {
     e.preventDefault();
     setDeptFormError('');
     setDeptFormSuccess('');
+    setIsSavingDept(true);
 
-    if (editingDept) {
-      const res = await editDepartment(editingDept.id, deptForm);
-      if (res.success) {
-        setDeptFormSuccess(res.message);
-        setTimeout(() => {
-          setShowAddDeptModal(false);
-          setEditingDept(null);
-        }, 1000);
+    try {
+      if (editingDept) {
+        const res = await editDepartment(editingDept.id, deptForm);
+        setIsSavingDept(false);
+        if (res.success) {
+          setDeptFormSuccess(res.message);
+          setTimeout(() => {
+            setShowAddDeptModal(false);
+            setEditingDept(null);
+          }, 1000);
+        } else {
+          setDeptFormError(res.message);
+        }
       } else {
-        setDeptFormError(res.message);
+        const res = await addDepartment({ name: deptForm.name, code: deptForm.code });
+        setIsSavingDept(false);
+        if (res.success) {
+          setDeptFormSuccess(res.message);
+          setTimeout(() => {
+            setShowAddDeptModal(false);
+            setDeptForm({ name: '', code: '', is_active: true });
+          }, 1000);
+        } else {
+          setDeptFormError(res.message);
+        }
       }
-    } else {
-      const res = await addDepartment({ name: deptForm.name, code: deptForm.code });
-      if (res.success) {
-        setDeptFormSuccess(res.message);
-        setTimeout(() => {
-          setShowAddDeptModal(false);
-          setDeptForm({ name: '', code: '', is_active: true });
-        }, 1000);
-      } else {
-        setDeptFormError(res.message);
-      }
+    } catch (err: any) {
+      setIsSavingDept(false);
+      setDeptFormError('Unable to save department. Please try again.');
     }
   };
 
@@ -1582,96 +1630,170 @@ export const UnifiedAdminDashboard: React.FC = () => {
                   <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
                     <Users className="w-5 h-5 text-orange-600" />
                     <span>Hospital Leaders Directory ({leaders.length})</span>
-                    <span className="text-[11px] bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded-full border border-slate-200">
-                      Domain: @{appSettings.allowed_domain}
+                    <span className="text-[11px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-300">
+                      Active: {leaders.filter((l) => l.is_active !== false).length}
                     </span>
+                    {leaders.filter((l) => l.is_active === false).length > 0 && (
+                      <span className="text-[11px] bg-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded-full border border-slate-300">
+                        Disabled: {leaders.filter((l) => l.is_active === false).length}
+                      </span>
+                    )}
                   </h3>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Manage hospital leadership and assign them to the official 24 departments.
+                    Official hospital leaders. Only active leaders participate in DOM attendance register & receive notifications.
                   </p>
                 </div>
 
-                <button
-                  onClick={() => {
-                    setEditingLeader(null);
-                    setLeaderForm({
-                      full_name: '',
-                      email: '',
-                      phone: '',
-                      department_id: departments[0]?.id || '',
-                      employee_code: `SBH-${Date.now().toString().slice(-4)}`,
-                      expected_mode: 'PHYSICAL',
-                      role: 'LEADER',
-                      is_active: true,
-                      initialPassword: '123456',
-                    });
-                    setFormError('');
-                    setFormSuccess('');
-                    setShowAddLeaderModal(true);
-                  }}
-                  className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white rounded-xl text-xs font-bold shadow-md shadow-orange-600/25 transition-all cursor-pointer"
-                >
-                  <UserPlus className="w-4 h-4" />
-                  <span>Add New Hospital Leader</span>
-                </button>
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                  {/* Status Filter */}
+                  <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+                    <button
+                      type="button"
+                      onClick={() => setRosterStatusFilter('ALL')}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        rosterStatusFilter === 'ALL'
+                          ? 'bg-white text-slate-900 shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      All ({leaders.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRosterStatusFilter('ACTIVE')}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        rosterStatusFilter === 'ACTIVE'
+                          ? 'bg-emerald-600 text-white shadow-xs'
+                          : 'text-slate-600 hover:text-emerald-700'
+                      }`}
+                    >
+                      Active ({leaders.filter((l) => l.is_active !== false).length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRosterStatusFilter('DISABLED')}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        rosterStatusFilter === 'DISABLED'
+                          ? 'bg-slate-700 text-white shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      Disabled ({leaders.filter((l) => l.is_active === false).length})
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setEditingLeader(null);
+                      setLeaderForm({
+                        full_name: '',
+                        email: '',
+                        phone: '',
+                        department_id: departments[0]?.id || '',
+                        employee_code: `SBH-${Date.now().toString().slice(-4)}`,
+                        expected_mode: 'PHYSICAL',
+                        role: 'LEADER',
+                        is_active: true,
+                        initialPassword: '123456',
+                      });
+                      setFormError('');
+                      setFormSuccess('');
+                      setShowAddLeaderModal(true);
+                    }}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white rounded-xl text-xs font-bold shadow-md shadow-orange-600/25 transition-all cursor-pointer shrink-0"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    <span>Add Leader</span>
+                  </button>
+                </div>
               </div>
 
               {/* Leaders Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {leaders.map((lead) => (
-                  <div
-                    key={lead.id}
-                    className="fluent-card p-5 rounded-2xl border-t-4 border-t-orange-500 flex flex-col justify-between fluent-card-hover"
-                  >
-                    <div>
-                      <div className="flex justify-between items-start">
-                        <span className="text-[10px] font-mono font-bold uppercase bg-orange-100 text-orange-800 px-2 py-0.5 rounded border border-orange-200">
-                          {lead.role}
+                {leaders
+                  .filter((lead) => {
+                    if (rosterStatusFilter === 'ACTIVE') return lead.is_active !== false;
+                    if (rosterStatusFilter === 'DISABLED') return lead.is_active === false;
+                    return true;
+                  })
+                  .map((lead) => (
+                    <div
+                      key={lead.id}
+                      className={`fluent-card p-5 rounded-2xl border-t-4 ${
+                        lead.is_active !== false ? 'border-t-orange-500' : 'border-t-slate-400 opacity-75 bg-slate-50/70'
+                      } flex flex-col justify-between fluent-card-hover transition-all`}
+                    >
+                      <div>
+                        <div className="flex justify-between items-start">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] font-mono font-bold uppercase bg-orange-100 text-orange-800 px-2 py-0.5 rounded border border-orange-200">
+                              {lead.role}
+                            </span>
+                            <span
+                              className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${
+                                lead.is_active !== false
+                                  ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                  : 'bg-slate-200 text-slate-700 border-slate-300'
+                              }`}
+                            >
+                              {lead.is_active !== false ? 'Active' : 'Disabled'}
+                            </span>
+                          </div>
+                          <span className="text-xs font-mono text-slate-400 font-semibold">{lead.employee_code}</span>
+                        </div>
+
+                        <h4 className="text-base font-black text-slate-900 mt-3">{lead.full_name}</h4>
+                        <p className="text-xs text-slate-600 font-semibold flex items-center gap-1 mt-0.5">
+                          <Building className="w-3.5 h-3.5 text-slate-400" />
+                          {lead.department?.name || 'Department'}
+                        </p>
+
+                        <div className="mt-4 space-y-1.5 text-xs text-slate-600 font-mono">
+                          <div className="flex items-center gap-2 text-slate-500">
+                            <Mail className="w-3.5 h-3.5 text-orange-600" />
+                            <span className="truncate">{lead.email}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-slate-500">
+                            <Phone className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>{lead.phone || 'No Phone'}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between">
+                        <span className="text-[11px] text-slate-500">
+                          Expected: <span className="text-slate-800 font-bold">{lead.expected_mode}</span>
                         </span>
-                        <span className="text-xs font-mono text-slate-400 font-semibold">{lead.employee_code}</span>
-                      </div>
-
-                      <h4 className="text-base font-black text-slate-900 mt-3">{lead.full_name}</h4>
-                      <p className="text-xs text-slate-600 font-semibold flex items-center gap-1 mt-0.5">
-                        <Building className="w-3.5 h-3.5 text-slate-400" />
-                        {lead.department?.name || 'Department'}
-                      </p>
-
-                      <div className="mt-4 space-y-1.5 text-xs text-slate-600 font-mono">
-                        <div className="flex items-center gap-2 text-slate-500">
-                          <Mail className="w-3.5 h-3.5 text-orange-600" />
-                          <span className="truncate">{lead.email}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-slate-500">
-                          <Phone className="w-3.5 h-3.5 text-emerald-600" />
-                          <span>{lead.phone}</span>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => handleToggleLeaderStatus(lead)}
+                            className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                              lead.is_active !== false
+                                ? 'text-slate-400 hover:text-amber-600 hover:bg-amber-50'
+                                : 'text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50'
+                            }`}
+                            title={lead.is_active !== false ? 'Disable Leader (Hide from Attendance)' : 'Activate Leader'}
+                          >
+                            {lead.is_active !== false ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
+                          </button>
+                          <button
+                            onClick={() => openEditLeaderModal(lead)}
+                            className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                            title="Edit Leader"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteLeader(lead.id, lead.full_name)}
+                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                            title="Delete Leader"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
                       </div>
                     </div>
-
-                    <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between">
-                      <span className="text-[11px] text-slate-500">
-                        Expected: <span className="text-slate-800 font-bold">{lead.expected_mode}</span>
-                      </span>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => openEditLeaderModal(lead)}
-                          className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
-                          title="Edit Leader"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteLeader(lead.id, lead.full_name)}
-                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                          title="Delete Leader"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                  ))}
               </div>
             </div>
           )}
@@ -2438,24 +2560,40 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
       {/* ================= MODAL: ADD / EDIT LEADER ================= */}
       {showAddLeaderModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200">
-            <h3 className="text-base font-black text-slate-900 mb-1">
-              {editingLeader ? 'Edit Hospital Leader Profile' : 'Add New Hospital Leader'}
-            </h3>
-            <p className="text-xs text-slate-500 mb-4">
-              Official email must end with @{appSettings.allowed_domain}.
-            </p>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2.5 bg-orange-100 text-orange-700 rounded-2xl">
+                  <Users className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900">
+                    {editingLeader ? 'Edit Hospital Leader Profile' : 'Add New Hospital Leader'}
+                  </h3>
+                  <p className="text-[11px] text-slate-500 font-semibold">
+                    Configure leader credentials, department, and active roster participation.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAddLeaderModal(false)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 cursor-pointer"
+              >
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
 
             {formError && (
-              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl mb-3 flex items-center gap-2">
+              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl mb-3 flex items-center gap-2 font-semibold">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{formError}</span>
               </div>
             )}
 
             {formSuccess && (
-              <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-xl mb-3 flex items-center gap-2">
+              <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-xl mb-3 flex items-center gap-2 font-bold animate-pulse">
                 <Check className="w-4 h-4 shrink-0" />
                 <span>{formSuccess}</span>
               </div>
@@ -2476,11 +2614,11 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Official Email</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Email Address</label>
                   <input
                     type="email"
                     required
-                    placeholder={`name@${appSettings.allowed_domain}`}
+                    placeholder="e.g. name@domain.com"
                     value={leaderForm.email}
                     onChange={(e) => setLeaderForm({ ...leaderForm, email: e.target.value })}
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-orange-500 font-mono"
@@ -2502,7 +2640,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Department (Official 24)</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Department Master</label>
                   <select
                     value={leaderForm.department_id}
                     onChange={(e) => setLeaderForm({ ...leaderForm, department_id: e.target.value })}
@@ -2511,7 +2649,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                     <option value="">Select Department</option>
                     {departments.map((d) => (
                       <option key={d.id} value={d.id}>
-                        {d.name}
+                        {d.name} ({d.code})
                       </option>
                     ))}
                   </select>
@@ -2556,6 +2694,44 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 </div>
               </div>
 
+              {/* ACTIVE STATUS TOGGLE / DISABLE USER OPTION */}
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-black text-slate-800 flex items-center gap-2">
+                    <span>Account Participation Status:</span>
+                    <span
+                      className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border ${
+                        leaderForm.is_active
+                          ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                          : 'bg-slate-200 text-slate-700 border-slate-300'
+                      }`}
+                    >
+                      {leaderForm.is_active ? 'Active' : 'Disabled (Inactive)'}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-500 mt-0.5 leading-snug">
+                    {leaderForm.is_active
+                      ? 'Participates in DOM daily attendance register & receives automated morning WhatsApp notices.'
+                      : 'Disabled leaders are hidden from the attendance register and excluded from reminder broadcasts.'}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setLeaderForm({ ...leaderForm, is_active: !leaderForm.is_active })}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                    leaderForm.is_active ? 'bg-emerald-600' : 'bg-slate-300'
+                  }`}
+                  title={leaderForm.is_active ? 'Click to Disable' : 'Click to Activate'}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                      leaderForm.is_active ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
+
               <div className="flex justify-end gap-2 pt-3">
                 <button
                   type="button"
@@ -2566,9 +2742,17 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white rounded-xl text-xs font-bold shadow-md shadow-orange-600/25 cursor-pointer"
+                  disabled={isSavingLeader}
+                  className="px-5 py-2.5 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white rounded-xl text-xs font-bold shadow-md shadow-orange-600/25 cursor-pointer disabled:opacity-60 flex items-center gap-2 active:scale-95 transition-transform"
                 >
-                  {editingLeader ? 'Update Leader' : 'Save Leader'}
+                  {isSavingLeader ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>{editingLeader ? 'Updating Profile...' : 'Saving Leader...'}</span>
+                    </>
+                  ) : (
+                    <span>{editingLeader ? 'Update Leader Profile' : 'Save Leader'}</span>
+                  )}
                 </button>
               </div>
             </form>
@@ -2578,25 +2762,25 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
       {/* ================= MODAL: ADD / EDIT DEPARTMENT MASTER ================= */}
       {showAddDeptModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-in fade-in zoom-in duration-200">
             <h3 className="text-base font-black text-slate-900 mb-1 flex items-center gap-2">
               <Building className="w-5 h-5 text-orange-600" />
               <span>{editingDept ? 'Edit Hospital Department' : 'Add New Hospital Department'}</span>
             </h3>
             <p className="text-xs text-slate-500 mb-4">
-              Enter official department name and abbreviated code.
+              Enter official department name and abbreviated code for the hospital roster.
             </p>
 
             {deptFormError && (
-              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl mb-3 flex items-center gap-2">
+              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl mb-3 flex items-center gap-2 font-semibold">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{deptFormError}</span>
               </div>
             )}
 
             {deptFormSuccess && (
-              <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-xl mb-3 flex items-center gap-2">
+              <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-xl mb-3 flex items-center gap-2 font-bold animate-pulse">
                 <Check className="w-4 h-4 shrink-0" />
                 <span>{deptFormSuccess}</span>
               </div>
@@ -2636,9 +2820,17 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white rounded-xl text-xs font-bold shadow-md shadow-orange-600/25 cursor-pointer"
+                  disabled={isSavingDept}
+                  className="px-5 py-2 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white rounded-xl text-xs font-bold shadow-md shadow-orange-600/25 cursor-pointer disabled:opacity-60 flex items-center gap-2 active:scale-95 transition-transform"
                 >
-                  {editingDept ? 'Update Department' : 'Add to Master'}
+                  {isSavingDept ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>{editingDept ? 'Updating Department...' : 'Adding Department...'}</span>
+                    </>
+                  ) : (
+                    <span>{editingDept ? 'Update Department' : 'Add to Master'}</span>
+                  )}
                 </button>
               </div>
             </form>

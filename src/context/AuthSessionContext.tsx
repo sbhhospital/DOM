@@ -16,6 +16,8 @@ interface AuthSessionContextType {
   currentUser: Leader | null;
   loginUser: (email: string, pass: string) => Promise<{ success: boolean; message: string }>;
   loginLeaderDirect: (leader: Leader, pass: string) => Promise<{ success: boolean; message: string }>;
+  loginLeaderDirectlyWithoutPassword: (leader: Leader) => void;
+  loginAdminDirectly: () => void;
   logoutUser: () => void;
   updateUserPassword: (leaderId: string, oldPass: string, newPass: string) => Promise<{ success: boolean; message: string }>;
 }
@@ -227,6 +229,18 @@ export const AuthSessionProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
   };
 
+  const loginLeaderDirectlyWithoutPassword = (leader: Leader) => {
+    setCurrentUser(leader);
+    localStorage.setItem('sbh_active_user_session', JSON.stringify(leader));
+  };
+
+  const loginAdminDirectly = () => {
+    setIsAdminAuthenticated(true);
+    localStorage.setItem('sbh_admin_logged_in', 'true');
+    localStorage.setItem('sbh_admin_username', 'admin');
+    localStorage.setItem('sbh_admin_login_time', Date.now().toString());
+  };
+
   const logoutUser = () => {
     setCurrentUser(null);
     localStorage.removeItem('sbh_active_user_session');
@@ -285,6 +299,8 @@ export const AuthSessionProvider: React.FC<{ children: React.ReactNode }> = ({ c
         currentUser,
         loginUser,
         loginLeaderDirect,
+        loginLeaderDirectlyWithoutPassword,
+        loginAdminDirectly,
         logoutUser,
         updateUserPassword,
       }}

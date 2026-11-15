@@ -8,6 +8,7 @@ import { LeaderPortal } from './pages/LeaderPortal';
 import { BoardroomCheckin } from './pages/BoardroomCheckin';
 import { JoinMeetingRedirect } from './pages/JoinMeetingRedirect';
 import { HospitalFooter } from './components/HospitalFooter';
+import { PageLoadingBar } from './components/PageLoadingBar';
 
 // Admin Protected Route Guard
 const AdminProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -25,6 +26,7 @@ export const App: React.FC = () => {
     <AuthSessionProvider>
       <DomAppProvider>
         <BrowserRouter>
+          <PageLoadingBar />
           <div className="relative min-h-screen">
             <Routes>
               {/* Public Portal: Personal Link & In-Room QR Code Check-in destination */}

@@ -15,6 +15,11 @@ import {
   Users,
   Flame,
   CheckCircle2,
+  Loader2,
+  Mail,
+  AlertTriangle,
+  X,
+  ExternalLink,
 } from 'lucide-react';
 import { useAuthSession } from '../context/AuthSessionContext';
 import { useDomApp } from '../context/DomAppContext';
@@ -23,7 +28,7 @@ import sbhLogo from '../assets/sbh-logo.png';
 
 export const AdminLogin: React.FC = () => {
   const navigate = useNavigate();
-  const { loginAdmin, loginLeaderDirect } = useAuthSession();
+  const { loginAdmin, loginLeaderDirect, loginLeaderDirectlyWithoutPassword, loginAdminDirectly } = useAuthSession();
   const { leaders } = useDomApp();
 
   const [usernameInput, setUsernameInput] = useState('');
@@ -54,6 +59,18 @@ export const AdminLogin: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [loggedInName, setLoggedInName] = useState('');
+
+  // Google Authenticator Modal State
+  const [showGoogleModal, setShowGoogleModal] = useState(false);
+  const [googleEmail, setGoogleEmail] = useState('');
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
+  // Unauthorized User Contact Modal
+  const [unauthorizedModal, setUnauthorizedModal] = useState<{
+    isOpen: boolean;
+    attemptedEmail: string;
+    reason: string;
+  }>({ isOpen: false, attemptedEmail: '', reason: '' });
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -88,17 +105,89 @@ export const AdminLogin: React.FC = () => {
     generateCaptcha();
   }, []);
 
+  // Active leaders only for login selection
+  const activeLeaders = useMemo(() => {
+    return leaders.filter((l) => l.is_active !== false);
+  }, [leaders]);
+
   // Filter leaders based on the single input search value
   const filteredLeaders = useMemo(() => {
     const q = usernameInput.toLowerCase().trim();
-    if (!q) return leaders;
-    return leaders.filter(
+    if (!q) return activeLeaders;
+    return activeLeaders.filter(
       (l) =>
         l.full_name.toLowerCase().includes(q) ||
         (l.department?.name && l.department.name.toLowerCase().includes(q)) ||
-        (l.employee_code && l.employee_code.toLowerCase().includes(q))
+        (l.employee_code && l.employee_code.toLowerCase().includes(q)) ||
+        (l.email && l.email.toLowerCase().includes(q))
     );
-  }, [leaders, usernameInput]);
+  }, [activeLeaders, usernameInput]);
+
+  // Handle Google Authenticator Verification
+  const handleGoogleAuthVerify = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const emailClean = googleEmail.trim().toLowerCase();
+    if (!emailClean || !emailClean.includes('@')) {
+      showToast('⚠️ Please enter a valid email address.');
+      return;
+    }
+
+    setIsGoogleLoading(true);
+
+    setTimeout(() => {
+      setIsGoogleLoading(false);
+
+      // 1. Check if email matches Administrator (Mr. Naman Mishra or admin)
+      if (
+        emailClean === 'admin@sbhhospital.com' ||
+        emailClean === 'it.head@sbhhospital.com' ||
+        emailClean === 'it@sbhhospital.com'
+      ) {
+        setShowGoogleModal(false);
+        loginAdminDirectly();
+        setLoggedInName('Administrator (Mr. Naman Mishra)');
+        setShowSuccessPopup(true);
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 1200);
+        return;
+      }
+
+      // 2. Check in leaders database
+      const matched = leaders.find((l) => l.email.trim().toLowerCase() === emailClean);
+
+      if (!matched) {
+        setShowGoogleModal(false);
+        setUnauthorizedModal({
+          isOpen: true,
+          attemptedEmail: emailClean,
+          reason: 'This email account is not registered in the DOM Clinical Leadership database.',
+        });
+        return;
+      }
+
+      if (matched.is_active === false) {
+        setShowGoogleModal(false);
+        setUnauthorizedModal({
+          isOpen: true,
+          attemptedEmail: emailClean,
+          reason: 'This leadership account has been deactivated. Access is currently disabled.',
+        });
+        return;
+      }
+
+      // 3. User is valid and active
+      setShowGoogleModal(false);
+      loginLeaderDirectlyWithoutPassword(matched);
+      setLoggedInName(matched.full_name);
+      setShowSuccessPopup(true);
+      const params = new URLSearchParams(window.location.search);
+      const targetPath = params.get('mode') === 'room_qr' ? '/boardroom-checkin' : '/portal';
+      setTimeout(() => {
+        navigate(targetPath);
+      }, 1200);
+    }, 700);
+  };
 
   // Check if Administrator matches search query
   const isAdminVisible = useMemo(() => {
@@ -268,6 +357,46 @@ export const AdminLogin: React.FC = () => {
               {errorMsg}
             </div>
           )}
+
+          {/* GOOGLE AUTHENTICATOR / SIGN IN WITH GOOGLE */}
+          <div className="mb-4">
+            <button
+              type="button"
+              onClick={() => {
+                setGoogleEmail('');
+                setShowGoogleModal(true);
+              }}
+              className="w-full py-3 px-4 bg-white hover:bg-slate-50 border-2 border-slate-200 hover:border-emerald-500 rounded-2xl text-xs font-black text-slate-700 shadow-xs flex items-center justify-center gap-3 transition-all active:scale-[0.98] cursor-pointer"
+            >
+              <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                <path
+                  fill="#4285F4"
+                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                />
+                <path
+                  fill="#EA4335"
+                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                />
+              </svg>
+              <span>Sign in with Google Authenticator</span>
+            </button>
+
+            <div className="relative flex items-center justify-center my-3.5">
+              <div className="border-t border-slate-200 w-full" />
+              <span className="bg-white px-3 text-[9px] font-black uppercase text-slate-400 tracking-wider">
+                OR SIGN IN WITH USERNAME & PASSWORD
+              </span>
+              <div className="border-t border-slate-200 w-full" />
+            </div>
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* SINGLE Searchable Name Input Box (No two boxes!) */}
@@ -452,14 +581,17 @@ export const AdminLogin: React.FC = () => {
               </div>
             </div>
 
-            {/* Submit Action Button */}
+            {/* Submit Action Button with Ripple & Spinner */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 rounded-xl bg-[#15803d] hover:bg-[#166534] text-white font-black text-xs uppercase tracking-wider shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              className="w-full py-3.5 rounded-xl bg-[#15803d] hover:bg-[#166534] text-white font-black text-xs uppercase tracking-wider shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 active:scale-[0.99]"
             >
               {loading ? (
-                'Verifying Credentials...'
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Verifying Credentials...</span>
+                </>
               ) : isAdminSelected ? (
                 'Authorize & Open Dashboard →'
               ) : selectedLeader ? (
@@ -472,9 +604,162 @@ export const AdminLogin: React.FC = () => {
         </div>
       </div>
 
+      {/* ================= MODAL: GOOGLE AUTHENTICATOR PROMPT ================= */}
+      {showGoogleModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-[35000] bg-slate-950/70 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-slate-100 rounded-xl">
+                  <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+                    <path
+                      fill="#4285F4"
+                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                    />
+                    <path
+                      fill="#34A853"
+                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                    />
+                    <path
+                      fill="#FBBC05"
+                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                    />
+                    <path
+                      fill="#EA4335"
+                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-900">Google Authenticator</h3>
+                  <p className="text-[11px] text-slate-500 font-semibold">Single Sign-On Identity Verification</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowGoogleModal(false)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="py-4 space-y-4">
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-[11px] text-amber-900 font-medium">
+                🔒 Security Check: Only pre-registered hospital leadership emails in the DOM database are authorized.
+              </div>
+
+              <div>
+                <label className="text-[10px] font-black uppercase text-slate-600 tracking-wider block mb-1">
+                  ENTER REGISTERED GOOGLE EMAIL
+                </label>
+                <input
+                  type="email"
+                  required
+                  placeholder="e.g. yourname@domain.com"
+                  value={googleEmail}
+                  onChange={(e) => setGoogleEmail(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleGoogleAuthVerify();
+                  }}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-emerald-600"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowGoogleModal(false)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleGoogleAuthVerify()}
+                  disabled={isGoogleLoading}
+                  className="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-green-700 hover:from-emerald-500 hover:to-green-600 text-white rounded-xl text-xs font-black shadow-md flex items-center gap-2 cursor-pointer disabled:opacity-60"
+                >
+                  {isGoogleLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Verifying ID...</span>
+                    </>
+                  ) : (
+                    <span>Authenticate with Google →</span>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= MODAL: ACCESS DENIED / UNAUTHORIZED CONTACT IT HEAD ================= */}
+      {unauthorizedModal.isOpen && (
+        <div className="fixed inset-0 flex items-center justify-center z-[40000] bg-slate-950/80 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 text-center shadow-2xl border border-rose-300 animate-in fade-in zoom-in duration-200">
+            <div className="w-14 h-14 mx-auto mb-3 bg-rose-100 rounded-2xl flex items-center justify-center text-rose-600 shadow-inner">
+              <ShieldAlert className="w-8 h-8" />
+            </div>
+
+            <span className="text-[10px] font-black uppercase tracking-wider bg-rose-100 text-rose-800 px-3 py-1 rounded-full border border-rose-200">
+              ACCESS RESTRICTED • NOT REGISTERED
+            </span>
+
+            <h3 className="text-lg font-black text-slate-900 mt-3">Authorization Required</h3>
+            <p className="text-xs text-slate-600 font-medium mt-1 leading-relaxed">
+              The account <span className="font-bold text-slate-900">{unauthorizedModal.attemptedEmail}</span> is not registered or is currently inactive in the SBH DOM Leadership System.
+            </p>
+
+            {/* Official Contact Box for Mr. Naman Mishra */}
+            <div className="my-4 p-4 bg-slate-50 border border-slate-200 rounded-2xl text-left space-y-2">
+              <div className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
+                FOR ACCOUNT ACTIVATION, CONTACT:
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-orange-600 text-white font-black flex items-center justify-center text-sm shadow-md">
+                  NM
+                </div>
+                <div>
+                  <h4 className="text-xs font-black text-slate-900">Mr. Naman Mishra</h4>
+                  <p className="text-[11px] font-bold text-orange-700">IT Head — SBH Group of Hospitals</p>
+                  <p className="text-[10px] text-slate-500 font-mono flex items-center gap-1 mt-0.5">
+                    <Mail className="w-3 h-3 text-slate-400" />
+                    <span>it.head@sbhhospital.com</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2 pt-1">
+              <a
+                href={`mailto:it.head@sbhhospital.com?subject=DOM%20Portal%20Access%20Registration%20-%20${encodeURIComponent(
+                  unauthorizedModal.attemptedEmail
+                )}&body=Dear%20Mr.%20Naman%20Mishra,%0A%0APlease%20activate%20my%20account%20in%20the%20DOM%20Attendance%20Portal.%0A%0AEmail:%20${encodeURIComponent(
+                  unauthorizedModal.attemptedEmail
+                )}%0AThank%20you.`}
+                className="w-full py-2.5 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white rounded-xl text-xs font-black shadow-md flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Mail className="w-4 h-4" />
+                <span>Contact Mr. Naman Mishra (it.head@sbhhospital.com)</span>
+              </a>
+
+              <button
+                type="button"
+                onClick={() => setUnauthorizedModal({ isOpen: false, attemptedEmail: '', reason: '' })}
+                className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Success Modal */}
       {showSuccessPopup && (
-        <div className="fixed inset-0 flex items-center justify-center z-[30000] bg-slate-950/80 backdrop-blur-md">
+        <div className="fixed inset-0 flex items-center justify-center z-[45000] bg-slate-950/80 backdrop-blur-md">
           <div className="bg-white rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl border border-emerald-200">
             <CheckCircle2 size={40} className="text-emerald-600 mx-auto mb-3 animate-bounce" />
             <h3 className="text-lg font-black text-slate-900 uppercase">Access Granted</h3>
