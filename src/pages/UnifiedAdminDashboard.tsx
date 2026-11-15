@@ -418,7 +418,20 @@ export const UnifiedAdminDashboard: React.FC = () => {
     const nameMatch =
       r.leader?.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       r.leader?.department?.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const statusMatch = statusFilter === 'ALL' || r.status === statusFilter;
+    const statusMatch =
+      statusFilter === 'ALL'
+        ? true
+        : statusFilter === 'PHYSICAL'
+          ? r.selected_mode === 'PHYSICAL' && (r.status === 'PRESENT' || r.admin_verified_attendance)
+          : statusFilter === 'VIRTUAL'
+            ? r.selected_mode === 'VIRTUAL' && r.status === 'PRESENT'
+            : statusFilter === 'INFORMED_LATE'
+              ? r.status === 'INFORMED_LATE'
+              : statusFilter === 'LEAVE' || statusFilter === 'INFORMED_ABSENT'
+                ? r.status === 'INFORMED_ABSENT' || r.status === 'LEAVE'
+                : statusFilter === 'ABSENT'
+                  ? r.status === 'ABSENT' || (r.status === 'PENDING' && r.selected_mode === 'NONE')
+                  : r.status === statusFilter;
     return nameMatch && statusMatch;
   });
 
@@ -711,48 +724,63 @@ export const UnifiedAdminDashboard: React.FC = () => {
   );
 
   return (
-    <div className="min-h-screen bg-slate-100 flex font-sans antialiased text-slate-800">
+    <div className="min-h-screen bg-[#f8faf9] flex font-sans antialiased text-[#1f2d2a]">
       {/* ================= PERMANENT FIXED LEFT SIDEBAR (Matching SBH PORTAL Design) ================= */}
-      <aside className="w-68 xl:w-72 bg-white text-slate-800 shrink-0 sticky top-0 h-[calc(100vh-2.5rem)] flex flex-col border-r border-slate-200 z-30 shadow-sm overflow-hidden">
-        {/* Sidebar Header: Hospital Emblem & Digital Clock */}
-        <div className="p-4 border-b border-slate-200 bg-white shrink-0">
-          <div className="flex items-center justify-center py-0.5">
-            <img src={sbhLogo} alt="SBH Group of Hospitals" className="h-8.5 w-auto object-contain max-w-[190px]" />
+      <aside className="w-68 xl:w-72 bg-slate-50 text-[#1f2d2a] shrink-0 sticky top-0 h-[calc(100vh-2.5rem)] flex flex-col border-r border-[#dcdcdc] z-30 shadow-sm overflow-hidden">
+        {/* Sidebar Header: Hospital Emblem & Title */}
+        <div className="h-20 flex items-center justify-between px-5 border-b border-slate-200 bg-white/50 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center p-1.5 border border-[#dcdcdc] shadow-xs">
+              <img src={sbhLogo} alt="Logo" className="w-full h-full object-contain" />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-bold text-base text-[#1f2d2a] tracking-tight uppercase leading-none">
+                SBH <span className="text-orange-600">DOM PORTAL</span>
+              </span>
+              <span className="text-[9px] font-bold text-slate-400 tracking-wider uppercase mt-1">
+                Daily Operations Meeting
+              </span>
+            </div>
           </div>
+        </div>
 
-          {/* Live Clock Pill inside Sidebar */}
-          <div className="mt-3 px-3 py-1.5 rounded-xl bg-white border border-slate-200 flex items-center justify-between text-[11px] font-mono shadow-xs">
-            <span className="flex items-center gap-1.5 text-emerald-600 font-bold">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping inline-block" />
-              SYSTEM CLOCK
-            </span>
-            <span className="text-slate-800 font-black">
+        {/* Live Clock Pill inside Sidebar */}
+        <div className="p-3 mx-2 my-2 rounded-2xl bg-white border border-[#dcdcdc] shadow-xs">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <div className="p-1 rounded-md bg-emerald-600 text-white">
+                <Clock size={11} strokeWidth={3} />
+              </div>
+              <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">System Clock</span>
+            </div>
+            <span className="text-[12px] font-black font-mono text-[#1f2d2a]">
               {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
             </span>
           </div>
         </div>
 
-        {/* Sidebar Navigation Menu (Sleek Professional Hospital Theme) */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-1.5 custom-scrollbar">
-          <div className="px-3 pt-1 pb-1">
-            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+        {/* Sidebar Navigation Menu (Matching SBH Portal Orange Active & Green Legible Theme) */}
+        <div className="flex-1 overflow-y-auto px-2 py-1 space-y-1 custom-scrollbar">
+          <div className="px-3 pt-2 pb-1">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
               Command Center
             </span>
           </div>
 
-          {/* 🏠 Homepage Button */}
+          {/* 🏠 Homepage Button: Live Attendance Register */}
           <button
             onClick={() => setActiveTab('attendance')}
-            className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${activeTab === 'attendance'
-                ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/25'
-                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-              }`}
+            className={`relative flex items-center justify-between w-full transition-[background-color,color,transform] duration-200 font-semibold tracking-wide text-[13px] px-4 py-3 rounded-xl cursor-pointer ${
+              activeTab === 'attendance'
+                ? 'bg-orange-500 text-white shadow-lg shadow-orange-200/50 transform scale-[1.02]'
+                : 'text-emerald-950/80 hover:bg-orange-50 hover:text-orange-950 opacity-90 hover:opacity-100 hover:translate-x-1'
+            }`}
           >
-            <span className="flex items-center gap-2.5">
-              <Home className={`w-4 h-4 ${activeTab === 'attendance' ? 'text-white' : 'text-emerald-600'}`} />
-              <span>Live Attendance Register</span>
-            </span>
-            <span className={`text-[10px] px-2 py-0.5 rounded-md font-mono ${activeTab === 'attendance' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600 border border-slate-200'}`}>
+            <div className="flex items-center gap-3">
+              <Home size={18} strokeWidth={activeTab === 'attendance' ? 2.5 : 2} className={activeTab === 'attendance' ? 'text-white' : 'text-orange-500 flex-shrink-0'} />
+              <span className="truncate">Live Attendance Register</span>
+            </div>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${activeTab === 'attendance' ? 'bg-white/20 text-white' : 'bg-emerald-50 text-emerald-700 border border-emerald-100'}`}>
               Live
             </span>
           </button>
@@ -760,16 +788,17 @@ export const UnifiedAdminDashboard: React.FC = () => {
           {/* 🔗 Daily Meeting Links Button */}
           <button
             onClick={() => setActiveTab('links')}
-            className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${activeTab === 'links'
-                ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/25'
-                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-              }`}
+            className={`relative flex items-center justify-between w-full transition-[background-color,color,transform] duration-200 font-semibold tracking-wide text-[13px] px-4 py-3 rounded-xl cursor-pointer ${
+              activeTab === 'links'
+                ? 'bg-orange-500 text-white shadow-lg shadow-orange-200/50 transform scale-[1.02]'
+                : 'text-emerald-950/80 hover:bg-orange-50 hover:text-orange-950 opacity-90 hover:opacity-100 hover:translate-x-1'
+            }`}
           >
-            <span className="flex items-center gap-2.5">
-              <Video className={`w-4 h-4 ${activeTab === 'links' ? 'text-white' : 'text-teal-600'}`} />
-              <span>Daily Meeting Links</span>
-            </span>
-            <span className={`text-[10px] px-2 py-0.5 rounded-md font-mono ${activeTab === 'links' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600 border border-slate-200'}`}>
+            <div className="flex items-center gap-3">
+              <Video size={18} strokeWidth={activeTab === 'links' ? 2.5 : 2} className={activeTab === 'links' ? 'text-white' : 'text-orange-500 flex-shrink-0'} />
+              <span className="truncate">Daily Meeting Links</span>
+            </div>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${activeTab === 'links' ? 'bg-white/20 text-white' : 'bg-slate-200/60 text-slate-700'}`}>
               Meet
             </span>
           </button>
@@ -777,16 +806,17 @@ export const UnifiedAdminDashboard: React.FC = () => {
           {/* 👥 Leaders Roster Button */}
           <button
             onClick={() => setActiveTab('leaders')}
-            className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${activeTab === 'leaders'
-                ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/25'
-                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-              }`}
+            className={`relative flex items-center justify-between w-full transition-[background-color,color,transform] duration-200 font-semibold tracking-wide text-[13px] px-4 py-3 rounded-xl cursor-pointer ${
+              activeTab === 'leaders'
+                ? 'bg-orange-500 text-white shadow-lg shadow-orange-200/50 transform scale-[1.02]'
+                : 'text-emerald-950/80 hover:bg-orange-50 hover:text-orange-950 opacity-90 hover:opacity-100 hover:translate-x-1'
+            }`}
           >
-            <span className="flex items-center gap-2.5">
-              <Users className={`w-4 h-4 ${activeTab === 'leaders' ? 'text-white' : 'text-purple-600'}`} />
-              <span>Hospital Leaders Roster</span>
-            </span>
-            <span className={`text-[10px] px-2 py-0.5 rounded-md font-mono ${activeTab === 'leaders' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600 border border-slate-200'}`}>
+            <div className="flex items-center gap-3">
+              <Users size={18} strokeWidth={activeTab === 'leaders' ? 2.5 : 2} className={activeTab === 'leaders' ? 'text-white' : 'text-orange-500 flex-shrink-0'} />
+              <span className="truncate">Hospital Leaders Roster</span>
+            </div>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${activeTab === 'leaders' ? 'bg-white/20 text-white' : 'bg-slate-200/60 text-slate-700'}`}>
               {leaders.length}
             </span>
           </button>
@@ -794,16 +824,17 @@ export const UnifiedAdminDashboard: React.FC = () => {
           {/* 🏢 Departments Master Button */}
           <button
             onClick={() => setActiveTab('departments')}
-            className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${activeTab === 'departments'
-                ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/25'
-                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-              }`}
+            className={`relative flex items-center justify-between w-full transition-[background-color,color,transform] duration-200 font-semibold tracking-wide text-[13px] px-4 py-3 rounded-xl cursor-pointer ${
+              activeTab === 'departments'
+                ? 'bg-orange-500 text-white shadow-lg shadow-orange-200/50 transform scale-[1.02]'
+                : 'text-emerald-950/80 hover:bg-orange-50 hover:text-orange-950 opacity-90 hover:opacity-100 hover:translate-x-1'
+            }`}
           >
-            <span className="flex items-center gap-2.5">
-              <Building className={`w-4 h-4 ${activeTab === 'departments' ? 'text-white' : 'text-amber-600'}`} />
-              <span>Departments Master</span>
-            </span>
-            <span className={`text-[10px] px-2 py-0.5 rounded-md font-mono ${activeTab === 'departments' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600 border border-slate-200'}`}>
+            <div className="flex items-center gap-3">
+              <Building size={18} strokeWidth={activeTab === 'departments' ? 2.5 : 2} className={activeTab === 'departments' ? 'text-white' : 'text-orange-500 flex-shrink-0'} />
+              <span className="truncate">Departments Master</span>
+            </div>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${activeTab === 'departments' ? 'bg-white/20 text-white' : 'bg-slate-200/60 text-slate-700'}`}>
               {departments.length}
             </span>
           </button>
@@ -811,16 +842,17 @@ export const UnifiedAdminDashboard: React.FC = () => {
           {/* 📅 DOM / WOM / MOM Calendar Button */}
           <button
             onClick={() => setActiveTab('calendar')}
-            className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${activeTab === 'calendar'
-                ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/25'
-                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-              }`}
+            className={`relative flex items-center justify-between w-full transition-[background-color,color,transform] duration-200 font-semibold tracking-wide text-[13px] px-4 py-3 rounded-xl cursor-pointer ${
+              activeTab === 'calendar'
+                ? 'bg-orange-500 text-white shadow-lg shadow-orange-200/50 transform scale-[1.02]'
+                : 'text-emerald-950/80 hover:bg-orange-50 hover:text-orange-950 opacity-90 hover:opacity-100 hover:translate-x-1'
+            }`}
           >
-            <span className="flex items-center gap-2.5">
-              <Calendar className={`w-4 h-4 ${activeTab === 'calendar' ? 'text-white' : 'text-orange-500'}`} />
-              <span>Cadence Calendar</span>
-            </span>
-            <span className={`text-[10px] px-2 py-0.5 rounded-md font-mono ${activeTab === 'calendar' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600 border border-slate-200'}`}>
+            <div className="flex items-center gap-3">
+              <Calendar size={18} strokeWidth={activeTab === 'calendar' ? 2.5 : 2} className={activeTab === 'calendar' ? 'text-white' : 'text-orange-500 flex-shrink-0'} />
+              <span className="truncate">Cadence Calendar</span>
+            </div>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${activeTab === 'calendar' ? 'bg-white/20 text-white' : 'bg-slate-200/60 text-slate-700'}`}>
               {currentCadence}
             </span>
           </button>
@@ -828,16 +860,17 @@ export const UnifiedAdminDashboard: React.FC = () => {
           {/* 📊 Graphical Analytics Button */}
           <button
             onClick={() => setActiveTab('reports')}
-            className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${activeTab === 'reports'
-                ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/25'
-                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-              }`}
+            className={`relative flex items-center justify-between w-full transition-[background-color,color,transform] duration-200 font-semibold tracking-wide text-[13px] px-4 py-3 rounded-xl cursor-pointer ${
+              activeTab === 'reports'
+                ? 'bg-orange-500 text-white shadow-lg shadow-orange-200/50 transform scale-[1.02]'
+                : 'text-emerald-950/80 hover:bg-orange-50 hover:text-orange-950 opacity-90 hover:opacity-100 hover:translate-x-1'
+            }`}
           >
-            <span className="flex items-center gap-2.5">
-              <BarChart3 className={`w-4 h-4 ${activeTab === 'reports' ? 'text-white' : 'text-blue-500'}`} />
-              <span>Graphical Analytics</span>
-            </span>
-            <span className={`text-[10px] px-2 py-0.5 rounded-md font-mono ${activeTab === 'reports' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600 border border-slate-200'}`}>
+            <div className="flex items-center gap-3">
+              <BarChart3 size={18} strokeWidth={activeTab === 'reports' ? 2.5 : 2} className={activeTab === 'reports' ? 'text-white' : 'text-orange-500 flex-shrink-0'} />
+              <span className="truncate">Graphical Analytics</span>
+            </div>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${activeTab === 'reports' ? 'bg-white/20 text-white' : 'bg-slate-200/60 text-slate-700'}`}>
               Graphs
             </span>
           </button>
@@ -845,61 +878,62 @@ export const UnifiedAdminDashboard: React.FC = () => {
           {/* ⚙️ WhatsApp & Settings Button */}
           <button
             onClick={() => setActiveTab('settings')}
-            className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${activeTab === 'settings'
-                ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/25'
-                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-              }`}
+            className={`relative flex items-center justify-between w-full transition-[background-color,color,transform] duration-200 font-semibold tracking-wide text-[13px] px-4 py-3 rounded-xl cursor-pointer ${
+              activeTab === 'settings'
+                ? 'bg-orange-500 text-white shadow-lg shadow-orange-200/50 transform scale-[1.02]'
+                : 'text-emerald-950/80 hover:bg-orange-50 hover:text-orange-950 opacity-90 hover:opacity-100 hover:translate-x-1'
+            }`}
           >
-            <span className="flex items-center gap-2.5">
-              <Shield className={`w-4 h-4 ${activeTab === 'settings' ? 'text-white' : 'text-slate-500'}`} />
-              <span>WhatsApp & Gateway</span>
-            </span>
-            <span className={`text-[10px] px-2 py-0.5 rounded-md font-mono ${activeTab === 'settings' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600 border border-slate-200'}`}>
+            <div className="flex items-center gap-3">
+              <Shield size={18} strokeWidth={activeTab === 'settings' ? 2.5 : 2} className={activeTab === 'settings' ? 'text-white' : 'text-orange-500 flex-shrink-0'} />
+              <span className="truncate">WhatsApp & Gateway</span>
+            </div>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${activeTab === 'settings' ? 'bg-white/20 text-white' : 'bg-slate-200/60 text-slate-700'}`}>
               Config
             </span>
           </button>
 
           {/* PDF Reports Section */}
           <div className="pt-3 pb-1 px-3">
-            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
               Download PDF Reports
             </span>
           </div>
 
           <button
             onClick={() => downloadPdfReport(selectedDate)}
-            className="w-full px-3.5 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 hover:text-emerald-700 flex items-center gap-2.5 cursor-pointer transition-colors"
+            className="w-full px-4 py-2.5 rounded-xl text-[13px] font-semibold text-emerald-950/80 hover:bg-orange-50 hover:text-orange-950 flex items-center gap-3 cursor-pointer transition-all hover:translate-x-1"
           >
-            <Download className="w-4 h-4 text-emerald-600" />
-            <span>Daily Attendance PDF</span>
+            <Download size={16} className="text-orange-500 shrink-0" />
+            <span className="truncate">Daily Attendance PDF</span>
           </button>
           <button
             onClick={() => downloadMonthlyPdfReport('October 2026')}
-            className="w-full px-3.5 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 hover:text-purple-700 flex items-center gap-2.5 cursor-pointer transition-colors"
+            className="w-full px-4 py-2.5 rounded-xl text-[13px] font-semibold text-emerald-950/80 hover:bg-orange-50 hover:text-orange-950 flex items-center gap-3 cursor-pointer transition-all hover:translate-x-1"
           >
-            <Download className="w-4 h-4 text-purple-600" />
-            <span>Monthly MOM Audit PDF</span>
+            <Download size={16} className="text-orange-500 shrink-0" />
+            <span className="truncate">Monthly MOM Audit PDF</span>
           </button>
           <button
             onClick={() => downloadYearlyPdfReport(2026)}
-            className="w-full px-3.5 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 hover:text-teal-700 flex items-center gap-2.5 cursor-pointer transition-colors"
+            className="w-full px-4 py-2.5 rounded-xl text-[13px] font-semibold text-emerald-950/80 hover:bg-orange-50 hover:text-orange-950 flex items-center gap-3 cursor-pointer transition-all hover:translate-x-1"
           >
-            <Download className="w-4 h-4 text-teal-600" />
-            <span>Annual Hospital Audit PDF</span>
+            <Download size={16} className="text-orange-500 shrink-0" />
+            <span className="truncate">Annual Hospital Audit PDF</span>
           </button>
         </div>
 
         {/* Sidebar Footer with Admin Controls & Clean Logout */}
-        <div className="p-3 border-t border-slate-200 bg-slate-50/70 space-y-2 shrink-0">
-          <div className="flex items-center gap-2 px-2 py-1 text-slate-800 text-[11px]">
-            <div className="w-6 h-6 rounded-full bg-slate-900 text-white flex items-center justify-center text-[10px] font-black shrink-0 shadow-xs">
-              <Shield className="w-3.5 h-3.5 text-emerald-400" />
+        <div className="p-3 border-t border-slate-200 bg-white/50 space-y-2 shrink-0">
+          <div className="flex items-center gap-2.5 px-3 py-2 bg-white rounded-xl border border-slate-200 shadow-xs">
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-black text-xs border border-emerald-100">
+              <Shield size={16} className="text-[#2e7d32]" />
             </div>
-            <div className="overflow-hidden">
-              <div className="truncate font-black text-slate-900 leading-tight">
+            <div className="overflow-hidden flex-1">
+              <div className="truncate font-black text-[#1f2d2a] text-xs leading-tight">
                 {adminProfile?.full_name || 'Administrator'}
               </div>
-              <div className="text-[10px] text-emerald-600 font-bold flex items-center gap-1">
+              <div className="text-[9px] text-[#2e7d32] font-bold flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping inline-block" />
                 <span className="truncate">{adminProfile?.username || 'admin'} • Supabase SQL</span>
               </div>
@@ -908,7 +942,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
           <div className="grid grid-cols-2 gap-1.5">
             <button
               onClick={() => setShowQrDisplayModal(true)}
-              className="px-2.5 py-1.5 rounded-xl text-[11px] font-bold bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-xs"
+              className="px-2.5 py-2 rounded-xl text-[11px] font-bold bg-white hover:bg-slate-100 text-[#1f2d2a] border border-[#dcdcdc] flex items-center justify-center gap-1.5 cursor-pointer transition-all shadow-xs hover:border-[#2e7d32]"
               title="Boardroom Static QR"
             >
               <QrCode className="w-3.5 h-3.5 text-emerald-600" />
@@ -916,7 +950,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
             </button>
             <button
               onClick={() => setShowPasswordModal(true)}
-              className="px-2.5 py-1.5 rounded-xl text-[11px] font-bold bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-xs"
+              className="px-2.5 py-2 rounded-xl text-[11px] font-bold bg-white hover:bg-slate-100 text-[#1f2d2a] border border-[#dcdcdc] flex items-center justify-center gap-1.5 cursor-pointer transition-all shadow-xs hover:border-[#2e7d32]"
               title="Change Password"
             >
               <KeyRound className="w-3.5 h-3.5 text-amber-500" />
@@ -928,20 +962,20 @@ export const UnifiedAdminDashboard: React.FC = () => {
               logoutAdmin();
               navigate('/login');
             }}
-            className="w-full py-2.5 px-3 rounded-2xl border border-rose-300 text-rose-600 hover:bg-rose-50 font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs"
+            className="w-full flex items-center justify-center gap-2.5 p-3 bg-white text-rose-600 font-bold text-[12px] tracking-wider rounded-2xl border border-rose-100 hover:bg-rose-50 transition-all duration-200 active:scale-95 shadow-sm cursor-pointer"
           >
-            <LogOut className="w-4 h-4" />
+            <LogOut size={16} />
             <span>Sign Out / Logout</span>
           </button>
         </div>
       </aside>
 
       {/* ================= RIGHT DASHBOARD CONTENT AREA (Attached to Sidebar) ================= */}
-      <div className="flex-1 min-w-0 flex flex-col min-h-screen bg-slate-50/70 pb-16">
+      <div className="flex-1 min-w-0 flex flex-col min-h-screen bg-[#f8faf9] pb-16">
         {/* Toast Alert Banner */}
         {toastAlert && (
           <div className={`p-3 text-xs font-bold text-center flex items-center justify-center gap-2 sticky top-0 z-40 transition-all ${toastAlert.type === 'success'
-              ? 'bg-emerald-600 text-white shadow-md'
+              ? 'bg-[#2e7d32] text-white shadow-md'
               : toastAlert.type === 'info'
                 ? 'bg-blue-600 text-white shadow-md'
                 : 'bg-rose-600 text-white shadow-md'
@@ -968,80 +1002,114 @@ export const UnifiedAdminDashboard: React.FC = () => {
         )}
 
         {/* Top Header Bar Attached to Dashboard */}
-        <header className="h-16 bg-white border-b border-slate-200 shadow-2xs px-4 sm:px-6 flex items-center justify-between sticky top-0 z-20">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2.5">
-              {activeTab === 'attendance' && <CheckCircle2 className="w-5 h-5 text-emerald-600" />}
-              {activeTab === 'links' && <Video className="w-5 h-5 text-teal-600" />}
-              {activeTab === 'calendar' && <Calendar className="w-5 h-5 text-orange-600" />}
-              {activeTab === 'reports' && <BarChart3 className="w-5 h-5 text-blue-600" />}
-              {activeTab === 'leaders' && <Users className="w-5 h-5 text-purple-600" />}
-              {activeTab === 'departments' && <Building className="w-5 h-5 text-amber-600" />}
-              {activeTab === 'settings' && <Shield className="w-5 h-5 text-slate-600" />}
+        <header className="sticky top-0 z-[100] w-full bg-white border-b border-[#dcdcdc] shadow-sm">
+          <div className="px-4 sm:px-6 py-3.5 flex justify-between items-center gap-4">
+            <div className="flex items-center gap-3">
               <div>
-                <h1 className="text-sm sm:text-base font-black text-slate-900 tracking-tight leading-none">
-                  {activeTab === 'attendance' && `Daily Attendance Register (${currentCadence})`}
-                  {activeTab === 'links' && `Daily Meeting Links & Virtual Attendance Tracker (${selectedDate})`}
-                  {activeTab === 'calendar' && 'DOM / WOM / MOM Cadence Calendar'}
-                  {activeTab === 'reports' && 'Graphical Analytics & Absenteeism Audits'}
-                  {activeTab === 'leaders' && `Hospital Leaders Roster (${leaders.length})`}
-                  {activeTab === 'departments' && `Hospital Departments Master (${departments.length})`}
-                  {activeTab === 'settings' && 'WhatsApp Gateway & System Settings'}
+                <h1 className="text-xl sm:text-2xl font-bold text-[#1f2d2a] tracking-tight flex items-center gap-3 uppercase">
+                  {activeTab === 'attendance' && (
+                    <>
+                      Daily Attendance <span className="text-[#2e7d32]">Register ({currentCadence})</span>
+                      <span className="px-3 py-1 rounded-xl bg-[#cfead6] border border-[#2e7d32]/10 text-[10px] font-bold text-[#2e7d32] tracking-wider whitespace-nowrap uppercase">
+                        Live Sync v2.1
+                      </span>
+                    </>
+                  )}
+                  {activeTab === 'links' && (
+                    <>
+                      Daily Meeting <span className="text-[#2e7d32]">Links & Tracker</span>
+                      <span className="px-3 py-1 rounded-xl bg-[#cfead6] border border-[#2e7d32]/10 text-[10px] font-bold text-[#2e7d32] tracking-wider whitespace-nowrap uppercase">
+                        {selectedDate}
+                      </span>
+                    </>
+                  )}
+                  {activeTab === 'calendar' && (
+                    <>
+                      Cadence <span className="text-[#2e7d32]">Calendar (DOM / WOM / MOM)</span>
+                    </>
+                  )}
+                  {activeTab === 'reports' && (
+                    <>
+                      Graphical <span className="text-[#2e7d32]">Analytics & Absenteeism</span>
+                    </>
+                  )}
+                  {activeTab === 'leaders' && (
+                    <>
+                      Hospital Leaders <span className="text-[#2e7d32]">Roster</span>
+                      <span className="px-3 py-1 rounded-xl bg-[#cfead6] border border-[#2e7d32]/10 text-[10px] font-bold text-[#2e7d32] tracking-wider whitespace-nowrap uppercase">
+                        {leaders.length} Leaders
+                      </span>
+                    </>
+                  )}
+                  {activeTab === 'departments' && (
+                    <>
+                      Hospital <span className="text-[#2e7d32]">Departments Master</span>
+                      <span className="px-3 py-1 rounded-xl bg-[#cfead6] border border-[#2e7d32]/10 text-[10px] font-bold text-[#2e7d32] tracking-wider whitespace-nowrap uppercase">
+                        {departments.length} Depts
+                      </span>
+                    </>
+                  )}
+                  {activeTab === 'settings' && (
+                    <>
+                      WhatsApp Gateway <span className="text-[#2e7d32]">& Settings</span>
+                    </>
+                  )}
                 </h1>
-                <span className="text-[11px] text-slate-400 font-medium">
+                <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest opacity-80">
                   Raipur Hospital Operations • Venue: {appSettings.conference_room_name}
-                </span>
+                </p>
               </div>
             </div>
-          </div>
 
-          {/* Right Header: Date Selector and Google Meet quick button */}
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
-              <Calendar className="w-3.5 h-3.5 text-orange-600" />
-              <span className="text-[11px] font-bold text-slate-600">Date:</span>
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="bg-transparent text-slate-900 text-xs font-mono font-bold focus:outline-none cursor-pointer"
-              />
+            {/* Right Header: Date Selector and Google Meet button */}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 bg-slate-50 px-3.5 py-2 rounded-xl border border-[#dcdcdc] shadow-xs">
+                <Calendar className="w-4 h-4 text-orange-600" />
+                <span className="text-[11px] font-bold text-slate-600">Date:</span>
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="bg-transparent text-[#1f2d2a] text-xs font-mono font-bold focus:outline-none cursor-pointer"
+                />
+              </div>
+
+              <a
+                href={currentMeeting.google_meet_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-6 py-2.5 bg-[#2e7d32] hover:bg-[#256628] text-white rounded-2xl text-[10px] font-black tracking-[0.2em] shadow-none transition-all active:scale-[0.98] flex items-center justify-center gap-2 uppercase cursor-pointer"
+                title="Open Google Meet"
+              >
+                <Video className="w-4 h-4" />
+                <span className="hidden sm:inline">Google Meet</span>
+              </a>
             </div>
-
-            <a
-              href={currentMeeting.google_meet_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs"
-              title="Open Google Meet"
-            >
-              <Video className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Google Meet</span>
-            </a>
           </div>
         </header>
 
         {/* Main Body Container Attached Directly to the Right of Sidebar */}
         <div className="flex-1 p-4 sm:p-6 space-y-6 max-w-[1600px] w-full mx-auto">
-          {/* Meeting Type & Schedule Header Banner (Clean Enterprise Hospital Aesthetic) */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition-all">
-            <div className="h-1 w-full bg-gradient-to-r from-orange-500 via-emerald-500 to-teal-500 absolute top-0 left-0" />
+          {/* Meeting Type & Schedule Header Banner (Clean High-Contrast Reference Theme) */}
+          <div className="bg-white rounded-2xl border border-[#dcdcdc] shadow-sm p-5 relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition-all">
+            <div className="h-1.5 w-full bg-gradient-to-r from-orange-500 via-[#2e7d32] to-teal-500 absolute top-0 left-0" />
             <div className="flex items-center gap-4">
               <div
-                className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-white shadow-xs text-sm shrink-0 ${currentCadence === 'MOM'
+                className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-white shadow-sm text-sm shrink-0 ${
+                  currentCadence === 'MOM'
                     ? 'bg-purple-600'
                     : currentCadence === 'WOM'
                       ? 'bg-blue-600'
                       : currentMeeting.is_holiday_or_shifted
                         ? 'bg-amber-600'
                         : 'bg-gradient-to-br from-orange-500 to-amber-600'
-                  }`}
+                }`}
               >
                 {currentCadence}
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-bold text-orange-800 bg-orange-50 border border-orange-200 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1.5">
+                  <span className="text-[11px] font-bold text-orange-900 bg-orange-50 border border-orange-200 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1.5">
                     {currentCadence === 'MOM' && 'MOM — Monthly Strategic Session (1st Monday)'}
                     {currentCadence === 'WOM' && 'WOM — Weekly Review Session (Every Monday)'}
                     {currentCadence === 'DOM' && 'DOM — Daily Operations Standup'}
@@ -1053,9 +1121,9 @@ export const UnifiedAdminDashboard: React.FC = () => {
                     </span>
                   )}
                 </div>
-                <h2 className="text-xl font-black text-slate-900 mt-1 tracking-tight">{currentMeeting.title}</h2>
+                <h2 className="text-xl sm:text-2xl font-bold text-[#1f2d2a] mt-1 tracking-tight">{currentMeeting.title}</h2>
                 <div className="flex flex-wrap items-center gap-2 mt-1 text-xs">
-                  <span className="inline-flex items-center gap-1.5 font-bold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200 font-mono">
+                  <span className="inline-flex items-center gap-1.5 font-bold text-[#1f2d2a] bg-slate-100 px-2.5 py-1 rounded-lg border border-[#dcdcdc] font-mono">
                     <Clock className="w-3.5 h-3.5 text-orange-600" />
                     Scheduled: {currentMeeting.scheduled_time}
                   </span>
@@ -1064,9 +1132,9 @@ export const UnifiedAdminDashboard: React.FC = () => {
                     href={currentMeeting.google_meet_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1 transition-colors"
+                    className="text-blue-700 hover:text-blue-800 font-bold flex items-center gap-1 transition-colors"
                   >
-                    <Video className="w-3.5 h-3.5 text-blue-500" />
+                    <Video className="w-3.5 h-3.5 text-blue-600" />
                     <span>Meet: {currentMeeting.google_meet_url}</span>
                   </a>
                 </div>
@@ -1087,7 +1155,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                   });
                   setShowScheduleEditModal(true);
                 }}
-                className="flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-50 text-[#1f2d2a] border border-[#dcdcdc] rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer"
               >
                 <Settings2 className="w-3.5 h-3.5 text-orange-600" />
                 <span>Modify Date / Cadence</span>
@@ -1095,7 +1163,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
               <button
                 onClick={handleSendReminderNotice}
-                className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer"
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-[#2e7d32] hover:bg-[#256628] text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer"
               >
                 <Send className="w-3.5 h-3.5" />
                 <span>Send {currentCadence} WhatsApp Notice</span>
@@ -1115,86 +1183,86 @@ export const UnifiedAdminDashboard: React.FC = () => {
           {activeTab === 'attendance' && (
             <div className="space-y-6">
               {/* Live Command Center Countdown Banner (Crisp White + Clean High-Contrast Theme) */}
-              <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs relative overflow-hidden space-y-4">
+              <div className="p-5 rounded-2xl bg-white border border-[#dcdcdc] shadow-sm relative overflow-hidden space-y-4">
                 <div className="absolute inset-0 bg-gradient-to-b from-white via-slate-50/40 to-emerald-50/15 pointer-events-none" />
 
                 <div className="relative z-10 space-y-4">
                   {/* Top Row: Digital Clock (IST) + Modern Tabular Countdown + Target Milestone */}
                   <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
                     {/* Digital Clock Box showing Live India Standard Time (IST) */}
-                    <div className="flex items-center gap-3 bg-slate-50/80 px-4 py-2.5 rounded-xl border border-slate-200 shadow-2xs shrink-0">
-                      <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
-                        <Clock className="w-5 h-5 text-emerald-700 animate-pulse" />
+                    <div className="flex items-center gap-3 bg-slate-50 px-4 py-2.5 rounded-xl border border-[#dcdcdc] shadow-2xs shrink-0">
+                      <div className="w-10 h-10 rounded-xl bg-[#cfead6] text-[#2e7d32] flex items-center justify-center shrink-0">
+                        <Clock className="w-5 h-5 text-[#2e7d32] animate-pulse" />
                       </div>
                       <div>
-                        <div className="text-[10px] font-black uppercase tracking-wider text-emerald-800 flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                        <div className="text-[10px] font-black uppercase tracking-wider text-[#2e7d32] flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-[#2e7d32] animate-ping" />
                           <span>Live India Time (IST)</span>
-                          <span className="text-[9px] font-mono bg-white text-slate-600 px-1.5 py-0.2 rounded border border-slate-200 font-bold">Asia/Kolkata</span>
+                          <span className="text-[9px] font-mono bg-white text-slate-700 px-1.5 py-0.2 rounded border border-[#dcdcdc] font-bold">Asia/Kolkata</span>
                         </div>
-                        <div className="text-xl sm:text-2xl font-mono font-black text-slate-900 tracking-wider">
+                        <div className="text-xl sm:text-2xl font-mono font-black text-[#1f2d2a] tracking-wider">
                           {countdown.liveIndiaTime}
                         </div>
-                        <div className="text-[10px] text-slate-500 font-medium">
+                        <div className="text-[10px] text-slate-600 font-semibold">
                           {countdown.liveIndiaDate}
                         </div>
                       </div>
                     </div>
 
-                    {/* Real-time Second-by-Second Countdown Display (Executive Slate Dark Card) */}
-                    <div className="flex items-center justify-center gap-3 bg-slate-900 text-white px-6 py-2.5 rounded-xl shadow-xs">
+                    {/* Real-time Second-by-Second Countdown Display (Executive Dark Card) */}
+                    <div className="flex items-center justify-center gap-3 bg-[#1f2d2a] text-white px-6 py-2.5 rounded-xl shadow-sm border border-black/40">
                       <div className="text-center min-w-[42px]">
                         <div className="text-2xl sm:text-3xl font-mono font-black text-emerald-400 tracking-wider">
                           {countdown.hoursStr}
                         </div>
-                        <div className="text-[9px] font-black text-slate-400 uppercase tracking-wider">HRS</div>
+                        <div className="text-[9px] font-black text-slate-300 uppercase tracking-wider">HRS</div>
                       </div>
                       <span className="text-2xl font-mono font-bold text-slate-500 animate-pulse">:</span>
                       <div className="text-center min-w-[42px]">
                         <div className="text-2xl sm:text-3xl font-mono font-black text-amber-400 tracking-wider">
                           {countdown.minsStr}
                         </div>
-                        <div className="text-[9px] font-black text-slate-400 uppercase tracking-wider">MIN</div>
+                        <div className="text-[9px] font-black text-slate-300 uppercase tracking-wider">MIN</div>
                       </div>
                       <span className="text-2xl font-mono font-bold text-slate-500 animate-pulse">:</span>
                       <div className="text-center min-w-[42px]">
                         <div className="text-2xl sm:text-3xl font-mono font-black text-white tracking-wider">
                           {countdown.secsStr}
                         </div>
-                        <div className="text-[9px] font-black text-slate-400 uppercase tracking-wider">SEC</div>
+                        <div className="text-[9px] font-black text-slate-300 uppercase tracking-wider">SEC</div>
                       </div>
                     </div>
 
                     {/* Active Target Milestone Badge */}
-                    <div className="bg-slate-50/80 px-4 py-2.5 rounded-xl border border-slate-200 shadow-2xs flex flex-col justify-center min-w-[210px]">
+                    <div className="bg-slate-50 px-4 py-2.5 rounded-xl border border-[#dcdcdc] shadow-2xs flex flex-col justify-center min-w-[210px]">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${countdown.statusColor === 'amber'
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                          countdown.statusColor === 'amber'
                             ? 'bg-amber-100 text-amber-900 border-amber-300'
                             : countdown.statusColor === 'blue'
                               ? 'bg-blue-100 text-blue-900 border-blue-300'
                               : countdown.statusColor === 'purple'
                                 ? 'bg-purple-100 text-purple-900 border-purple-300'
-                                : 'bg-emerald-100 text-emerald-900 border-emerald-300'
-                          }`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${countdown.statusColor === 'amber' ? 'bg-amber-500 animate-ping' : 'bg-emerald-500 animate-ping'
-                            }`} />
+                                : 'bg-[#cfead6] text-[#2e7d32] border-[#2e7d32]/30'
+                        }`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${countdown.statusColor === 'amber' ? 'bg-amber-500 animate-ping' : 'bg-[#2e7d32] animate-ping'}`} />
                           {countdown.statusBadge}
                         </span>
-                        <span className="text-[11px] text-slate-700 font-bold bg-white px-2 py-0.5 rounded border border-slate-200">
+                        <span className="text-[11px] text-[#1f2d2a] font-bold bg-white px-2 py-0.5 rounded border border-[#dcdcdc]">
                           Target: {countdown.targetMilestone}
                         </span>
                       </div>
-                      <div className="text-xs text-slate-900 font-bold mt-1 truncate">
+                      <div className="text-xs text-[#1f2d2a] font-bold mt-1 truncate">
                         {countdown.stageTitle}
                       </div>
-                      <div className="text-[11px] text-slate-500 truncate">
+                      <div className="text-[11px] text-slate-600 font-medium truncate">
                         {countdown.subtext}
                       </div>
                     </div>
                   </div>
 
                   {/* Operations Action Bar with Clean Enterprise Buttons */}
-                  <div className="flex flex-wrap items-center justify-between gap-2.5 pt-3 border-t border-slate-200">
+                  <div className="flex flex-wrap items-center justify-between gap-2.5 pt-3 border-t border-[#dcdcdc]">
                     <div className="flex flex-wrap items-center gap-2">
                       {/* Master Automated 09:50 AM Trigger Button */}
                       <button
@@ -1213,17 +1281,17 @@ export const UnifiedAdminDashboard: React.FC = () => {
                           setToastAlert({ type: 'success', text: res.message });
                           setTimeout(() => setToastAlert(null), 5000);
                         }}
-                        className="px-3.5 py-2 bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-300 rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
+                        className="px-3.5 py-2 bg-white hover:bg-emerald-50 text-[#2e7d32] border border-[#dcdcdc] hover:border-[#2e7d32] rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
                         title="Approve all leaders who have joined on this date"
                       >
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        <CheckCircle2 className="w-3.5 h-3.5 text-[#2e7d32]" />
                         <span>Approve All Joined Today</span>
                       </button>
 
                       {/* Stage 1 (09:50 AM) Manual Button */}
                       <button
                         onClick={() => handleSendGroupCeoitbox('0950')}
-                        className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer transition-all"
+                        className="px-3.5 py-2 bg-white hover:bg-slate-50 text-[#1f2d2a] border border-[#dcdcdc] rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer transition-all"
                         title="Send 09:50 AM Meeting Reminder to Official WhatsApp Group"
                       >
                         <Send className="w-3.5 h-3.5 text-slate-500" />
@@ -1233,20 +1301,20 @@ export const UnifiedAdminDashboard: React.FC = () => {
                       {/* Stage 2 (10:30 AM) Button */}
                       <button
                         onClick={() => handleSendGroupCeoitbox('1030')}
-                        className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer transition-all"
+                        className="px-3.5 py-2 bg-white hover:bg-slate-50 text-[#1f2d2a] border border-[#dcdcdc] rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer transition-all"
                         title="Send 10:30 AM Final Attendance & Absentee Audit to WhatsApp Group"
                       >
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        <CheckCircle2 className="w-3.5 h-3.5 text-[#2e7d32]" />
                         <span>Send 10:30 AM Report</span>
                       </button>
 
                       {/* Official WhatsApp Group Modal Link */}
                       <button
                         onClick={() => handleSendGroupCeoitbox('0950')}
-                        className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer transition-all"
+                        className="px-3.5 py-2 bg-white hover:bg-slate-50 text-[#1f2d2a] border border-[#dcdcdc] rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer transition-all"
                         title="Open Official WhatsApp Group Broadcast Center"
                       >
-                        <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />
+                        <MessageSquare className="w-3.5 h-3.5 text-[#2e7d32]" />
                         <span>Official WhatsApp Group</span>
                       </button>
                     </div>
@@ -1265,57 +1333,58 @@ export const UnifiedAdminDashboard: React.FC = () => {
                         });
                         setTimeout(() => setToastAlert(null), 4000);
                       }}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all border shrink-0 ${autoCeoitboxDispatch
-                          ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
-                          : 'bg-white text-slate-600 border-slate-200 hover:text-slate-900'
-                        }`}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all border shrink-0 ${
+                        autoCeoitboxDispatch
+                          ? 'bg-[#cfead6] text-[#2e7d32] border-[#2e7d32]/30 hover:bg-[#d6f5e3]'
+                          : 'bg-white text-slate-700 border-[#dcdcdc] hover:text-[#1f2d2a]'
+                      }`}
                     >
-                      <Clock className={`w-3.5 h-3.5 ${autoCeoitboxDispatch ? 'text-emerald-600' : 'text-slate-400'}`} />
+                      <Clock className={`w-3.5 h-3.5 ${autoCeoitboxDispatch ? 'text-[#2e7d32]' : 'text-slate-400'}`} />
                       <span>Auto-Scheduler: {autoCeoitboxDispatch ? 'ACTIVE' : 'PAUSED'}</span>
                     </button>
                   </div>
 
                   {/* OPERATIONS PURPOSE EXPLANATION & MILESTONES CARD */}
-                  <div className="pt-3 border-t border-slate-200 bg-slate-50/70 -mx-5 -mb-5 px-5 py-3.5 rounded-b-2xl space-y-2.5">
+                  <div className="pt-3 border-t border-[#dcdcdc] bg-slate-50 -mx-5 -mb-5 px-5 py-3.5 rounded-b-2xl space-y-2.5">
                     <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs">
                       <div className="flex items-start sm:items-center gap-2 flex-wrap">
-                        <span className="px-2.5 py-0.5 rounded-md bg-emerald-600 text-white font-bold text-[11px] shadow-2xs shrink-0">
+                        <span className="px-2.5 py-0.5 rounded-md bg-[#2e7d32] text-white font-bold text-[11px] shadow-2xs shrink-0">
                           🎯 ACTIVE SESSION OBJECTIVE:
                         </span>
-                        <span className="font-bold text-slate-900 text-xs">
+                        <span className="font-bold text-[#1f2d2a] text-xs">
                           {countdown.countdownForTitle}
                         </span>
-                        <span className="text-slate-500 text-xs hidden xl:inline">
+                        <span className="text-slate-600 text-xs hidden xl:inline font-medium">
                           — {countdown.countdownForDescription}
                         </span>
                       </div>
 
                       {/* Venue & Leader Assembly Details */}
-                      <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-600 shrink-0">
-                        <span className="flex items-center gap-1 bg-white px-2 py-0.5 rounded-md border border-slate-200 font-medium">
-                          📍 <strong className="text-slate-800">Venue:</strong> Conference Room, 5th Floor
+                      <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-700 shrink-0">
+                        <span className="flex items-center gap-1 bg-white px-2.5 py-0.5 rounded-md border border-[#dcdcdc] font-semibold">
+                          📍 <strong className="text-[#1f2d2a]">Venue:</strong> Conference Room, 5th Floor
                         </span>
-                        <span className="flex items-center gap-1 bg-white px-2 py-0.5 rounded-md border border-slate-200 font-medium">
-                          👥 <strong className="text-slate-800">Leaders:</strong> {leaders.length} Registered {leaders.length === 1 ? 'Leader' : 'Leaders'}
+                        <span className="flex items-center gap-1 bg-white px-2.5 py-0.5 rounded-md border border-[#dcdcdc] font-semibold">
+                          👥 <strong className="text-[#1f2d2a]">Leaders:</strong> {leaders.length} Registered {leaders.length === 1 ? 'Leader' : 'Leaders'}
                         </span>
-                        <span className="flex items-center gap-1 bg-white px-2 py-0.5 rounded-md border border-slate-200 font-medium">
-                          💻 <strong className="text-slate-800">Meet:</strong> Virtual Check-In
+                        <span className="flex items-center gap-1 bg-white px-2.5 py-0.5 rounded-md border border-[#dcdcdc] font-semibold">
+                          💻 <strong className="text-[#1f2d2a]">Meet:</strong> Virtual Check-In
                         </span>
                       </div>
                     </div>
 
                     {/* 3-Step Milestone Schedule Bar */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-slate-200/80 text-[11px]">
-                      <div className="flex items-center gap-2 text-slate-700">
-                        <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-800 font-bold flex items-center justify-center text-[10px] shrink-0 border border-blue-200">1</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-[#dcdcdc] text-[11px]">
+                      <div className="flex items-center gap-2 text-[#1f2d2a]">
+                        <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-900 font-bold flex items-center justify-center text-[10px] shrink-0 border border-blue-200">1</span>
                         <span><strong>09:50 AM:</strong> Automated Notice Broadcast & Attendance Links</span>
                       </div>
-                      <div className="flex items-center gap-2 text-slate-700">
-                        <span className="w-5 h-5 rounded-full bg-orange-100 text-orange-900 font-bold flex items-center justify-center text-[10px] shrink-0 border border-orange-200">2</span>
+                      <div className="flex items-center gap-2 text-[#1f2d2a]">
+                        <span className="w-5 h-5 rounded-full bg-orange-100 text-orange-950 font-bold flex items-center justify-center text-[10px] shrink-0 border border-orange-200">2</span>
                         <span><strong>10:00 AM Sharp:</strong> DOM Standup Starts (Conference Room 5th Floor)</span>
                       </div>
-                      <div className="flex items-center gap-2 text-slate-700">
-                        <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-900 font-bold flex items-center justify-center text-[10px] shrink-0 border border-emerald-200">3</span>
+                      <div className="flex items-center gap-2 text-[#1f2d2a]">
+                        <span className="w-5 h-5 rounded-full bg-[#cfead6] text-[#2e7d32] font-bold flex items-center justify-center text-[10px] shrink-0 border border-[#2e7d32]/20">3</span>
                         <span><strong>10:30 AM:</strong> Final Attendance Audit Frozen & Sent to Director</span>
                       </div>
                     </div>
@@ -1325,63 +1394,135 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
               {/* Top Stat Cards (6 States: Scheduled, Physical, Virtual, Late Approved, Leave, Absent) */}
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-                <div className="fluent-card p-4 rounded-2xl border-t-4 border-t-slate-600 fluent-card-hover">
-                  <div className="text-slate-500 text-xs font-bold flex items-center justify-between">
-                    <span>Scheduled</span>
-                    <Users className="w-4 h-4 text-slate-400" />
+                {/* 1. Scheduled */}
+                <div
+                  onClick={() => setStatusFilter('ALL')}
+                  className={`p-4 rounded-2xl border transition-all cursor-pointer group ${
+                    statusFilter === 'ALL'
+                      ? 'bg-slate-50 border-[#2e7d32] ring-2 ring-[#2e7d32]/10 shadow-sm'
+                      : 'bg-white border-[#dcdcdc] hover:border-[#2e7d32] shadow-sm'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="p-2 rounded-xl bg-slate-100 text-[#1f2d2a] transition-transform group-hover:scale-110 duration-200">
+                      <Users className="w-5 h-5 text-slate-700" />
+                    </div>
+                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 uppercase tracking-wider border border-slate-200">
+                      Official {currentCadence}
+                    </span>
                   </div>
-                  <div className="text-2xl font-black text-slate-900 mt-2">{totalLeaders}</div>
-                  <div className="text-[11px] text-slate-500 mt-1">Official {currentCadence}</div>
+                  <div className="text-3xl font-bold text-[#1f2d2a] leading-none mb-1 tracking-tighter">{totalLeaders}</div>
+                  <div className="text-[10px] font-bold text-slate-400 tracking-wider uppercase opacity-80">Scheduled</div>
                 </div>
 
-                <div className="fluent-card p-4 rounded-2xl border-t-4 border-t-emerald-600 bg-emerald-50/20 fluent-card-hover">
-                  <div className="text-emerald-700 text-xs font-bold flex items-center justify-between">
-                    <span>In-Person</span>
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                {/* 2. In-Person */}
+                <div
+                  onClick={() => setStatusFilter(statusFilter === 'PHYSICAL' ? 'ALL' : 'PHYSICAL')}
+                  className={`p-4 rounded-2xl border transition-all cursor-pointer group ${
+                    statusFilter === 'PHYSICAL'
+                      ? 'bg-emerald-50/50 border-[#2e7d32] ring-2 ring-[#2e7d32]/20 shadow-sm'
+                      : 'bg-white border-[#dcdcdc] hover:border-[#2e7d32] shadow-sm'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="p-2 rounded-xl bg-[#cfead6] text-[#2e7d32] transition-transform group-hover:scale-110 duration-200">
+                      <CheckCircle2 className="w-5 h-5 text-[#2e7d32]" />
+                    </div>
+                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-[#cfead6] text-[#2e7d32] uppercase tracking-wider border border-[#2e7d32]/20">
+                      5th Floor Conf.
+                    </span>
                   </div>
-                  <div className="text-2xl font-black text-emerald-700 mt-2">{countPhysical}</div>
-                  <div className="text-[11px] text-emerald-600 font-semibold mt-1">5th Floor Conf.</div>
+                  <div className="text-3xl font-bold text-[#1f2d2a] leading-none mb-1 tracking-tighter">{countPhysical}</div>
+                  <div className="text-[10px] font-bold text-[#2e7d32] tracking-wider uppercase">In-Person</div>
                 </div>
 
-                <div className="fluent-card p-4 rounded-2xl border-t-4 border-t-blue-600 bg-blue-50/20 fluent-card-hover">
-                  <div className="text-blue-700 text-xs font-bold flex items-center justify-between">
-                    <span>Virtual</span>
-                    <Video className="w-4 h-4 text-blue-600" />
+                {/* 3. Virtual */}
+                <div
+                  onClick={() => setStatusFilter(statusFilter === 'VIRTUAL' ? 'ALL' : 'VIRTUAL')}
+                  className={`p-4 rounded-2xl border transition-all cursor-pointer group ${
+                    statusFilter === 'VIRTUAL'
+                      ? 'bg-blue-50/50 border-blue-600 ring-2 ring-blue-500/20 shadow-sm'
+                      : 'bg-white border-[#dcdcdc] hover:border-blue-600 shadow-sm'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="p-2 rounded-xl bg-blue-100 text-blue-700 transition-transform group-hover:scale-110 duration-200">
+                      <Video className="w-5 h-5 text-blue-700" />
+                    </div>
+                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 uppercase tracking-wider border border-blue-200">
+                      Google Meet
+                    </span>
                   </div>
-                  <div className="text-2xl font-black text-blue-700 mt-2">{countVirtual}</div>
-                  <div className="text-[11px] text-blue-600 font-semibold mt-1">Google Meet</div>
+                  <div className="text-3xl font-bold text-[#1f2d2a] leading-none mb-1 tracking-tighter">{countVirtual}</div>
+                  <div className="text-[10px] font-bold text-blue-700 tracking-wider uppercase">Virtual</div>
                 </div>
 
-                <div className="fluent-card p-4 rounded-2xl border-t-4 border-t-amber-500 bg-amber-50/20 fluent-card-hover">
-                  <div className="text-amber-800 text-xs font-bold flex items-center justify-between">
-                    <span>Late (Approved)</span>
-                    <Clock className="w-4 h-4 text-amber-600" />
+                {/* 4. Late (Approved) */}
+                <div
+                  onClick={() => setStatusFilter(statusFilter === 'INFORMED_LATE' ? 'ALL' : 'INFORMED_LATE')}
+                  className={`p-4 rounded-2xl border transition-all cursor-pointer group ${
+                    statusFilter === 'INFORMED_LATE'
+                      ? 'bg-amber-50/50 border-amber-600 ring-2 ring-amber-500/20 shadow-sm'
+                      : 'bg-white border-[#dcdcdc] hover:border-amber-600 shadow-sm'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="p-2 rounded-xl bg-amber-100 text-amber-800 transition-transform group-hover:scale-110 duration-200">
+                      <Clock className="w-5 h-5 text-amber-700" />
+                    </div>
+                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 uppercase tracking-wider border border-amber-200">
+                      Admin Approved
+                    </span>
                   </div>
-                  <div className="text-2xl font-black text-amber-800 mt-2">{countLate}</div>
-                  <div className="text-[11px] text-amber-700 font-semibold mt-1">Admin Approved ✅</div>
+                  <div className="text-3xl font-bold text-[#1f2d2a] leading-none mb-1 tracking-tighter">{countLate}</div>
+                  <div className="text-[10px] font-bold text-amber-800 tracking-wider uppercase">Late (Approved)</div>
                 </div>
 
-                <div className="fluent-card p-4 rounded-2xl border-t-4 border-t-purple-600 bg-purple-50/20 fluent-card-hover">
-                  <div className="text-purple-800 text-xs font-bold flex items-center justify-between">
-                    <span>Approved Leave</span>
-                    <HelpCircle className="w-4 h-4 text-purple-600" />
+                {/* 5. Approved Leave */}
+                <div
+                  onClick={() => setStatusFilter(statusFilter === 'LEAVE' ? 'ALL' : 'LEAVE')}
+                  className={`p-4 rounded-2xl border transition-all cursor-pointer group ${
+                    statusFilter === 'LEAVE'
+                      ? 'bg-purple-50/50 border-purple-600 ring-2 ring-purple-500/20 shadow-sm'
+                      : 'bg-white border-[#dcdcdc] hover:border-purple-600 shadow-sm'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="p-2 rounded-xl bg-purple-100 text-purple-800 transition-transform group-hover:scale-110 duration-200">
+                      <HelpCircle className="w-5 h-5 text-purple-700" />
+                    </div>
+                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 uppercase tracking-wider border border-purple-200">
+                      Permission
+                    </span>
                   </div>
-                  <div className="text-2xl font-black text-purple-800 mt-2">{countInformed}</div>
-                  <div className="text-[11px] text-purple-700 font-semibold mt-1">Permission Recorded</div>
+                  <div className="text-3xl font-bold text-[#1f2d2a] leading-none mb-1 tracking-tighter">{countInformed}</div>
+                  <div className="text-[10px] font-bold text-purple-800 tracking-wider uppercase">Approved Leave</div>
                 </div>
 
-                <div className="fluent-card p-4 rounded-2xl border-t-4 border-t-rose-600 bg-rose-50/20 fluent-card-hover">
-                  <div className="text-rose-700 text-xs font-bold flex items-center justify-between">
-                    <span>Absent</span>
-                    <XCircle className="w-4 h-4 text-rose-600" />
+                {/* 6. Absent */}
+                <div
+                  onClick={() => setStatusFilter(statusFilter === 'ABSENT' ? 'ALL' : 'ABSENT')}
+                  className={`p-4 rounded-2xl border transition-all cursor-pointer group ${
+                    statusFilter === 'ABSENT'
+                      ? 'bg-rose-50/50 border-rose-600 ring-2 ring-rose-500/20 shadow-sm'
+                      : 'bg-white border-[#dcdcdc] hover:border-rose-600 shadow-sm'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="p-2 rounded-xl bg-rose-100 text-rose-700 transition-transform group-hover:scale-110 duration-200">
+                      <XCircle className="w-5 h-5 text-rose-700" />
+                    </div>
+                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 uppercase tracking-wider border border-rose-200">
+                      Unexcused
+                    </span>
                   </div>
-                  <div className="text-2xl font-black text-rose-700 mt-2">{countAbsent}</div>
-                  <div className="text-[11px] text-rose-600 font-semibold mt-1">Unexcused List</div>
+                  <div className="text-3xl font-bold text-[#1f2d2a] leading-none mb-1 tracking-tighter">{countAbsent}</div>
+                  <div className="text-[10px] font-bold text-rose-700 tracking-wider uppercase">Absent</div>
                 </div>
               </div>
 
               {/* Filter & Dispatch Action Bar */}
-              <div className="fluent-card p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
+              <div className="bg-white p-4 rounded-2xl border border-[#dcdcdc] shadow-sm flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
                 <div className="flex items-center gap-2 flex-1">
                   <div className="relative flex-1 max-w-sm">
                     <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
@@ -1390,19 +1531,22 @@ export const UnifiedAdminDashboard: React.FC = () => {
                       placeholder="Search leader by name or department..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-orange-500"
+                      className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-[#dcdcdc] rounded-xl text-xs text-[#1f2d2a] placeholder-slate-400 font-semibold focus:outline-none focus:border-[#2e7d32] focus:ring-1 focus:ring-[#2e7d32]"
                     />
                   </div>
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
-                    className="bg-slate-50 border border-slate-300 text-slate-800 text-xs px-3 py-1.5 rounded-xl focus:outline-none focus:border-orange-500 font-semibold"
+                    className="bg-slate-50 border border-[#dcdcdc] text-[#1f2d2a] text-xs px-3 py-2 rounded-xl focus:outline-none focus:border-[#2e7d32] font-bold"
                   >
                     <option value="ALL">All States</option>
+                    <option value="PHYSICAL">In-Person (Physical 5th Flr)</option>
+                    <option value="VIRTUAL">Virtual (Google Meet)</option>
                     <option value="PRESENT">Present (Verified)</option>
                     <option value="INFORMED_LATE">Informed Late (Admin Approved)</option>
                     <option value="CHECKED_IN">QR Scanned (Pending)</option>
                     <option value="INFORMED_ABSENT">Informed Leave</option>
+                    <option value="LEAVE">Approved Leave</option>
                     <option value="PENDING">Pending / Unresolved</option>
                     <option value="ABSENT">Absent</option>
                   </select>
@@ -1412,7 +1556,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 <div className="flex flex-wrap items-center gap-2 justify-end">
                   <button
                     onClick={() => downloadPdfReport(selectedDate)}
-                    className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-600/20 flex items-center gap-1.5 transition-all cursor-pointer"
+                    className="px-3.5 py-2 bg-[#2e7d32] hover:bg-[#256628] text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
                     title="Download Official PDF Report for Director Sir"
                   >
                     <Download className="w-3.5 h-3.5" />
@@ -1421,7 +1565,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
                   <button
                     onClick={() => openPdfReport(selectedDate)}
-                    className="px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                    className="px-3 py-2 bg-white hover:bg-slate-50 text-[#1f2d2a] border border-[#dcdcdc] rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
                     title="Print official PDF report"
                   >
                     <Printer className="w-3.5 h-3.5 text-orange-600" />
@@ -1430,7 +1574,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
                   <button
                     onClick={() => setShowEmailModal(true)}
-                    className="px-3.5 py-2 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white rounded-xl text-xs font-bold shadow-md shadow-orange-600/20 flex items-center gap-1.5 transition-all cursor-pointer"
+                    className="px-3.5 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
                   >
                     <Mail className="w-3.5 h-3.5" />
                     <span>Email Report Draft</span>
@@ -1439,56 +1583,56 @@ export const UnifiedAdminDashboard: React.FC = () => {
               </div>
 
               {/* Attendance Register Table */}
-              <div className="fluent-card rounded-2xl overflow-hidden shadow-sm">
+              <div className="bg-white rounded-2xl border border-[#dcdcdc] shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
-                      <tr className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
-                        <th className="py-3 px-4">Leader Name</th>
-                        <th className="py-3 px-4">Department</th>
-                        <th className="py-3 px-4 text-center">Expected Mode</th>
-                        <th className="py-3 px-4 text-center">Actual Join Mode</th>
-                        <th className="py-3 px-4 text-center">Accurate Join Time</th>
-                        <th className="py-3 px-4 text-center">Status</th>
-                        <th className="py-3 px-4 text-right">Verification Action</th>
+                      <tr className="bg-slate-50 text-[#1f2d2a] font-bold border-b border-[#dcdcdc]">
+                        <th className="py-3.5 px-4 font-bold text-[11px] uppercase tracking-wider">Leader Name</th>
+                        <th className="py-3.5 px-4 font-bold text-[11px] uppercase tracking-wider">Department</th>
+                        <th className="py-3.5 px-4 text-center font-bold text-[11px] uppercase tracking-wider">Expected Mode</th>
+                        <th className="py-3.5 px-4 text-center font-bold text-[11px] uppercase tracking-wider">Actual Join Mode</th>
+                        <th className="py-3.5 px-4 text-center font-bold text-[11px] uppercase tracking-wider">Accurate Join Time</th>
+                        <th className="py-3.5 px-4 text-center font-bold text-[11px] uppercase tracking-wider">Status</th>
+                        <th className="py-3.5 px-4 text-right font-bold text-[11px] uppercase tracking-wider">Verification Action</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {filteredRecords.length === 0 ? (
                         <tr>
-                          <td colSpan={7} className="py-8 text-center text-slate-400 font-medium">
+                          <td colSpan={7} className="py-10 text-center text-slate-500 font-semibold text-sm">
                             No leaders match the current search or filters.
                           </td>
                         </tr>
                       ) : (
                         filteredRecords.map((rec) => (
-                          <tr key={rec.id} className="hover:bg-slate-50/80 transition-colors">
-                            <td className="py-3 px-4">
-                              <div className="font-bold text-slate-900">{rec.leader?.full_name}</div>
-                              <div className="text-[11px] text-slate-400 font-mono">{rec.leader?.employee_code}</div>
+                          <tr key={rec.id} className="hover:bg-[#f0f9f1] transition-colors border-b border-slate-100">
+                            <td className="py-3.5 px-4">
+                              <div className="font-bold text-[#1f2d2a] text-sm">{rec.leader?.full_name}</div>
+                              <div className="text-[11px] text-slate-500 font-mono font-medium">{rec.leader?.employee_code}</div>
                             </td>
-                            <td className="py-3 px-4 text-slate-600 font-medium">
+                            <td className="py-3.5 px-4 text-slate-700 font-semibold text-xs">
                               {rec.leader?.department?.name || 'Department'}
                             </td>
-                            <td className="py-3 px-4 text-center">
-                              <span className="text-[10px] font-mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-semibold border border-slate-200">
+                            <td className="py-3.5 px-4 text-center">
+                              <span className="text-[10px] font-mono bg-slate-100 text-slate-800 px-2 py-0.5 rounded font-bold border border-slate-200">
                                 {rec.leader?.expected_mode || 'PHYSICAL'}
                               </span>
                             </td>
-                            <td className="py-3 px-4 text-center">
+                            <td className="py-3.5 px-4 text-center">
                               {rec.selected_mode === 'PHYSICAL' ? (
-                                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 inline-flex items-center gap-1">
-                                  <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Physical (5th Flr)
+                                <span className="text-[11px] font-bold text-[#2e7d32] bg-[#cfead6] px-2.5 py-0.5 rounded-full border border-[#2e7d32]/20 inline-flex items-center gap-1">
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-[#2e7d32]" /> Physical (5th Flr)
                                 </span>
                               ) : rec.selected_mode === 'VIRTUAL' ? (
-                                <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200 inline-flex items-center gap-1">
-                                  <Video className="w-3 h-3 text-blue-600" /> Virtual (Meet)
+                                <span className="text-[11px] font-bold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200 inline-flex items-center gap-1">
+                                  <Video className="w-3.5 h-3.5 text-blue-600" /> Virtual (Meet)
                                 </span>
                               ) : (
-                                <span className="text-[10px] text-slate-400">—</span>
+                                <span className="text-xs text-slate-400 font-semibold">—</span>
                               )}
                             </td>
-                            <td className="py-3 px-4 text-center font-mono text-[11px] text-slate-600 font-semibold">
+                            <td className="py-3.5 px-4 text-center font-mono text-xs text-[#1f2d2a] font-bold">
                               {rec.check_in_at ? (
                                 new Date(rec.check_in_at).toLocaleTimeString('en-IN', {
                                   hour: '2-digit',
@@ -1497,14 +1641,14 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                   hour12: true,
                                 })
                               ) : (
-                                <span className="text-slate-400">—</span>
+                                <span className="text-slate-400 font-semibold">—</span>
                               )}
                             </td>
-                            <td className="py-3 px-4 text-center">
+                            <td className="py-3.5 px-4 text-center">
                               {!rec.admin_verified_attendance &&
                                 (rec.status === 'PRESENT' || rec.status === 'INFORMED_LATE' || rec.selected_mode !== 'NONE') ? (
-                                <span className="text-[10px] bg-amber-100 text-amber-900 font-black px-2.5 py-0.5 rounded-full border border-amber-300 inline-flex items-center gap-1 shadow-2xs">
-                                  <Clock className="w-3 h-3 text-amber-600 animate-pulse" />
+                                <span className="text-[11px] bg-amber-100 text-amber-900 font-bold px-2.5 py-0.5 rounded-full border border-amber-300 inline-flex items-center gap-1 shadow-2xs">
+                                  <Clock className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
                                   <span>Approval Pending from Admin</span>
                                   {rec.late_minutes && rec.late_minutes > 0 ? (
                                     <span className="text-[9px] bg-amber-200 text-amber-950 px-1.5 py-0.2 rounded font-black">
@@ -1513,30 +1657,30 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                   ) : null}
                                 </span>
                               ) : rec.admin_verified_attendance ? (
-                                <span className="text-[10px] bg-emerald-100 text-emerald-800 font-black px-2.5 py-0.5 rounded-full border border-emerald-300 inline-flex items-center gap-1">
-                                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                <span className="text-[11px] bg-[#cfead6] text-[#2e7d32] font-bold px-2.5 py-0.5 rounded-full border border-[#2e7d32]/30 inline-flex items-center gap-1">
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-[#2e7d32]" />
                                   <span>PRESENT (Approved)</span>
                                   {rec.late_minutes && rec.late_minutes > 0 ? (
-                                    <span className="text-[9px] bg-emerald-200 text-emerald-900 px-1.5 py-0.2 rounded font-black">
+                                    <span className="text-[9px] bg-[#2e7d32] text-white px-1.5 py-0.2 rounded font-black">
                                       +{rec.late_minutes}m Late
                                     </span>
                                   ) : null}
                                 </span>
                               ) : rec.status === 'LEAVE' ? (
-                                <span className="text-[10px] bg-purple-100 text-purple-800 font-bold px-2.5 py-0.5 rounded-full border border-purple-300">
+                                <span className="text-[11px] bg-purple-100 text-purple-900 font-bold px-2.5 py-0.5 rounded-full border border-purple-300">
                                   APPROVED LEAVE {rec.informed_to_person ? `(${rec.informed_to_person})` : ''}
                                 </span>
                               ) : rec.status === 'INFORMED_ABSENT' ? (
-                                <span className="text-[10px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full border border-amber-300">
+                                <span className="text-[11px] bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded-full border border-amber-300">
                                   INFORMED ({rec.informed_to_person || 'Admin'})
                                 </span>
                               ) : (
-                                <span className="text-[10px] bg-rose-100 text-rose-800 font-black px-2.5 py-0.5 rounded-full border border-rose-300">
+                                <span className="text-[11px] bg-rose-100 text-rose-800 font-bold px-2.5 py-0.5 rounded-full border border-rose-300">
                                   ABSENT
                                 </span>
                               )}
                             </td>
-                            <td className="py-3 px-4 text-right">
+                            <td className="py-3.5 px-4 text-right">
                               <div className="flex items-center justify-end gap-1.5">
                                 {/* Admin Direct Approval Button for pending attendance */}
                                 {!rec.admin_verified_attendance &&
@@ -1547,10 +1691,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                         setToastAlert({ type: 'success', text: res.message });
                                         setTimeout(() => setToastAlert(null), 4000);
                                       }}
-                                      className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-black shadow-xs cursor-pointer flex items-center gap-1"
+                                      className="px-3 py-1.5 bg-[#2e7d32] hover:bg-[#256628] text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer flex items-center gap-1 transition-all"
                                       title="Approve Leader Attendance"
                                     >
-                                      <CheckCircle2 className="w-3 h-3" />
+                                      <CheckCircle2 className="w-3.5 h-3.5" />
                                       <span>Approve</span>
                                     </button>
                                   )}
@@ -1558,7 +1702,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                 {rec.status !== 'PRESENT' && !rec.admin_verified_attendance && (
                                   <button
                                     onClick={() => adminVerifyStatus(rec.id, 'PRESENT', true, 'Manual Conference Room Check')}
-                                    className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold shadow-xs cursor-pointer"
+                                    className="px-3 py-1.5 bg-[#2e7d32] hover:bg-[#256628] text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer transition-all"
                                     title="Mark Present & Verified"
                                   >
                                     Mark Present
@@ -1579,10 +1723,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                         adminApproved: true,
                                       });
                                     }}
-                                    className="px-2 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[11px] font-bold shadow-xs cursor-pointer flex items-center gap-1"
+                                    className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer flex items-center gap-1 transition-all"
                                     title="Document Late Arrival (Admin Approval Required)"
                                   >
-                                    <Clock className="w-3 h-3" />
+                                    <Clock className="w-3.5 h-3.5" />
                                     <span>Informed Late</span>
                                   </button>
                                 )}
@@ -1598,17 +1742,17 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                         reason: rec.informed_reason || 'Emergency Hospital Duty',
                                       });
                                     }}
-                                    className="px-2 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-[11px] font-bold shadow-xs cursor-pointer flex items-center gap-1"
+                                    className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer flex items-center gap-1 transition-all"
                                     title="Mark Informed Leave (Admin Verified)"
                                   >
-                                    <HelpCircle className="w-3 h-3" />
+                                    <HelpCircle className="w-3.5 h-3.5" />
                                     <span>Informed Leave</span>
                                   </button>
                                 )}
                                 {rec.status === 'INFORMED_ABSENT' && (
                                   <button
                                     onClick={() => confirmInformedAbsence(rec.id, true)}
-                                    className="px-2 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-[11px] font-bold shadow-xs cursor-pointer"
+                                    className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer transition-all"
                                     title="Approve Leave"
                                   >
                                     Approve Leave
@@ -1621,7 +1765,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                       setToastAlert({ type: 'info', text: res.message });
                                       setTimeout(() => setToastAlert(null), 4000);
                                     }}
-                                    className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-[11px] font-semibold cursor-pointer"
+                                    className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold cursor-pointer transition-all"
                                     title="Reject Attendance / Mark Absent"
                                   >
                                     Mark Absent

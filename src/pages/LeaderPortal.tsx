@@ -219,39 +219,39 @@ export const LeaderPortal: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans p-4 sm:p-6 pb-24 items-center">
+    <div className="min-h-screen bg-[#f8faf9] text-[#1f2d2a] flex flex-col font-sans p-4 sm:p-6 pb-24 items-center">
       <div className="w-full max-w-xl space-y-6">
-        {/* Header Branding (Orange & Green Gradient Header) */}
-        <div className="fluent-card rounded-3xl p-6 text-center border-t-4 border-t-orange-500 relative overflow-hidden">
+        {/* Header Branding (Clean Reference Theme) */}
+        <div className="fluent-card rounded-3xl p-6 text-center border-t-4 border-t-orange-500 relative overflow-hidden bg-white shadow-sm border border-[#dcdcdc]">
           <div className="flex items-center justify-center mx-auto mb-3">
             <img src={sbhLogo} alt="SBH Group of Hospitals" className="h-11 w-auto object-contain" />
           </div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 mb-2">
-            <Sparkles className="w-3.5 h-3.5 text-emerald-600" /> SBH Group of Hospitals • Raipur
+          <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-bold bg-[#cfead6] text-[#2e7d32] border border-[#2e7d32]/20 mb-2">
+            <Sparkles className="w-3.5 h-3.5 text-[#2e7d32]" /> SBH Group of Hospitals • Raipur
           </div>
-          <h1 className="text-xl font-black text-slate-900 tracking-tight">LEADER ATTENDANCE PORTAL</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-[#1f2d2a] tracking-tight">LEADER ATTENDANCE PORTAL</h1>
 
           {/* Session Type Badge: Daily, Weekly, or Monthly */}
           <div className="mt-2.5 inline-block">
             <span
-              className={`text-xs font-black px-3 py-1 rounded-full ${
+              className={`text-xs font-bold px-3 py-1 rounded-full ${
                 currentMeeting.frequency === 'MONTHLY'
-                  ? 'bg-purple-100 text-purple-800 border border-purple-300'
+                  ? 'bg-purple-100 text-purple-900 border border-purple-300'
                   : currentMeeting.frequency === 'WEEKLY'
-                  ? 'bg-blue-100 text-blue-800 border border-blue-300'
-                  : 'bg-orange-100 text-orange-800 border border-orange-300'
+                  ? 'bg-blue-100 text-blue-900 border border-blue-300'
+                  : 'bg-orange-100 text-orange-950 border border-orange-200'
               }`}
             >
               {currentMeeting.title}
             </span>
           </div>
 
-          <p className="text-xs text-slate-500 mt-2 flex items-center justify-center gap-1.5">
+          <p className="text-xs text-slate-600 mt-2 flex items-center justify-center gap-1.5 font-medium">
             <Calendar className="w-3.5 h-3.5 text-orange-600" />
             <span>Date: </span>
-            <span className="font-mono text-slate-900 font-bold">{selectedDate}</span>
+            <span className="font-mono text-[#1f2d2a] font-bold">{selectedDate}</span>
             <span>•</span>
-            <Clock className="w-3.5 h-3.5 text-emerald-600" />
+            <Clock className="w-3.5 h-3.5 text-[#2e7d32]" />
             <span>{currentMeeting.scheduled_time}</span>
           </p>
 
@@ -393,14 +393,14 @@ export const LeaderPortal: React.FC = () => {
           </div>
         ) : (
           /* Step 2: Selected / Logged-in Leader - Choose Mode */
-          <div className="fluent-card rounded-3xl p-6 space-y-6">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-200">
+          <div className="fluent-card rounded-3xl p-6 space-y-6 bg-white border border-[#dcdcdc] shadow-sm">
+            <div className="flex items-center justify-between pb-4 border-b border-[#dcdcdc]">
               <div>
-                <span className="text-[10px] uppercase font-mono tracking-wider text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-300 font-bold">
+                <span className="text-[10px] uppercase font-mono tracking-wider text-[#2e7d32] bg-[#cfead6] px-2.5 py-0.5 rounded-full border border-[#2e7d32]/30 font-bold">
                   Active Hospital Leader
                 </span>
-                <h3 className="text-lg font-black text-slate-900 mt-1.5">{activeLeader.full_name}</h3>
-                <div className="text-xs text-slate-600 font-semibold">
+                <h3 className="text-xl font-bold text-[#1f2d2a] mt-1.5">{activeLeader.full_name}</h3>
+                <div className="text-xs text-slate-700 font-semibold">
                   {activeLeader.department?.name} • {activeLeader.email}
                 </div>
               </div>
@@ -421,22 +421,22 @@ export const LeaderPortal: React.FC = () => {
             {hasJoinedToday ? (
               /* State A: Attendance is ALREADY Recorded Today -> Clean Rejoin Option Only */
               <div className="space-y-4">
-                <div className="p-5 rounded-2xl bg-gradient-to-br from-emerald-50 via-teal-50/40 to-white border-2 border-emerald-400 shadow-sm space-y-4">
+                <div className="p-5 rounded-2xl bg-gradient-to-br from-emerald-50/60 via-white to-white border-2 border-[#2e7d32]/40 shadow-sm space-y-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <span className="text-[10px] uppercase font-mono tracking-wider text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-300 font-bold inline-flex items-center gap-1.5">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Attendance Confirmed Today
+                      <span className="text-[10px] uppercase font-mono tracking-wider text-[#2e7d32] bg-[#cfead6] px-3 py-1 rounded-full border border-[#2e7d32]/30 font-bold inline-flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-[#2e7d32]" /> Attendance Confirmed Today
                       </span>
-                      <h4 className="text-base font-black text-slate-900 mt-2">
+                      <h4 className="text-base font-bold text-[#1f2d2a] mt-2">
                         You have already joined today's DOM meeting
                       </h4>
-                      <p className="text-xs text-slate-500 mt-0.5">
+                      <p className="text-xs text-slate-600 mt-0.5 font-medium">
                         Official attendance timestamp locked in audit register.
                       </p>
                     </div>
                     <div className="text-right shrink-0">
-                      <div className="text-[10px] text-slate-400 uppercase font-black">Join Time</div>
-                      <div className="text-xs font-mono font-black text-emerald-700 bg-white px-2.5 py-1 rounded-lg border border-emerald-200 mt-0.5 shadow-2xs">
+                      <div className="text-[10px] text-slate-500 uppercase font-bold">Join Time</div>
+                      <div className="text-xs font-mono font-bold text-[#2e7d32] bg-white px-2.5 py-1 rounded-lg border border-[#2e7d32]/30 mt-0.5 shadow-2xs">
                         {formattedCheckInTime}
                       </div>
                     </div>
@@ -444,25 +444,25 @@ export const LeaderPortal: React.FC = () => {
 
                   {/* Mode & Director Sign-Off Info */}
                   <div className="grid grid-cols-2 gap-2.5 text-xs pt-1">
-                    <div className="bg-white/80 border border-slate-200 rounded-xl p-2.5">
-                      <div className="text-[10px] text-slate-400 font-bold uppercase">Recorded Mode</div>
-                      <div className="font-bold text-slate-800 mt-0.5 flex items-center gap-1.5 text-xs truncate">
+                    <div className="bg-white/80 border border-[#dcdcdc] rounded-xl p-2.5">
+                      <div className="text-[10px] text-slate-500 font-bold uppercase">Recorded Mode</div>
+                      <div className="font-bold text-[#1f2d2a] mt-0.5 flex items-center gap-1.5 text-xs truncate">
                         {todayRecord?.selected_mode === 'PHYSICAL' ? (
-                          <><QrCode className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> In-Room Physical</>
+                          <><QrCode className="w-3.5 h-3.5 text-[#2e7d32] shrink-0" /> In-Room Physical</>
                         ) : (
                           <><Video className="w-3.5 h-3.5 text-blue-600 shrink-0" /> Virtual (Google Meet)</>
                         )}
                       </div>
                     </div>
-                    <div className="bg-white/80 border border-slate-200 rounded-xl p-2.5">
-                      <div className="text-[10px] text-slate-400 font-bold uppercase">Audit Verification</div>
+                    <div className="bg-white/80 border border-[#dcdcdc] rounded-xl p-2.5">
+                      <div className="text-[10px] text-slate-500 font-bold uppercase">Audit Verification</div>
                       <div className="font-bold mt-0.5 flex items-center gap-1.5 text-xs truncate">
                         {todayRecord?.admin_verified_attendance ? (
-                          <span className="text-emerald-700 font-black flex items-center gap-1">
-                            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> APPROVED
+                          <span className="text-[#2e7d32] font-bold flex items-center gap-1">
+                            <ShieldCheck className="w-3.5 h-3.5 text-[#2e7d32] shrink-0" /> APPROVED
                           </span>
                         ) : (
-                          <span className="text-amber-700 font-bold flex items-center gap-1">
+                          <span className="text-amber-800 font-bold flex items-center gap-1">
                             <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0" /> Awaiting Admin
                           </span>
                         )}
@@ -475,12 +475,12 @@ export const LeaderPortal: React.FC = () => {
                 <div className="pt-1">
                   <button
                     onClick={handleRejoinMeeting}
-                    className="w-full py-3.5 px-5 bg-gradient-to-r from-emerald-600 via-teal-600 to-green-700 hover:from-emerald-700 hover:to-green-800 text-white rounded-2xl font-black text-xs uppercase tracking-wider shadow-md shadow-emerald-600/25 flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-95"
+                    className="w-full py-3.5 px-5 bg-[#2e7d32] hover:bg-[#256628] text-white rounded-2xl font-bold text-xs uppercase tracking-wider shadow-sm flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-95"
                   >
                     <Video className="w-4 h-4 text-white" />
                     <span>Rejoin Official Meeting (Google Meet) &rarr;</span>
                   </button>
-                  <p className="text-[10px] text-slate-400 text-center mt-1.5 font-medium">
+                  <p className="text-[10px] text-slate-500 text-center mt-1.5 font-medium">
                     Rejoining does not increment attendance count. Rejoin timestamp is logged silently in SQL database.
                   </p>
                 </div>
@@ -489,7 +489,7 @@ export const LeaderPortal: React.FC = () => {
               /* State B: Not Checked In Yet -> Show Physical QR Camera Scanner & Virtual Options */
               <>
                 <div>
-                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
+                  <h4 className="text-xs font-bold text-slate-600 uppercase tracking-wider mb-3">
                     Confirm Today's DOM Presence
                   </h4>
 
@@ -497,15 +497,15 @@ export const LeaderPortal: React.FC = () => {
                     {/* Mode 1: Physical Check-In (In-Room Camera Scanner) */}
                     <button
                       onClick={handleAttendPhysically}
-                      className="p-5 rounded-2xl bg-gradient-to-br from-emerald-50 to-white border-2 border-emerald-400 hover:border-emerald-600 text-left transition-all group cursor-pointer shadow-sm hover:shadow-md"
+                      className="p-5 rounded-2xl bg-white border-2 border-emerald-400 hover:border-[#2e7d32] text-left transition-all group cursor-pointer shadow-sm hover:shadow-md"
                     >
-                      <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center mb-3 shadow-sm">
+                      <div className="w-10 h-10 rounded-xl bg-[#cfead6] text-[#2e7d32] flex items-center justify-center mb-3 shadow-sm">
                         <Camera className="w-5 h-5" />
                       </div>
-                      <div className="font-black text-slate-900 text-sm group-hover:text-emerald-700">
+                      <div className="font-bold text-[#1f2d2a] text-sm group-hover:text-[#2e7d32]">
                         Attending In-Person
                       </div>
-                      <p className="text-[11px] text-slate-500 mt-1">
+                      <p className="text-[11px] text-slate-600 mt-1 font-medium">
                         Opens live camera to scan Boardroom QR code in 5th Floor Conference Hall.
                       </p>
                     </button>
@@ -513,15 +513,15 @@ export const LeaderPortal: React.FC = () => {
                     {/* Mode 2: Virtual Join (Google Meet) */}
                     <button
                       onClick={handleJoinVirtually}
-                      className="p-5 rounded-2xl bg-gradient-to-br from-blue-50 to-white border-2 border-blue-400 hover:border-blue-600 text-left transition-all group cursor-pointer shadow-sm hover:shadow-md"
+                      className="p-5 rounded-2xl bg-white border-2 border-blue-400 hover:border-blue-600 text-left transition-all group cursor-pointer shadow-sm hover:shadow-md"
                     >
-                      <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center mb-3 shadow-sm">
+                      <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center mb-3 shadow-sm">
                         <Video className="w-5 h-5" />
                       </div>
-                      <div className="font-black text-slate-900 text-sm group-hover:text-blue-700">
+                      <div className="font-bold text-[#1f2d2a] text-sm group-hover:text-blue-700">
                         Join Online (Google Meet)
                       </div>
-                      <p className="text-[11px] text-slate-500 mt-1">
+                      <p className="text-[11px] text-slate-600 mt-1 font-medium">
                         Opens official Google Meet. Records your login automatically as virtual attendee.
                       </p>
                     </button>
@@ -532,7 +532,7 @@ export const LeaderPortal: React.FC = () => {
                 <div className="pt-2">
                   <button
                     onClick={() => setShowInformedModal(true)}
-                    className="w-full py-3 px-4 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
+                    className="w-full py-3 px-4 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-950 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
                   >
                     <HelpCircle className="w-4 h-4 text-amber-700" />
                     <span>Cannot attend? Submit prior informed notice / leave</span>
