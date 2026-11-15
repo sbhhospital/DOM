@@ -453,12 +453,12 @@ export const UnifiedAdminDashboard: React.FC = () => {
       full_name: leader.full_name,
       email: leader.email,
       phone: leader.phone,
-      department_id: leader.department_id || '',
+      department_id: leader.department_id || leader.department?.id || '',
       employee_code: leader.employee_code || '',
       expected_mode: leader.expected_mode === 'VIRTUAL' ? 'VIRTUAL' : 'PHYSICAL',
       role: leader.role,
       is_active: leader.is_active ?? true,
-      initialPassword: '••••••',
+      initialPassword: '',
     });
     setFormError('');
     setFormSuccess('');
@@ -467,7 +467,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
   const handleDeleteLeader = async (id: string, name: string) => {
     if (window.confirm(`Are you sure you want to remove ${name} from hospital leadership list?`)) {
-      await deleteLeader(id);
+      const res = await deleteLeader(id);
+      if (!res.success) {
+        alert(res.message);
+      }
     }
   };
 
@@ -2558,10 +2561,12 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Initial Password</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    {editingLeader ? 'Change Password (Optional)' : 'Initial Password'}
+                  </label>
                   <input
                     type="text"
-                    placeholder="123456"
+                    placeholder={editingLeader ? 'Leave empty to keep current' : '123456'}
                     value={leaderForm.initialPassword}
                     onChange={(e) => setLeaderForm({ ...leaderForm, initialPassword: e.target.value })}
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-orange-500 font-mono"

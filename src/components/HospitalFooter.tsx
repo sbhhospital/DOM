@@ -25,7 +25,7 @@ export const HospitalFooter: React.FC = () => {
             </span>
           </a>
           <a
-            href="https://www.namanmishra.in"
+            href="https://namanmishra.in"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-1.5 no-underline mt-0.5 opacity-90 hover:opacity-100 text-white transition-opacity"
@@ -72,7 +72,7 @@ export const HospitalFooter: React.FC = () => {
           </a>
 
           <a
-            href="https://www.namanmishra.in"
+            href="https://namanmishra.in"
             target="_blank"
             rel="noopener noreferrer"
             className="flex flex-col text-right group no-underline hover:opacity-95 text-white transition-opacity"

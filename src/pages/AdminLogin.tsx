@@ -466,19 +466,6 @@ export const AdminLogin: React.FC = () => {
                 'LOGIN →'
               )}
             </button>
-
-            {/* Bottom Quick Access Row */}
-            <div className="pt-2 flex items-center justify-center text-xs border-t border-slate-100">
-              <a
-                href="https://meet.google.com/jrz-jfku-gir"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-emerald-600 hover:text-emerald-700 font-bold cursor-pointer transition-colors"
-              >
-                <Video className="w-3.5 h-3.5" />
-                <span>Google Meet Direct Standup Link</span>
-              </a>
-            </div>
           </form>
         </div>
       </div>

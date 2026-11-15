@@ -224,14 +224,14 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (saved) {
       try {
         const parsed: Leader[] = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length >= 24) {
+        if (Array.isArray(parsed)) {
           return parsed;
         }
       } catch (e) {
         console.warn('Error reading custom leaders cache:', e);
       }
     }
-    return INITIAL_LEADERS;
+    return [];
   });
 
   // Custom Meeting Schedules state (persisted)
@@ -272,7 +272,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         .select('*')
         .order('full_name', { ascending: true });
 
-      if (!error && supaLeaders && supaLeaders.length > 0) {
+      if (!error && supaLeaders) {
         const mapped = supaLeaders.map((lead: any) => {
           const dept = resolveLeaderDepartment(lead, departments);
           return {
@@ -293,7 +293,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (savedLeaders) {
         try {
           const parsed = JSON.parse(savedLeaders);
-          if (Array.isArray(parsed) && parsed.length > 0) {
+          if (Array.isArray(parsed)) {
             setLeaders(parsed);
             setIsLoading(false);
             return;
@@ -301,7 +301,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         } catch (e) {}
       }
 
-      setLeaders(INITIAL_LEADERS);
+      setLeaders([]);
     } catch (err) {
       console.warn('Error fetching leaders from Supabase:', err);
     } finally {
@@ -615,11 +615,11 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           return next;
         });
 
-        // Write directly to Supabase admin_audit_logs table
+        // Write to Supabase admin_audit_logs table with actor_id: null so foreign key does not block delete
         try {
           await supabase.from('admin_audit_logs').insert([
             {
-              actor_id: newLead.id,
+              actor_id: null,
               action: 'LEADER_CREATED',
               entity_type: 'LEADER',
               entity_id: newLead.id,
@@ -663,12 +663,14 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
     }
 
-    if (updates.initialPassword) {
-      localStorage.setItem(`sbh_user_pass_${id}`, updates.initialPassword);
+    if (updates.initialPassword && updates.initialPassword.trim() !== '' && updates.initialPassword !== '••••••') {
+      localStorage.setItem(`sbh_user_pass_${id}`, updates.initialPassword.trim());
     }
 
     const matchedDept = updates.department_id
-      ? departments.find((d) => d.id === updates.department_id || d.code === updates.department_id)
+      ? departments.find(
+          (d) => d.id === updates.department_id || d.code === updates.department_id || d.name === updates.department_id
+        )
       : undefined;
 
     if (matchedDept) {
@@ -693,22 +695,12 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       try {
         const { error: updErr } = await supabase.from('leaders').update(cleanDbUpdates).eq('id', id);
         if (updErr) {
-          console.warn('Supabase leader update error:', updErr);
-        } else {
-          try {
-            await supabase.from('admin_audit_logs').insert([
-              {
-                action: 'LEADER_UPDATED',
-                entity_type: 'LEADER',
-                entity_id: id,
-                reason: `Leader details updated in SQL database`,
-                after_data: cleanDbUpdates,
-              },
-            ]);
-          } catch (ae) {}
+          console.error('Supabase leader update error:', updErr);
+          return { success: false, message: `Database update error: ${updErr.message}` };
         }
-      } catch (e) {
-        console.warn('Supabase update warning:', e);
+      } catch (e: any) {
+        console.error('Supabase update warning:', e);
+        return { success: false, message: `Database update error: ${e.message || 'Failed to update'}` };
       }
     }
 
@@ -719,6 +711,9 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           ? {
               ...l,
               ...updates,
+              full_name: updates.full_name?.trim() || l.full_name,
+              phone: updates.phone?.trim() || l.phone,
+              employee_code: updates.employee_code?.trim() || l.employee_code,
               email: emailLower || l.email,
               department: matchedDept || l.department,
               department_id: updates.department_id || l.department_id,
@@ -739,6 +734,8 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
               leader: {
                 ...r.leader!,
                 ...updates,
+                full_name: updates.full_name?.trim() || r.leader?.full_name || '',
+                phone: updates.phone?.trim() || r.leader?.phone || '',
                 email: emailLower || r.leader?.email || '',
                 department: matchedDept || r.leader?.department,
                 department_id: updates.department_id || r.leader?.department_id,
@@ -754,25 +751,25 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const deleteLeader = async (id: string): Promise<{ success: boolean; message: string }> => {
     if (isUuid(id)) {
       try {
+        // Clean up any foreign key constraints before deleting leader
+        await supabase.from('admin_audit_logs').delete().eq('actor_id', id);
+        await supabase.from('attendance_records').delete().eq('leader_id', id);
+        await supabase.from('leave_requests').delete().eq('leader_id', id);
+        await supabase.from('departments').update({ head_leader_id: null }).eq('head_leader_id', id);
+
         const { error: delErr } = await supabase.from('leaders').delete().eq('id', id);
         if (delErr) {
-          console.warn('Supabase delete error:', delErr);
-        } else {
-          try {
-            await supabase.from('admin_audit_logs').insert([
-              {
-                action: 'LEADER_DELETED',
-                entity_type: 'LEADER',
-                entity_id: id,
-                reason: `Leader deleted from SQL database`,
-              },
-            ]);
-          } catch (ae) {}
+          console.error('Supabase delete error:', delErr);
+          return { success: false, message: `Database delete failed: ${delErr.message}` };
         }
-      } catch (e) {
-        console.warn('Supabase delete warning:', e);
+      } catch (e: any) {
+        console.error('Supabase delete warning:', e);
+        return { success: false, message: `Database error: ${e.message || 'Failed to delete'}` };
       }
     }
+
+    localStorage.removeItem(`sbh_user_pass_${id}`);
+    localStorage.removeItem(`sbh_leader_dept_${id}`);
 
     setLeaders((prev) => {
       const next = prev.filter((l) => l.id !== id);
@@ -780,7 +777,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return next;
     });
     setAttendanceRecords((prev) => prev.filter((r) => r.leader_id !== id));
-    return { success: true, message: 'Leader removed from roster and database.' };
+    return { success: true, message: 'Leader removed from roster and database successfully.' };
   };
 
   // ================= ATTENDANCE ACTIONS =================
