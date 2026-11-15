@@ -391,7 +391,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
   // Admin Credentials & Profile State (Stored in Supabase SQL)
   const [adminUsernameInput, setAdminUsernameInput] = useState(adminProfile?.username || 'admin');
-  const [adminFullNameInput, setAdminFullNameInput] = useState(adminProfile?.full_name || 'Administrator (Mr. Naman Mishra)');
+  const [adminFullNameInput, setAdminFullNameInput] = useState(adminProfile?.full_name || 'Administrator');
   const [isSavingAdmin, setIsSavingAdmin] = useState(false);
   const [oldPass, setOldPass] = useState('');
   const [newPass, setNewPass] = useState('');
@@ -401,7 +401,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
   useEffect(() => {
     if (showPasswordModal && adminProfile) {
       setAdminUsernameInput(adminProfile.username || 'admin');
-      setAdminFullNameInput(adminProfile.full_name || 'Administrator (Mr. Naman Mishra)');
+      setAdminFullNameInput(adminProfile.full_name || 'Administrator');
       setOldPass('');
       setNewPass('');
       setPassMsg(null);
@@ -892,12 +892,12 @@ export const UnifiedAdminDashboard: React.FC = () => {
         {/* Sidebar Footer with Admin Controls & Clean Logout */}
         <div className="p-3 border-t border-slate-200 bg-slate-50/70 space-y-2 shrink-0">
           <div className="flex items-center gap-2 px-2 py-1 text-slate-800 text-[11px]">
-            <div className="w-6 h-6 rounded-full bg-orange-600 text-white flex items-center justify-center text-[10px] font-black shrink-0 shadow-xs">
-              NM
+            <div className="w-6 h-6 rounded-full bg-slate-900 text-white flex items-center justify-center text-[10px] font-black shrink-0 shadow-xs">
+              <Shield className="w-3.5 h-3.5 text-emerald-400" />
             </div>
             <div className="overflow-hidden">
               <div className="truncate font-black text-slate-900 leading-tight">
-                {adminProfile?.full_name || adminName || 'Administrator (Mr. Naman Mishra)'}
+                {adminProfile?.full_name || 'Administrator'}
               </div>
               <div className="text-[10px] text-emerald-600 font-bold flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping inline-block" />

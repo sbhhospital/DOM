@@ -60,8 +60,8 @@ export const AuthSessionProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
     return {
       username: 'admin',
-      full_name: 'Administrator (Mr. Naman Mishra)',
-      display_name: 'Mr. Naman Mishra',
+      full_name: 'Administrator',
+      display_name: 'Administrator',
       email: 'it.head@sbhhospital.com',
       role: 'ADMIN',
     };
@@ -87,7 +87,7 @@ export const AuthSessionProvider: React.FC<{ children: React.ReactNode }> = ({ c
     return localStorage.getItem('sbh_admin_username') || 'admin';
   });
   const [adminName, setAdminName] = useState<string>(() => {
-    return localStorage.getItem('sbh_admin_fullname') || 'Administrator (Mr. Naman Mishra)';
+    return localStorage.getItem('sbh_admin_fullname') || 'Administrator';
   });
 
   // User / Leader Session State
@@ -111,8 +111,8 @@ export const AuthSessionProvider: React.FC<{ children: React.ReactNode }> = ({ c
         const after = data[0].after_data;
         const profile: AdminProfile = {
           username: after.username || 'admin',
-          full_name: after.full_name || 'Administrator (Mr. Naman Mishra)',
-          display_name: after.display_name || after.full_name || 'Mr. Naman Mishra',
+          full_name: after.full_name || 'Administrator',
+          display_name: after.display_name || after.full_name || 'Administrator',
           email: after.email || 'it.head@sbhhospital.com',
           password: after.password || 'Naman@123',
           role: after.role || 'ADMIN',
@@ -133,8 +133,8 @@ export const AuthSessionProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
     const fallback: AdminProfile = {
       username: localStorage.getItem('sbh_admin_username') || 'admin',
-      full_name: localStorage.getItem('sbh_admin_fullname') || 'Administrator (Mr. Naman Mishra)',
-      display_name: 'Mr. Naman Mishra',
+      full_name: localStorage.getItem('sbh_admin_fullname') || 'Administrator',
+      display_name: 'Administrator',
       email: 'it.head@sbhhospital.com',
       password: localStorage.getItem('sbh_admin_password') || 'Naman@123',
       role: 'ADMIN',
@@ -197,11 +197,11 @@ export const AuthSessionProvider: React.FC<{ children: React.ReactNode }> = ({ c
     if (pass === currentPass) {
       setIsAdminAuthenticated(true);
       setAdminUsername(liveProf.username || 'admin');
-      setAdminName(liveProf.full_name || 'Administrator (Mr. Naman Mishra)');
+      setAdminName(liveProf.full_name || 'Administrator');
       const now = Date.now().toString();
       localStorage.setItem('sbh_admin_logged_in', 'true');
       localStorage.setItem('sbh_admin_username', liveProf.username || 'admin');
-      localStorage.setItem('sbh_admin_fullname', liveProf.full_name || 'Administrator (Mr. Naman Mishra)');
+      localStorage.setItem('sbh_admin_fullname', liveProf.full_name || 'Administrator');
       localStorage.setItem('sbh_admin_login_time', now);
       return { success: true, message: 'Admin login successful!' };
     }
@@ -256,8 +256,8 @@ export const AuthSessionProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
 
     const nextUsername = updates.username?.trim() || liveProf.username || 'admin';
-    const nextFullName = updates.full_name?.trim() || liveProf.full_name || 'Administrator (Mr. Naman Mishra)';
-    const nextDisplayName = updates.display_name?.trim() || liveProf.display_name || 'Mr. Naman Mishra';
+    const nextFullName = updates.full_name?.trim() || liveProf.full_name || 'Administrator';
+    const nextDisplayName = updates.display_name?.trim() || liveProf.display_name || 'Administrator';
     const nextEmail = updates.email?.trim() || liveProf.email || 'it.head@sbhhospital.com';
     const nextPassword = updates.newPass && updates.newPass.trim().length >= 4 ? updates.newPass.trim() : currentPass;
 
