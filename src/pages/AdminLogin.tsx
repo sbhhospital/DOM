@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Eye,
@@ -21,6 +21,7 @@ import {
   AlertTriangle,
   X,
   ExternalLink,
+  Copy,
 } from 'lucide-react';
 import { useAuthSession } from '../context/AuthSessionContext';
 import { useDomApp } from '../context/DomAppContext';
@@ -69,6 +70,11 @@ export const AdminLogin: React.FC = () => {
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [loggedInName, setLoggedInName] = useState('');
 
+  const showToast = useCallback((msg: string) => {
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(''), 4000);
+  }, []);
+
   // Google Authenticator States
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [showGoogleProviderSetupModal, setShowGoogleProviderSetupModal] = useState(false);
@@ -79,6 +85,39 @@ export const AdminLogin: React.FC = () => {
     attemptedEmail: string;
     reason: string;
   }>({ isOpen: false, attemptedEmail: '', reason: '' });
+
+  // Handle Browser Back Button / Cancel / BFCache restoration so button never stays spinning
+  useEffect(() => {
+    const handleNavigationRestore = () => {
+      setIsGoogleLoading(false);
+
+      const isAuthCallback =
+        window.location.hash.includes('access_token') ||
+        window.location.search.includes('code=') ||
+        window.location.search.includes('error=');
+
+      if (!isAuthCallback && sessionStorage.getItem('sbh_google_auth_in_progress')) {
+        sessionStorage.removeItem('sbh_google_auth_in_progress');
+        showToast('⚠️ Google Sign-In cancelled.');
+      }
+    };
+
+    // Fired when returning via browser Back / Forward buttons (including bfcache)
+    window.addEventListener('pageshow', handleNavigationRestore);
+    // Fired when tab regains focus (e.g. user navigated back or switched back from cancelled page)
+    window.addEventListener('focus', handleNavigationRestore);
+    // Fired on history navigation
+    window.addEventListener('popstate', handleNavigationRestore);
+
+    // Initial check on mount
+    handleNavigationRestore();
+
+    return () => {
+      window.removeEventListener('pageshow', handleNavigationRestore);
+      window.removeEventListener('focus', handleNavigationRestore);
+      window.removeEventListener('popstate', handleNavigationRestore);
+    };
+  }, [showToast]);
 
   // Listen for real Google OAuth Callback from Supabase / Browser session
   useEffect(() => {
@@ -91,6 +130,8 @@ export const AdminLogin: React.FC = () => {
         } = await supabase.auth.getSession();
 
         if (session?.user?.email) {
+          sessionStorage.removeItem('sbh_google_auth_in_progress');
+          setIsGoogleLoading(false);
           const userEmail = session.user.email.toLowerCase().trim();
           handleVerifyGoogleEmail(userEmail);
         }
@@ -105,6 +146,8 @@ export const AdminLogin: React.FC = () => {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user?.email) {
+        sessionStorage.removeItem('sbh_google_auth_in_progress');
+        setIsGoogleLoading(false);
         const userEmail = session.user.email.toLowerCase().trim();
         handleVerifyGoogleEmail(userEmail);
       }
@@ -164,6 +207,9 @@ export const AdminLogin: React.FC = () => {
 
   // Verify Real Google Account against Hospital Leadership Database
   const handleVerifyGoogleEmail = (emailClean: string) => {
+    setIsGoogleLoading(false);
+    sessionStorage.removeItem('sbh_google_auth_in_progress');
+
     const email = (emailClean || '').trim().toLowerCase();
     if (!email) return;
 
@@ -219,9 +265,16 @@ export const AdminLogin: React.FC = () => {
   const handleLaunchRealGoogleAuth = async () => {
     setIsGoogleLoading(true);
     setErrorMsg('');
+    sessionStorage.setItem('sbh_google_auth_in_progress', '1');
+
+    // Auto-timeout safeguard: never let button spin indefinitely (stops after 12s if user is still on page)
+    const timeoutId = window.setTimeout(() => {
+      setIsGoogleLoading(false);
+      sessionStorage.removeItem('sbh_google_auth_in_progress');
+    }, 12000);
 
     try {
-      // 1. Trigger Supabase Google OAuth (Opens real Google Account Permission)
+      // 1. Trigger Supabase Google OAuth (Generates real Google Account OAuth authorization URL)
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -240,12 +293,16 @@ export const AdminLogin: React.FC = () => {
       }
 
       if (error) {
+        clearTimeout(timeoutId);
         setIsGoogleLoading(false);
+        sessionStorage.removeItem('sbh_google_auth_in_progress');
         console.warn('Supabase Google OAuth status:', error.message);
         setShowGoogleProviderSetupModal(true);
       }
     } catch (err: any) {
+      clearTimeout(timeoutId);
       setIsGoogleLoading(false);
+      sessionStorage.removeItem('sbh_google_auth_in_progress');
       console.warn('Google sign in note:', err);
       setShowGoogleProviderSetupModal(true);
     }
@@ -264,11 +321,6 @@ export const AdminLogin: React.FC = () => {
       (adminProfile.display_name && adminProfile.display_name.toLowerCase().includes(q))
     );
   }, [usernameInput, adminProfile]);
-
-  const showToast = (msg: string) => {
-    setToastMsg(msg);
-    setTimeout(() => setToastMsg(''), 4000);
-  };
 
   // Submit Handler
   const handleSubmit = async (e: React.FormEvent) => {
@@ -675,13 +727,24 @@ export const AdminLogin: React.FC = () => {
             )}
             <span>{isGoogleLoading ? 'Connecting with Google...' : 'Sign in with Google Authenticator'}</span>
           </button>
+
+          <div className="flex items-center justify-between px-1 mt-2 text-[10px] text-slate-400 font-medium">
+            <span>Hospital Verified Google Sign-In</span>
+            <button
+              type="button"
+              onClick={() => setShowGoogleProviderSetupModal(true)}
+              className="text-emerald-700 hover:text-emerald-900 font-bold underline cursor-pointer"
+            >
+              How to enable Google Auth?
+            </button>
+          </div>
         </div>
       </div>
 
       {/* ================= MODAL: GOOGLE OAUTH PROVIDER SETUP (Shown when Supabase provider toggle is needed) ================= */}
       {showGoogleProviderSetupModal && (
         <div className="fixed inset-0 flex items-center justify-center z-[35000] bg-slate-950/70 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-in fade-in zoom-in duration-150">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 animate-in fade-in zoom-in duration-150 max-h-[90vh] overflow-y-auto">
             {/* Google Brand Header */}
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2.5">
@@ -704,7 +767,7 @@ export const AdminLogin: React.FC = () => {
                   />
                 </svg>
                 <div>
-                  <h3 className="text-sm font-black text-slate-900">Google OAuth Permission</h3>
+                  <h3 className="text-sm font-black text-slate-900">Google OAuth Provider Setup</h3>
                   <p className="text-[11px] text-slate-500">Live Browser Google Account Authentication</p>
                 </div>
               </div>
@@ -719,50 +782,79 @@ export const AdminLogin: React.FC = () => {
 
             <div className="py-4 space-y-3.5 text-left">
               <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-[11px] text-amber-900 font-medium">
-                🔑 <strong>Browser Google Account Permission:</strong> Real Google login requires enabling the Google Provider inside your Supabase project (1-time setup).
+                🔑 <strong>Supabase Google Provider Setting (1-Time):</strong>
+                <p className="mt-1 text-[10px] text-amber-800">
+                  Jab tak Supabase dashboard me Google Provider toggle ON nahi hoga, tab tak Supabase server <code>400 Unsupported provider</code> return karta hai. Isko ON karne ke 2 aasan steps hain:
+                </p>
               </div>
 
-              <div className="space-y-2 text-xs text-slate-600">
-                <div className="flex items-start gap-2">
-                  <span className="w-5 h-5 rounded-full bg-slate-900 text-white text-[10px] font-black flex items-center justify-center shrink-0">
-                    1
-                  </span>
-                  <span>
-                    Open <strong>Supabase Dashboard &gt; Authentication &gt; Providers &gt; Google</strong>.
-                  </span>
+              <div className="space-y-3 text-xs text-slate-600">
+                <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] font-black flex items-center justify-center shrink-0">
+                      1
+                    </span>
+                    <strong className="text-slate-900">Google Cloud Console me OAuth Client ID:</strong>
+                  </div>
+                  <p className="text-[11px] text-slate-600 pl-7 leading-relaxed">
+                    <strong>APIs & Services &gt; Credentials &gt; Create Credentials &gt; OAuth client ID</strong> (Web Application).
+                  </p>
+                  <div className="pl-7 space-y-1">
+                    <div className="text-[10px] font-bold text-slate-700">Authorized Redirect URI:</div>
+                    <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg p-1.5">
+                      <code className="text-[10px] text-slate-800 font-mono select-all flex-1 break-all">
+                        https://bbykxaxndzkapdjdgeap.supabase.co/auth/v1/callback
+                      </code>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText('https://bbykxaxndzkapdjdgeap.supabase.co/auth/v1/callback');
+                          showToast('✓ Redirect URI copied to clipboard!');
+                        }}
+                        className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[10px] font-bold shrink-0 cursor-pointer flex items-center gap-1"
+                      >
+                        <Copy className="w-3 h-3" />
+                        <span>Copy</span>
+                      </button>
+                    </div>
+                  </div>
+                  <div className="pl-7 pt-1">
+                    <a
+                      href="https://console.cloud.google.com/apis/credentials"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:text-blue-800 underline"
+                    >
+                      Open Google Cloud Console ↗
+                    </a>
+                  </div>
                 </div>
-                <div className="flex items-start gap-2">
-                  <span className="w-5 h-5 rounded-full bg-slate-900 text-white text-[10px] font-black flex items-center justify-center shrink-0">
-                    2
-                  </span>
-                  <span>
-                    Toggle <strong>Google ON</strong> and paste your Google Cloud Client ID & Secret.
-                  </span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="w-5 h-5 rounded-full bg-slate-900 text-white text-[10px] font-black flex items-center justify-center shrink-0">
-                    3
-                  </span>
-                  <span>
-                    Add Redirect Callback:{' '}
-                    <code className="text-[10px] bg-slate-100 text-slate-800 p-1 rounded font-mono break-all block mt-0.5">
-                      https://bbykxaxndzkapdjdgeap.supabase.co/auth/v1/callback
-                    </code>
-                  </span>
+
+                <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-emerald-600 text-white text-[10px] font-black flex items-center justify-center shrink-0">
+                      2
+                    </span>
+                    <strong className="text-slate-900">Supabase me Google Toggle ON karein:</strong>
+                  </div>
+                  <p className="text-[11px] text-slate-600 pl-7 leading-relaxed">
+                    Supabase Project &gt; <strong>Authentication &gt; Providers &gt; Google</strong> me toggle <strong>ON</strong> karein, Google Cloud se mila <strong>Client ID</strong> aur <strong>Client Secret</strong> paste karein aur <strong>Save</strong> karein.
+                  </p>
+                  <div className="pl-7 pt-1">
+                    <a
+                      href="https://supabase.com/dashboard/project/bbykxaxndzkapdjdgeap/auth/providers"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold shadow-xs cursor-pointer"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span>Open Supabase Auth Providers ↗</span>
+                    </a>
+                  </div>
                 </div>
               </div>
 
               <div className="pt-2 flex flex-col gap-2">
-                <a
-                  href="https://supabase.com/dashboard/project/bbykxaxndzkapdjdgeap/auth/providers"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="w-full py-2.5 bg-gradient-to-r from-emerald-600 to-green-700 hover:from-emerald-500 hover:to-green-600 text-white rounded-xl text-xs font-black shadow-md flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <ExternalLink className="w-4 h-4" />
-                  <span>Open Supabase Auth Providers Dashboard ↗</span>
-                </a>
-
                 {/* Instant Test Prompt to verify Account Not Found modal */}
                 <button
                   type="button"
@@ -775,7 +867,7 @@ export const AdminLogin: React.FC = () => {
                   }}
                   className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer"
                 >
-                  Test Google Account Verification
+                  Test Google Account Verification Directly
                 </button>
               </div>
             </div>
