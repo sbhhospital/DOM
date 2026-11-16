@@ -462,20 +462,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [departments, setDepartments] = useState<Department[]>(INITIAL_DEPARTMENTS);
 
   // 100% Real Leaders Master State (Directly loaded from Supabase database)
-  const [leaders, setLeaders] = useState<Leader[]>(() => {
-    const saved = localStorage.getItem('sbh_custom_leaders');
-    if (saved) {
-      try {
-        const parsed: Leader[] = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
-        }
-      } catch (e) {
-        console.warn('Error reading custom leaders cache:', e);
-      }
-    }
-    return INITIAL_LEADERS;
-  });
+  const [leaders, setLeaders] = useState<Leader[]>(INITIAL_LEADERS);
 
   // Meeting Schedules & Attendance Records state (Stored 100% in Supabase SQL Database, Zero LocalStorage dependency)
   const [meetingSchedules, setMeetingSchedules] = useState<Record<string, MeetingSchedule>>({});
@@ -565,8 +552,9 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         .select('*')
         .order('full_name', { ascending: true });
 
-      if (!error && supaLeaders) {
-        const mapped = supaLeaders.map((lead: any) => {
+      let mappedLeaders: Leader[] = INITIAL_LEADERS;
+      if (!error && supaLeaders && supaLeaders.length > 0) {
+        mappedLeaders = supaLeaders.map((lead: any) => {
           const dept = liveDepts.find((d) => d.id === lead.department_id) || resolveLeaderDepartment(lead, liveDepts);
           return {
             ...lead,
@@ -576,8 +564,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           } as Leader;
         });
 
-        setLeaders(mapped);
-        localStorage.setItem('sbh_custom_leaders', JSON.stringify(mapped));
+        setLeaders(mappedLeaders);
       }
 
       // 2. Fetch live meeting schedules (date, scheduled time, cadence, google meet) from Supabase table
@@ -608,7 +595,20 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const attMap = new Map<string, AttendanceRecord>();
         attLogs.forEach((log) => {
           if (log.after_data && (log.after_data as any).id) {
-            attMap.set((log.after_data as any).id, log.after_data as AttendanceRecord);
+            const rawRec = log.after_data as AttendanceRecord;
+            const matchedLeader = mappedLeaders.find((l) => l.id === rawRec.leader_id || l.id === rawRec.leader?.id);
+            const isApproved = Boolean(rawRec.admin_verified_attendance || rawRec.verification_status === 'VERIFIED');
+            const isRejected = rawRec.verification_status === 'REJECTED';
+
+            const cleanRec: AttendanceRecord = {
+              ...rawRec,
+              leader_id: matchedLeader ? matchedLeader.id : rawRec.leader_id,
+              leader: matchedLeader || rawRec.leader,
+              status: isApproved ? 'PRESENT' : isRejected ? 'ABSENT' : rawRec.status,
+              verification_status: isApproved ? 'VERIFIED' : isRejected ? 'REJECTED' : rawRec.verification_status,
+              admin_verified_attendance: isApproved,
+            };
+            attMap.set(cleanRec.id, cleanRec);
           }
         });
         setAttendanceRecords(Array.from(attMap.values()));
@@ -621,16 +621,13 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   useEffect(() => {
-    // Clean up local storage: do NOT store meeting schedules, attendance records, or departments in localStorage
+    // Clean up local storage: do NOT store meeting schedules, attendance records, leaders, or departments in localStorage
     localStorage.removeItem('sbh_meeting_schedules');
     localStorage.removeItem('sbh_real_attendance_records');
     localStorage.removeItem('sbh_hospital_departments');
+    localStorage.removeItem('sbh_custom_leaders');
     loadDataFromSupabase();
   }, []);
-
-  useEffect(() => {
-    localStorage.setItem('sbh_custom_leaders', JSON.stringify(leaders));
-  }, [leaders]);
 
   // Meeting Schedule Helper (DOM, WOM, MOM, HOLIDAY)
   const getMeetingForDate = (date: string): MeetingSchedule => {
@@ -727,10 +724,15 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         .map((r) => {
           const matchedLead = activeLeaders.find((l) => l.id === r.leader_id || l.id === r.leader?.id);
           if (matchedLead) {
+            const isApproved = Boolean(r.admin_verified_attendance || r.verification_status === 'VERIFIED');
+            const isRejected = r.verification_status === 'REJECTED';
             return {
               ...r,
               leader_id: matchedLead.id,
               leader: matchedLead,
+              status: isApproved ? 'PRESENT' : isRejected ? 'ABSENT' : r.status,
+              verification_status: isApproved ? 'VERIFIED' : isRejected ? 'REJECTED' : r.verification_status,
+              admin_verified_attendance: isApproved,
             };
           }
           return r;
@@ -1534,8 +1536,10 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           const lateStr = r.late_minutes && r.late_minutes > 0 ? ` (+${r.late_minutes}m)` : '';
           const updated: AttendanceRecord = {
             ...r,
+            status: 'PRESENT',
             admin_verified_attendance: true,
             verification_status: 'VERIFIED',
+            selected_mode: r.selected_mode === 'NONE' ? 'VIRTUAL' : r.selected_mode,
             verified_at: nowIso,
             updated_at: nowIso,
             verification_note: `Approved by Admin${lateStr} at ${new Date(nowIso).toLocaleTimeString()}`,
@@ -1573,8 +1577,10 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           const lateStr = r.late_minutes && r.late_minutes > 0 ? ` (+${r.late_minutes}m)` : '';
           const updated: AttendanceRecord = {
             ...r,
+            status: 'PRESENT',
             admin_verified_attendance: true,
             verification_status: 'VERIFIED',
+            selected_mode: r.selected_mode === 'NONE' ? 'VIRTUAL' : r.selected_mode,
             verified_at: nowIso,
             updated_at: nowIso,
             verification_note: `Approved by Admin${lateStr} at ${new Date(nowIso).toLocaleTimeString()}`,
@@ -2103,16 +2109,47 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // ================= PDF EXPORTS =================
 
+  const getFullRosterForDate = (date: string): AttendanceRecord[] => {
+    const meeting = getMeetingForDate(date);
+    const activeLeaders = leaders.filter((l) => l.is_active !== false);
+    const existingForDate = attendanceRecords.filter((r) => r.meeting_date === date);
+    const existingMap = new Map<string, AttendanceRecord>();
+    existingForDate.forEach((r) => existingMap.set(r.leader_id, r));
+
+    return activeLeaders.map((lead) => {
+      const existing = existingMap.get(lead.id);
+      if (existing) {
+        return {
+          ...existing,
+          leader: lead, // Always re-bind to live leader & official 24-department
+        };
+      }
+      return {
+        id: `att-${date}-${lead.id}`,
+        meeting_id: meeting.id,
+        meeting_date: date,
+        meeting_frequency: meeting.frequency,
+        cadence: meeting.cadence,
+        leader_id: lead.id,
+        leader: lead,
+        selected_mode: 'NONE',
+        status: 'ABSENT',
+        verification_status: 'PENDING',
+        admin_verified_attendance: false,
+      };
+    });
+  };
+
   const downloadPdfReport = (date: string) => {
     const meeting = getMeetingForDate(date);
-    const records = attendanceRecords.filter((r) => r.meeting_date === date);
-    downloadDirectorPdf(meeting, records, appSettings);
+    const fullRecords = getFullRosterForDate(date);
+    downloadDirectorPdf(meeting, fullRecords, appSettings);
   };
 
   const openPdfReport = (date: string) => {
     const meeting = getMeetingForDate(date);
-    const records = attendanceRecords.filter((r) => r.meeting_date === date);
-    openDirectorPdfInNewTab(meeting, records, appSettings);
+    const fullRecords = getFullRosterForDate(date);
+    openDirectorPdfInNewTab(meeting, fullRecords, appSettings);
   };
 
   const downloadMonthlyPdfReport = (monthYearStr: string) => {

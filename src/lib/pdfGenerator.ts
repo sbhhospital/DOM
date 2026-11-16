@@ -87,16 +87,25 @@ export function generateDirectorPdf(
   // 4. Executive Summary KPI Metric Cards
   const totalLeaders = records.length;
   const approvedPresent = records.filter(
-    (r) => r.admin_verified_attendance && (r.status === 'PRESENT' || r.status === 'INFORMED_LATE')
+    (r) =>
+      (r.admin_verified_attendance || r.verification_status === 'VERIFIED') &&
+      r.status !== 'ABSENT' &&
+      r.verification_status !== 'REJECTED'
   ).length;
   const pendingApproval = records.filter(
     (r) =>
       !r.admin_verified_attendance &&
-      (r.status === 'PRESENT' || r.status === 'INFORMED_LATE' || r.selected_mode !== 'NONE')
+      r.verification_status !== 'VERIFIED' &&
+      r.verification_status !== 'REJECTED' &&
+      (r.status === 'PRESENT' || r.status === 'INFORMED_LATE' || r.selected_mode === 'PHYSICAL' || r.selected_mode === 'VIRTUAL')
   ).length;
   const approvedLeave = records.filter((r) => r.status === 'LEAVE' || r.status === 'INFORMED_ABSENT').length;
   const absentCount = records.filter(
-    (r) => (r.status === 'ABSENT' || (r.status === 'PENDING' && r.selected_mode === 'NONE')) && !r.admin_verified_attendance
+    (r) =>
+      !r.admin_verified_attendance &&
+      r.verification_status !== 'VERIFIED' &&
+      r.status !== 'PRESENT' &&
+      (r.status === 'ABSENT' || r.verification_status === 'REJECTED' || (r.status === 'PENDING' && r.selected_mode === 'NONE'))
   ).length;
 
   const cardWidth = (pageWidth - margin * 2 - 12) / 4; // 4 KPI cards
@@ -280,7 +289,11 @@ export function generateDirectorPdf(
   }
 
   const absentees = records.filter(
-    (r) => r.status === 'ABSENT' || (r.status === 'PENDING' && r.selected_mode === 'NONE')
+    (r) =>
+      !r.admin_verified_attendance &&
+      r.verification_status !== 'VERIFIED' &&
+      r.status !== 'PRESENT' &&
+      (r.status === 'ABSENT' || r.verification_status === 'REJECTED' || (r.status === 'PENDING' && r.selected_mode === 'NONE'))
   );
 
   afterTableY += 8;

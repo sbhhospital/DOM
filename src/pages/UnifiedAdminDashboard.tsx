@@ -51,7 +51,7 @@ import {
 import { useDomApp } from '../context/DomAppContext';
 import { useAuthSession } from '../context/AuthSessionContext';
 import { useNavigate } from 'react-router-dom';
-import { Leader, Department, AttendanceStatus, MeetingFrequency, CadenceType } from '../types/database';
+import { Leader, Department, AttendanceStatus, MeetingFrequency, CadenceType, AttendanceRecord } from '../types/database';
 import { getCadenceInfo } from '../lib/meetingUtils';
 import { MeetingCalendarView } from '../components/MeetingCalendarView';
 import { AnalyticsReportsView } from '../components/AnalyticsReportsView';
@@ -419,53 +419,63 @@ export const UnifiedAdminDashboard: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
 
+  // Helper functions for Attendance Classification (strictly mutually exclusive)
+  const isPresentRecord = (r: AttendanceRecord) =>
+    (Boolean(r.admin_verified_attendance) || r.verification_status === 'VERIFIED' || r.status === 'PRESENT') &&
+    r.status !== 'ABSENT' &&
+    r.verification_status !== 'REJECTED';
+
+  const isPhysicalRecord = (r: AttendanceRecord) =>
+    isPresentRecord(r) && r.selected_mode === 'PHYSICAL';
+
+  const isVirtualRecord = (r: AttendanceRecord) =>
+    isPresentRecord(r) && r.selected_mode === 'VIRTUAL';
+
+  const isLateRecord = (r: AttendanceRecord) =>
+    r.status === 'INFORMED_LATE' || ((r.late_minutes ?? 0) > 0 && isPresentRecord(r));
+
+  const isLeaveRecord = (r: AttendanceRecord) =>
+    r.status === 'LEAVE' || r.status === 'INFORMED_ABSENT';
+
+  const isAbsentRecord = (r: AttendanceRecord) =>
+    !isPresentRecord(r) &&
+    !isLeaveRecord(r) &&
+    (r.status === 'ABSENT' || r.verification_status === 'REJECTED' || (r.status === 'PENDING' && r.selected_mode === 'NONE'));
+
   // Filter records for the selected date
   const recordsForDate = attendanceRecords.filter((r) => r.meeting_date === selectedDate);
   const filteredRecords = recordsForDate.filter((r) => {
     const nameMatch =
-      r.leader?.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      r.leader?.department?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      r.leader?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      r.leader?.department?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (r.leader?.employee_code && r.leader.employee_code.toLowerCase().includes(searchTerm.toLowerCase()));
     const statusMatch =
       statusFilter === 'ALL'
         ? true
         : statusFilter === 'PRESENT'
-          ? (r.selected_mode === 'PHYSICAL' && (r.status === 'PRESENT' || r.admin_verified_attendance)) ||
-            (r.selected_mode === 'VIRTUAL' && r.status === 'PRESENT') ||
-            r.status === 'PRESENT' ||
-            Boolean(r.admin_verified_attendance)
+          ? isPresentRecord(r)
           : statusFilter === 'PHYSICAL'
-            ? r.selected_mode === 'PHYSICAL' && (r.status === 'PRESENT' || r.admin_verified_attendance)
+            ? isPhysicalRecord(r)
             : statusFilter === 'VIRTUAL'
-              ? r.selected_mode === 'VIRTUAL' && r.status === 'PRESENT'
+              ? isVirtualRecord(r)
               : statusFilter === 'INFORMED_LATE'
-                ? r.status === 'INFORMED_LATE'
+                ? isLateRecord(r)
                 : statusFilter === 'LEAVE' || statusFilter === 'INFORMED_ABSENT'
-                  ? r.status === 'INFORMED_ABSENT' || r.status === 'LEAVE'
+                  ? isLeaveRecord(r)
                   : statusFilter === 'ABSENT'
-                    ? r.status === 'ABSENT' || (r.status === 'PENDING' && r.selected_mode === 'NONE')
+                    ? isAbsentRecord(r)
                     : r.status === statusFilter;
     return nameMatch && statusMatch;
   });
 
   // Calculate live statistics
   const totalLeaders = leaders.length;
-  const countPresent = recordsForDate.filter(
-    (r) =>
-      (r.selected_mode === 'PHYSICAL' && (r.status === 'PRESENT' || r.admin_verified_attendance)) ||
-      (r.selected_mode === 'VIRTUAL' && r.status === 'PRESENT') ||
-      r.status === 'PRESENT' ||
-      Boolean(r.admin_verified_attendance)
-  ).length;
-  const countPhysical = recordsForDate.filter(
-    (r) => r.selected_mode === 'PHYSICAL' && (r.status === 'PRESENT' || r.admin_verified_attendance)
-  ).length;
-  const countVirtual = recordsForDate.filter((r) => r.selected_mode === 'VIRTUAL' && r.status === 'PRESENT').length;
-  const countLate = recordsForDate.filter((r) => r.status === 'INFORMED_LATE' && r.late_approved_by_admin).length;
-  const countInformed = recordsForDate.filter((r) => r.status === 'INFORMED_ABSENT' || r.status === 'LEAVE').length;
-  const countAbsent = recordsForDate.filter(
-    (r) => r.status === 'ABSENT' || (r.status === 'PENDING' && r.selected_mode === 'NONE')
-  ).length;
+  const countPresent = recordsForDate.filter(isPresentRecord).length;
+  const countPhysical = recordsForDate.filter(isPhysicalRecord).length;
+  const countVirtual = recordsForDate.filter(isVirtualRecord).length;
+  const countLate = recordsForDate.filter(isLateRecord).length;
+  const countInformed = recordsForDate.filter(isLeaveRecord).length;
+  const countAbsent = recordsForDate.filter(isAbsentRecord).length;
   const turnoutPercent = totalLeaders > 0 ? Math.round((countPresent / totalLeaders) * 100) : 0;
 
   // Handle Leader Add / Edit Submit with Loading Animation
@@ -1278,16 +1288,16 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
           {/* ================= TAB 1: ATTENDANCE REGISTER ================= */}
           {activeTab === 'attendance' && (
-            <div className="space-y-3.5">
-              {/* Sleek High-Density Enterprise Command Center */}
-              <div className="bg-white rounded-2xl border border-[#dcdcdc] shadow-xs p-3 sm:p-3.5 relative overflow-hidden">
+            <div className="space-y-4">
+              {/* Executive Command Center */}
+              <div className="bg-white rounded-2xl border border-[#dcdcdc] shadow-xs relative overflow-hidden">
                 <div className="h-1.5 w-full bg-gradient-to-r from-emerald-500 via-teal-500 to-indigo-600 absolute top-0 left-0" />
 
-                <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-3 pt-0.5">
-                  {/* Left: Meeting Cadence & Time Info */}
-                  <div className="flex items-center gap-3">
+                {/* Row 1: Meeting Cadence, Title, Time, Meet Link & Header Actions */}
+                <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3.5">
                     <div
-                      className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-white shadow-xs text-xs shrink-0 ${
+                      className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-white shadow-sm text-sm shrink-0 ${
                         currentCadence === 'MOM'
                           ? 'bg-purple-600'
                           : currentCadence === 'WOM'
@@ -1300,22 +1310,22 @@ export const UnifiedAdminDashboard: React.FC = () => {
                       {currentCadence}
                     </div>
                     <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 bg-[#cfead6] border border-[#2e7d32]/20 px-2 py-0.5 rounded-full">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 bg-[#cfead6] border border-[#2e7d32]/25 px-2.5 py-0.5 rounded-full">
                           {currentCadence === 'MOM' && 'MOM Strategic'}
                           {currentCadence === 'WOM' && 'WOM Review'}
-                          {currentCadence === 'DOM' && 'DOM Standup'}
+                          {currentCadence === 'DOM' && 'DOM — Daily Operations Standup'}
                           {currentCadence === 'HOLIDAY' && 'Holiday'}
                         </span>
-                        <h2 className="text-base sm:text-lg font-bold text-[#1f2d2a] tracking-tight">{currentMeeting.title}</h2>
                         {currentMeeting.is_holiday_or_shifted && (
                           <span className="text-[10px] bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded-full border border-amber-300 flex items-center gap-1">
                             <AlertTriangle className="w-3 h-3 text-amber-600" /> Shifted
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 mt-0.5 text-xs flex-wrap">
-                        <span className="inline-flex items-center gap-1 font-bold text-[#1f2d2a] font-mono text-[11px]">
+                      <h2 className="text-lg sm:text-xl font-black text-[#1f2d2a] tracking-tight">{currentMeeting.title}</h2>
+                      <div className="flex items-center gap-2.5 mt-1 text-xs text-slate-500 flex-wrap">
+                        <span className="inline-flex items-center gap-1 font-bold text-[#1f2d2a] font-mono text-xs">
                           <Clock className="w-3.5 h-3.5 text-[#2e7d32]" />
                           Scheduled: {currentMeeting.scheduled_time}
                         </span>
@@ -1324,87 +1334,18 @@ export const UnifiedAdminDashboard: React.FC = () => {
                           href={currentMeeting.google_meet_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-700 hover:text-blue-800 font-bold flex items-center gap-1 transition-colors text-[11px]"
+                          className="text-blue-700 hover:text-blue-800 font-bold flex items-center gap-1 transition-colors text-xs"
                         >
                           <Video className="w-3.5 h-3.5 text-blue-600" />
                           <span>Meet Link</span>
                         </a>
                         <span className="text-slate-300">•</span>
-                        <span className="text-slate-500 text-[11px]">Venue: 5th Floor Conf.</span>
+                        <span className="text-slate-600 font-medium text-xs">Venue: {appSettings.conference_room_name}</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Center: Live Digital IST Clock & Countdown Pill */}
-                  <div className="flex items-center gap-2.5 bg-[#1f2d2a] text-white px-3.5 py-1.5 rounded-xl shadow-xs border border-black/30 shrink-0">
-                    <div className="flex items-center gap-1.5 pr-2.5 border-r border-slate-700">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                      <span className="text-xs font-mono font-black text-emerald-300">{countdown.liveIndiaTime}</span>
-                      <span className="text-[9px] text-slate-400 uppercase font-semibold">IST</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-xs font-mono font-black">
-                      <span className="text-emerald-400">{countdown.hoursStr}h</span>
-                      <span className="text-slate-500">:</span>
-                      <span className="text-amber-400">{countdown.minsStr}m</span>
-                      <span className="text-slate-500">:</span>
-                      <span className="text-white">{countdown.secsStr}s</span>
-                    </div>
-                    <span className="text-[9px] font-bold bg-white/10 text-slate-200 px-2 py-0.5 rounded ml-1 hidden sm:inline">
-                      Target: {countdown.targetMilestone}
-                    </span>
-                  </div>
-
-                  {/* Right: Quick Action Buttons */}
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <button
-                      onClick={handleTriggerAutomatedTransmission}
-                      className="px-3 py-1.5 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
-                      title={`Broadcast 09:50 AM Alerts to WhatsApp Group and all ${leaders.length} registered leaders`}
-                    >
-                      <Zap className="w-3.5 h-3.5 text-yellow-200 fill-yellow-200" />
-                      <span>⚡ 09:50 AM Broadcast</span>
-                    </button>
-
-                    <button
-                      onClick={async () => {
-                        const res = await approveAllPendingRecords(selectedDate);
-                        setToastAlert({ type: 'success', text: res.message });
-                        setTimeout(() => setToastAlert(null), 5000);
-                      }}
-                      className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-[#2e7d32] border border-emerald-300 rounded-xl text-xs font-bold shadow-xs flex items-center gap-1 cursor-pointer transition-all active:scale-95"
-                      title="Approve all leaders who have joined on this date"
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5 text-[#2e7d32]" />
-                      <span>Approve Joined</span>
-                    </button>
-
-                    <button
-                      onClick={handleSendReminderNotice}
-                      className="px-2.5 py-1.5 bg-[#2e7d32] hover:bg-[#256628] text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1 cursor-pointer transition-all"
-                      title={`Send ${currentCadence} WhatsApp Notice`}
-                    >
-                      <Send className="w-3.5 h-3.5" />
-                      <span>Notice</span>
-                    </button>
-
-                    <button
-                      onClick={() => handleSendGroupCeoitbox('0950')}
-                      className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-[#1f2d2a] border border-[#dcdcdc] rounded-xl text-xs font-bold shadow-xs flex items-center gap-1 cursor-pointer transition-all"
-                      title="Official WhatsApp Group Broadcast"
-                    >
-                      <MessageSquare className="w-3.5 h-3.5 text-[#2e7d32]" />
-                      <span>Group</span>
-                    </button>
-
-                    <button
-                      onClick={() => sendNonAttendeesEscalationNotice(selectedDate)}
-                      className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-xl text-xs font-bold shadow-xs flex items-center gap-1 cursor-pointer transition-all"
-                      title="Escalate Non-Attendees"
-                    >
-                      <AlertCircle className="w-3.5 h-3.5 text-rose-600" />
-                      <span>Escalate</span>
-                    </button>
-
+                  <div className="flex items-center gap-2 flex-wrap w-full lg:w-auto justify-end">
                     <button
                       onClick={() => {
                         setSchedForm({
@@ -1418,10 +1359,103 @@ export const UnifiedAdminDashboard: React.FC = () => {
                         });
                         setShowScheduleEditModal(true);
                       }}
-                      className="p-1.5 bg-white hover:bg-slate-100 text-slate-700 rounded-xl border border-[#dcdcdc] transition-colors cursor-pointer"
-                      title="Modify Date / Cadence"
+                      className="px-3.5 py-2 bg-white hover:bg-slate-50 text-[#1f2d2a] border border-[#dcdcdc] rounded-xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer transition-colors"
                     >
-                      <Settings2 className="w-4 h-4 text-slate-700" />
+                      <Settings2 className="w-3.5 h-3.5 text-slate-600" />
+                      <span>Modify Date / Cadence</span>
+                    </button>
+
+                    <button
+                      onClick={handleSendReminderNotice}
+                      className="px-3.5 py-2 bg-[#2e7d32] hover:bg-[#256628] text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      <span>Send {currentCadence} WhatsApp Notice</span>
+                    </button>
+
+                    <button
+                      onClick={() => sendNonAttendeesEscalationNotice(selectedDate)}
+                      className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
+                    >
+                      <AlertCircle className="w-3.5 h-3.5 text-rose-600" />
+                      <span>Escalate Non-Attendees</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Row 2: Live India Time (IST), Countdown, and Daily Operations Action Bar */}
+                <div className="p-3.5 sm:p-4 bg-slate-50/70 border-t border-slate-100 grid grid-cols-1 md:grid-cols-3 gap-3 items-center">
+                  {/* Card 1: Live India Time (IST) */}
+                  <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center shrink-0">
+                      <Clock className="w-5 h-5 text-[#2e7d32]" />
+                    </div>
+                    <div>
+                      <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                        <span>Live India Time (IST)</span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                      </div>
+                      <div className="text-lg font-black font-mono text-[#1f2d2a] leading-tight">
+                        {countdown.liveIndiaTime}
+                      </div>
+                      <div className="text-[11px] text-slate-500 font-medium">
+                        {new Date().toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card 2: Next Standup Countdown */}
+                  <div className="bg-[#1f2d2a] p-3 rounded-xl border border-black/40 shadow-2xs text-white flex items-center justify-between">
+                    <div>
+                      <div className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
+                        Next {currentCadence} Standup In
+                      </div>
+                      <div className="text-xl font-black font-mono tracking-tight flex items-center gap-1 text-emerald-300 mt-0.5">
+                        <span>{countdown.hoursStr}</span><span className="text-slate-400 text-xs font-normal">HRS</span>
+                        <span className="text-slate-600">:</span>
+                        <span>{countdown.minsStr}</span><span className="text-slate-400 text-xs font-normal">MIN</span>
+                        <span className="text-slate-600">:</span>
+                        <span className="text-white">{countdown.secsStr}</span><span className="text-slate-400 text-xs font-normal">SEC</span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-white/10 text-slate-200">
+                        Target: {countdown.targetMilestone}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Card 3: Action Buttons & Auto Broadcast Engine */}
+                  <div className="flex flex-wrap items-center justify-start md:justify-end gap-1.5">
+                    <button
+                      onClick={handleTriggerAutomatedTransmission}
+                      className="px-3 py-2 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white rounded-xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
+                      title={`Broadcast 09:50 AM Alerts to WhatsApp Group and all ${leaders.length} registered leaders`}
+                    >
+                      <Zap className="w-3.5 h-3.5 text-yellow-200 fill-yellow-200" />
+                      <span>09:50 AM Broadcast</span>
+                    </button>
+
+                    <button
+                      onClick={async () => {
+                        const res = await approveAllPendingRecords(selectedDate);
+                        setToastAlert({ type: 'success', text: res.message });
+                        setTimeout(() => setToastAlert(null), 5000);
+                      }}
+                      className="px-3 py-2 bg-[#cfead6] hover:bg-[#b8e4c3] text-[#2e7d32] border border-[#2e7d32]/25 rounded-xl text-xs font-bold shadow-2xs flex items-center gap-1 cursor-pointer transition-all active:scale-95"
+                      title="Approve all leaders who have joined on this date"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5 text-[#2e7d32]" />
+                      <span>Approve Joined</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleSendGroupCeoitbox('0950')}
+                      className="px-2.5 py-2 bg-white hover:bg-slate-100 text-[#1f2d2a] border border-[#dcdcdc] rounded-xl text-xs font-bold shadow-2xs flex items-center gap-1 cursor-pointer transition-all"
+                      title="Official WhatsApp Group Broadcast"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5 text-[#2e7d32]" />
+                      <span>Group</span>
                     </button>
 
                     <button
@@ -1437,14 +1471,14 @@ export const UnifiedAdminDashboard: React.FC = () => {
                         });
                         setTimeout(() => setToastAlert(null), 4000);
                       }}
-                      className={`px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-all border shrink-0 ${
+                      className={`px-2.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer transition-all border shrink-0 ${
                         autoCeoitboxDispatch
-                          ? 'bg-[#cfead6] text-[#2e7d32] border-[#2e7d32]/30'
-                          : 'bg-slate-100 text-slate-600 border-[#dcdcdc]'
+                          ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                          : 'bg-slate-200 text-slate-600 border-slate-300'
                       }`}
                       title="Auto-Scheduler Toggle"
                     >
-                      <Clock className={`w-3 h-3 ${autoCeoitboxDispatch ? 'text-[#2e7d32]' : 'text-slate-400'}`} />
+                      <Clock className={`w-3.5 h-3.5 ${autoCeoitboxDispatch ? 'text-[#2e7d32]' : 'text-slate-400'}`} />
                       <span>Auto: {autoCeoitboxDispatch ? 'ON' : 'OFF'}</span>
                     </button>
                   </div>
@@ -1477,7 +1511,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                   <div className="text-[9px] text-slate-500 font-medium mt-0.5">Total Registered</div>
                 </div>
 
-                {/* 2. Total Joined (Kitne Aaye) */}
+                {/* 2. Total Joined (Turnout Recorded) */}
                 <div
                   onClick={() => setStatusFilter(statusFilter === 'PRESENT' ? 'ALL' : 'PRESENT')}
                   className={`p-3 rounded-2xl border transition-all cursor-pointer group relative overflow-hidden ${
@@ -1498,7 +1532,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                   </div>
                   <div className="text-2xl sm:text-3xl font-black text-emerald-700 leading-none mb-0.5 tracking-tight">{countPresent}</div>
                   <div className="text-[10px] font-bold text-emerald-800 tracking-wider uppercase">Total Joined</div>
-                  <div className="text-[9px] text-emerald-600 font-bold mt-0.5">Kitne Aaye</div>
+                  <div className="text-[9px] text-emerald-600 font-bold mt-0.5">Turnout Recorded</div>
                 </div>
 
                 {/* 3. In-Person (Physical Room) */}
@@ -3092,7 +3126,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
       {/* ================= MODAL: RESCHEDULE / CADENCE EDIT ================= */}
       {showScheduleEditModal && (
-        <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-[300] p-3 sm:p-4 overflow-y-auto">
+        <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-[9999] p-3 sm:p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl max-w-lg w-full max-h-[92vh] overflow-y-auto custom-scrollbar p-6 shadow-2xl border border-slate-200 animate-in fade-in zoom-in duration-200">
             <h3 className="text-base font-black text-slate-900 mb-1 flex items-center gap-2">
               <Calendar className="w-5 h-5 text-orange-600" />
@@ -3240,7 +3274,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
       {/* ================= MODAL: ADD / EDIT LEADER ================= */}
       {showAddLeaderModal && (
-        <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-[300] p-3 sm:p-4 overflow-y-auto">
+        <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-[9999] p-3 sm:p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl max-w-lg w-full max-h-[92vh] overflow-hidden flex flex-col shadow-2xl border border-slate-200 animate-in fade-in zoom-in duration-200">
             <div className="flex items-center justify-between p-5 border-b border-slate-100 shrink-0">
               <div className="flex items-center gap-3">
@@ -3447,7 +3481,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
       {/* ================= MODAL: ADD / EDIT DEPARTMENT MASTER ================= */}
       {showAddDeptModal && (
-        <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-[300] p-3 sm:p-4 overflow-y-auto">
+        <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-[9999] p-3 sm:p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl max-w-md w-full max-h-[92vh] overflow-y-auto custom-scrollbar p-6 shadow-2xl border border-slate-200 animate-in fade-in zoom-in duration-200">
             <h3 className="text-base font-black text-slate-900 mb-1 flex items-center gap-2">
               <Building className="w-5 h-5 text-orange-600" />
@@ -3525,7 +3559,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
       {/* ================= MODAL: CHANGE ADMIN CREDENTIALS & USERNAME (STORED IN SUPABASE SQL) ================= */}
       {showPasswordModal && (
-        <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-[300] p-3 sm:p-4 overflow-y-auto">
+        <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-[9999] p-3 sm:p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl max-w-md w-full max-h-[92vh] overflow-y-auto custom-scrollbar p-6 shadow-2xl border border-slate-200 animate-in fade-in zoom-in duration-200">
             <h3 className="text-base font-black text-slate-900 mb-1 flex items-center gap-2">
               <KeyRound className="w-4 h-4 text-orange-600" />
@@ -3631,7 +3665,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
       {/* ================= MODAL: GOOGLE MEET VIRTUAL SCREEN QR CODE ================= */}
       {showVirtualQrModal && (
-        <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-[300] p-3 sm:p-4 overflow-y-auto animate-in fade-in">
+        <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-[9999] p-3 sm:p-4 overflow-y-auto animate-in fade-in">
           <div className="bg-white rounded-3xl max-w-lg w-full max-h-[92vh] overflow-y-auto custom-scrollbar p-6 sm:p-8 text-center shadow-2xl relative border border-slate-200">
             <button
               onClick={() => setShowVirtualQrModal(false)}
@@ -3676,7 +3710,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
       {/* ================= MODAL: ADMIN INFORMED LEAVE VERIFICATION ================= */}
       {informedLeaveModal.isOpen && (
-        <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-[300] p-3 sm:p-4 overflow-y-auto animate-in fade-in">
+        <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-[9999] p-3 sm:p-4 overflow-y-auto animate-in fade-in">
           <div className="bg-white rounded-3xl max-w-md w-full max-h-[92vh] overflow-y-auto custom-scrollbar p-6 shadow-2xl border border-slate-200">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2.5">
@@ -3781,7 +3815,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
       {/* ================= MODAL: ADMIN INFORMED LATE VERIFICATION & APPROVAL ================= */}
       {informedLateModal.isOpen && (
-        <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-[300] p-3 sm:p-4 overflow-y-auto animate-in fade-in">
+        <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-[9999] p-3 sm:p-4 overflow-y-auto animate-in fade-in">
           <div className="bg-white rounded-3xl max-w-md w-full max-h-[92vh] overflow-y-auto custom-scrollbar p-6 shadow-2xl border border-slate-200">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2.5">
@@ -3969,7 +4003,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
       {/* ================= MODAL: DIRECTOR FORMAL EMAIL REPORT ================= */}
       {showEmailModal && (
-        <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-[300] p-3 sm:p-4 overflow-y-auto">
+        <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-[9999] p-3 sm:p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 flex flex-col max-h-[92vh]">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
@@ -4045,7 +4079,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
       {/* Dedicated Official WhatsApp Group Dispatch Modal (100% Group Only, Ex-Employee Protected) */}
       {groupDispatchModal && groupDispatchModal.isOpen && (
-        <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-[300] p-3 sm:p-4 overflow-y-auto">
+        <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-[9999] p-3 sm:p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 flex flex-col max-h-[92vh]">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2.5">
