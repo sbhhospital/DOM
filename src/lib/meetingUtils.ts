@@ -153,3 +153,18 @@ export function calculateLateMinutes(
   }
 }
 
+/**
+ * Returns today's live calendar date in IST (Asia/Kolkata) formatted as YYYY-MM-DD
+ * Guarantees date accuracy regardless of UTC timezone offset or time of day.
+ */
+export function getLiveIndiaDateStr(): string {
+  try {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
+  } catch (e) {
+    const d = new Date();
+    const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
+    const ist = new Date(utc + (3600000 * 5.5));
+    return ist.toISOString().split('T')[0];
+  }
+}
+

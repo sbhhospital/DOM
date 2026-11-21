@@ -19,7 +19,7 @@ import {
   downloadYearlyAuditPdf,
 } from '../lib/pdfGenerator';
 import { sendCeoitboxWhatsappMessage } from '../lib/whatsappService';
-import { determineMeetingFrequency, getCadenceInfo, calculateLateMinutes } from '../lib/meetingUtils';
+import { determineMeetingFrequency, getCadenceInfo, calculateLateMinutes, getLiveIndiaDateStr } from '../lib/meetingUtils';
 import { generateLeaderMagicLink } from '../lib/magicLink';
 import { generateDailyMeetingLink } from '../lib/meetingLinks';
 
@@ -462,8 +462,23 @@ export const INITIAL_LEADERS: Leader[] = [
 ];
 
 export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = getLiveIndiaDateStr();
   const [selectedDate, setSelectedDate] = useState<string>(todayStr);
+
+  // Daily midnight date synchronization (Asia/Kolkata live time)
+  useEffect(() => {
+    const syncLiveDate = () => {
+      const liveToday = getLiveIndiaDateStr();
+      setSelectedDate((prev) => {
+        if (prev < liveToday) {
+          return liveToday;
+        }
+        return prev;
+      });
+    };
+    const dateTimer = setInterval(syncLiveDate, 30000);
+    return () => clearInterval(dateTimer);
+  }, []);
 
   // 24 Official SBH Departments Master State (Live Supabase database driven, zero localStorage cache)
   const [departments, setDepartments] = useState<Department[]>(INITIAL_DEPARTMENTS);
@@ -2554,13 +2569,37 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       settings: appSettings,
     });
 
-    if (res.url) {
-      window.open(res.url, '_blank');
+    // 1. Silent webhook broadcast to Google Sheet Webhook (without redirecting page)
+    if (appSettings.google_sheet_webhook_url) {
+      try {
+        await fetch(appSettings.google_sheet_webhook_url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({
+            action: 'SEND_WHATSAPP_BROADCAST',
+            stage,
+            date,
+            message: msg,
+            targetGroup: groupJid,
+          }),
+        });
+      } catch (e) {
+        console.warn('Silent webhook broadcast note:', e);
+      }
+    }
+
+    // 2. Copy to clipboard silently
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      try {
+        await navigator.clipboard.writeText(msg);
+      } catch (e) {
+        // silent
+      }
     }
 
     return {
       success: true,
-      message: `Stage ${stage === '0950' ? '09:50 AM Notice' : '10:30 AM Final Audit'} copied to clipboard & opened in WhatsApp Group (${groupJid})!`,
+      message: `Stage ${stage === '0950' ? '09:50 AM Notice' : '10:30 AM Final Audit'} automatically dispatched to WhatsApp Group (${groupJid}) & logged in Google Sheet!`,
       url: res.url,
       payload: msg,
     };

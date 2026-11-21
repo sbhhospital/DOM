@@ -21,6 +21,7 @@ import { useDomApp } from '../context/DomAppContext';
 import { useAuthSession } from '../context/AuthSessionContext';
 import { Leader } from '../types/database';
 import { verifyLeaderMagicLink } from '../lib/magicLink';
+import { getLiveIndiaDateStr } from '../lib/meetingUtils';
 import { LiveRoomQrScannerModal } from '../components/LiveRoomQrScannerModal';
 import sbhLogo from '../assets/sbh-logo.png';
 
@@ -28,6 +29,7 @@ export const LeaderPortal: React.FC = () => {
   const {
     leaders,
     selectedDate,
+    setSelectedDate,
     markVirtualJoin,
     markRoomQrCheckIn,
     logMeetingRejoin,
@@ -37,10 +39,29 @@ export const LeaderPortal: React.FC = () => {
   } = useDomApp();
   const { currentUser, logoutUser, updateUserPassword, isUserAuthenticated } = useAuthSession();
 
+  // Always force live current date in India (IST) on mount so leaders never face "old date" check-in errors
+  React.useEffect(() => {
+    const liveDate = getLiveIndiaDateStr();
+    if (selectedDate !== liveDate) {
+      setSelectedDate(liveDate);
+    }
+  }, []);
+
   const currentMeeting = getMeetingForDate(selectedDate);
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedLeader, setSelectedLeader] = useState<Leader | null>(currentUser);
+  const [selectedLeader, setSelectedLeader] = useState<Leader | null>(() => {
+    if (currentUser) return currentUser;
+    const remembered = localStorage.getItem('sbh_device_remembered_leader');
+    if (remembered) {
+      try {
+        return JSON.parse(remembered);
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  });
 
   // Magic Link Authentication State (15-Minute Expiration System)
   const [magicAuthStatus, setMagicAuthStatus] = useState<{

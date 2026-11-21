@@ -76,6 +76,30 @@ export const AdminLogin: React.FC = () => {
   const [isAdminSelected, setIsAdminSelected] = useState(false);
   const [isUserSelectedFromList, setIsUserSelectedFromList] = useState(false);
 
+  // Persistent Device Recognition for Department Leaders
+  const [rememberedLeader, setRememberedLeader] = useState<Leader | null>(() => {
+    const saved = localStorage.getItem('sbh_device_remembered_leader');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  });
+
+  const handleQuickContinueAsRemembered = (leader: Leader) => {
+    loginLeaderDirectlyWithoutPassword(leader);
+    setLoggedInName(leader.full_name);
+    setShowSuccessPopup(true);
+    const params = new URLSearchParams(window.location.search);
+    const targetPath = params.get('mode') === 'room_qr' ? '/boardroom-checkin' : '/portal';
+    setTimeout(() => {
+      navigate(targetPath);
+    }, 1000);
+  };
+
   // Dropdown open state
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -301,6 +325,7 @@ export const AdminLogin: React.FC = () => {
 
     // 3. User is valid and active leader
     loginLeaderDirectlyWithoutPassword(matched);
+    localStorage.setItem('sbh_device_remembered_leader', JSON.stringify(matched));
     setLoggedInName(matched.full_name);
     setShowSuccessPopup(true);
     window.history.replaceState({}, document.title, window.location.pathname);
@@ -422,6 +447,7 @@ export const AdminLogin: React.FC = () => {
       const res = await loginLeaderDirect(selectedLeader, password);
       setLoading(false);
       if (res.success) {
+        localStorage.setItem('sbh_device_remembered_leader', JSON.stringify(selectedLeader));
         setLoggedInName(selectedLeader.full_name);
         setShowSuccessPopup(true);
         const params = new URLSearchParams(window.location.search);
@@ -521,6 +547,36 @@ export const AdminLogin: React.FC = () => {
               Select your name and enter security credentials to log in
             </p>
           </div>
+
+          {/* Recognized Device 1-Click Fast Check-in */}
+          {rememberedLeader && (
+            <div className="mb-5 p-3.5 bg-gradient-to-r from-emerald-50 via-teal-50 to-green-50 border border-emerald-300 rounded-2xl shadow-2xs">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-full bg-emerald-700 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
+                    {rememberedLeader.full_name.charAt(0)}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs font-black text-slate-900 truncate flex items-center gap-1.5">
+                      <span>Device Recognized:</span>
+                      <span className="text-emerald-800">{rememberedLeader.full_name}</span>
+                    </div>
+                    <div className="text-[10px] text-slate-500 font-medium truncate">
+                      {rememberedLeader.department?.name || 'Department Leader'} • Today's Check-in Ready
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleQuickContinueAsRemembered(rememberedLeader)}
+                  className="px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer shrink-0"
+                  title="1-Click fast login with remembered credentials"
+                >
+                  Continue ➔
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Error Banner */}
           {errorMsg && (
