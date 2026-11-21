@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import {
   Leader,
   Department,
@@ -484,6 +484,12 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   });
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const leadersRef = useRef<Leader[]>(leaders);
+  const lastAttFingerprintRef = useRef<string>('');
+
+  useEffect(() => {
+    leadersRef.current = leaders;
+  }, [leaders]);
 
   // Helper to persist attendance record updates directly into Supabase SQL database table
   const syncAttendanceRecordToSupabase = async (record: AttendanceRecord, reason?: string) => {
@@ -630,8 +636,18 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         .order('created_at', { ascending: true });
 
       if (!attErr && attLogs && attLogs.length > 0) {
+        // Fingerprint incoming audit logs to avoid triggering redundant re-renders when data has not changed
+        const currentFingerprint = attLogs
+          .map((l) => `${l.id}_${l.created_at}_${(l.after_data as any)?.status}_${(l.after_data as any)?.verification_status}_${(l.after_data as any)?.selected_mode}`)
+          .join('|');
+
+        if (currentFingerprint === lastAttFingerprintRef.current) {
+          return;
+        }
+        lastAttFingerprintRef.current = currentFingerprint;
+
         setAttendanceRecords((prev) => {
-          const currentLeaders = leaders.length > 0 ? leaders : INITIAL_LEADERS;
+          const currentLeaders = leadersRef.current.length > 0 ? leadersRef.current : INITIAL_LEADERS;
           const attMap = new Map<string, AttendanceRecord>();
 
           // Keep in-memory records
@@ -685,17 +701,17 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       )
       .subscribe();
 
-    // 2. High-reliability fallback polling interval (every 3.5 seconds)
+    // 2. High-reliability fallback polling interval (every 4 seconds)
     // Ensures real-time updates even if WebSockets are dropped or filtered by hospital firewall
     const pollInterval = setInterval(() => {
       refreshLiveAttendance();
-    }, 3500);
+    }, 4000);
 
     return () => {
       supabase.removeChannel(channel);
       clearInterval(pollInterval);
     };
-  }, [leaders]);
+  }, []);
 
   // Meeting Schedule Helper (DOM, WOM, MOM, HOLIDAY)
   const getMeetingForDate = (date: string): MeetingSchedule => {
@@ -778,7 +794,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const activeLeaders = leaders.filter((l) => l.is_active !== false);
 
     if (activeLeaders.length === 0) {
-      setAttendanceRecords([]);
+      setAttendanceRecords((prev) => (prev.length === 0 ? prev : []));
       return;
     }
 
@@ -787,6 +803,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     setAttendanceRecords((prev) => {
       // 1. Filter out attendance records for inactive or deleted leaders
+      let changed = false;
       const filtered = prev
         .filter((r) => activeLeaderIds.has(r.leader_id) || activeLeaderIds.has(r.leader?.id || ''))
         .map((r) => {
@@ -794,17 +811,32 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           if (matchedLead) {
             const isApproved = Boolean(r.admin_verified_attendance || r.verification_status === 'VERIFIED');
             const isRejected = r.verification_status === 'REJECTED';
-            return {
-              ...r,
-              leader_id: matchedLead.id,
-              leader: matchedLead,
-              status: isApproved ? 'PRESENT' : isRejected ? 'ABSENT' : r.status,
-              verification_status: isApproved ? 'VERIFIED' : isRejected ? 'REJECTED' : r.verification_status,
-              admin_verified_attendance: isApproved,
-            };
+            const expectedStatus = isApproved ? 'PRESENT' : isRejected ? 'ABSENT' : r.status;
+            const expectedVerif = isApproved ? 'VERIFIED' : isRejected ? 'REJECTED' : r.verification_status;
+            if (
+              r.leader_id !== matchedLead.id ||
+              r.leader !== matchedLead ||
+              r.status !== expectedStatus ||
+              r.verification_status !== expectedVerif ||
+              r.admin_verified_attendance !== isApproved
+            ) {
+              changed = true;
+              return {
+                ...r,
+                leader_id: matchedLead.id,
+                leader: matchedLead,
+                status: expectedStatus,
+                verification_status: expectedVerif,
+                admin_verified_attendance: isApproved,
+              };
+            }
           }
           return r;
         });
+
+      if (filtered.length !== prev.length) {
+        changed = true;
+      }
 
       const existingForDate = filtered.filter((r) => r.meeting_date === selectedDate);
       const existingLeaderIds = new Set(existingForDate.map((r) => r.leader_id));
@@ -827,6 +859,14 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           });
         }
       });
+
+      if (newRecords.length > 0) {
+        changed = true;
+      }
+
+      if (!changed) {
+        return prev;
+      }
 
       return [...filtered, ...newRecords];
     });
