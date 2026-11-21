@@ -620,6 +620,50 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
+  // Live Real-Time Attendance Synchronizer (Invoked on Supabase Realtime event & smart polling)
+  const refreshLiveAttendance = async () => {
+    try {
+      const { data: attLogs, error: attErr } = await supabase
+        .from('admin_audit_logs')
+        .select('*')
+        .eq('action', 'ATTENDANCE_RECORD')
+        .order('created_at', { ascending: true });
+
+      if (!attErr && attLogs && attLogs.length > 0) {
+        setAttendanceRecords((prev) => {
+          const currentLeaders = leaders.length > 0 ? leaders : INITIAL_LEADERS;
+          const attMap = new Map<string, AttendanceRecord>();
+
+          // Keep in-memory records
+          prev.forEach((r) => attMap.set(r.id, r));
+
+          // Merge fresh live logs from Supabase
+          attLogs.forEach((log) => {
+            if (log.after_data && (log.after_data as any).id) {
+              const rawRec = log.after_data as AttendanceRecord;
+              const matchedLeader = currentLeaders.find((l) => l.id === rawRec.leader_id || l.id === rawRec.leader?.id);
+              const isApproved = Boolean(rawRec.admin_verified_attendance || rawRec.verification_status === 'VERIFIED');
+              const isRejected = rawRec.verification_status === 'REJECTED';
+
+              const cleanRec: AttendanceRecord = {
+                ...rawRec,
+                leader_id: matchedLeader ? matchedLeader.id : rawRec.leader_id,
+                leader: matchedLeader || rawRec.leader,
+                status: isApproved ? 'PRESENT' : isRejected ? 'ABSENT' : rawRec.status,
+                verification_status: isApproved ? 'VERIFIED' : isRejected ? 'REJECTED' : rawRec.verification_status,
+                admin_verified_attendance: isApproved,
+              };
+              attMap.set(cleanRec.id, cleanRec);
+            }
+          });
+          return Array.from(attMap.values());
+        });
+      }
+    } catch (err) {
+      console.warn('Realtime live sync note:', err);
+    }
+  };
+
   useEffect(() => {
     // Clean up local storage: do NOT store meeting schedules, attendance records, leaders, or departments in localStorage
     localStorage.removeItem('sbh_meeting_schedules');
@@ -627,7 +671,31 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     localStorage.removeItem('sbh_hospital_departments');
     localStorage.removeItem('sbh_custom_leaders');
     loadDataFromSupabase();
-  }, []);
+
+    // 1. Supabase Realtime Subscription for instantaneous attendance updates
+    const channel = supabase
+      .channel('sbh_attendance_realtime_sync')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'admin_audit_logs' },
+        (payload) => {
+          console.info('📡 Supabase Live Attendance Event received:', payload.eventType);
+          refreshLiveAttendance();
+        }
+      )
+      .subscribe();
+
+    // 2. High-reliability fallback polling interval (every 3.5 seconds)
+    // Ensures real-time updates even if WebSockets are dropped or filtered by hospital firewall
+    const pollInterval = setInterval(() => {
+      refreshLiveAttendance();
+    }, 3500);
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(pollInterval);
+    };
+  }, [leaders]);
 
   // Meeting Schedule Helper (DOM, WOM, MOM, HOLIDAY)
   const getMeetingForDate = (date: string): MeetingSchedule => {
