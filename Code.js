@@ -104,7 +104,7 @@ function initializeAllSheets() {
     "09:50 AM",
     "09:50 AM IST",
     "Morning Standup Assembly Notice",
-    "🏥 *SBH GROUP OF HOSPITALS, RAIPUR*\n🔔 *09:50 AM NOTICE: {CADENCE} — {MEETING_TITLE}*\n━━━━━━━━━━━━━━━━━━━━━━\n📅 *Date:* {DATE}\n⏰ *Start Time:* 10:00 AM IST (Sharp)\n📍 *Venue:* " + CONFIG.VENUE + "\n💻 *Google Meet Link:* {MEET_URL}\n📁 *Drive Archive:* {DRIVE_FOLDER}\n🔐 *Official Portal Login:* {PORTAL_URL}/login\n\n⚠️ *ATTENDANCE INSTRUCTION:*\nAll department leaders please join before 10:00 AM sharp (in-person at 5th Floor or via Google Meet).\nLogin at the portal to confirm your attendance. Final audit freezes at 10:30 AM.\n━━━━━━━━━━━━━━━━━━━━━━\nDOM Operations Command | SBH Raipur",
+    "🏥 *SBH GROUP OF HOSPITALS, RAIPUR*\n🔔 *09:50 AM NOTICE: {CADENCE} — {MEETING_TITLE}*\n━━━━━━━━━━━━━━━━━━━━━━\n📅 *Date:* {DATE}\n⏰ *Start Time:* 10:00 AM IST (Sharp)\n📍 *Venue:* " + CONFIG.VENUE + "\n\n✅ *ATTENDANCE & CHECK-IN LINK:*\n👉 https://sbhdom.vercel.app/boardroom-checkin\n\n⚠️ *INSTRUCTION FOR ALL HODs / LEADERS:*\nAll department heads and leaders are kindly requested to assemble in the Conference Room (5th Floor) and check in using the link above before 10:00 AM sharp.\nFinal attendance audit will freeze at 10:30 AM.\n━━━━━━━━━━━━━━━━━━━━━━\nDOM Operations Command | SBH Raipur",
     "ACTIVE"
   ]);
 
@@ -373,11 +373,12 @@ function trigger_daily_0950_broadcast() {
             "━━━━━━━━━━━━━━━━━━━━━━\n" +
             "📅 *Date:* " + dateStr + "\n" +
             "⏰ *Time:* Sharp 10:00 AM IST\n" +
-            "📍 *Venue:* " + CONFIG.VENUE + "\n" +
-            "💻 *Google Meet Link:* " + CONFIG.GOOGLE_MEET_URL + "\n" +
-            "📁 *Daily Drive Archive:* https://drive.google.com/drive/folders/" + CONFIG.DRIVE_FOLDER_ID + "\n" +
-            "🔐 *Portal Login:* " + CONFIG.PORTAL_URL + "/login\n\n" +
-            "⚠️ All 24 department heads please assemble in-person or verify virtually before 10:00 AM sharp.\n" +
+            "📍 *Venue:* " + CONFIG.VENUE + "\n\n" +
+            "✅ *ATTENDANCE & CHECK-IN LINK:*\n" +
+            "👉 https://sbhdom.vercel.app/boardroom-checkin\n\n" +
+            "⚠️ All Department Heads and Leaders please assemble in the Conference Room (5th Floor) and check in before 10:00 AM sharp.\n" +
+            "Final attendance audit will freeze at 10:30 AM.\n" +
+            "━━━━━━━━━━━━━━━━━━━━━━\n" +
             "DOM Operations Command | SBH Raipur";
 
   var ss = SpreadsheetApp.getActiveSpreadsheet();

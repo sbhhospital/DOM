@@ -2136,20 +2136,17 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       year: 'numeric',
     });
 
-    let reminderMsg = `🏥 *SBH GROUP OF HOSPITAL, RAIPUR*\n`;
+    let reminderMsg = `🏥 *SBH GROUP OF HOSPITALS, RAIPUR*\n`;
     reminderMsg += `🔔 *09:50 AM NOTICE: ${cadenceCode} — ${meeting.title.toUpperCase()}*\n`;
     reminderMsg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
     reminderMsg += `📅 *Date:* ${formattedDate}\n`;
-    reminderMsg += `⏰ *Start Time:* ${meeting.scheduled_time} (Sharp 10:00 AM)\n`;
-    reminderMsg += `📍 *Venue:* ${appSettings.conference_room_name}\n`;
-    reminderMsg += `💻 *Google Meet Link:* ${meeting.google_meet_url}\n`;
-    reminderMsg += `🔐 *Official Login Panel:* ${window.location.origin}/login\n\n`;
-    reminderMsg += `⚠️ *ATTENDANCE INSTRUCTION:*\n`;
-    reminderMsg += `All leaders must login via the official portal (${window.location.origin}/login) before 10:00 AM sharp to confirm attendance (either in-person in Conference Room, 5th Floor or virtually via Google Meet).\n`;
-    reminderMsg += `1. Select your name from the roster dropdown\n`;
-    reminderMsg += `2. Enter your password to authenticate\n`;
-    reminderMsg += `3. Confirm attendance (tracked date-wise & user-wise)\n\n`;
-    reminderMsg += `Final Attendance Audit Report will be published at 10:30 AM.\n`;
+    reminderMsg += `⏰ *Start Time:* 10:00 AM IST (Sharp)\n`;
+    reminderMsg += `📍 *Venue:* ${appSettings.conference_room_name || 'Conference Room, 5th Floor'}\n\n`;
+    reminderMsg += `✅ *ATTENDANCE & CHECK-IN LINK:*\n`;
+    reminderMsg += `👉 https://sbhdom.vercel.app/boardroom-checkin\n\n`;
+    reminderMsg += `⚠️ *INSTRUCTION FOR ALL HODs / LEADERS:*\n`;
+    reminderMsg += `All Department Heads and Leaders are kindly requested to assemble in the Conference Room (5th Floor) and check in using the link above before 10:00 AM sharp.\n`;
+    reminderMsg += `Final attendance audit will be finalized at 10:30 AM.\n`;
     reminderMsg += `━━━━━━━━━━━━━━━━━━━━━━\nDOM Operations Command | SBH Raipur`;
 
     // Direct background dispatch to Google Sheet Webhook without redirecting browser
@@ -2445,22 +2442,17 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         meeting.google_meet_url || appSettings.google_meet_url
       );
 
-      let reminderText = `🏥 *SBH GROUP OF HOSPITAL, RAIPUR*\n`;
+      let reminderText = `🏥 *SBH GROUP OF HOSPITALS, RAIPUR*\n`;
       reminderText += `🔔 *09:50 AM NOTICE: ${cadenceCode} — ${meeting.title.toUpperCase()}*\n`;
       reminderText += `━━━━━━━━━━━━━━━━━━━━━━\n`;
       reminderText += `👤 *Hello ${lead.full_name}* (${lead.department?.name || 'Dept'})\n`;
       reminderText += `📅 *Date:* ${formattedDate}\n`;
-      reminderText += `⏰ *Start Time:* ${meeting.scheduled_time} (Sharp 10:00 AM)\n`;
-      reminderText += `📍 *Venue:* ${appSettings.conference_room_name}\n`;
-      reminderText += `💻 *Official Google Meet:* ${meeting.google_meet_url || appSettings.google_meet_url}\n\n`;
-      reminderText += `🔐 *LOGIN & ATTENDANCE SIGN-IN:*\n`;
-      reminderText += `${window.location.origin}/login\n`;
-      reminderText += `*(Select your name, enter your password & confirm attendance)*\n\n`;
-      reminderText += `🔗 *YOUR UNIQUE GOOGLE MEET TRACKING LINK:*\n`;
-      reminderText += `${dailyMeetUrl}\n`;
-      reminderText += `*(Tap to join Meet & auto-count your virtual attendance)*\n\n`;
-      reminderText += `📲 *OR 15-MINUTE DIRECT MAGIC ACCESS:*\n`;
-      reminderText += `${magicUrl}\n`;
+      reminderText += `⏰ *Start Time:* 10:00 AM IST (Sharp)\n`;
+      reminderText += `📍 *Venue:* ${appSettings.conference_room_name || 'Conference Room, 5th Floor'}\n\n`;
+      reminderText += `✅ *ATTENDANCE & CHECK-IN LINK:*\n`;
+      reminderText += `👉 https://sbhdom.vercel.app/boardroom-checkin\n\n`;
+      reminderText += `⚠️ *INSTRUCTION:*\n`;
+      reminderText += `Kindly assemble in the Conference Room (5th Floor) and check in using the link above before 10:00 AM sharp.\n`;
       reminderText += `━━━━━━━━━━━━━━━━━━━━━━\nDOM Operations Command | SBH Raipur`;
 
       await sendCeoitboxWhatsappMessage({
@@ -2500,9 +2492,9 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       alertText += `🚨 *URGENT: ${cadenceCode} SESSION IN PROGRESS — KINDLY JOIN*\n`;
       alertText += `Dear ${lead.full_name},\n`;
       alertText += `Today's ${cadenceCode} (${meeting.title}) has commenced. Your attendance is required immediately.\n\n`;
-      alertText += `🔴 *JOIN NOW:*\n`;
-      alertText += `💻 Google Meet: ${meeting.google_meet_url || appSettings.google_meet_url}\n`;
-      alertText += `📍 In-Person: ${appSettings.conference_room_name}\n`;
+      alertText += `🔴 *CHECK-IN NOW:*\n`;
+      alertText += `👉 https://sbhdom.vercel.app/boardroom-checkin\n`;
+      alertText += `📍 In-Person: ${appSettings.conference_room_name || 'Conference Room, 5th Floor'}\n`;
 
       await sendCeoitboxWhatsappMessage({
         mobileNo: lead.phone,
@@ -2566,16 +2558,13 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       msg += `🔔 *09:50 AM NOTICE: ${cadenceCode} — ${meeting.title.toUpperCase()}*\n`;
       msg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
       msg += `📅 *Date:* ${formattedDate}\n`;
-      msg += `⏰ *Start Time:* ${meeting.scheduled_time} (Sharp 10:00 AM IST)\n`;
-      msg += `📍 *Venue:* ${appSettings.conference_room_name}\n`;
-      msg += `💻 *Google Meet Link:* ${meeting.google_meet_url}\n`;
-      msg += `📁 *Google Drive Daily Archive:* ${appSettings.google_drive_folder_url || 'https://drive.google.com/drive/folders/1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD?usp=sharing'}\n`;
-      msg += `🔐 *Official Leader Portal:* ${window.location.origin}/login\n\n`;
-      msg += `⚠️ *ATTENDANCE INSTRUCTION:*\n`;
-      msg += `All leaders are requested to join before 10:00 AM sharp (either in-person at Conference Room, 5th Floor or virtually via Google Meet).\n`;
-      msg += `Select your name and login at ${window.location.origin}/login to confirm your attendance.\n`;
-      msg += `If you are arriving late, submit your expected arrival time immediately for Admin approval.\n`;
-      msg += `Final Attendance Audit Report will be published at 10:30 AM.\n`;
+      msg += `⏰ *Start Time:* 10:00 AM IST (Sharp)\n`;
+      msg += `📍 *Venue:* ${appSettings.conference_room_name || 'Conference Room, 5th Floor'}\n\n`;
+      msg += `✅ *ATTENDANCE & CHECK-IN LINK:*\n`;
+      msg += `👉 https://sbhdom.vercel.app/boardroom-checkin\n\n`;
+      msg += `⚠️ *INSTRUCTION FOR ALL HODs / LEADERS:*\n`;
+      msg += `All Department Heads and Leaders are kindly requested to assemble in the Conference Room (5th Floor) and check in using the link above before 10:00 AM sharp.\n`;
+      msg += `Final attendance audit will be finalized at 10:30 AM.\n`;
       msg += `━━━━━━━━━━━━━━━━━━━━━━\nDOM Operations Command | SBH Raipur`;
     } else {
       // 10:30 AM
@@ -2747,19 +2736,17 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  // Full Automated 09:50 AM Transmission (Both Official WhatsApp Group AND 24 Leaders with Magic Links)
+  // Automated 09:50 AM Transmission (Official WhatsApp Group ONLY — Zero individual leader spam)
   const triggerAutomated0950Transmission = async (
     date: string
   ): Promise<{ success: boolean; leadersCount: number; message: string }> => {
-    // 1. Dispatch Group Broadcast
+    // 1. Dispatch Group Broadcast ONLY (No individual leader spam)
     await sendCeoitboxGroupBroadcast('0950', date);
-    // 2. Dispatch Individual Reminders with 15-min Magic Links
-    const leadRes = await sendCeoitboxRemindersToAll(date);
 
     return {
       success: true,
-      leadersCount: leadRes.count,
-      message: `09:50 AM Automated Transmission Successful! Notice sent to WhatsApp Group and ${leadRes.count} leaders with personalized 15-minute quick attendance links.`,
+      leadersCount: 1,
+      message: `09:50 AM Morning Notice successfully dispatched to Official WhatsApp Group (${appSettings.admin_whatsapp_group || '120363432056023698@g.us'})!`,
     };
   };
 

@@ -293,6 +293,8 @@ export function generateDirectorPdf(
       !r.admin_verified_attendance &&
       r.verification_status !== 'VERIFIED' &&
       r.status !== 'PRESENT' &&
+      r.status !== 'LEAVE' &&
+      r.status !== 'INFORMED_ABSENT' &&
       (r.status === 'ABSENT' || r.verification_status === 'REJECTED' || (r.status === 'PENDING' && r.selected_mode === 'NONE'))
   );
 

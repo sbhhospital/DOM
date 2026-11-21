@@ -426,9 +426,13 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
   // Helper functions for Attendance Classification (strictly mutually exclusive)
   const isPresentRecord = (r: AttendanceRecord) =>
-    (Boolean(r.admin_verified_attendance) || r.verification_status === 'VERIFIED' || r.status === 'PRESENT') &&
-    r.status !== 'ABSENT' &&
-    r.verification_status !== 'REJECTED';
+    r.verification_status !== 'REJECTED' &&
+    r.status !== 'LEAVE' &&
+    r.status !== 'INFORMED_ABSENT' &&
+    (Boolean(r.admin_verified_attendance) ||
+      r.verification_status === 'VERIFIED' ||
+      r.status === 'PRESENT' ||
+      (r.selected_mode !== 'NONE' && r.status !== 'ABSENT'));
 
   const isPhysicalRecord = (r: AttendanceRecord) =>
     isPresentRecord(r) && r.selected_mode === 'PHYSICAL';
@@ -445,7 +449,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
   const isAbsentRecord = (r: AttendanceRecord) =>
     !isPresentRecord(r) &&
     !isLeaveRecord(r) &&
-    (r.status === 'ABSENT' || r.verification_status === 'REJECTED' || (r.status === 'PENDING' && r.selected_mode === 'NONE'));
+    r.status !== 'INFORMED_LATE' &&
+    (r.status === 'ABSENT' ||
+      r.verification_status === 'REJECTED' ||
+      (r.status === 'PENDING' && r.selected_mode === 'NONE'));
 
   // Filter records for the selected date
   const recordsForDate = attendanceRecords.filter((r) => r.meeting_date === selectedDate);
@@ -723,7 +730,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
   const handleTriggerAutomatedTransmission = async () => {
     setToastAlert({
       type: 'info',
-      text: '⚡ Launching 09:50 AM Automated Transmission to WhatsApp Group and all 24 Leaders with 15-Minute Magic Links...',
+      text: '⚡ Dispatching 09:50 AM Morning Notice to Official WhatsApp Group...',
     });
     try {
       const res = await triggerAutomated0950Transmission(selectedDate);
@@ -1848,18 +1855,16 @@ export const UnifiedAdminDashboard: React.FC = () => {
                               )}
                             </td>
                             <td className="py-3.5 px-4 text-center">
-                              {!rec.admin_verified_attendance &&
-                                (rec.status === 'PRESENT' || rec.status === 'INFORMED_LATE' || rec.selected_mode !== 'NONE') ? (
-                                <span className="text-[11px] bg-amber-100 text-amber-900 font-bold px-2.5 py-0.5 rounded-full border border-amber-300 inline-flex items-center gap-1 shadow-2xs">
-                                  <Clock className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
-                                  <span>Approval Pending from Admin</span>
-                                  {rec.late_minutes && rec.late_minutes > 0 ? (
-                                    <span className="text-[9px] bg-amber-200 text-amber-950 px-1.5 py-0.2 rounded font-black">
-                                      +{rec.late_minutes}m Late
-                                    </span>
-                                  ) : null}
+                              {rec.verification_status === 'REJECTED' ? (
+                                <span className="text-[11px] bg-rose-100 text-rose-800 font-bold px-2.5 py-0.5 rounded-full border border-rose-300 inline-flex items-center gap-1">
+                                  <XCircle className="w-3.5 h-3.5 text-rose-600" />
+                                  <span>REJECTED</span>
                                 </span>
-                              ) : rec.admin_verified_attendance ? (
+                              ) : isLeaveRecord(rec) ? (
+                                <span className="text-[11px] bg-purple-100 text-purple-900 font-bold px-2.5 py-0.5 rounded-full border border-purple-300">
+                                  APPROVED LEAVE {rec.informed_to_person ? `(${rec.informed_to_person})` : ''}
+                                </span>
+                              ) : rec.admin_verified_attendance || rec.verification_status === 'VERIFIED' ? (
                                 <span className="text-[11px] bg-[#cfead6] text-[#2e7d32] font-bold px-2.5 py-0.5 rounded-full border border-[#2e7d32]/30 inline-flex items-center gap-1">
                                   <CheckCircle2 className="w-3.5 h-3.5 text-[#2e7d32]" />
                                   <span>PRESENT (Approved)</span>
@@ -1869,13 +1874,16 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                     </span>
                                   ) : null}
                                 </span>
-                              ) : rec.status === 'LEAVE' ? (
-                                <span className="text-[11px] bg-purple-100 text-purple-900 font-bold px-2.5 py-0.5 rounded-full border border-purple-300">
-                                  APPROVED LEAVE {rec.informed_to_person ? `(${rec.informed_to_person})` : ''}
-                                </span>
-                              ) : rec.status === 'INFORMED_ABSENT' ? (
-                                <span className="text-[11px] bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded-full border border-amber-300">
-                                  INFORMED ({rec.informed_to_person || 'Admin'})
+                              ) : !rec.admin_verified_attendance &&
+                                (rec.status === 'PRESENT' || rec.status === 'INFORMED_LATE' || rec.selected_mode !== 'NONE') ? (
+                                <span className="text-[11px] bg-amber-100 text-amber-900 font-bold px-2.5 py-0.5 rounded-full border border-amber-300 inline-flex items-center gap-1 shadow-2xs">
+                                  <Clock className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
+                                  <span>Approval Pending from Admin</span>
+                                  {rec.late_minutes && rec.late_minutes > 0 ? (
+                                    <span className="text-[9px] bg-amber-200 text-amber-950 px-1.5 py-0.2 rounded font-black">
+                                      +{rec.late_minutes}m Late
+                                    </span>
+                                  ) : null}
                                 </span>
                               ) : (
                                 <span className="text-[11px] bg-rose-100 text-rose-800 font-bold px-2.5 py-0.5 rounded-full border border-rose-300">
