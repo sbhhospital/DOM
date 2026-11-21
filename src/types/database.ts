@@ -88,6 +88,9 @@ export interface AttendanceRecord {
   verification_note?: string;
   virtual_clicks_count?: number; // Tracks link clicks user-wise & date-wise
   last_click_at?: string;
+  latitude?: number;
+  longitude?: number;
+  accuracy?: number;
   qr_scanned_at?: string;
   verified_by?: string;
   verified_at?: string;

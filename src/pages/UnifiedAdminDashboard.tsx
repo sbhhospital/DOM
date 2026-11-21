@@ -47,6 +47,8 @@ import {
   X,
   List,
   Grid,
+  MapPin,
+  Navigation,
 } from 'lucide-react';
 import { useDomApp } from '../context/DomAppContext';
 import { useAuthSession } from '../context/AuthSessionContext';
@@ -99,10 +101,19 @@ const LiveIndiaClockAndCountdown: React.FC<{ currentCadence: string }> = React.m
     const target1000 = 10 * 3600;           // 10:00 AM
     const target1030 = 10 * 3600 + 30 * 60; // 10:30 AM
 
+    const dayOfWeek = time.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+    const isTodaySunday = dayOfWeek === 0;
+
     let diff = 0;
     let targetMilestone = '';
+    let stageTitle = `Next ${currentCadence} Standup In`;
 
-    if (nowSecs < target0950) {
+    if (isTodaySunday) {
+      // Today is Sunday (Weekly Off) -> Next standup is Monday 10:00 AM IST
+      diff = (24 * 3600 - nowSecs) + target1000;
+      targetMilestone = 'Monday 10:00 AM IST';
+      stageTitle = 'Sunday Off • Next DOM Standup';
+    } else if (nowSecs < target0950) {
       diff = target0950 - nowSecs;
       targetMilestone = '09:50 AM IST';
     } else if (nowSecs < target1000) {
@@ -112,8 +123,16 @@ const LiveIndiaClockAndCountdown: React.FC<{ currentCadence: string }> = React.m
       diff = target1030 - nowSecs;
       targetMilestone = '10:30 AM IST';
     } else {
-      diff = (24 * 3600 - nowSecs) + target1000;
-      targetMilestone = 'Tomorrow 10:00 AM IST';
+      // After 10:30 AM today:
+      // If today is Saturday (6), tomorrow is Sunday (Weekly Off). Next standup is Monday (2 days away)!
+      if (dayOfWeek === 6) {
+        diff = (24 * 3600 - nowSecs) + (24 * 3600) + target1000;
+        targetMilestone = 'Monday 10:00 AM IST';
+        stageTitle = 'Next DOM Standup (Monday)';
+      } else {
+        diff = (24 * 3600 - nowSecs) + target1000;
+        targetMilestone = 'Tomorrow 10:00 AM IST';
+      }
     }
 
     const hours = Math.floor(diff / 3600);
@@ -134,9 +153,10 @@ const LiveIndiaClockAndCountdown: React.FC<{ currentCadence: string }> = React.m
       minsStr: pad(mins),
       secsStr: pad(secs),
       targetMilestone,
+      stageTitle,
       liveIndiaTime,
     };
-  }, [time]);
+  }, [time, currentCadence]);
 
   return (
     <>
@@ -163,7 +183,7 @@ const LiveIndiaClockAndCountdown: React.FC<{ currentCadence: string }> = React.m
       <div className="bg-[#1f2d2a] p-3 rounded-xl border border-black/40 shadow-2xs text-white flex items-center justify-between">
         <div>
           <div className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
-            Next {currentCadence} Standup In
+            {countdown.stageTitle}
           </div>
           <div className="text-xl font-black font-mono tracking-tight flex items-center gap-1 text-emerald-300 mt-0.5">
             <span>{countdown.hoursStr}</span><span className="text-slate-400 text-xs font-normal">HRS</span>
@@ -182,6 +202,25 @@ const LiveIndiaClockAndCountdown: React.FC<{ currentCadence: string }> = React.m
     </>
   );
 });
+
+// Haversine formula: Computes distance in meters from SBH Group of Hospital, Raipur (21.2514° N, 81.6296° E)
+const calculateCampusDistanceMeters = (lat?: number, lon?: number): number | null => {
+  if (typeof lat !== 'number' || typeof lon !== 'number' || isNaN(lat) || isNaN(lon)) return null;
+  const hospitalLat = 21.2514;
+  const hospitalLon = 81.6296;
+  const R = 6371e3; // Earth radius in metres
+  const φ1 = (lat * Math.PI) / 180;
+  const φ2 = (hospitalLat * Math.PI) / 180;
+  const Δφ = ((hospitalLat - lat) * Math.PI) / 180;
+  const Δλ = ((hospitalLon - lon) * Math.PI) / 180;
+
+  const a =
+    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return Math.round(R * c);
+};
 
 export const UnifiedAdminDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -334,10 +373,16 @@ export const UnifiedAdminDashboard: React.FC = () => {
   const currentMeeting = getMeetingForDate(selectedDate);
   const currentCadence = currentMeeting.cadence || (currentMeeting.frequency === 'MONTHLY' ? 'MOM' : currentMeeting.frequency === 'WEEKLY' ? 'WOM' : 'DOM');
 
-  // Active Tab: 'attendance' | 'calendar' | 'reports' | 'leaders' | 'departments' | 'settings' | 'links'
+  // Active Tab: 'attendance' | 'calendar' | 'reports' | 'leaders' | 'departments' | 'settings' | 'links' | 'geo-history'
   const [activeTab, setActiveTab] = useState<
-    'attendance' | 'calendar' | 'reports' | 'leaders' | 'departments' | 'settings' | 'links'
+    'attendance' | 'calendar' | 'reports' | 'leaders' | 'departments' | 'settings' | 'links' | 'geo-history'
   >('attendance');
+
+  // Attendance Geo-History Filter States
+  const [geoSearchTerm, setGeoSearchTerm] = useState<string>('');
+  const [geoModeFilter, setGeoModeFilter] = useState<'ALL' | 'PHYSICAL' | 'VIRTUAL'>('ALL');
+  const [geoCampusFilter, setGeoCampusFilter] = useState<'ALL' | 'ON_CAMPUS' | 'REMOTE'>('ALL');
+  const [geoDateFilter, setGeoDateFilter] = useState<string>(selectedDate);
 
   // Daily Meeting Links state
   const [copiedLeaderId, setCopiedLeaderId] = useState<string | null>(null);
@@ -1029,6 +1074,27 @@ export const UnifiedAdminDashboard: React.FC = () => {
           </span>
         </button>
 
+        {/* 📍 Attendance Geo-History Button */}
+        <button
+          onClick={() => {
+            setActiveTab('geo-history');
+            if (isMobile) setIsMobileMenuOpen(false);
+          }}
+          className={`relative flex items-center justify-between w-full transition-[background-color,color,transform] duration-200 font-semibold tracking-wide text-[13px] px-4 py-3 rounded-xl cursor-pointer ${
+            activeTab === 'geo-history'
+              ? 'bg-[#2e7d32] text-white shadow-md shadow-emerald-700/20 transform scale-[1.01]'
+              : 'text-[#1f2d2a] hover:bg-[#cfead6]/40 hover:text-[#2e7d32]'
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <MapPin size={18} strokeWidth={activeTab === 'geo-history' ? 2.5 : 2} className={activeTab === 'geo-history' ? 'text-white' : 'text-rose-600 flex-shrink-0'} />
+            <span className="truncate">Attendance Geo-History</span>
+          </div>
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${activeTab === 'geo-history' ? 'bg-white/20 text-white' : 'bg-slate-200/60 text-slate-700'}`}>
+            Geo Log
+          </span>
+        </button>
+
         {/* 👥 Leaders Roster Button */}
         <button
           onClick={() => {
@@ -1176,7 +1242,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
             </div>
             <div className="text-[9px] text-[#2e7d32] font-bold flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping inline-block" />
-              <span className="truncate">{adminProfile?.username || 'admin'} • Supabase SQL</span>
+              <span className="truncate">Operations Command • SBH Raipur</span>
             </div>
           </div>
         </div>
@@ -1330,6 +1396,14 @@ export const UnifiedAdminDashboard: React.FC = () => {
                       Daily Meeting <span className="text-[#2e7d32]">Links & Tracker</span>
                       <span className="px-3 py-1 rounded-xl bg-[#cfead6] border border-[#2e7d32]/10 text-[10px] font-bold text-[#2e7d32] tracking-wider whitespace-nowrap uppercase">
                         {selectedDate}
+                      </span>
+                    </>
+                  )}
+                  {activeTab === 'geo-history' && (
+                    <>
+                      Attendance <span className="text-[#2e7d32]">Geo-History & Location Logs</span>
+                      <span className="px-3 py-1 rounded-xl bg-[#cfead6] border border-[#2e7d32]/10 text-[10px] font-bold text-[#2e7d32] tracking-wider whitespace-nowrap uppercase">
+                        Live GPS Verification
                       </span>
                     </>
                   )}
@@ -1532,7 +1606,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                         });
                         setShowScheduleEditModal(true);
                       }}
-                      className="px-3.5 py-2 bg-white hover:bg-slate-50 text-[#1f2d2a] border border-[#dcdcdc] rounded-xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer transition-colors"
+                      className="px-3 py-1.5 bg-white hover:bg-slate-50 text-[#1f2d2a] border border-[#dcdcdc] rounded-xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150"
                     >
                       <Settings2 className="w-3.5 h-3.5 text-slate-600" />
                       <span>Modify Date / Cadence</span>
@@ -1540,7 +1614,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
                     <button
                       onClick={handleSendReminderNotice}
-                      className="px-3.5 py-2 bg-[#2e7d32] hover:bg-[#256628] text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
+                      className="px-3 py-1.5 bg-[#2e7d32] hover:bg-[#256628] text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150"
                     >
                       <Send className="w-3.5 h-3.5" />
                       <span>Send {currentCadence} WhatsApp Notice</span>
@@ -1548,7 +1622,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
                     <button
                       onClick={() => sendNonAttendeesEscalationNotice(selectedDate)}
-                      className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
+                      className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150"
                     >
                       <AlertCircle className="w-3.5 h-3.5 text-rose-600" />
                       <span>Escalate Non-Attendees</span>
@@ -1574,7 +1648,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                           onConfirm: handleTriggerAutomatedTransmission,
                         })
                       }
-                      className="px-3 py-2 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white rounded-xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
+                      className="px-2.5 py-1.5 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white rounded-xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150"
                       title="Broadcast 09:50 AM Notice to Official WhatsApp Group"
                     >
                       <Zap className="w-3.5 h-3.5 text-yellow-200 fill-yellow-200" />
@@ -1595,7 +1669,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                           },
                         })
                       }
-                      className="px-3 py-2 bg-[#cfead6] hover:bg-[#b8e4c3] text-[#2e7d32] border border-[#2e7d32]/25 rounded-xl text-xs font-bold shadow-2xs flex items-center gap-1 cursor-pointer transition-all active:scale-95"
+                      className="px-2.5 py-1.5 bg-[#cfead6] hover:bg-[#b8e4c3] text-[#2e7d32] border border-[#2e7d32]/25 rounded-xl text-xs font-bold shadow-2xs flex items-center gap-1 cursor-pointer active:scale-95 transition-all duration-150"
                       title="Approve all leaders who have joined on this date"
                     >
                       <CheckCircle2 className="w-3.5 h-3.5 text-[#2e7d32]" />
@@ -1612,7 +1686,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                           onConfirm: () => handleSharePdfDirectly(selectedDate),
                         })
                       }
-                      className="px-3 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
+                      className="px-2.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150"
                       title="Directly Share Signed PDF Report to Official WhatsApp Group"
                     >
                       <Send className="w-3.5 h-3.5 text-emerald-200" />
@@ -1639,7 +1713,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                             },
                           })
                         }
-                        className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
+                        className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150"
                         title="Re-instate DOM Standup"
                       >
                         <Check className="w-3.5 h-3.5 text-white" />
@@ -1665,7 +1739,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                             },
                           })
                         }
-                        className="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
+                        className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150"
                         title="Remove DOM for this date (Zero absentees will be counted)"
                       >
                         <X className="w-3.5 h-3.5 text-rose-600" />
@@ -1686,7 +1760,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                         });
                         setTimeout(() => setToastAlert(null), 4000);
                       }}
-                      className={`px-2.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer transition-all border shrink-0 ${
+                      className={`px-2 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer active:scale-95 transition-all duration-150 border shrink-0 ${
                         autoCeoitboxDispatch
                           ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
                           : 'bg-slate-200 text-slate-600 border-slate-300'
@@ -1962,7 +2036,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                       })
                     }
                     disabled={isSyncingDrive}
-                    className="px-3.5 py-2 bg-gradient-to-r from-teal-700 to-emerald-700 hover:from-teal-800 hover:to-emerald-800 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                    className="px-2.5 py-1.5 bg-gradient-to-r from-teal-700 to-emerald-700 hover:from-teal-800 hover:to-emerald-800 text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 active:scale-95 transition-all duration-150 cursor-pointer"
                     title="Archive report directly to Supabase SQL Database & dispatch to WhatsApp Group"
                   >
                     {isSyncingDrive ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Share2 className="w-3.5 h-3.5" />}
@@ -1979,7 +2053,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                         onConfirm: () => handleSharePdfDirectly(selectedDate),
                       })
                     }
-                    className="px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-green-700 hover:from-emerald-700 hover:to-green-800 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
+                    className="px-2.5 py-1.5 bg-gradient-to-r from-emerald-600 to-green-700 hover:from-emerald-700 hover:to-green-800 text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 active:scale-95 transition-all duration-150 cursor-pointer"
                     title="Directly share signed PDF Report to WhatsApp Group"
                   >
                     <Send className="w-3.5 h-3.5 text-white" />
@@ -1988,7 +2062,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
                   <button
                     onClick={() => downloadPdfReport(selectedDate)}
-                    className="px-3.5 py-2 bg-[#2e7d32] hover:bg-[#256628] text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
+                    className="px-2.5 py-1.5 bg-[#2e7d32] hover:bg-[#256628] text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 active:scale-95 transition-all duration-150 cursor-pointer"
                     title="Download Official PDF Report for Director Sir"
                   >
                     <Download className="w-3.5 h-3.5" />
@@ -1997,7 +2071,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
                   <button
                     onClick={() => openPdfReport(selectedDate)}
-                    className="px-3 py-2 bg-white hover:bg-slate-50 text-[#1f2d2a] border border-[#dcdcdc] rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                    className="px-2.5 py-1.5 bg-white hover:bg-slate-50 text-[#1f2d2a] border border-[#dcdcdc] rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 active:scale-95 transition-all duration-150 cursor-pointer"
                     title="Print official PDF report"
                   >
                     <Printer className="w-3.5 h-3.5 text-orange-600" />
@@ -2010,7 +2084,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                       setEscalationData(esc);
                       setShowEscalationModal(true);
                     }}
-                    className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
+                    className="px-2.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 active:scale-95 transition-all duration-150 cursor-pointer"
                     title="Send official absence explanation notice to all unreported leaders"
                   >
                     <AlertTriangle className="w-3.5 h-3.5 text-white" />
@@ -2019,7 +2093,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
                   <button
                     onClick={() => setShowEmailModal(true)}
-                    className="px-3.5 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
+                    className="px-2.5 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 active:scale-95 transition-all duration-150 cursor-pointer"
                   >
                     <Mail className="w-3.5 h-3.5" />
                     <span>Email Report Draft</span>
@@ -3621,6 +3695,317 @@ export const UnifiedAdminDashboard: React.FC = () => {
               </div>
             </div>
           )}
+
+          {/* ================= TAB: ATTENDANCE GEO-HISTORY ================= */}
+          {activeTab === 'geo-history' && (() => {
+            const targetDate = geoDateFilter;
+            const recordsList = targetDate === 'ALL'
+              ? attendanceRecords
+              : attendanceRecords.filter((r) => r.meeting_date === (targetDate || selectedDate));
+
+            let totalWithGps = 0;
+            let onCampusCount = 0;
+            let offCampusCount = 0;
+            let qrVerifiedCount = 0;
+
+            recordsList.forEach((r) => {
+              if (typeof r.latitude === 'number' && typeof r.longitude === 'number') {
+                totalWithGps++;
+                const dist = calculateCampusDistanceMeters(r.latitude, r.longitude);
+                if (dist !== null && dist <= 350) {
+                  onCampusCount++;
+                } else if (dist !== null) {
+                  offCampusCount++;
+                }
+              }
+              if (r.evidence_source === 'ROOM_STATIC_QR' || r.qr_scanned_at) {
+                qrVerifiedCount++;
+              }
+            });
+
+            const filteredGeoRecords = recordsList.filter((r) => {
+              const leader = leaders.find((l) => l.id === r.leader_id);
+              const dept = leader?.department || departments.find((d) => d.id === leader?.department_id);
+              const q = geoSearchTerm.toLowerCase();
+              const matchSearch =
+                !geoSearchTerm ||
+                (leader?.full_name && leader.full_name.toLowerCase().includes(q)) ||
+                (dept?.name && dept.name.toLowerCase().includes(q)) ||
+                (leader?.employee_code && leader.employee_code.toLowerCase().includes(q)) ||
+                (leader?.phone && leader.phone.includes(q));
+
+              const isPhysical = r.evidence_source === 'ROOM_STATIC_QR' || r.selected_mode === 'PHYSICAL';
+              const isVirtual = r.evidence_source === 'GOOGLE_MEET_REDIRECT' || r.selected_mode === 'VIRTUAL';
+
+              const matchMode =
+                geoModeFilter === 'ALL' ||
+                (geoModeFilter === 'PHYSICAL' && isPhysical) ||
+                (geoModeFilter === 'VIRTUAL' && isVirtual);
+
+              let matchCampus = true;
+              if (geoCampusFilter !== 'ALL') {
+                const dist = calculateCampusDistanceMeters(r.latitude, r.longitude);
+                if (geoCampusFilter === 'ON_CAMPUS') {
+                  matchCampus = dist !== null && dist <= 350;
+                } else if (geoCampusFilter === 'REMOTE') {
+                  matchCampus = dist !== null && dist > 350;
+                }
+              }
+
+              return matchSearch && matchMode && matchCampus;
+            });
+
+            return (
+              <div className="space-y-6">
+                {/* 4 Executive Metric Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
+                    <div>
+                      <div className="text-xs text-slate-500 font-bold uppercase tracking-wider">Total Check-In Logs</div>
+                      <div className="text-2xl font-black text-slate-800 mt-1">{recordsList.length}</div>
+                      <div className="text-[11px] text-slate-500 mt-0.5">{totalWithGps} with GPS Coordinates</div>
+                    </div>
+                    <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-700">
+                      <MapPin className="w-6 h-6 text-emerald-600" />
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-4 rounded-2xl border border-emerald-200 shadow-xs flex items-center justify-between">
+                    <div>
+                      <div className="text-xs text-emerald-800 font-bold uppercase tracking-wider">On-Campus Verified</div>
+                      <div className="text-2xl font-black text-emerald-700 mt-1">{onCampusCount}</div>
+                      <div className="text-[11px] text-emerald-600 font-medium mt-0.5">Within 350m of SBH Hospital</div>
+                    </div>
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-100 flex items-center justify-center text-emerald-700">
+                      <CheckCircle2 className="w-6 h-6 text-emerald-600" />
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-4 rounded-2xl border border-amber-200 shadow-xs flex items-center justify-between">
+                    <div>
+                      <div className="text-xs text-amber-800 font-bold uppercase tracking-wider">Remote / Off-Campus</div>
+                      <div className="text-2xl font-black text-amber-600 mt-1">{offCampusCount}</div>
+                      <div className="text-[11px] text-amber-700 font-medium mt-0.5">Outside Hospital Geofence</div>
+                    </div>
+                    <div className="w-12 h-12 rounded-2xl bg-amber-100 flex items-center justify-center text-amber-700">
+                      <Navigation className="w-6 h-6 text-amber-600" />
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-4 rounded-2xl border border-teal-200 shadow-xs flex items-center justify-between">
+                    <div>
+                      <div className="text-xs text-teal-800 font-bold uppercase tracking-wider">Room QR Scans</div>
+                      <div className="text-2xl font-black text-teal-700 mt-1">{qrVerifiedCount}</div>
+                      <div className="text-[11px] text-teal-600 font-medium mt-0.5">5th Floor Conference Room</div>
+                    </div>
+                    <div className="w-12 h-12 rounded-2xl bg-teal-100 flex items-center justify-center text-teal-700">
+                      <QrCode className="w-6 h-6 text-teal-600" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Filter and Search Bar */}
+                <div className="bg-white p-4 rounded-2xl border border-[#dcdcdc] shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-2.5 flex-1">
+                    <div className="relative flex-1 min-w-[200px] max-w-sm">
+                      <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                      <input
+                        type="text"
+                        placeholder="Search leader by name, phone, dept..."
+                        value={geoSearchTerm}
+                        onChange={(e) => setGeoSearchTerm(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-[#dcdcdc] rounded-xl text-xs text-[#1f2d2a] placeholder-slate-400 font-semibold focus:outline-none focus:border-[#2e7d32]"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-1.5 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
+                      <span className="text-[11px] font-bold text-slate-500">Date:</span>
+                      <input
+                        type="date"
+                        value={geoDateFilter === 'ALL' ? '' : geoDateFilter}
+                        onChange={(e) => setGeoDateFilter(e.target.value || 'ALL')}
+                        className="bg-transparent text-xs font-bold text-slate-800 focus:outline-none cursor-pointer"
+                      />
+                      {geoDateFilter !== 'ALL' ? (
+                        <button
+                          type="button"
+                          onClick={() => setGeoDateFilter('ALL')}
+                          className="text-[10px] font-bold text-blue-600 hover:text-blue-700 ml-1 underline cursor-pointer"
+                        >
+                          All Dates
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setGeoDateFilter(selectedDate)}
+                          className="text-[10px] font-bold text-emerald-600 hover:text-emerald-700 ml-1 underline cursor-pointer"
+                        >
+                          Today
+                        </button>
+                      )}
+                    </div>
+
+                    <select
+                      value={geoModeFilter}
+                      onChange={(e) => setGeoModeFilter(e.target.value as any)}
+                      className="bg-slate-50 border border-[#dcdcdc] text-xs font-bold text-[#1f2d2a] px-3 py-2 rounded-xl focus:outline-none cursor-pointer"
+                    >
+                      <option value="ALL">All Modes (Physical & Virtual)</option>
+                      <option value="PHYSICAL">Physical Room QR Only</option>
+                      <option value="VIRTUAL">Virtual Google Meet Only</option>
+                    </select>
+
+                    <select
+                      value={geoCampusFilter}
+                      onChange={(e) => setGeoCampusFilter(e.target.value as any)}
+                      className="bg-slate-50 border border-[#dcdcdc] text-xs font-bold text-[#1f2d2a] px-3 py-2 rounded-xl focus:outline-none cursor-pointer"
+                    >
+                      <option value="ALL">All Locations</option>
+                      <option value="ON_CAMPUS">On-Campus Only (Within 350m)</option>
+                      <option value="REMOTE">Remote / Off-Campus Only</option>
+                    </select>
+                  </div>
+
+                  <div className="text-xs font-bold text-slate-500 self-end md:self-center">
+                    Showing <span className="text-slate-900 font-black">{filteredGeoRecords.length}</span> log records
+                  </div>
+                </div>
+
+                {/* Geo-History Table */}
+                <div className="bg-white rounded-2xl border border-[#dcdcdc] shadow-xs overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
+                          <th className="py-3 px-4 uppercase tracking-wider text-[11px]">Leader Name & Phone</th>
+                          <th className="py-3 px-4 uppercase tracking-wider text-[11px]">Department</th>
+                          <th className="py-3 px-4 text-center uppercase tracking-wider text-[11px]">Date & Time</th>
+                          <th className="py-3 px-4 text-center uppercase tracking-wider text-[11px]">Join Mode</th>
+                          <th className="py-3 px-4 text-center uppercase tracking-wider text-[11px]">GPS Coordinates</th>
+                          <th className="py-3 px-4 text-center uppercase tracking-wider text-[11px]">Campus Verification</th>
+                          <th className="py-3 px-4 text-center uppercase tracking-wider text-[11px]">Google Maps Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {filteredGeoRecords.length === 0 ? (
+                          <tr>
+                            <td colSpan={7} className="text-center py-12 text-slate-400">
+                              <MapPin className="w-10 h-10 mx-auto text-slate-300 mb-2" />
+                              <div className="text-sm font-bold text-slate-600">No Check-in Geolocation Logs Found</div>
+                              <div className="text-xs text-slate-400 mt-1">Try selecting a different date or clearing your search filters.</div>
+                            </td>
+                          </tr>
+                        ) : (
+                          filteredGeoRecords.map((rec) => {
+                            const leader = leaders.find((l) => l.id === rec.leader_id);
+                            const dept = leader?.department || departments.find((d) => d.id === leader?.department_id);
+                            const dist = calculateCampusDistanceMeters(rec.latitude, rec.longitude);
+                            const hasCoords = typeof rec.latitude === 'number' && typeof rec.longitude === 'number';
+                            const isPhysical = rec.evidence_source === 'ROOM_STATIC_QR' || rec.selected_mode === 'PHYSICAL';
+
+                            return (
+                              <tr key={rec.id} className="hover:bg-slate-50/80 transition-colors">
+                                <td className="py-3 px-4">
+                                  <div className="font-bold text-slate-900 text-xs">
+                                    {leader?.full_name || 'Leader ' + rec.leader_id.slice(0, 8)}
+                                  </div>
+                                  <div className="text-[11px] text-slate-500 font-mono">
+                                    {leader?.employee_code || 'ID: ' + rec.leader_id.slice(0, 8)} • {leader?.phone || '—'}
+                                  </div>
+                                </td>
+
+                                <td className="py-3 px-4">
+                                  <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-bold text-[11px]">
+                                    {dept?.name || 'Hospital Leader'}
+                                  </span>
+                                </td>
+
+                                <td className="py-3 px-4 text-center font-mono">
+                                  <div className="font-bold text-slate-800 text-xs">{rec.meeting_date}</div>
+                                  <div className="text-[11px] text-slate-500">
+                                    {rec.check_in_at
+                                      ? new Date(rec.check_in_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                                      : rec.first_event_at || '—'}
+                                  </div>
+                                </td>
+
+                                <td className="py-3 px-4 text-center">
+                                  {isPhysical ? (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                      <QrCode className="w-3.5 h-3.5 text-emerald-700" />
+                                      <span>In-Person (Room QR)</span>
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-100 text-blue-800 border border-blue-300">
+                                      <Video className="w-3.5 h-3.5 text-blue-700" />
+                                      <span>Virtual (Meet)</span>
+                                    </span>
+                                  )}
+                                </td>
+
+                                <td className="py-3 px-4 text-center font-mono text-[11px]">
+                                  {hasCoords ? (
+                                    <div>
+                                      <span className="font-bold text-slate-800">
+                                        {rec.latitude!.toFixed(5)}, {rec.longitude!.toFixed(5)}
+                                      </span>
+                                      {rec.accuracy && (
+                                        <span className="text-[10px] text-slate-400 block">
+                                          Accuracy: ±{rec.accuracy}m
+                                        </span>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <span className="text-slate-400 italic">No GPS Logged</span>
+                                  )}
+                                </td>
+
+                                <td className="py-3 px-4 text-center">
+                                  {dist !== null ? (
+                                    dist <= 350 ? (
+                                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                        <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
+                                        <span>On-Campus (~{dist}m)</span>
+                                      </span>
+                                    ) : (
+                                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-black bg-amber-100 text-amber-800 border border-amber-300">
+                                        <Navigation className="w-3.5 h-3.5 text-amber-700" />
+                                        <span>Remote (~{(dist / 1000).toFixed(1)} km)</span>
+                                      </span>
+                                    )
+                                  ) : (
+                                    <span className="text-slate-400 text-[11px]">GPS Unavailable</span>
+                                  )}
+                                </td>
+
+                                <td className="py-3 px-4 text-center">
+                                  {hasCoords ? (
+                                    <a
+                                      href={`https://www.google.com/maps?q=${rec.latitude},${rec.longitude}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white rounded-xl text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer"
+                                      title="Open coordinates in Google Maps"
+                                    >
+                                      <MapPin className="w-3.5 h-3.5" />
+                                      <span>View on Google Maps</span>
+                                      <ExternalLink className="w-3 h-3 opacity-80" />
+                                    </a>
+                                  ) : (
+                                    <span className="text-[11px] text-slate-400 font-mono">—</span>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
         </div>
       </div>

@@ -16,6 +16,7 @@ import {
   ExternalLink,
   User,
   Building,
+  Check,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import jsQR from 'jsqr';
@@ -28,8 +29,15 @@ export const JoinMeetingRedirect: React.FC = () => {
   const params = useParams<{ token?: string }>();
   const navigate = useNavigate();
 
-  const { leaders, markVirtualJoin, verifyVirtualMeetingQr, attendanceRecords, getMeetingForDate, appSettings } =
-    useDomApp();
+  const {
+    leaders,
+    markVirtualJoin,
+    markRoomQrCheckIn,
+    verifyVirtualMeetingQr,
+    attendanceRecords,
+    getMeetingForDate,
+    appSettings,
+  } = useDomApp();
 
   const tokenParam = params.token || searchParams.get('token') || searchParams.get('auth') || '';
   const uidParam = searchParams.get('uid') || searchParams.get('u') || '';
@@ -41,7 +49,8 @@ export const JoinMeetingRedirect: React.FC = () => {
   const [joinCount, setJoinCount] = useState<number>(1);
   const [isLogged, setIsLogged] = useState<boolean>(false);
   const [isQrVerified, setIsQrVerified] = useState<boolean>(false);
-  const [autoRedirectSecs, setAutoRedirectSecs] = useState<number | null>(6);
+  const [physicalSuccess, setPhysicalSuccess] = useState<string | null>(null);
+  const [virtualSuccess, setVirtualSuccess] = useState<string | null>(null);
   const [isScannerOpen, setIsScannerOpen] = useState<boolean>(false);
   const [scannerError, setScannerError] = useState<string>('');
   const [manualCode, setManualCode] = useState<string>('');
@@ -94,15 +103,7 @@ export const JoinMeetingRedirect: React.FC = () => {
       setLeader(resolvedLeader);
       setTargetDate(resolvedDate);
       setMeetUrl(resolvedMeetUrl);
-
-      // Record virtual click immediately date-wise and user-wise
-      markVirtualJoin(resolvedLeader.id, resolvedDate).then((res) => {
-        setIsLogged(true);
-        setJoinCount(res.clicksCount || 1);
-        if (res.meetUrl) {
-          setMeetUrl(res.meetUrl);
-        }
-      });
+      setIsLogged(true);
     }
   }, [tokenParam, uidParam, dateParam, leaders]);
 
@@ -111,7 +112,7 @@ export const JoinMeetingRedirect: React.FC = () => {
     if (leader && targetDate) {
       const rec = attendanceRecords.find((r) => r.leader_id === leader.id && r.meeting_date === targetDate);
       if (rec) {
-        if (rec.evidence_source === 'VIRTUAL_QR_VERIFIED' || rec.qr_scanned_at || rec.admin_verified_attendance) {
+        if (rec.evidence_source === 'ROOM_STATIC_QR' || rec.evidence_source === 'VIRTUAL_QR_VERIFIED' || rec.qr_scanned_at || rec.admin_verified_attendance) {
           setIsQrVerified(true);
         }
         if (rec.virtual_clicks_count) {
@@ -121,30 +122,41 @@ export const JoinMeetingRedirect: React.FC = () => {
     }
   }, [attendanceRecords, leader, targetDate]);
 
-  // Auto-redirect timer countdown
-  useEffect(() => {
-    if (autoRedirectSecs === null || autoRedirectSecs <= 0 || !leader || isScannerOpen) {
-      return;
+  // Handle Online Virtual Attendance Click (Explicit user action - NO automatic redirection!)
+  const handleVirtualJoinClick = async () => {
+    if (!leader || !targetDate) return;
+
+    let geoCoords: { latitude?: number; longitude?: number; accuracy?: number } | undefined;
+    if (typeof navigator !== 'undefined' && 'geolocation' in navigator) {
+      try {
+        const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 3000, maximumAge: 60000 });
+        });
+        geoCoords = {
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+          accuracy: Math.round(pos.coords.accuracy),
+        };
+      } catch (e) {
+        console.warn('Geolocation notice:', e);
+      }
     }
-    const timer = setInterval(() => {
-      setAutoRedirectSecs((prev) => {
-        if (prev === null || prev <= 1) {
-          clearInterval(timer);
-          window.location.href = meetUrl;
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
 
-    return () => clearInterval(timer);
-  }, [autoRedirectSecs, leader, isScannerOpen, meetUrl]);
+    const res = await markVirtualJoin(leader.id, targetDate, geoCoords);
+    setJoinCount(res.clicksCount || joinCount + 1);
+    setVirtualSuccess(`Virtual attendance verified! Opening Google Meet...`);
 
-  // Start Camera QR Scanner
+    try {
+      confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
+    } catch {}
+
+    window.open(res.meetUrl || meetUrl, '_blank');
+  };
+
+  // Start Camera QR Scanner for In-Person Physical Verification
   const startScanner = async () => {
     setIsScannerOpen(true);
     setScannerError('');
-    setAutoRedirectSecs(null); // Stop auto redirect when scanning
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -201,8 +213,23 @@ export const JoinMeetingRedirect: React.FC = () => {
     stopScanner();
     if (!leader || !targetDate) return;
 
-    await verifyVirtualMeetingQr(leader.id, targetDate, scannedText);
+    let geoCoords: { latitude?: number; longitude?: number; accuracy?: number } | undefined;
+    if (typeof navigator !== 'undefined' && 'geolocation' in navigator) {
+      try {
+        const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 3000, maximumAge: 60000 });
+        });
+        geoCoords = {
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+          accuracy: Math.round(pos.coords.accuracy),
+        };
+      } catch (e) {}
+    }
+
+    const res = await markRoomQrCheckIn(leader.id, geoCoords);
     setIsQrVerified(true);
+    setPhysicalSuccess(res.message || 'Conference Room In-Person Attendance Verified!');
 
     try {
       confetti({
@@ -211,18 +238,14 @@ export const JoinMeetingRedirect: React.FC = () => {
         origin: { y: 0.6 },
       });
     } catch (e) {}
-
-    // Auto launch meet after verification
-    setTimeout(() => {
-      window.location.href = meetUrl;
-    }, 1500);
   };
 
   const handleManualVerify = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!leader || !targetDate) return;
-    await verifyVirtualMeetingQr(leader.id, targetDate, manualCode || 'MANUAL-SESSION-CODE');
+    const res = await markRoomQrCheckIn(leader.id);
     setIsQrVerified(true);
+    setPhysicalSuccess('Conference Room In-Person Attendance Confirmed via Session Code!');
     try {
       confetti({
         particleCount: 60,
@@ -230,9 +253,6 @@ export const JoinMeetingRedirect: React.FC = () => {
         origin: { y: 0.6 },
       });
     } catch (e) {}
-    setTimeout(() => {
-      window.location.href = meetUrl;
-    }, 1200);
   };
 
   const activeMeeting = getMeetingForDate(targetDate || new Date().toISOString().split('T')[0]);
@@ -413,51 +433,72 @@ export const JoinMeetingRedirect: React.FC = () => {
                 </div>
               )}
 
-              {/* Action Buttons */}
+              {/* Success Notification Banners */}
+              {physicalSuccess && (
+                <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs font-bold flex items-center gap-2.5">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                  <span>{physicalSuccess}</span>
+                </div>
+              )}
+
+              {virtualSuccess && (
+                <div className="p-4 rounded-2xl bg-teal-50 border border-teal-300 text-teal-900 text-xs font-bold flex items-center gap-2.5">
+                  <Video className="w-5 h-5 text-teal-600 shrink-0" />
+                  <span>{virtualSuccess}</span>
+                </div>
+              )}
+
+              {/* Explicit Mode Selection: Physical (In-Person) vs Virtual (Online) */}
               <div className="space-y-3 pt-2">
-                {/* 1. Direct Launch Google Meet Button */}
-                <a
-                  href={meetUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => setAutoRedirectSecs(null)}
-                  className="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-amber-600 hover:from-emerald-500 hover:to-amber-500 text-white font-black text-sm rounded-2xl shadow-xl shadow-emerald-600/25 flex items-center justify-center gap-2.5 transition-all text-center cursor-pointer"
+                <div className="text-xs font-black uppercase tracking-wider text-slate-500 text-center">
+                  Select Your Meeting Attendance Mode
+                </div>
+
+                {/* Option A: Attend In-Person (QR Scan Verification) */}
+                <button
+                  type="button"
+                  onClick={startScanner}
+                  className="w-full p-4 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white rounded-2xl shadow-lg shadow-emerald-700/20 flex items-center justify-between transition-all cursor-pointer active:scale-95 text-left group"
                 >
-                  <Video className="w-5 h-5 text-white" />
-                  <span>Join Google Meet Now</span>
-                  <ExternalLink className="w-4 h-4 ml-1 opacity-80" />
-                </a>
-
-                {/* 2. QR Scan Verification Button */}
-                {!isQrVerified && !isScannerOpen && (
-                  <button
-                    type="button"
-                    onClick={startScanner}
-                    className="w-full py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-2xl border border-slate-300 flex items-center justify-center gap-2 transition-all cursor-pointer"
-                  >
-                    <QrCode className="w-4 h-4 text-emerald-600" />
-                    <span>Scan Meeting QR Code to Verify Attendance</span>
-                  </button>
-                )}
-
-                {/* Auto Redirect Countdown Notice */}
-                {autoRedirectSecs !== null && autoRedirectSecs > 0 && (
-                  <div className="text-center">
-                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
-                      <RefreshCw className="w-3 h-3 text-emerald-600 animate-spin" />
-                      <span>
-                        Auto-launching Google Meet in <strong>{autoRedirectSecs}s</strong>
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setAutoRedirectSecs(null)}
-                        className="ml-2 text-rose-600 hover:text-rose-700 font-bold underline cursor-pointer"
-                      >
-                        Cancel
-                      </button>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-white shrink-0">
+                      <QrCode className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-black text-white flex items-center gap-1.5">
+                        <span>Attend In-Person (5th Flr Room)</span>
+                        <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-full font-bold">Physical</span>
+                      </div>
+                      <div className="text-xs text-emerald-100 font-medium">
+                        Scan Conference Room QR code to confirm presence
+                      </div>
                     </div>
                   </div>
-                )}
+                  <Check className="w-5 h-5 text-emerald-200 group-hover:translate-x-0.5 transition-transform" />
+                </button>
+
+                {/* Option B: Join Online (Virtual Google Meet) */}
+                <button
+                  type="button"
+                  onClick={handleVirtualJoinClick}
+                  className="w-full p-4 bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white rounded-2xl shadow-lg shadow-blue-700/20 flex items-center justify-between transition-all cursor-pointer active:scale-95 text-left group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-white shrink-0">
+                      <Video className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-black text-white flex items-center gap-1.5">
+                        <span>Join Virtually (Google Meet)</span>
+                        <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-full font-bold">Virtual</span>
+                      </div>
+                      <div className="text-xs text-blue-100 font-medium">
+                        Log telemetry & launch official video meeting
+                      </div>
+                    </div>
+                  </div>
+                  <ExternalLink className="w-5 h-5 text-blue-200 group-hover:translate-x-0.5 transition-transform" />
+                </button>
               </div>
             </>
           ) : (

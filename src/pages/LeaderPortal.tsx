@@ -197,7 +197,25 @@ export const LeaderPortal: React.FC = () => {
 
   const handleJoinVirtually = async () => {
     if (!activeLeader) return;
-    const res = await markVirtualJoin(activeLeader.id);
+
+    // Acquire GPS location telemetry if permission granted
+    let geoCoords: { latitude?: number; longitude?: number; accuracy?: number } | undefined;
+    if (typeof navigator !== 'undefined' && 'geolocation' in navigator) {
+      try {
+        const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 3000, maximumAge: 60000 });
+        });
+        geoCoords = {
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+          accuracy: Math.round(pos.coords.accuracy),
+        };
+      } catch (e) {
+        console.warn('Geolocation not permitted for virtual join:', e);
+      }
+    }
+
+    const res = await markVirtualJoin(activeLeader.id, selectedDate, geoCoords);
     setActionMessage({
       success: true,
       text: `Virtual attendance recorded! Launching official Google Meet: ${res.meetUrl}`,

@@ -49,7 +49,8 @@ interface DomAppContextType {
   // Attendance operations
   markVirtualJoin: (
     leaderId: string,
-    customDate?: string
+    customDate?: string,
+    locationData?: { latitude?: number; longitude?: number; accuracy?: number; device?: string }
   ) => Promise<{ success: boolean; meetUrl: string; clicksCount: number }>;
   verifyVirtualMeetingQr: (
     leaderId: string,
@@ -1440,7 +1441,8 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const markVirtualJoin = async (
     leaderId: string,
-    customDate?: string
+    customDate?: string,
+    locationData?: { latitude?: number; longitude?: number; accuracy?: number; device?: string }
   ): Promise<{ success: boolean; meetUrl: string; clicksCount: number }> => {
     const targetDate = customDate || selectedDate;
     const meeting = getMeetingForDate(targetDate);
@@ -1481,6 +1483,9 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           evidence_source: existing.evidence_source || 'GOOGLE_MEET_REDIRECT',
           admin_verified_attendance: existing.admin_verified_attendance || false,
           verification_note: preservedNote,
+          latitude: locationData?.latitude ?? existing.latitude,
+          longitude: locationData?.longitude ?? existing.longitude,
+          accuracy: locationData?.accuracy ?? existing.accuracy,
           updated_at: nowIso,
         };
         updatedRecordToSave = updated;
@@ -1506,6 +1511,9 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         evidence_source: 'GOOGLE_MEET_REDIRECT',
         admin_verified_attendance: false,
         verification_note: note,
+        latitude: locationData?.latitude,
+        longitude: locationData?.longitude,
+        accuracy: locationData?.accuracy,
         created_at: nowIso,
         updated_at: nowIso,
       };
@@ -1517,6 +1525,28 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (updatedRecordToSave) {
       syncAttendanceRecordToSupabase(updatedRecordToSave, `Virtual attendance: ${note}`);
     }
+
+    try {
+      if (isUuid(leaderId)) {
+        supabase.from('admin_audit_logs').insert([{
+          actor_id: null,
+          action: 'VIRTUAL_JOIN',
+          entity_type: 'ATTENDANCE',
+          entity_id: recordId,
+          reason: `Virtual Google Meet attendance checked in on ${targetDate}. ${note}`,
+          after_data: {
+            selectedDate: targetDate,
+            statusToSet,
+            latitude: locationData?.latitude,
+            longitude: locationData?.longitude,
+            accuracy_meters: locationData?.accuracy,
+            device: locationData?.device || (typeof navigator !== 'undefined' ? navigator.userAgent : 'Virtual Client'),
+            method: 'GOOGLE_MEET_REDIRECT',
+            verified_at: nowIso,
+          },
+        }]).then();
+      }
+    } catch {}
 
     return {
       success: true,
@@ -1652,6 +1682,9 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           late_minutes: preservedLate,
           admin_verified_attendance: existing.admin_verified_attendance || false,
           verification_note: preservedNote,
+          latitude: locationData?.latitude ?? existing.latitude,
+          longitude: locationData?.longitude ?? existing.longitude,
+          accuracy: locationData?.accuracy ?? existing.accuracy,
           updated_at: nowIso,
         };
         updatedRecordToSave = updated;
@@ -1675,6 +1708,9 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         evidence_source: 'ROOM_STATIC_QR',
         admin_verified_attendance: false,
         verification_note: note,
+        latitude: locationData?.latitude,
+        longitude: locationData?.longitude,
+        accuracy: locationData?.accuracy,
         created_at: nowIso,
         updated_at: nowIso,
       };

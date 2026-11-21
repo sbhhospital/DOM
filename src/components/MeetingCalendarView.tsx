@@ -101,7 +101,15 @@ export const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
     return `${year}-${mm}-${dd}`;
   };
 
-  const getCellCadenceBadge = (cadence?: CadenceType, isHoliday?: boolean) => {
+  const getCellCadenceBadge = (cadence?: CadenceType, isHoliday?: boolean, isSunday?: boolean) => {
+    if (isSunday) {
+      return {
+        bg: 'bg-rose-50 text-rose-900 border-rose-300 font-bold',
+        dot: 'bg-rose-500',
+        label: '🏖️ Sunday Off',
+        code: 'SUNDAY',
+      };
+    }
     if (isHoliday || cadence === 'HOLIDAY') {
       return {
         bg: 'bg-amber-100/90 text-amber-900 border-amber-300 font-bold',
@@ -250,7 +258,7 @@ export const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
             const isToday = todayStr === dateStr;
 
             const meeting = getMeetingForDate(dateStr);
-            const badge = getCellCadenceBadge(meeting.cadence, meeting.is_holiday_or_shifted);
+            const badge = getCellCadenceBadge(meeting.cadence, meeting.is_holiday_or_shifted, isSunday);
 
             const dateRecs = attendanceRecords.filter((r) => r.meeting_date === dateStr);
             const dayPresent = dateRecs.filter(
@@ -265,13 +273,13 @@ export const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
               <div
                 key={dateStr}
                 onClick={() => onSelectDate(dateStr)}
-                className={`min-h-[95px] sm:min-h-[120px] rounded-2xl p-2 sm:p-2.5 transition-all cursor-pointer flex flex-col justify-between relative group ${
+                className={`min-h-[95px] sm:min-h-[120px] rounded-2xl p-2 sm:p-2.5 transition-all cursor-pointer flex flex-col justify-between relative group active:scale-95 duration-150 ${
                   isSelected
                     ? 'bg-gradient-to-br from-orange-50 via-white to-amber-50 border-2 border-orange-500 shadow-md ring-2 ring-orange-400/20 z-10'
                     : isToday
                     ? 'bg-emerald-50/40 border border-emerald-400 hover:border-emerald-500 shadow-xs'
                     : isSunday
-                    ? 'bg-slate-50/60 border border-slate-200/80 hover:bg-slate-100/80'
+                    ? 'bg-rose-50/30 border border-rose-200/80 hover:bg-rose-100/50'
                     : 'bg-white border border-slate-200/90 hover:border-orange-300 hover:shadow-xs'
                 }`}
               >
