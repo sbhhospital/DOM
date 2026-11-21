@@ -155,7 +155,6 @@ export function generateDirectorPdf(
   const tableRows = records.map((rec, index) => {
     const leaderName = rec.leader?.full_name || 'Department Leader';
     const deptName = rec.leader?.department?.name || 'Hospital Operations';
-    const roleCode = rec.leader?.employee_code || `SBH-${rec.leader_id.slice(-4)}`;
     const expected = rec.leader?.expected_mode || 'PHYSICAL';
 
     let actualMode = '—';
@@ -195,7 +194,7 @@ export function generateDirectorPdf(
       const lateStr = isLate ? ` (${formatLateDuration(rec.late_minutes)})` : '';
       if (rec.admin_verified_attendance) {
         if (isLate) {
-          statusDisplay = `Late${lateStr}`;
+          statusDisplay = `Present (Late: ${formatLateDuration(rec.late_minutes)})`;
           auditDisplay = 'APPROVED';
         } else {
           statusDisplay = 'Present';
@@ -220,7 +219,6 @@ export function generateDirectorPdf(
       `${index + 1}`,
       leaderName,
       deptName,
-      roleCode,
       expected,
       actualMode,
       joinTime,
@@ -234,7 +232,7 @@ export function generateDirectorPdf(
     margin: { left: margin, right: margin },
     tableWidth: pageWidth - margin * 2, // Exactly 182mm on A4 portrait
     head: [
-      ['#', 'Leader Name', 'Department', 'Code', 'Expected', 'Actual Mode', 'Join Time', 'Status', 'Audit Status'],
+      ['#', 'Leader Name', 'Department', 'Expected', 'Actual Mode', 'Join Time', 'Status', 'Audit Status'],
     ],
     body: tableRows,
     theme: 'grid',
@@ -254,19 +252,18 @@ export function generateDirectorPdf(
       halign: 'center',
     },
     columnStyles: {
-      0: { halign: 'center', cellWidth: 7 },
-      1: { fontStyle: 'bold', halign: 'left', cellWidth: 34 },
-      2: { halign: 'left', cellWidth: 25 },
-      3: { halign: 'center', cellWidth: 12 },
-      4: { halign: 'center', cellWidth: 20 },
-      5: { halign: 'center', cellWidth: 22 },
-      6: { halign: 'center', cellWidth: 18 },
-      7: { halign: 'center', cellWidth: 23 },
-      8: { halign: 'center', cellWidth: 21 },
+      0: { halign: 'center', cellWidth: 8 },
+      1: { fontStyle: 'bold', halign: 'left', cellWidth: 40 },
+      2: { halign: 'left', cellWidth: 31 },
+      3: { halign: 'center', cellWidth: 19 },
+      4: { halign: 'center', cellWidth: 23 },
+      5: { halign: 'center', cellWidth: 18 },
+      6: { halign: 'center', cellWidth: 24 },
+      7: { halign: 'center', cellWidth: 19 },
     },
     didParseCell: (data) => {
       if (data.section === 'body') {
-        if (data.column.index === 7 || data.column.index === 8) {
+        if (data.column.index === 6 || data.column.index === 7) {
           const val = String(data.cell.raw);
           if (val.includes('Approved') || val === 'APPROVED') {
             data.cell.styles.textColor = [22, 163, 74]; // Emerald Green

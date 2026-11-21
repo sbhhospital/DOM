@@ -22,6 +22,7 @@ import sbhLogo from '../assets/sbh-logo.png';
 import {
   downloadBoardroomPosterPdf,
   downloadBoardroomPosterPng,
+  generateBoardroomPosterPdf,
   TARGET_CHECKIN_URL,
 } from '../lib/posterPdfGenerator';
 
@@ -59,113 +60,50 @@ export const BoardroomQrPosterModal: React.FC<BoardroomQrPosterModalProps> = ({
 
   if (!isOpen) return null;
 
-  // Direct 1-Page A4 Print with 100% visible, centered QR code
-  const handlePrint = () => {
-    const poster = document.getElementById('sbh-boardroom-a4-poster');
-    if (!poster) return;
+  // Direct 1-Page A4 Print with 100% visible, centered QR code via vector PDF stream
+  const handlePrint = async () => {
+    setIsDownloadingPdf(true);
+    try {
+      const doc = await generateBoardroomPosterPdf(selectedDate);
+      const blob = doc.output('blob');
+      const blobUrl = URL.createObjectURL(blob);
 
-    const printIframe = document.createElement('iframe');
-    printIframe.style.position = 'fixed';
-    printIframe.style.right = '0';
-    printIframe.style.bottom = '0';
-    printIframe.style.width = '0';
-    printIframe.style.height = '0';
-    printIframe.style.border = '0';
-    document.body.appendChild(printIframe);
+      const printIframe = document.createElement('iframe');
+      printIframe.style.position = 'fixed';
+      printIframe.style.right = '0';
+      printIframe.style.bottom = '0';
+      printIframe.style.width = '0';
+      printIframe.style.height = '0';
+      printIframe.style.border = '0';
+      printIframe.src = blobUrl;
+      document.body.appendChild(printIframe);
 
-    const doc = printIframe.contentWindow?.document;
-    if (!doc) {
-      window.print();
-      return;
+      printIframe.onload = () => {
+        setTimeout(() => {
+          try {
+            printIframe.contentWindow?.focus();
+            printIframe.contentWindow?.print();
+          } catch (e) {
+            console.warn('Iframe print note, opening PDF in tab:', e);
+            window.open(blobUrl, '_blank');
+          }
+          setTimeout(() => {
+            try {
+              document.body.removeChild(printIframe);
+              URL.revokeObjectURL(blobUrl);
+            } catch (err) {
+              console.warn(err);
+            }
+          }, 3500);
+        }, 400);
+      };
+    } catch (err) {
+      console.error('PDF print generation error:', err);
+      // Fallback: download directly
+      await handleDownloadPdf();
+    } finally {
+      setIsDownloadingPdf(false);
     }
-
-    let stylesHtml = '';
-    document.querySelectorAll('link[rel="stylesheet"], style').forEach((node) => {
-      stylesHtml += node.outerHTML;
-    });
-
-    doc.open();
-    doc.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>SBH Hospital DOM Boardroom QR Poster - A4</title>
-          ${stylesHtml}
-          <style>
-            @page {
-              size: A4 portrait;
-              margin: 6mm 8mm;
-            }
-            html, body {
-              margin: 0 !important;
-              padding: 0 !important;
-              background: #ffffff !important;
-              font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-              -webkit-print-color-adjust: exact !important;
-              print-color-adjust: exact !important;
-            }
-            #sbh-boardroom-a4-poster {
-              width: 100% !important;
-              max-width: 100% !important;
-              margin: 0 auto !important;
-              padding: 16px 20px !important;
-              box-shadow: none !important;
-              border: 1px solid #cbd5e1 !important;
-              border-radius: 12px !important;
-              page-break-inside: avoid !important;
-              page-break-after: avoid !important;
-              height: auto !important;
-              box-sizing: border-box !important;
-              text-align: center !important;
-            }
-            .qr-center-box {
-              display: flex !important;
-              flex-direction: column !important;
-              align-items: center !important;
-              justify-content: center !important;
-              text-align: center !important;
-              margin: 12px auto !important;
-              width: 100% !important;
-            }
-            .qr-frame-outer {
-              display: inline-flex !important;
-              flex-direction: column !important;
-              align-items: center !important;
-              justify-content: center !important;
-              text-align: center !important;
-              margin: 0 auto !important;
-              padding: 14px !important;
-              border: 2px solid #16a34a !important;
-              border-radius: 16px !important;
-              background-color: #f8fafc !important;
-              box-sizing: border-box !important;
-            }
-            .qr-code-img {
-              display: block !important;
-              margin: 0 auto !important;
-              width: 220px !important;
-              height: 220px !important;
-            }
-          </style>
-        </head>
-        <body>
-          ${poster.outerHTML}
-        </body>
-      </html>
-    `);
-    doc.close();
-
-    setTimeout(() => {
-      printIframe.contentWindow?.focus();
-      printIframe.contentWindow?.print();
-      setTimeout(() => {
-        try {
-          document.body.removeChild(printIframe);
-        } catch (e) {
-          console.warn('Iframe cleanup note:', e);
-        }
-      }, 1500);
-    }, 450);
   };
 
   // Download High-Resolution A4 PDF directly using jsPDF (100% reliable, zero oklch errors)

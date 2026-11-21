@@ -532,19 +532,44 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     leadersRef.current = leaders;
   }, [leaders]);
 
-  // Helper to persist attendance record updates directly into Supabase SQL database table
+  // Helper to persist attendance record updates directly into Supabase SQL database table & audit log
   const syncAttendanceRecordToSupabase = async (record: AttendanceRecord, reason?: string) => {
     try {
+      const isByAdmin = record.evidence_source === 'ADMIN_MANUAL' || Boolean(record.admin_verified_attendance) || (reason && reason.includes('Admin'));
+      
+      // 1. Audit Trail Record in admin_audit_logs
       await supabase.from('admin_audit_logs').insert([
         {
           actor_id: null,
-          action: 'ATTENDANCE_RECORD',
+          action: isByAdmin ? 'ADMIN_MANUAL_ACTION' : 'ATTENDANCE_RECORD',
           entity_type: 'ATTENDANCE',
           entity_id: record.id,
-          reason: reason || `Attendance updated for ${record.leader?.full_name || record.leader_id} on ${record.meeting_date}`,
-          after_data: record,
+          reason: reason || (isByAdmin ? `Marked by Admin: ${record.leader?.full_name || record.leader_id}` : `Self check-in: ${record.leader?.full_name || record.leader_id}`),
+          after_data: {
+            ...record,
+            actor_type: isByAdmin ? 'ADMIN' : 'USER',
+            audit_timestamp: new Date().toISOString(),
+          },
         },
       ]);
+
+      // 2. Attendance event logging
+      if (isUuid(record.meeting_id) && isUuid(record.leader_id)) {
+        await supabase.from('attendance_events').insert([
+          {
+            meeting_id: record.meeting_id,
+            leader_id: record.leader_id,
+            event_type: record.status === 'PRESENT' ? 'CHECK_IN' : record.status === 'LEAVE' ? 'LEAVE_SANCTION' : 'ABSENCE_RECORDED',
+            source: isByAdmin ? 'ADMIN_MANUAL' : (record.evidence_source || 'ROOM_QR'),
+            evidence_payload: {
+              verification_note: record.verification_note,
+              late_minutes: record.late_minutes || 0,
+              verified_at: record.verified_at,
+              actor: isByAdmin ? 'ADMIN' : 'USER',
+            },
+          },
+        ]);
+      }
     } catch (e) {
       console.warn('Supabase attendance record save warning:', e);
     }
@@ -647,11 +672,22 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             const isApproved = Boolean(rawRec.admin_verified_attendance || rawRec.verification_status === 'VERIFIED');
             const isRejected = rawRec.verification_status === 'REJECTED';
 
+            let resolvedStatus: AttendanceStatus = rawRec.status;
+            if (rawRec.status === 'LEAVE' || rawRec.status === 'INFORMED_LATE') {
+              resolvedStatus = rawRec.status;
+            } else if (rawRec.status === 'PENDING') {
+              resolvedStatus = isApproved ? 'PRESENT' : isRejected ? 'ABSENT' : 'PENDING';
+            } else if (isRejected) {
+              resolvedStatus = 'ABSENT';
+            } else if (isApproved) {
+              resolvedStatus = 'PRESENT';
+            }
+
             const cleanRec: AttendanceRecord = {
               ...rawRec,
               leader_id: matchedLeader ? matchedLeader.id : rawRec.leader_id,
               leader: matchedLeader || rawRec.leader,
-              status: isApproved ? 'PRESENT' : isRejected ? 'ABSENT' : rawRec.status,
+              status: resolvedStatus,
               verification_status: isApproved ? 'VERIFIED' : isRejected ? 'REJECTED' : rawRec.verification_status,
               admin_verified_attendance: isApproved,
             };
@@ -702,11 +738,22 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
               const isApproved = Boolean(rawRec.admin_verified_attendance || rawRec.verification_status === 'VERIFIED');
               const isRejected = rawRec.verification_status === 'REJECTED';
 
+              let resolvedStatus: AttendanceStatus = rawRec.status;
+              if (rawRec.status === 'LEAVE' || rawRec.status === 'INFORMED_LATE') {
+                resolvedStatus = rawRec.status;
+              } else if (rawRec.status === 'PENDING') {
+                resolvedStatus = isApproved ? 'PRESENT' : isRejected ? 'ABSENT' : 'PENDING';
+              } else if (isRejected) {
+                resolvedStatus = 'ABSENT';
+              } else if (isApproved) {
+                resolvedStatus = 'PRESENT';
+              }
+
               const cleanRec: AttendanceRecord = {
                 ...rawRec,
                 leader_id: matchedLeader ? matchedLeader.id : rawRec.leader_id,
                 leader: matchedLeader || rawRec.leader,
-                status: isApproved ? 'PRESENT' : isRejected ? 'ABSENT' : rawRec.status,
+                status: resolvedStatus,
                 verification_status: isApproved ? 'VERIFIED' : isRejected ? 'REJECTED' : rawRec.verification_status,
                 admin_verified_attendance: isApproved,
               };
@@ -736,7 +783,23 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         'postgres_changes',
         { event: '*', schema: 'public', table: 'admin_audit_logs' },
         (payload) => {
-          console.info('📡 Supabase Live Attendance Event received:', payload.eventType);
+          console.info('📡 Supabase Live Audit Event received:', payload.eventType);
+          refreshLiveAttendance();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'attendance_records' },
+        (payload) => {
+          console.info('📡 Supabase Live Attendance Records Event received:', payload.eventType);
+          refreshLiveAttendance();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'attendance_events' },
+        (payload) => {
+          console.info('📡 Supabase Live Attendance Events Event received:', payload.eventType);
           refreshLiveAttendance();
         }
       )
@@ -1679,13 +1742,22 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     let approvedRec: AttendanceRecord | null = null;
 
     setAttendanceRecords((prev) => {
+      const meeting = getMeetingForDate(selectedDate);
       const existing = prev.find((r) => r.id === recordId);
       if (existing) {
         targetLeaderName = existing.leader?.full_name || 'Leader';
-        const lateStr = existing.late_minutes && existing.late_minutes > 0 ? ` (${formatLateDuration(existing.late_minutes)})` : '';
+        let lateMin = existing.late_minutes || 0;
+        if (!lateMin && existing.check_in_at) {
+          lateMin = calculateLateMinutes(existing.meeting_date || selectedDate, meeting.scheduled_time, new Date(existing.check_in_at));
+        }
+        const isLate = lateMin > 0;
+        const lateStr = isLate ? ` (Late: ${formatLateDuration(lateMin)})` : ' (On-Time)';
         const updated: AttendanceRecord = {
           ...existing,
           status: 'PRESENT',
+          late_minutes: lateMin,
+          is_late: isLate,
+          late_approved_by_admin: isLate,
           admin_verified_attendance: true,
           verification_status: 'VERIFIED',
           selected_mode: existing.selected_mode === 'NONE' ? 'PHYSICAL' : existing.selected_mode,
@@ -1700,7 +1772,9 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // Handle placeholder record generated for unsaved leader
       const lead = leaders.find((l) => recordId.includes(l.id));
       targetLeaderName = lead?.full_name || 'Leader';
-      const meeting = getMeetingForDate(selectedDate);
+      const placeholderLate = calculateLateMinutes(selectedDate, meeting.scheduled_time, new Date());
+      const isPlaceholderLate = placeholderLate > 0;
+      const lateStr = isPlaceholderLate ? ` (Late: ${formatLateDuration(placeholderLate)})` : ' (On-Time)';
       const newRec: AttendanceRecord = {
         id: recordId,
         meeting_id: meeting.id,
@@ -1711,13 +1785,17 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         leader: lead,
         selected_mode: 'PHYSICAL',
         status: 'PRESENT',
+        late_minutes: placeholderLate,
+        is_late: isPlaceholderLate,
+        late_approved_by_admin: isPlaceholderLate,
+        evidence_source: 'ADMIN_MANUAL',
         admin_verified_attendance: true,
         verification_status: 'VERIFIED',
         check_in_at: nowIso,
         verified_at: nowIso,
         created_at: nowIso,
         updated_at: nowIso,
-        verification_note: `Approved by Admin at ${new Date(nowIso).toLocaleTimeString()}`,
+        verification_note: `Marked Present by Admin${lateStr} at ${new Date(nowIso).toLocaleTimeString()}`,
       };
       approvedRec = newRec;
       return [...prev, newRec];
@@ -1746,10 +1824,19 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           (r.status === 'PRESENT' || r.status === 'INFORMED_LATE' || r.selected_mode !== 'NONE')
         ) {
           approvedCount++;
-          const lateStr = r.late_minutes && r.late_minutes > 0 ? ` (${formatLateDuration(r.late_minutes)})` : '';
+          const meeting = getMeetingForDate(date);
+          let lateMin = r.late_minutes || 0;
+          if (!lateMin && r.check_in_at) {
+            lateMin = calculateLateMinutes(date, meeting.scheduled_time, new Date(r.check_in_at));
+          }
+          const isLate = lateMin > 0;
+          const lateStr = isLate ? ` (Late: ${formatLateDuration(lateMin)})` : ' (On-Time)';
           const updated: AttendanceRecord = {
             ...r,
             status: 'PRESENT',
+            late_minutes: lateMin,
+            is_late: isLate,
+            late_approved_by_admin: isLate,
             admin_verified_attendance: true,
             verification_status: 'VERIFIED',
             selected_mode: r.selected_mode === 'NONE' ? 'PHYSICAL' : r.selected_mode,
@@ -1886,15 +1973,34 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     let updatedRec: AttendanceRecord | null = null;
 
     setAttendanceRecords((prev) => {
+      const meeting = getMeetingForDate(selectedDate);
       const existing = prev.find((r) => r.id === recordId);
       if (existing) {
+        let calculatedLate = 0;
+        if (status === 'PRESENT') {
+          const checkTime = existing.check_in_at ? new Date(existing.check_in_at) : new Date(nowIso);
+          calculatedLate = calculateLateMinutes(existing.meeting_date || selectedDate, meeting.scheduled_time, checkTime);
+        }
+        const isLate = calculatedLate > 0;
+        const autoNote =
+          note ||
+          (status === 'PRESENT'
+            ? isLate
+              ? `Marked Present by Admin (Late: ${formatLateDuration(calculatedLate)}) at ${new Date(nowIso).toLocaleTimeString()}`
+              : `Marked Present by Admin (On-Time) at ${new Date(nowIso).toLocaleTimeString()}`
+            : `Marked Absent by Admin at ${new Date(nowIso).toLocaleTimeString()}`);
+
         const updated: AttendanceRecord = {
           ...existing,
           status,
+          late_minutes: status === 'PRESENT' ? calculatedLate : 0,
+          is_late: status === 'PRESENT' ? isLate : false,
+          late_approved_by_admin: status === 'PRESENT' ? isLate : false,
+          evidence_source: 'ADMIN_MANUAL',
           verification_status: verified ? 'VERIFIED' : 'REJECTED',
           admin_verified_attendance: verified,
-          verification_note: note,
-          check_in_at: existing.check_in_at || nowIso,
+          verification_note: autoNote,
+          check_in_at: status === 'PRESENT' ? (existing.check_in_at || nowIso) : existing.check_in_at,
           verified_at: nowIso,
           updated_at: nowIso,
         };
@@ -1903,7 +2009,19 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
 
       const lead = leaders.find((l) => recordId.includes(l.id));
-      const meeting = getMeetingForDate(selectedDate);
+      let calculatedLate = 0;
+      if (status === 'PRESENT') {
+        calculatedLate = calculateLateMinutes(selectedDate, meeting.scheduled_time, new Date());
+      }
+      const isLate = calculatedLate > 0;
+      const autoNote =
+        note ||
+        (status === 'PRESENT'
+          ? isLate
+            ? `Marked Present by Admin (Late: ${formatLateDuration(calculatedLate)}) at ${new Date(nowIso).toLocaleTimeString()}`
+            : `Marked Present by Admin (On-Time) at ${new Date(nowIso).toLocaleTimeString()}`
+          : `Marked Absent by Admin at ${new Date(nowIso).toLocaleTimeString()}`);
+
       const newRec: AttendanceRecord = {
         id: recordId,
         meeting_id: meeting.id,
@@ -1914,9 +2032,13 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         leader: lead,
         selected_mode: status === 'PRESENT' ? 'PHYSICAL' : 'NONE',
         status,
+        late_minutes: status === 'PRESENT' ? calculatedLate : 0,
+        is_late: status === 'PRESENT' ? isLate : false,
+        late_approved_by_admin: status === 'PRESENT' ? isLate : false,
+        evidence_source: 'ADMIN_MANUAL',
         verification_status: verified ? 'VERIFIED' : 'REJECTED',
         admin_verified_attendance: verified,
-        verification_note: note,
+        verification_note: autoNote,
         check_in_at: status === 'PRESENT' ? nowIso : undefined,
         verified_at: nowIso,
         created_at: nowIso,

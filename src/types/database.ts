@@ -81,6 +81,7 @@ export interface AttendanceRecord {
   informed_confirmed?: boolean; // Verified by Admin
   admin_verified_attendance?: boolean;
   late_minutes?: number; // e.g. 10, 15, 20, 30, 45, 60
+  is_late?: boolean;
   expected_arrival_time?: string; // e.g. "10:10 AM", "10:30 AM"
   late_reason?: string;
   late_approved_by_admin?: boolean; // Admin approval required

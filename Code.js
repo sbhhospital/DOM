@@ -2,13 +2,60 @@
  * =========================================================================================
  * 🏥 SBH GROUP OF HOSPITALS, RAIPUR — DAILY OPERATIONS MEETING (DOM) AUTOMATION
  * =========================================================================================
+ * Integrated with CEOITBOX WhatsApp Automation Engine (Library ID: 1zrfxO4ygvUflwq9l7XhkNraYbOML3KEelNChmAwRywanLgPpfeSxwWkg)
+ * 
  * Google Spreadsheet: https://docs.google.com/spreadsheets/d/1nWfc4W3U-vAWFXCT5UWwFrh5bmBmCLZM-ojCONGEgsU/edit
  * Google Drive PDF Archive: https://drive.google.com/drive/folders/1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD?usp=sharing
  * Target WhatsApp Group ID: 120363432056023698@g.us
  * Google Meet URL: https://meet.google.com/jrz-jfku-gir
- * DOM Portal: https://sbhdom.vercel.app (or your local/production URL)
+ * DOM Check-In Link: https://sbhdom.vercel.app/boardroom-checkin
+ * 
+ * TO ADD THIS TO YOUR SPREADSHEET:
+ * 1. Open Google Sheets > Extensions > Apps Script
+ * 2. Click "Libraries +" on the left sidebar
+ * 3. Enter Library Script ID: 1zrfxO4ygvUflwq9l7XhkNraYbOML3KEelNChmAwRywanLgPpfeSxwWkg
+ * 4. Identifier: FMScriptOB (Select the highest version, e.g. 69 or latest) and click Save
+ * 5. Paste this entire Code.js into your Apps Script editor and save
+ * 6. Deploy as Web App (Execute as: Me, Access: Anyone)
  * =========================================================================================
  */
+
+// CEOITBOX Library Version & Wrapper Functions
+var Version = 69;
+var Update_Realease_Date = "28/Jan/2026";
+
+const createTrigger = () => typeof FMScriptOB !== 'undefined' ? FMScriptOB.createTrigger() : null;
+const deleteTrigger = () => typeof FMScriptOB !== 'undefined' ? FMScriptOB.deleteTrigger() : null;
+const genFileUrl = (rawUrl, name) => typeof FMScriptOB !== 'undefined' ? FMScriptOB.genFileUrl(rawUrl, name) : '';
+const getColumnsTags = () => typeof FMScriptOB !== 'undefined' ? FMScriptOB.getColumnsTags() : [];
+const getIdFromUrl = (url) => typeof FMScriptOB !== 'undefined' ? FMScriptOB.getIdFromUrl(url) : '';
+const getSpecialSymbolText = (body) => typeof FMScriptOB !== 'undefined' ? FMScriptOB.getSpecialSymbolText(body) : body;
+const onEdit = () => typeof FMScriptOB !== 'undefined' ? FMScriptOB.onEdit() : null;
+const replaceDocTags = (textWithTags, data) => typeof FMScriptOB !== 'undefined' ? FMScriptOB.replaceDocTags(textWithTags, data) : textWithTags;
+const replaceSlideTags = (textWithTags, data) => typeof FMScriptOB !== 'undefined' ? FMScriptOB.replaceSlideTags(textWithTags, data) : textWithTags;
+const replaceSpreadsheetTags = (textWithTags, data) => typeof FMScriptOB !== 'undefined' ? FMScriptOB.replaceSpreadsheetTags(textWithTags, data) : textWithTags;
+const replaceTagsWithText = (textWithTags, data) => typeof FMScriptOB !== 'undefined' ? FMScriptOB.replaceTagsWithText(textWithTags, data) : textWithTags;
+const sendEmail = (body, blob, subject) => typeof FMScriptOB !== 'undefined' ? FMScriptOB.sendEmail(body, blob, subject) : null;
+const sendMessageFile = (two_rows) => typeof FMScriptOB !== 'undefined' ? FMScriptOB.sendMessageFile(two_rows) : null;
+const sendTestMessage = () => typeof FMScriptOB !== 'undefined' ? FMScriptOB.sendTestMessage() : null;
+const showHelp = () => typeof FMScriptOB !== 'undefined' ? FMScriptOB.showHelp() : null;
+const timeBasedTrigger = () => typeof FMScriptOB !== 'undefined' ? FMScriptOB.timeBasedTrigger() : null;
+const importSettingPage = () => typeof FMScriptOB !== 'undefined' ? FMScriptOB.importSettingPage() : null;
+const onFormSubmit = (e) => typeof FMScriptOB !== 'undefined' ? FMScriptOB.onFormSubmit(e) : null;
+const createTemplates = () => typeof FMScriptOB !== 'undefined' ? FMScriptOB.createTemplates() : null;
+const createHeaderDropDown = () => typeof FMScriptOB !== 'undefined' ? FMScriptOB.createHeaderDropDown() : null;
+const onTimeTrigger = () => typeof FMScriptOB !== 'undefined' ? FMScriptOB.onTimeTrigger() : null;
+const generateEditURL = () => typeof FMScriptOB !== 'undefined' ? FMScriptOB.generateEditURL() : '';
+const licenseStatus = () => typeof FMScriptOB !== 'undefined' ? FMScriptOB.licenseStatus() : null;
+const showQuota = () => typeof FMScriptOB !== 'undefined' ? FMScriptOB.showQuota() : null;
+const dailyReminder = () => typeof FMScriptOB !== 'undefined' ? FMScriptOB.dailyReminder() : null;
+const checkSettingPage = () => typeof FMScriptOB !== 'undefined' ? FMScriptOB.checkSettingPage() : null;
+const getdropdwon = () => typeof FMScriptOB !== 'undefined' ? FMScriptOB.getdropdwon() : null;
+const updatesheet = () => typeof FMScriptOB !== 'undefined' ? FMScriptOB.updatesheet() : null;
+const getcode = () => typeof FMScriptOB !== 'undefined' ? FMScriptOB.getcode() : null;
+const settingCheckData = () => typeof FMScriptOB !== 'undefined' ? FMScriptOB.settingCheckData() : null;
+const settingCheck = () => typeof FMScriptOB !== 'undefined' ? FMScriptOB.settingCheck() : null;
+const check_library_version = () => typeof FMScriptOB !== 'undefined' ? FMScriptOB.check_library_version() : null;
 
 // Global Master Configuration
 var CONFIG = {
@@ -23,12 +70,20 @@ var CONFIG = {
 };
 
 /**
- * Custom Menu inside Google Sheets
+ * Custom Menu inside Google Sheets (Combines CEOITBOX and SBH DOM Operations)
  */
 function onOpen() {
+  try {
+    if (typeof FMScriptOB !== 'undefined' && FMScriptOB.onOpen) {
+      FMScriptOB.onOpen();
+    }
+  } catch (e) {
+    console.warn("CEOITBOX onOpen note:", e);
+  }
+
   var ui = SpreadsheetApp.getUi();
   ui.createMenu("🏥 SBH DOM Operations")
-    .addItem("🛠️ Initialize & Format All 4 Sheets", "initializeAllSheets")
+    .addItem("🛠️ Initialize & Format All 4 DOM Sheets", "initializeAllSheets")
     .addSeparator()
     .addItem("📤 Dispatch 09:50 AM Standup Notice Now", "manualDispatch0950")
     .addItem("📊 Dispatch 10:30 AM Final Audit Report Now", "manualDispatch1030")
@@ -292,12 +347,29 @@ function doPost(e) {
         ]);
       }
 
+      // 4. Trigger CEOITBOX WhatsApp Dispatch to Group if FMScriptOB library is active
+      var ceoitboxTriggered = false;
+      try {
+        if (typeof FMScriptOB !== 'undefined') {
+          if (FMScriptOB.sendMessageFile) {
+            FMScriptOB.sendMessageFile(2);
+            ceoitboxTriggered = true;
+          } else if (FMScriptOB.dailyReminder) {
+            FMScriptOB.dailyReminder();
+            ceoitboxTriggered = true;
+          }
+        }
+      } catch (errCeo) {
+        console.warn("CEOITBOX trigger note:", errCeo);
+      }
+
       return jsonResponse({
         success: true,
         message: "PDF successfully stored in Google Drive & logged in Google Sheet!",
         driveFileUrl: driveFileUrl,
         driveFileId: driveFileId,
-        sheetRow: reportSheet.getLastRow()
+        sheetRow: reportSheet.getLastRow(),
+        ceoitboxTriggered: ceoitboxTriggered
       });
     }
 
@@ -322,10 +394,22 @@ function doPost(e) {
         ]);
       }
 
+      // Trigger CEOITBOX dispatch
+      var ceoitboxTriggered = false;
+      try {
+        if (typeof FMScriptOB !== 'undefined' && FMScriptOB.dailyReminder) {
+          FMScriptOB.dailyReminder();
+          ceoitboxTriggered = true;
+        }
+      } catch (errCeo) {
+        console.warn("CEOITBOX trigger note:", errCeo);
+      }
+
       return jsonResponse({
         success: true,
         message: "Stage " + stage + " broadcast logged and dispatched to WhatsApp Group (" + targetGroup + ")!",
-        timestamp: nowIstStr
+        timestamp: nowIstStr,
+        ceoitboxTriggered: ceoitboxTriggered
       });
     }
 
