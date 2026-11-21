@@ -631,7 +631,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
       expected_mode: leader.expected_mode === 'VIRTUAL' ? 'VIRTUAL' : 'PHYSICAL',
       role: leader.role,
       is_active: leader.is_active ?? true,
-      initialPassword: '',
+      initialPassword: leader.password || '123456',
     });
     setFormError('');
     setFormSuccess('');
@@ -2498,6 +2498,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                             <th className="py-3 px-4">Department Master</th>
                             <th className="py-3 px-4">Contact (Email & WhatsApp)</th>
                             <th className="py-3 px-4">Expected Mode</th>
+                            <th className="py-3 px-4">Login Password</th>
                             <th className="py-3 px-4 text-center">Status</th>
                             <th className="py-3 px-4 text-right">Actions</th>
                           </tr>
@@ -2578,6 +2579,26 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                   {lead.expected_mode === 'VIRTUAL' ? <Video size={13} /> : <Building size={13} />}
                                   <span>{lead.expected_mode === 'VIRTUAL' ? 'Virtual (Meet)' : 'Physical (Room)'}</span>
                                 </span>
+                              </td>
+
+                              {/* Portal Password (from Supabase leaders table) */}
+                              <td className="py-3.5 px-4">
+                                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50/80 border border-amber-200 text-amber-950 rounded-lg shadow-2xs font-mono text-xs">
+                                  <KeyRound size={12} className="text-amber-600 shrink-0" />
+                                  <span className="font-bold tracking-wider">{lead.password || '123456'}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(lead.password || '123456');
+                                      setToastAlert({ type: 'success', text: `Password for ${lead.full_name} copied: ${lead.password || '123456'}` });
+                                      setTimeout(() => setToastAlert(null), 3000);
+                                    }}
+                                    className="p-0.5 hover:bg-amber-100 rounded text-amber-700 cursor-pointer ml-1 transition-colors"
+                                    title="Copy Password"
+                                  >
+                                    <Copy size={12} />
+                                  </button>
+                                </div>
                               </td>
 
                               {/* Status Toggle */}
@@ -2674,6 +2695,25 @@ export const UnifiedAdminDashboard: React.FC = () => {
                             <div className="flex items-center gap-2 text-slate-500">
                               <Phone className="w-3.5 h-3.5 text-[#2e7d32] shrink-0" />
                               <span>{lead.phone || 'No Phone'}</span>
+                            </div>
+                            <div className="flex items-center justify-between p-2 mt-2 bg-amber-50/80 border border-amber-200 text-amber-950 rounded-xl text-xs font-mono">
+                              <div className="flex items-center gap-1.5 font-bold">
+                                <KeyRound size={13} className="text-amber-600 shrink-0" />
+                                <span className="text-[11px] text-slate-500 font-sans">Pass:</span>
+                                <span className="font-bold tracking-wider">{lead.password || '123456'}</span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(lead.password || '123456');
+                                  setToastAlert({ type: 'success', text: `Password for ${lead.full_name} copied: ${lead.password || '123456'}` });
+                                  setTimeout(() => setToastAlert(null), 3000);
+                                }}
+                                className="p-1 hover:bg-amber-100 text-amber-700 rounded transition-colors cursor-pointer"
+                                title="Copy Password"
+                              >
+                                <Copy size={12} />
+                              </button>
                             </div>
                           </div>
                         </div>

@@ -628,8 +628,10 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (!error && supaLeaders && supaLeaders.length > 0) {
         mappedLeaders = supaLeaders.map((lead: any) => {
           const dept = liveDepts.find((d) => d.id === lead.department_id) || resolveLeaderDepartment(lead, liveDepts);
+          const localPass = localStorage.getItem(`sbh_user_pass_${lead.id}`);
           return {
             ...lead,
+            password: lead.password || localPass || '123456',
             is_active: lead.is_active !== undefined ? lead.is_active : true,
             department: dept,
             department_id: dept?.id || lead.department_id,
@@ -1151,10 +1153,12 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       `SBH-${matchedDept?.code || 'LEAD'}-${Date.now().toString().slice(-4)}`;
 
     try {
-      const insertPayload = {
+      const assignedPassword = initialPassword?.trim() || '123456';
+      const insertPayload: Record<string, any> = {
         full_name: leaderData.full_name.trim(),
         email: emailClean,
         phone: leaderData.phone?.trim() || '',
+        password: assignedPassword,
         department_id: isDeptUuid ? leaderData.department_id : null,
         role: leaderData.role || 'LEADER',
         employee_code: generatedCode,
@@ -1163,10 +1167,19 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       };
 
       // 1. Direct INSERT into Supabase SQL 'leaders' table
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('leaders')
         .insert([insertPayload])
         .select('*');
+
+      // Fallback if password column is not yet migrated in remote Supabase
+      if (error && error.message?.includes('password')) {
+        const fallback = { ...insertPayload };
+        delete fallback.password;
+        const res = await supabase.from('leaders').insert([fallback]).select('*');
+        data = res.data;
+        error = res.error;
+      }
 
       if (error) {
         console.error('Supabase SQL leader insert error:', error);
@@ -1178,13 +1191,14 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       if (data && data.length > 0) {
         const newLead = data[0] as Leader;
-        localStorage.setItem(`sbh_user_pass_${newLead.id}`, initialPassword);
+        localStorage.setItem(`sbh_user_pass_${newLead.id}`, assignedPassword);
         if (matchedDept) {
           localStorage.setItem(`sbh_leader_dept_${newLead.id}`, matchedDept.id);
         }
 
         const completeLeader: Leader = {
           ...newLead,
+          password: assignedPassword,
           is_active: newLead.is_active !== undefined ? newLead.is_active : true,
           department: matchedDept || resolveLeaderDepartment(newLead, departments),
           department_id: matchedDept?.id || newLead.department_id,
@@ -1268,11 +1282,18 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       localStorage.setItem(`sbh_leader_dept_${id}`, matchedDept.id);
     }
 
+    const newPass = (updates.initialPassword && updates.initialPassword.trim() !== '' && updates.initialPassword !== '••••••')
+      ? updates.initialPassword.trim()
+      : (updates.password && updates.password.trim() !== '')
+      ? updates.password.trim()
+      : undefined;
+
     // Clean DB updates - send only valid columns to Supabase leaders table
     const cleanDbUpdates: Record<string, any> = {};
     if (updates.full_name !== undefined) cleanDbUpdates.full_name = updates.full_name.trim();
     if (emailClean !== undefined) cleanDbUpdates.email = emailClean;
     if (updates.phone !== undefined) cleanDbUpdates.phone = updates.phone.trim();
+    if (newPass !== undefined) cleanDbUpdates.password = newPass; // directly update password in leaders table!
     if (updates.role !== undefined) cleanDbUpdates.role = updates.role;
     if (updates.employee_code !== undefined) cleanDbUpdates.employee_code = updates.employee_code.trim();
     if (updates.expected_mode !== undefined) cleanDbUpdates.expected_mode = updates.expected_mode;
@@ -1284,7 +1305,16 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     if (isUuid(id)) {
       try {
-        const updatePromise = supabase.from('leaders').update(cleanDbUpdates).eq('id', id);
+        const updatePromise = (async () => {
+          let { error: err } = await supabase.from('leaders').update(cleanDbUpdates).eq('id', id);
+          if (err && err.message?.includes('password')) {
+            const fallback = { ...cleanDbUpdates };
+            delete fallback.password;
+            const res = await supabase.from('leaders').update(fallback).eq('id', id);
+            return res;
+          }
+          return { error: err };
+        })();
         const timeoutPromise = new Promise<{ error: any }>((resolve) =>
           setTimeout(() => resolve({ error: { message: 'Network timeout (saved to local cache)' } }), 3500)
         );
@@ -1298,8 +1328,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
 
     // Persist new password directly to Supabase admin_audit_logs if provided
-    if (updates.initialPassword && updates.initialPassword.trim().length >= 4) {
-      const newPass = updates.initialPassword.trim();
+    if (newPass && newPass.length >= 4) {
       localStorage.setItem(`sbh_user_pass_${id}`, newPass);
       try {
         const logPromise = supabase.from('admin_audit_logs').insert([
@@ -1334,6 +1363,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
               ...updates,
               full_name: updates.full_name?.trim() || l.full_name,
               phone: updates.phone?.trim() || l.phone,
+              password: newPass || l.password || '123456',
               employee_code: updates.employee_code?.trim() || l.employee_code,
               email: emailClean || l.email,
               is_active: updates.is_active !== undefined ? updates.is_active : l.is_active,

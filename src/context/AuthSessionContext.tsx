@@ -146,9 +146,23 @@ export const AuthSessionProvider: React.FC<{ children: React.ReactNode }> = ({ c
     fetchLiveAdminProfile();
   }, []);
 
-  // Fetch live Leader password from Supabase database table
+  // Fetch live Leader password directly from Supabase 'leaders' table
   const getLiveLeaderPassword = async (leaderId: string): Promise<string> => {
     try {
+      // 1. Direct query to leaders table where user is stored
+      const { data: leadData, error: leadErr } = await supabase
+        .from('leaders')
+        .select('password')
+        .eq('id', leaderId)
+        .maybeSingle();
+
+      if (!leadErr && leadData && leadData.password) {
+        const supaPass = String(leadData.password);
+        localStorage.setItem(`sbh_user_pass_${leaderId}`, supaPass);
+        return supaPass;
+      }
+
+      // 2. Fallback to audit logs if column was recently migrated
       const { data, error } = await supabase
         .from('admin_audit_logs')
         .select('*')
@@ -391,7 +405,17 @@ export const AuthSessionProvider: React.FC<{ children: React.ReactNode }> = ({ c
       return { success: false, message: 'New password must be at least 5 characters long.' };
     }
 
-    // 1. Persist directly into Supabase admin_audit_logs table
+    // 1. Persist directly into Supabase 'leaders' table where user resides (overwrites old password)
+    try {
+      await supabase
+        .from('leaders')
+        .update({ password: newPass, updated_at: new Date().toISOString() })
+        .eq('id', leaderId);
+    } catch (dbErr) {
+      console.warn('Direct leader table password update notice:', dbErr);
+    }
+
+    // 2. Also record in admin_audit_logs table
     try {
       await supabase.from('admin_audit_logs').insert([
         {
@@ -411,7 +435,7 @@ export const AuthSessionProvider: React.FC<{ children: React.ReactNode }> = ({ c
       console.warn('Supabase leader password update note:', e);
     }
 
-    // 2. Also keep local storage synchronized for instant offline response
+    // 3. Keep local storage synchronized for instant response
     localStorage.setItem(`sbh_user_pass_${leaderId}`, newPass);
     return { success: true, message: 'Your personal password has been updated in database!' };
   };
