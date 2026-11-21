@@ -91,7 +91,16 @@ export function determineMeetingFrequency(dateStr: string): {
     }
   }
 
-  // Sunday could be off/holiday or standard DOM standup; default is DOM
+  // Sunday is ALWAYS an official weekly off / holiday (NEVER counted in DOM)
+  if (dayOfWeek === 0) {
+    return {
+      frequency: 'SPECIAL',
+      cadence: 'HOLIDAY',
+      defaultTitle: 'SUNDAY OFF — Weekly Holiday (No DOM Standup)',
+    };
+  }
+
+  // Tuesday through Saturday: Standard DOM Standup
   return {
     frequency: 'DAILY',
     cadence: 'DOM',

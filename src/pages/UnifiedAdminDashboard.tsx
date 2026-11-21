@@ -1635,6 +1635,60 @@ export const UnifiedAdminDashboard: React.FC = () => {
                       <span>Send Group Report</span>
                     </button>
 
+                    {/* Quick Remove / Enable DOM Toggle */}
+                    {currentMeeting.cadence === 'HOLIDAY' || currentMeeting.is_holiday_or_shifted ? (
+                      <button
+                        onClick={() =>
+                          openConfirm({
+                            title: 'Re-instate / Enable DOM',
+                            message: `Re-instate Daily Operations Meeting (DOM) for ${selectedDate}?\n\n• Leaders will be scheduled for daily attendance standup.\n• Change is saved directly into Supabase SQL database.`,
+                            type: 'success',
+                            confirmText: 'Enable DOM',
+                            onConfirm: () => {
+                              updateMeetingSchedule(selectedDate, {
+                                cadence: 'DOM',
+                                title: 'DOM — Daily Operations Meeting',
+                                is_holiday_or_shifted: false,
+                              });
+                              setToastAlert({ type: 'success', text: `DOM Standup enabled for ${selectedDate} in Supabase SQL!` });
+                              setTimeout(() => setToastAlert(null), 4000);
+                            },
+                          })
+                        }
+                        className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
+                        title="Re-instate DOM Standup"
+                      >
+                        <Check className="w-3.5 h-3.5 text-white" />
+                        <span>Enable DOM</span>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() =>
+                          openConfirm({
+                            title: 'Remove DOM for this Date',
+                            message: `Remove Daily Operations Meeting (DOM) for ${selectedDate}?\n\n• No leaders will be penalized or marked absent.\n• Absentees count will be 0.\n• Change is saved directly in Supabase SQL database.`,
+                            type: 'danger',
+                            confirmText: 'Remove DOM',
+                            onConfirm: () => {
+                              updateMeetingSchedule(selectedDate, {
+                                cadence: 'HOLIDAY',
+                                title: 'NO DOM — Standup Cancelled / Removed by Admin',
+                                is_holiday_or_shifted: true,
+                                shift_reason: 'DOM Removed by Admin',
+                              });
+                              setToastAlert({ type: 'info', text: `DOM removed for ${selectedDate} (Saved to Supabase SQL)!` });
+                              setTimeout(() => setToastAlert(null), 4000);
+                            },
+                          })
+                        }
+                        className="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
+                        title="Remove DOM for this date (Zero absentees will be counted)"
+                      >
+                        <X className="w-3.5 h-3.5 text-rose-600" />
+                        <span>Remove DOM</span>
+                      </button>
+                    )}
+
                     <button
                       onClick={() => {
                         const nextState = !autoCeoitboxDispatch;
@@ -1661,6 +1715,30 @@ export const UnifiedAdminDashboard: React.FC = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Sunday or Removed DOM / Holiday Banner */}
+              {(currentMeeting.cadence === 'HOLIDAY' || currentMeeting.is_holiday_or_shifted || new Date(selectedDate).getDay() === 0) && (
+                <div className="p-4 bg-amber-50/90 border border-amber-300 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-amber-950 shadow-xs mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-amber-200/80 text-amber-900 flex items-center justify-center shrink-0">
+                      <AlertCircle className="w-5 h-5 text-amber-700" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-black text-amber-950">
+                        {new Date(selectedDate).getDay() === 0 ? '🏖️ Official Weekly Off (Sunday)' : '🛑 Standup Removed / Holiday (No DOM Scheduled)'}
+                      </h4>
+                      <p className="text-xs text-amber-800/90 mt-0.5">
+                        {new Date(selectedDate).getDay() === 0
+                          ? 'Sundays are official hospital off days and are never counted in DOM attendance. Zero absentees recorded.'
+                          : currentMeeting.shift_reason || 'DOM meeting has been removed for this date by administrator. Zero absentees recorded.'}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-xs font-mono font-bold bg-amber-200/70 text-amber-900 px-3 py-1 rounded-lg shrink-0 self-start sm:self-auto">
+                    NO DOM • 0 ABSENT
+                  </span>
+                </div>
+              )}
 
               {/* 7 Colorful Enterprise Matrix Cards */}
               <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">

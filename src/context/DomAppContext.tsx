@@ -829,14 +829,16 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return sched;
     }
     const { frequency, cadence, defaultTitle } = determineMeetingFrequency(date);
+    const isHoliday = cadence === 'HOLIDAY';
     return {
       id: `sched-${date}`,
       meeting_date: date,
       frequency,
       cadence,
       title: defaultTitle,
-      scheduled_time: '10:00 AM IST',
-      is_holiday_or_shifted: false,
+      scheduled_time: isHoliday ? 'OFF' : '10:00 AM IST',
+      is_holiday_or_shifted: isHoliday,
+      shift_reason: isHoliday ? 'Sunday Weekly Off / Stand-down' : undefined,
       google_meet_url: appSettings.google_meet_url,
     };
   };
@@ -2613,6 +2615,19 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const meeting = getMeetingForDate(date);
     const activeLeaders = leaders.filter((l) => l.is_active !== false);
     const existingForDate = attendanceRecords.filter((r) => r.meeting_date === date);
+
+    // SUNDAY & CANCELLED / REMOVED DOM RULES:
+    // Sunday is an official weekly off; never counted in DOM. If date is Sunday or Holiday/Removed,
+    // leaders are NOT scheduled or marked absent.
+    const isSunday = new Date(date).getDay() === 0;
+    const isOff = isSunday || meeting.cadence === 'HOLIDAY' || meeting.is_holiday_or_shifted;
+    if (isOff) {
+      return existingForDate.map((r) => ({
+        ...r,
+        leader: activeLeaders.find((l) => l.id === r.leader_id) || r.leader,
+      }));
+    }
+
     const existingMap = new Map<string, AttendanceRecord>();
     existingForDate.forEach((r) => existingMap.set(r.leader_id, r));
 
@@ -3010,7 +3025,9 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             actor_id: null,
             action: 'REPORT_ARCHIVE',
             entity_type: 'DOM_REPORT',
-            details: {
+            entity_id: `report-${date}`,
+            reason: `Official DOM Report Archived for ${date}`,
+            after_data: {
               date,
               cadence: meeting.cadence || 'DOM',
               title: meeting.title,

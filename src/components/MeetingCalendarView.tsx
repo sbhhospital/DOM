@@ -475,6 +475,50 @@ export const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
               )}
             </button>
           </div>
+
+          {/* Action Bar: Direct Remove DOM / Restore DOM */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-3 mt-1 border-t border-slate-200">
+            <div>
+              <span className="text-xs font-bold text-slate-800 block">
+                {selectedMeeting.is_holiday_or_shifted || selectedMeeting.cadence === 'HOLIDAY'
+                  ? '🛑 DOM Standup is currently REMOVED / CANCELLED for this date.'
+                  : 'DOM Standup is currently ACTIVE for this date.'}
+              </span>
+              <span className="text-[11px] text-slate-500 block">
+                {selectedMeeting.is_holiday_or_shifted || selectedMeeting.cadence === 'HOLIDAY'
+                  ? 'Leaders are not scheduled today and zero absentees are counted in the hospital audit.'
+                  : 'Click "Remove DOM" to cancel today\'s standup without penalizing leaders as absent.'}
+              </span>
+            </div>
+
+            {selectedMeeting.is_holiday_or_shifted || selectedMeeting.cadence === 'HOLIDAY' ? (
+              <button
+                type="button"
+                onClick={() => handleQuickCadenceChange('DOM')}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
+              >
+                <Check className="w-3.5 h-3.5" />
+                <span>Re-instate / Enable DOM</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  updateMeetingSchedule(selectedDate, {
+                    cadence: 'HOLIDAY',
+                    title: 'NO DOM — Standup Removed by Admin',
+                    is_holiday_or_shifted: true,
+                    shift_reason: 'DOM Removed by Admin',
+                  });
+                }}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
+                title="Remove DOM for this date (No leaders will be counted as absent)"
+              >
+                <XCircle className="w-3.5 h-3.5" />
+                <span>Remove DOM (No Standup)</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Meeting Details Box */}
