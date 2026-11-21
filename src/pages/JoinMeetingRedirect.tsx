@@ -22,6 +22,7 @@ import confetti from 'canvas-confetti';
 import jsQR from 'jsqr';
 import { useDomApp } from '../context/DomAppContext';
 import { verifyDailyMeetingToken, DEFAULT_GOOGLE_MEET_URL } from '../lib/meetingLinks';
+import { formatToIndianDate, calculateDistanceInMeters } from '../lib/meetingUtils';
 import { Leader } from '../types/database';
 
 export const JoinMeetingRedirect: React.FC = () => {
@@ -51,6 +52,14 @@ export const JoinMeetingRedirect: React.FC = () => {
   const [isQrVerified, setIsQrVerified] = useState<boolean>(false);
   const [physicalSuccess, setPhysicalSuccess] = useState<string | null>(null);
   const [virtualSuccess, setVirtualSuccess] = useState<string | null>(null);
+  const [showVerifiedSuccessModal, setShowVerifiedSuccessModal] = useState<boolean>(false);
+  const [verifiedDetails, setVerifiedDetails] = useState<{
+    leaderName: string;
+    department: string;
+    timeStr: string;
+    distanceMeters: number;
+    mode: string;
+  } | null>(null);
   const [isScannerOpen, setIsScannerOpen] = useState<boolean>(false);
   const [scannerError, setScannerError] = useState<string>('');
   const [manualCode, setManualCode] = useState<string>('');
@@ -210,46 +219,84 @@ export const JoinMeetingRedirect: React.FC = () => {
   };
 
   const handleSuccessfulQrScan = async (scannedText: string) => {
-    stopScanner();
     if (!leader || !targetDate) return;
 
+    // 1. Mandatory Geolocation verification
     let geoCoords: { latitude?: number; longitude?: number; accuracy?: number } | undefined;
     if (typeof navigator !== 'undefined' && 'geolocation' in navigator) {
       try {
         const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 3000, maximumAge: 60000 });
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 6000,
+            maximumAge: 10000,
+          });
         });
         geoCoords = {
           latitude: pos.coords.latitude,
           longitude: pos.coords.longitude,
           accuracy: Math.round(pos.coords.accuracy),
         };
-      } catch (e) {}
+      } catch (e) {
+        setScannerError('⚠️ Location permission zaroori hai hospital presence verify karne ke liye. Kripya device me GPS enable karein.');
+        return;
+      }
+    } else {
+      setScannerError('⚠️ Geolocation aapke device/browser me supported nahi hai.');
+      return;
     }
 
+    if (!geoCoords?.latitude || !geoCoords?.longitude) {
+      setScannerError('⚠️ Hospital location detect nahi ho paya. Kripya GPS on karein aur dobara scan karein.');
+      return;
+    }
+
+    // 2. Hospital 5th Floor Geofence check
+    const hospitalLat = appSettings.hospital_latitude || 21.2514;
+    const hospitalLng = appSettings.hospital_longitude || 81.6296;
+    const allowedRadius = appSettings.hospital_radius_meters || 50;
+
+    const distance = calculateDistanceInMeters(
+      geoCoords.latitude,
+      geoCoords.longitude,
+      hospitalLat,
+      hospitalLng
+    );
+
+    if (appSettings.hospital_geofence_enabled !== false && distance > allowedRadius) {
+      setScannerError(
+        `⚠️ Location Restriction: Kripya hospital 5th Floor Conference Room ke location se hi QR code scan karein! Aap conference room se lagbhag ${distance}m door hain (Allowed: ${allowedRadius}m).`
+      );
+      return;
+    }
+
+    stopScanner();
+
+    // 3. Submit verified QR check-in
     const res = await markRoomQrCheckIn(leader.id, geoCoords);
     setIsQrVerified(true);
-    setPhysicalSuccess(res.message || 'Conference Room In-Person Attendance Verified!');
+    setPhysicalSuccess('Conference Room In-Person Attendance Verified via Camera QR Scan!');
+
+    const timeString = new Date().toLocaleTimeString('en-IN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true,
+    });
+
+    setVerifiedDetails({
+      leaderName: leader.full_name,
+      department: leader.department?.name || 'Department Leader',
+      timeStr: timeString,
+      distanceMeters: distance,
+      mode: 'Physical (QR Verified)',
+    });
+    setShowVerifiedSuccessModal(true);
 
     try {
       confetti({
-        particleCount: 80,
+        particleCount: 90,
         spread: 70,
-        origin: { y: 0.6 },
-      });
-    } catch (e) {}
-  };
-
-  const handleManualVerify = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!leader || !targetDate) return;
-    const res = await markRoomQrCheckIn(leader.id);
-    setIsQrVerified(true);
-    setPhysicalSuccess('Conference Room In-Person Attendance Confirmed via Session Code!');
-    try {
-      confetti({
-        particleCount: 60,
-        spread: 60,
         origin: { y: 0.6 },
       });
     } catch (e) {}
@@ -367,7 +414,7 @@ export const JoinMeetingRedirect: React.FC = () => {
                   <span className="text-[10px] font-bold uppercase text-slate-400 flex items-center gap-1">
                     <Calendar className="w-3.5 h-3.5 text-emerald-600" /> Meeting Date
                   </span>
-                  <div className="font-mono font-bold text-slate-900 mt-1">{targetDate}</div>
+                  <div className="font-mono font-bold text-slate-900 mt-1">{formatToIndianDate(targetDate)}</div>
                 </div>
                 <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
                   <span className="text-[10px] font-bold uppercase text-slate-400 flex items-center gap-1">
@@ -409,27 +456,14 @@ export const JoinMeetingRedirect: React.FC = () => {
                   </div>
 
                   {scannerError && (
-                    <div className="text-[11px] text-rose-300 bg-rose-950/60 p-2 rounded-lg border border-rose-800">
+                    <div className="text-[11px] text-rose-300 bg-rose-950/60 p-2.5 rounded-lg border border-rose-800 font-semibold">
                       {scannerError}
                     </div>
                   )}
 
-                  {/* Manual session verification form fallback */}
-                  <form onSubmit={handleManualVerify} className="pt-2 flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="Or enter 4-digit session code (e.g. SBH)"
-                      value={manualCode}
-                      onChange={(e) => setManualCode(e.target.value)}
-                      className="flex-1 px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-emerald-500"
-                    />
-                    <button
-                      type="submit"
-                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg cursor-pointer"
-                    >
-                      Verify
-                    </button>
-                  </form>
+                  <div className="pt-2 text-[11px] text-slate-400 text-center font-medium">
+                    📍 Hospital 5th Floor Geofence Enforced: Scan must occur inside the Conference Room.
+                  </div>
                 </div>
               )}
 
@@ -541,6 +575,57 @@ export const JoinMeetingRedirect: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Verified Attendance Confirmation Modal */}
+      {showVerifiedSuccessModal && verifiedDetails && (
+        <div className="fixed inset-0 z-[20000] modal-backdrop flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 text-center shadow-2xl border border-slate-200 relative overflow-hidden">
+            <div className="h-3 w-full bg-gradient-to-r from-emerald-500 via-teal-500 to-green-700 absolute top-0 left-0" />
+            <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-3 shadow-lg">
+              <CheckCircle2 className="w-10 h-10 text-emerald-600" />
+            </div>
+            <h3 className="text-xl font-black text-slate-900 tracking-tight">
+              Verified via QR Code Scanning ✅
+            </h3>
+            <p className="text-xs text-slate-500 mt-1">
+              Conference Room In-Person Physical Attendance Confirmed!
+            </p>
+            <div className="my-4 p-3.5 bg-slate-50 rounded-2xl border border-slate-200 text-left text-xs space-y-2">
+              <div className="flex justify-between">
+                <span className="text-slate-500 font-medium">Leader Name:</span>
+                <span className="font-bold text-slate-900">{verifiedDetails.leaderName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500 font-medium">Department:</span>
+                <span className="font-bold text-slate-800">{verifiedDetails.department}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500 font-medium">Recorded Mode:</span>
+                <span className="font-bold text-emerald-700">{verifiedDetails.mode}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500 font-medium">Hospital Geofence Distance:</span>
+                <span className="font-bold text-emerald-700">{verifiedDetails.distanceMeters}m from 5th Flr</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500 font-medium">Time Recorded:</span>
+                <span className="font-mono font-bold text-slate-900">{verifiedDetails.timeStr} IST</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500 font-medium">Date:</span>
+                <span className="font-mono font-bold text-slate-900">{formatToIndianDate(targetDate)}</span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowVerifiedSuccessModal(false)}
+              className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-md transition-all cursor-pointer"
+            >
+              Done & Return
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

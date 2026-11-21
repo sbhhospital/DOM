@@ -2,7 +2,7 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { MeetingSchedule, AttendanceRecord, AppSettings, Leader, Department } from '../types/database';
 import { sbhLogoBase64 } from '../assets/logoBase64';
-import { formatLateDuration } from './meetingUtils';
+import { formatLateDuration, formatToIndianDate } from './meetingUtils';
 
 export function generateDirectorPdf(
   meeting: MeetingSchedule,
@@ -80,7 +80,7 @@ export function generateDirectorPdf(
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
   doc.setTextColor(71, 85, 105);
-  doc.text(`Date: ${formattedDate}   |   Scheduled Time: ${meeting.scheduled_time}   |   Cadence: ${cadenceCode} (${meeting.frequency})`, margin + 4, currentY + 12);
+  doc.text(`Date: ${formatToIndianDate(meeting.meeting_date)} (${formattedDate})   |   Scheduled Time: ${meeting.scheduled_time}   |   Cadence: ${cadenceCode} (${meeting.frequency})`, margin + 4, currentY + 12);
   doc.text(`Venue: ${settings.conference_room_name}   |   Meet URL: ${meeting.google_meet_url}`, margin + 4, currentY + 17);
 
   currentY += 26;

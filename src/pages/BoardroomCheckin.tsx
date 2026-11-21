@@ -17,11 +17,12 @@ import {
 import { useDomApp } from '../context/DomAppContext';
 import { useAuthSession } from '../context/AuthSessionContext';
 import { Leader } from '../types/database';
+import { formatToIndianDate, calculateDistanceInMeters } from '../lib/meetingUtils';
 import sbhLogo from '../assets/sbh-logo.png';
 
 export const BoardroomCheckin: React.FC = () => {
   const navigate = useNavigate();
-  const { leaders, selectedDate, markRoomQrCheckIn, getMeetingForDate } = useDomApp();
+  const { leaders, selectedDate, markRoomQrCheckIn, getMeetingForDate, appSettings } = useDomApp();
   const { currentUser, loginLeaderDirect, logoutUser } = useAuthSession();
 
   const currentMeeting = getMeetingForDate(selectedDate);
@@ -93,9 +94,9 @@ export const BoardroomCheckin: React.FC = () => {
         try {
           const pos: any = await new Promise((resolve, reject) => {
             navigator.geolocation.getCurrentPosition(resolve, reject, {
-              timeout: 4000,
+              timeout: 6000,
               enableHighAccuracy: true,
-              maximumAge: 30000,
+              maximumAge: 10000,
             });
           });
           locData.latitude = pos.coords.latitude;
@@ -103,7 +104,40 @@ export const BoardroomCheckin: React.FC = () => {
           locData.accuracy = Math.round(pos.coords.accuracy);
         } catch (gpsErr) {
           console.warn('GPS location fetch note:', gpsErr);
+          setErrorMessage('⚠️ Location permission zaroori hai hospital presence verify karne ke liye. Kripya device me GPS enable karein.');
+          setIsSubmitting(false);
+          return;
         }
+      } else {
+        setErrorMessage('⚠️ Geolocation aapke device/browser me supported nahi hai.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (!locData.latitude || !locData.longitude) {
+        setErrorMessage('⚠️ Hospital location detect nahi ho paya. Kripya GPS on karein aur dobara try karein.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Hospital 5th Floor Geofence check
+      const hospitalLat = appSettings.hospital_latitude || 21.2514;
+      const hospitalLng = appSettings.hospital_longitude || 81.6296;
+      const allowedRadius = appSettings.hospital_radius_meters || 50;
+
+      const distance = calculateDistanceInMeters(
+        locData.latitude,
+        locData.longitude,
+        hospitalLat,
+        hospitalLng
+      );
+
+      if (appSettings.hospital_geofence_enabled !== false && distance > allowedRadius) {
+        setErrorMessage(
+          `⚠️ Kripya hospital 5th floor conference room ke location se hi attendance mark karein! Aap conference room se lagbhag ${distance}m door hain (Allowed: ${allowedRadius}m).`
+        );
+        setIsSubmitting(false);
+        return;
       }
 
       // Mark physical boardroom check-in with single-daily count lock & GPS audit
@@ -168,7 +202,7 @@ export const BoardroomCheckin: React.FC = () => {
                 <Clock className="w-3 h-3 text-emerald-600" /> Today's Date
               </span>
               <span className="text-xs font-bold text-slate-800 block mt-0.5">
-                {selectedDate} ({currentMeeting.scheduled_time})
+                {formatToIndianDate(selectedDate)} ({currentMeeting.scheduled_time})
               </span>
             </div>
           </div>

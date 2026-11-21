@@ -114,4 +114,9 @@ export interface AppSettings {
   google_drive_folder_id?: string;
   google_drive_folder_url?: string;
   google_sheet_webhook_url?: string;
+  // Hospital 5th Floor Geofence Configuration
+  hospital_latitude?: number;
+  hospital_longitude?: number;
+  hospital_radius_meters?: number;
+  hospital_geofence_enabled?: boolean;
 }

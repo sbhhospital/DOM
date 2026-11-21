@@ -56,7 +56,7 @@ import { useDomApp } from '../context/DomAppContext';
 import { useAuthSession } from '../context/AuthSessionContext';
 import { useNavigate } from 'react-router-dom';
 import { Leader, Department, AttendanceStatus, MeetingFrequency, CadenceType, AttendanceRecord } from '../types/database';
-import { getCadenceInfo, formatLateDuration } from '../lib/meetingUtils';
+import { getCadenceInfo, formatLateDuration, formatToIndianDate, calculateDistanceInMeters } from '../lib/meetingUtils';
 import { MeetingCalendarView } from '../components/MeetingCalendarView';
 import { AnalyticsReportsView } from '../components/AnalyticsReportsView';
 import { generateDailyMeetingLink } from '../lib/meetingLinks';
@@ -270,6 +270,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
     sendCeoitboxEscalationToNonAttendees,
     sendCeoitboxGroupBroadcast,
     triggerAutomated0950Transmission,
+    broadcastScheduleChange,
     uploadReportToGoogleDriveAndSheet,
     getFullRosterForDate,
     generateNonAttendeesEscalationEmail,
@@ -344,8 +345,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
     const timer = setInterval(() => {
       // Calculate current IST Time
       const istDate = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
-      // Skip Sundays automatically: No DOM standup on Sunday
-      if (istDate.getDay() === 0) return;
+      const isSundayToday = istDate.getDay() === 0;
 
       const h = istDate.getHours();
       const m = istDate.getMinutes();
@@ -354,22 +354,30 @@ export const UnifiedAdminDashboard: React.FC = () => {
       const dd = String(istDate.getDate()).padStart(2, '0');
       const todayDate = `${yyyy}-${mm}-${dd}`;
 
-      // Stage 1: 09:50 AM Auto-Broadcast
+      // Stage 1: 09:50 AM Auto-Broadcast (Mon-Sat Standup Notice / Sunday Weekly Off Notice)
       if (h === 9 && m === 50) {
         const key = `sbh_auto_group_0950_${todayDate}`;
         if (!localStorage.getItem(key)) {
           localStorage.setItem(key, 'dispatched');
-          triggerAutomated0950Transmission(todayDate);
-          setToastAlert({
-            type: 'success',
-            text: '🔔 09:50 AM Automated Transmission Active: Notice broadcast to WhatsApp Group with Meeting Details!',
-          });
+          if (isSundayToday) {
+            sendMeetingReminderNotice(todayDate);
+            setToastAlert({
+              type: 'success',
+              text: '🔔 09:50 AM Automated Transmission: Sunday Weekly Off Notice dispatched to WhatsApp Group!',
+            });
+          } else {
+            triggerAutomated0950Transmission(todayDate);
+            setToastAlert({
+              type: 'success',
+              text: '🔔 09:50 AM Automated Transmission: DOM Standup Notice broadcast to WhatsApp Group!',
+            });
+          }
           setTimeout(() => setToastAlert(null), 8000);
         }
       }
 
-      // Stage 2: 10:30 AM Auto-Broadcast
-      if (h === 10 && m === 30) {
+      // Stage 2: 10:30 AM Auto-Broadcast (Only on meeting days, skipped on Sunday)
+      if (!isSundayToday && h === 10 && m === 30) {
         const key = `sbh_auto_group_1030_${todayDate}`;
         if (!localStorage.getItem(key)) {
           localStorage.setItem(key, 'dispatched');
@@ -855,10 +863,31 @@ export const UnifiedAdminDashboard: React.FC = () => {
     }
   };
 
-  const handleSaveSchedule = (e: React.FormEvent) => {
+  const [notifyGroupOnScheduleChange, setNotifyGroupOnScheduleChange] = useState<boolean>(true);
+
+  const handleSaveSchedule = async (e: React.FormEvent) => {
     e.preventDefault();
     updateMeetingSchedule(selectedDate, schedForm);
     setShowScheduleEditModal(false);
+
+    if (notifyGroupOnScheduleChange) {
+      try {
+        await broadcastScheduleChange(
+          selectedDate,
+          schedForm.cadence,
+          schedForm.title,
+          schedForm.scheduled_time || '10:00 AM',
+          schedForm.shift_reason
+        );
+        setToastAlert({
+          type: 'success',
+          text: `✅ Schedule update notice dispatched to WhatsApp Group for ${formatToIndianDate(selectedDate)}!`,
+        });
+        setTimeout(() => setToastAlert(null), 6000);
+      } catch (err) {
+        console.warn('Schedule broadcast error:', err);
+      }
+    }
   };
 
   const handleCadenceSelectionInModal = (cad: CadenceType) => {
@@ -873,8 +902,24 @@ export const UnifiedAdminDashboard: React.FC = () => {
     }));
   };
 
-  const handleSendReminderNotice = () => {
-    sendMeetingReminderNotice(selectedDate);
+  const handleSendReminderNotice = async () => {
+    setIsSendingNotice(true);
+    try {
+      const res = await sendMeetingReminderNotice(selectedDate);
+      setToastAlert({
+        type: 'success',
+        text: res.message || `✅ ${currentCadence} WhatsApp Notice dispatched to WhatsApp Group!`,
+      });
+      setTimeout(() => setToastAlert(null), 5000);
+    } catch (err: any) {
+      setToastAlert({
+        type: 'error',
+        text: '❌ Notice dispatch failed: ' + (err?.message || 'Network error'),
+      });
+      setTimeout(() => setToastAlert(null), 5000);
+    } finally {
+      setIsSendingNotice(false);
+    }
   };
 
   const handleCeoitboxDirectorReport = async () => {
@@ -1443,8 +1488,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded-lg border border-slate-200">
-              {selectedDate}
+            <div className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded-lg border border-slate-200 font-mono">
+              {formatToIndianDate(selectedDate)}
             </div>
             <a
               href={currentMeeting.google_meet_url}
@@ -1505,8 +1550,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                   {activeTab === 'links' && (
                     <>
                       Daily Meeting <span className="text-[#2e7d32]">Links & Tracker</span>
-                      <span className="px-3 py-1 rounded-xl bg-[#cfead6] border border-[#2e7d32]/10 text-[10px] font-bold text-[#2e7d32] tracking-wider whitespace-nowrap uppercase">
-                        {selectedDate}
+                      <span className="px-3 py-1 rounded-xl bg-[#cfead6] border border-[#2e7d32]/10 text-[10px] font-bold text-[#2e7d32] tracking-wider whitespace-nowrap uppercase font-mono">
+                        {formatToIndianDate(selectedDate)}
                       </span>
                     </>
                   )}
@@ -1567,6 +1612,9 @@ export const UnifiedAdminDashboard: React.FC = () => {
                   onChange={(e) => setSelectedDate(e.target.value)}
                   className="bg-transparent text-[#1f2d2a] text-xs font-mono font-bold focus:outline-none cursor-pointer"
                 />
+                <span className="text-[11px] font-mono font-black text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300">
+                  {formatToIndianDate(selectedDate)}
+                </span>
               </div>
 
               <a
@@ -1722,21 +1770,9 @@ export const UnifiedAdminDashboard: React.FC = () => {
                     </button>
 
                     <button
-                      onClick={async () => {
-                        setIsSendingNotice(true);
-                        try {
-                          await handleSendReminderNotice();
-                          setToastAlert({
-                            type: 'success',
-                            text: `✅ ${currentCadence} WhatsApp Notice dispatched to WhatsApp Group!`,
-                          });
-                          setTimeout(() => setToastAlert(null), 5000);
-                        } finally {
-                          setIsSendingNotice(false);
-                        }
-                      }}
+                      onClick={handleSendReminderNotice}
                       disabled={isSendingNotice}
-                      className="px-3 py-1.5 bg-[#2e7d32] hover:bg-[#256628] text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150"
+                      className="px-3 py-1.5 bg-[#2e7d32] hover:bg-[#256628] text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150 disabled:opacity-60"
                     >
                       {isSendingNotice ? <Loader2 className="w-3.5 h-3.5 animate-spin text-white" /> : <Send className="w-3.5 h-3.5" />}
                       <span>Send {currentCadence} WhatsApp Notice</span>
@@ -2278,8 +2314,11 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                   <Shield className="w-3.5 h-3.5 text-emerald-700" /> Admin Manual (In-Person)
                                 </span>
                               ) : rec.selected_mode === 'PHYSICAL' ? (
-                                <span className="text-[11px] font-bold text-[#2e7d32] bg-[#cfead6] px-2.5 py-0.5 rounded-full border border-[#2e7d32]/20 inline-flex items-center gap-1">
-                                  <CheckCircle2 className="w-3.5 h-3.5 text-[#2e7d32]" /> Physical (5th Flr)
+                                <span className="text-[11px] font-bold text-[#2e7d32] bg-[#cfead6] px-2.5 py-0.5 rounded-full border border-[#2e7d32]/20 inline-flex items-center gap-1 shadow-2xs">
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-[#2e7d32]" />
+                                  {rec.evidence_source === 'ROOM_STATIC_QR' || rec.evidence_source === 'VIRTUAL_QR_VERIFIED' || rec.qr_scanned_at
+                                    ? 'Physical (QR Verified)'
+                                    : 'Physical (5th Flr)'}
                                 </span>
                               ) : rec.selected_mode === 'VIRTUAL' ? (
                                 <span className="text-[11px] font-bold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200 inline-flex items-center gap-1">
@@ -3884,6 +3923,109 @@ export const UnifiedAdminDashboard: React.FC = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Hospital 5th Floor Conference Room Geofence & Location Control */}
+              <div className="fluent-card p-6 rounded-2xl space-y-4 border border-emerald-300 bg-gradient-to-br from-emerald-50/40 via-white to-teal-50/30">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-600/20">
+                      <MapPin className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-black text-slate-900">Hospital 5th Floor Geofence & Location Control</h3>
+                      <p className="text-xs text-slate-500">Enforce physical QR scan strictly within Conference Room perimeter (5m - 50m)</p>
+                    </div>
+                  </div>
+
+                  <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${appSettings.hospital_geofence_enabled !== false ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-slate-100 text-slate-600 border-slate-300'}`}>
+                    {appSettings.hospital_geofence_enabled !== false ? '🛡️ Geofence Active' : 'Off'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Hospital Latitude</label>
+                    <input
+                      type="number"
+                      step="any"
+                      value={appSettings.hospital_latitude ?? 21.2514}
+                      onChange={(e) => updateAppSettings({ hospital_latitude: parseFloat(e.target.value) || 21.2514 })}
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 font-mono focus:outline-none focus:border-emerald-600"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Hospital Longitude</label>
+                    <input
+                      type="number"
+                      step="any"
+                      value={appSettings.hospital_longitude ?? 81.6296}
+                      onChange={(e) => updateAppSettings({ hospital_longitude: parseFloat(e.target.value) || 81.6296 })}
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 font-mono focus:outline-none focus:border-emerald-600"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Allowed Radius (Meters)</label>
+                    <input
+                      type="number"
+                      value={appSettings.hospital_radius_meters ?? 50}
+                      onChange={(e) => updateAppSettings({ hospital_radius_meters: parseInt(e.target.value, 10) || 50 })}
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 font-mono focus:outline-none focus:border-emerald-600"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (typeof navigator !== 'undefined' && 'geolocation' in navigator) {
+                        try {
+                          const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+                            navigator.geolocation.getCurrentPosition(resolve, reject, {
+                              enableHighAccuracy: true,
+                              timeout: 8000,
+                            });
+                          });
+                          const lat = Number(pos.coords.latitude.toFixed(6));
+                          const lng = Number(pos.coords.longitude.toFixed(6));
+                          updateAppSettings({
+                            hospital_latitude: lat,
+                            hospital_longitude: lng,
+                            hospital_geofence_enabled: true,
+                          });
+                          setToastAlert({
+                            type: 'success',
+                            text: `📍 Captured Hospital Location: ${lat}, ${lng} (Accuracy: ±${Math.round(pos.coords.accuracy)}m)`,
+                          });
+                          setTimeout(() => setToastAlert(null), 6000);
+                        } catch (err: any) {
+                          setToastAlert({
+                            type: 'error',
+                            text: 'GPS Location capture failed: ' + (err?.message || 'Please enable GPS permissions'),
+                          });
+                          setTimeout(() => setToastAlert(null), 5000);
+                        }
+                      } else {
+                        alert('Geolocation is not supported by your browser.');
+                      }
+                    }}
+                    className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all"
+                  >
+                    <Navigation className="w-3.5 h-3.5" />
+                    <span>📍 Capture Current GPS Coordinates as Hospital Conference Room</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => updateAppSettings({ hospital_geofence_enabled: !appSettings.hospital_geofence_enabled })}
+                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold border border-slate-300 cursor-pointer"
+                  >
+                    {appSettings.hospital_geofence_enabled !== false ? 'Disable Geofence' : 'Enable Geofence'}
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 
@@ -4333,6 +4475,18 @@ export const UnifiedAdminDashboard: React.FC = () => {
                   />
                 </div>
               )}
+
+              <div className="p-3 bg-emerald-50/70 border border-emerald-200 rounded-xl">
+                <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-emerald-950">
+                  <input
+                    type="checkbox"
+                    checked={notifyGroupOnScheduleChange}
+                    onChange={(e) => setNotifyGroupOnScheduleChange(e.target.checked)}
+                    className="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer"
+                  />
+                  <span>Immediately Notify WhatsApp Group ({appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us'}) of this Schedule Update</span>
+                </label>
+              </div>
 
               <div className="flex justify-end gap-2 pt-2">
                 <button
@@ -5636,7 +5790,7 @@ function doPost(e) {
             <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 text-xs text-slate-700 space-y-1.5">
               <div className="flex items-center justify-between font-bold text-slate-800">
                 <span>Meeting Date:</span>
-                <span className="font-mono text-emerald-700">{selectedDate} ({currentCadence})</span>
+                <span className="font-mono text-emerald-700">{formatToIndianDate(selectedDate)} ({currentCadence})</span>
               </div>
               <div className="grid grid-cols-4 gap-2 pt-1.5 text-center">
                 <div className="bg-white p-2 rounded-xl border border-slate-200 shadow-2xs">

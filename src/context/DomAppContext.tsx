@@ -19,7 +19,7 @@ import {
   downloadYearlyAuditPdf,
 } from '../lib/pdfGenerator';
 import { sendCeoitboxWhatsappMessage, sendCeoitboxPdfAttachment } from '../lib/whatsappService';
-import { determineMeetingFrequency, getCadenceInfo, calculateLateMinutes, getLiveIndiaDateStr, formatLateDuration } from '../lib/meetingUtils';
+import { determineMeetingFrequency, getCadenceInfo, calculateLateMinutes, getLiveIndiaDateStr, formatLateDuration, formatToIndianDate } from '../lib/meetingUtils';
 import { generateLeaderMagicLink } from '../lib/magicLink';
 import { generateDailyMeetingLink } from '../lib/meetingLinks';
 
@@ -79,7 +79,14 @@ interface DomAppContextType {
   rejectAttendanceRecord: (recordId: string, reason?: string) => Promise<{ success: boolean; message: string }>;
   // Dispatches
   sendDailyWhatsappReport: (date: string) => { success: boolean; message: string; payload: string };
-  sendMeetingReminderNotice: (date: string) => { sentCount: number; message: string };
+  sendMeetingReminderNotice: (date: string) => Promise<{ success: boolean; sentCount: number; message: string }>;
+  broadcastScheduleChange: (
+    date: string,
+    newCadence: CadenceType,
+    title: string,
+    scheduledTime: string,
+    reason?: string
+  ) => Promise<{ success: boolean; message: string }>;
   sendNonAttendeesEscalationNotice: (date: string) => { count: number; message: string; payload: string };
   generateEmailReportDraft: (date: string) => { subject: string; body: string; mailtoUrl: string };
   generateNonAttendeesEscalationEmail: (date: string) => {
@@ -130,6 +137,10 @@ const DEFAULT_SETTINGS: AppSettings = {
   google_drive_folder_id: '1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD',
   google_drive_folder_url: 'https://drive.google.com/drive/folders/1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD?usp=sharing',
   google_sheet_webhook_url: 'https://script.google.com/macros/s/AKfycbyp3qzrQkP29pHmpz1bmcuwMYNSEncexZ6UE-Wr_1719eFiLvgUh7ETE0iexN4rGqvabw/exec',
+  hospital_latitude: 21.2514,
+  hospital_longitude: 81.6296,
+  hospital_radius_meters: 50,
+  hospital_geofence_enabled: true,
 };
 
 const isUuid = (val?: string | null): boolean =>
@@ -2470,36 +2481,70 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return { success: true, message: 'Final 10:30 AM WhatsApp Audit Report automatically dispatched & logged in Google Sheet!', payload: msg };
   };
 
-  // Stage 1: 09:50 AM Morning Notice with Meeting Link (Daily, Monday to Saturday; Sunday Paused)
-  const sendMeetingReminderNotice = (date: string) => {
-    // Sunday Rule: Automated reminders paused on Sunday
-    if (new Date(date).getDay() === 0) {
-      return { sentCount: 0, message: 'Sunday is an official weekly off. DOM Standup & automated reminders are paused on Sundays.' };
-    }
-
+  // Stage 1: 09:50 AM Morning Notice with Meeting Link (or Holiday / Sunday Weekly Off notice)
+  const sendMeetingReminderNotice = async (
+    date: string
+  ): Promise<{ success: boolean; sentCount: number; message: string }> => {
     const meeting = getMeetingForDate(date);
     const cadenceCode = meeting.cadence || 'DOM';
-    const formattedDate = new Date(date).toLocaleDateString('en-IN', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
+    const isSunday = new Date(date).getDay() === 0;
+    const isHoliday = cadenceCode === 'HOLIDAY' || Boolean(meeting.is_holiday_or_shifted);
+    const targetGroup = appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us';
+
+    let reminderMsg = '';
+    let noticeType = 'DOM_0950_NOTICE';
+
+    if (isSunday || isHoliday) {
+      noticeType = isSunday ? 'SUNDAY_OFF_NOTICE' : 'HOLIDAY_NOTICE';
+      reminderMsg = `🏥 *SBH GROUP OF HOSPITALS, RAIPUR*\n`;
+      reminderMsg += `🏖️ *OFFICIAL NOTICE: ${isSunday ? 'WEEKLY OFF (SUNDAY)' : 'HOSPITAL HOLIDAY / STAND-DOWN'}*\n`;
+      reminderMsg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
+      reminderMsg += `📅 *Date:* ${formatToIndianDate(date)} (${isSunday ? 'Sunday Weekly Off' : meeting.title})\n`;
+      reminderMsg += `📌 *Status:* Daily Operations Meeting (DOM) Standup is paused today.\n`;
+      reminderMsg += `🏖️ Today is an official hospital off day. Zero absentees recorded.\n`;
+      reminderMsg += `Next DOM Standup will resume on Monday at 10:00 AM IST.\n`;
+      reminderMsg += `━━━━━━━━━━━━━━━━━━━━━━\n*Automated Reminder*`;
+    } else {
+      reminderMsg = `🏥 *SBH GROUP OF HOSPITALS, RAIPUR*\n`;
+      reminderMsg += `🔔 *09:50 AM NOTICE: ${cadenceCode} — ${meeting.title.toUpperCase()}*\n`;
+      reminderMsg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
+      reminderMsg += `📅 *Date:* ${formatToIndianDate(date)}\n`;
+      reminderMsg += `⏰ *Start Time:* ${meeting.scheduled_time || '10:00 AM'} IST (Sharp)\n`;
+      reminderMsg += `📍 *Venue:* ${appSettings.conference_room_name || 'Conference Room, 5th Floor'}\n`;
+      reminderMsg += `💻 *Google Meet:* ${meeting.google_meet_url || 'https://meet.google.com/jrz-jfku-gir'}\n\n`;
+      reminderMsg += `📌 *MANDATORY CHECK-IN INSTRUCTION:*\n`;
+      reminderMsg += `Physical attendance ke liye 5th Floor Conference Room me QR Code Scan karna MANDATORY hai. Bina QR code scan kiye physical attendance submit nahi maani jayegi.\n\n`;
+      reminderMsg += `✅ *Direct Attendance Link:* https://sbhdom.vercel.app/boardroom-checkin\n`;
+      reminderMsg += `━━━━━━━━━━━━━━━━━━━━━━\n*Automated Reminder*`;
+    }
+
+    // 1. Direct WhatsApp Dispatch via CEOITBOX API
+    const res = await sendCeoitboxWhatsappMessage({
+      mobileNo: targetGroup,
+      name: 'SBH DOM Official Group',
+      message: reminderMsg,
+      settings: appSettings,
     });
 
-    let reminderMsg = `🏥 *SBH GROUP OF HOSPITALS, RAIPUR*\n`;
-    reminderMsg += `🔔 *09:50 AM NOTICE: ${cadenceCode} — ${meeting.title.toUpperCase()}*\n`;
-    reminderMsg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
-    reminderMsg += `📅 *Date:* ${formattedDate}\n`;
-    reminderMsg += `⏰ *Start Time:* 10:00 AM IST (Sharp)\n`;
-    reminderMsg += `📍 *Venue:* ${appSettings.conference_room_name || 'Conference Room, 5th Floor'}\n\n`;
-    reminderMsg += `✅ *ATTENDANCE & CHECK-IN LINK:*\n`;
-    reminderMsg += `👉 https://sbhdom.vercel.app/boardroom-checkin\n\n`;
-    reminderMsg += `⚠️ *INSTRUCTION FOR ALL HODs / LEADERS:*\n`;
-    reminderMsg += `All Department Heads and Leaders are kindly requested to assemble in the Conference Room (5th Floor) and check in using the link above before 10:00 AM sharp.\n`;
-    reminderMsg += `Final attendance audit will be finalized at 10:30 AM.\n`;
-    reminderMsg += `━━━━━━━━━━━━━━━━━━━━━━\n*Automated Reminder*`;
+    // 2. Log into Supabase admin_audit_logs
+    try {
+      await supabase.from('admin_audit_logs').insert({
+        action: 'WHATSAPP_NOTICE_SENT',
+        admin_id: 'auto-system',
+        details: {
+          cadence: cadenceCode,
+          date,
+          noticeType,
+          targetGroup,
+          sent_at: new Date().toISOString(),
+          response: res,
+        },
+      });
+    } catch (e) {
+      console.warn('Supabase audit log note:', e);
+    }
 
-    // Direct background dispatch to Google Sheet Webhook without redirecting browser
+    // 3. Silent Google Sheet Webhook broadcast
     if (appSettings.google_sheet_webhook_url) {
       try {
         fetch(appSettings.google_sheet_webhook_url, {
@@ -2507,21 +2552,79 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify({
             action: 'SEND_WHATSAPP_BROADCAST',
-            stage: '0950',
+            stage: isSunday || isHoliday ? 'OFF_NOTICE' : '0950',
             date,
             message: reminderMsg,
-            targetGroup: appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us',
+            targetGroup,
           }),
         }).catch(() => {});
-      } catch (e) {
-        // silent
-      }
+      } catch (e) {}
     }
+
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
       navigator.clipboard.writeText(reminderMsg).catch(() => {});
     }
 
-    return { sentCount: leaders.length, message: `09:50 AM ${cadenceCode} notice automatically dispatched to WhatsApp Group & Google Sheet!` };
+    return {
+      success: res.success,
+      sentCount: leaders.length,
+      message: isSunday || isHoliday
+        ? `✅ Official ${isSunday ? 'Sunday Weekly Off' : 'Holiday'} Notice dispatched to WhatsApp Group!`
+        : `✅ 09:50 AM ${cadenceCode} Notice dispatched to WhatsApp Group!`,
+    };
+  };
+
+  const broadcastScheduleChange = async (
+    date: string,
+    newCadence: CadenceType,
+    title: string,
+    scheduledTime: string,
+    reason?: string
+  ): Promise<{ success: boolean; message: string }> => {
+    const targetGroup = appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us';
+    let msg = `🏥 *SBH GROUP OF HOSPITALS, RAIPUR*\n`;
+    msg += `📢 *OFFICIAL SCHEDULE UPDATE / CADENCE NOTICE*\n`;
+    msg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
+    msg += `📅 *Target Date:* ${formatToIndianDate(date)}\n`;
+    msg += `🔄 *Meeting Cadence:* ${newCadence} (${title})\n`;
+    msg += `⏰ *Scheduled Time:* ${scheduledTime} IST\n`;
+    msg += `📍 *Venue:* ${appSettings.conference_room_name || 'Conference Room, 5th Floor'}\n`;
+    if (reason) {
+      msg += `📝 *Reason / Note:* ${reason}\n`;
+    }
+    msg += `\n📌 All department leaders please take note of this updated schedule in your calendars.\n`;
+    msg += `━━━━━━━━━━━━━━━━━━━━━━\n*Automated Reminder*`;
+
+    const res = await sendCeoitboxWhatsappMessage({
+      mobileNo: targetGroup,
+      name: 'SBH DOM Official Group',
+      message: msg,
+      settings: appSettings,
+    });
+
+    try {
+      await supabase.from('admin_audit_logs').insert({
+        action: 'SCHEDULE_CHANGE_BROADCAST',
+        admin_id: 'admin',
+        details: {
+          date,
+          newCadence,
+          title,
+          scheduledTime,
+          reason,
+          targetGroup,
+          sent_at: new Date().toISOString(),
+          response: res,
+        },
+      });
+    } catch (e) {
+      console.warn('Supabase audit log note:', e);
+    }
+
+    return {
+      success: res.success,
+      message: `✅ Schedule change broadcast dispatched to WhatsApp Group (${targetGroup})!`,
+    };
   };
 
   // Stage 2: 10:10 AM Live Attendance Status (❌ Red Cross for absentees, 🏢 physical, 💻 virtual, ⚠️ verified leave)
@@ -3284,6 +3387,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         rejectAttendanceRecord,
         sendDailyWhatsappReport,
         sendMeetingReminderNotice,
+        broadcastScheduleChange,
         sendNonAttendeesEscalationNotice,
         generateEmailReportDraft,
         generateNonAttendeesEscalationEmail,
