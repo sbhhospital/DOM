@@ -289,7 +289,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
     isOpen: false,
     title: '',
     message: '',
-    onConfirm: () => {},
+    onConfirm: () => { },
   });
 
   const openConfirm = (opts: {
@@ -697,10 +697,9 @@ export const UnifiedAdminDashboard: React.FC = () => {
     const actionLabel = nextStatus ? 'ACTIVATE' : 'DISABLE';
     if (
       window.confirm(
-        `Are you sure you want to ${actionLabel} ${leader.full_name}?\n\n${
-          nextStatus
-            ? 'This leader will be restored to the attendance register and notifications.'
-            : 'This leader will be hidden from daily attendance and excluded from reminders.'
+        `Are you sure you want to ${actionLabel} ${leader.full_name}?\n\n${nextStatus
+          ? 'This leader will be restored to the attendance register and notifications.'
+          : 'This leader will be hidden from daily attendance and excluded from reminders.'
         }`
       )
     ) {
@@ -1070,11 +1069,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
             setActiveTab('attendance');
             if (isMobile) setIsMobileMenuOpen(false);
           }}
-          className={`relative flex items-center justify-between w-full transition-[background-color,color,transform] duration-200 font-semibold tracking-wide text-[13px] px-4 py-3 rounded-xl cursor-pointer ${
-            activeTab === 'attendance'
+          className={`relative flex items-center justify-between w-full transition-[background-color,color,transform] duration-200 font-semibold tracking-wide text-[13px] px-4 py-3 rounded-xl cursor-pointer ${activeTab === 'attendance'
               ? 'bg-[#2e7d32] text-white shadow-md shadow-emerald-700/20 transform scale-[1.01]'
               : 'text-[#1f2d2a] hover:bg-[#cfead6]/40 hover:text-[#2e7d32]'
-          }`}
+            }`}
         >
           <div className="flex items-center gap-3">
             <Home size={18} strokeWidth={activeTab === 'attendance' ? 2.5 : 2} className={activeTab === 'attendance' ? 'text-white' : 'text-[#2e7d32] flex-shrink-0'} />
@@ -1091,11 +1089,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
             setActiveTab('links');
             if (isMobile) setIsMobileMenuOpen(false);
           }}
-          className={`relative flex items-center justify-between w-full transition-[background-color,color,transform] duration-200 font-semibold tracking-wide text-[13px] px-4 py-3 rounded-xl cursor-pointer ${
-            activeTab === 'links'
+          className={`relative flex items-center justify-between w-full transition-[background-color,color,transform] duration-200 font-semibold tracking-wide text-[13px] px-4 py-3 rounded-xl cursor-pointer ${activeTab === 'links'
               ? 'bg-[#2e7d32] text-white shadow-md shadow-emerald-700/20 transform scale-[1.01]'
               : 'text-[#1f2d2a] hover:bg-[#cfead6]/40 hover:text-[#2e7d32]'
-          }`}
+            }`}
         >
           <div className="flex items-center gap-3">
             <Video size={18} strokeWidth={activeTab === 'links' ? 2.5 : 2} className={activeTab === 'links' ? 'text-white' : 'text-teal-600 flex-shrink-0'} />
@@ -1112,11 +1109,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
             setActiveTab('geo-history');
             if (isMobile) setIsMobileMenuOpen(false);
           }}
-          className={`relative flex items-center justify-between w-full transition-[background-color,color,transform] duration-200 font-semibold tracking-wide text-[13px] px-4 py-3 rounded-xl cursor-pointer ${
-            activeTab === 'geo-history'
+          className={`relative flex items-center justify-between w-full transition-[background-color,color,transform] duration-200 font-semibold tracking-wide text-[13px] px-4 py-3 rounded-xl cursor-pointer ${activeTab === 'geo-history'
               ? 'bg-[#2e7d32] text-white shadow-md shadow-emerald-700/20 transform scale-[1.01]'
               : 'text-[#1f2d2a] hover:bg-[#cfead6]/40 hover:text-[#2e7d32]'
-          }`}
+            }`}
         >
           <div className="flex items-center gap-3">
             <MapPin size={18} strokeWidth={activeTab === 'geo-history' ? 2.5 : 2} className={activeTab === 'geo-history' ? 'text-white' : 'text-rose-600 flex-shrink-0'} />
@@ -1133,11 +1129,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
             setActiveTab('leaders');
             if (isMobile) setIsMobileMenuOpen(false);
           }}
-          className={`relative flex items-center justify-between w-full transition-[background-color,color,transform] duration-200 font-semibold tracking-wide text-[13px] px-4 py-3 rounded-xl cursor-pointer ${
-            activeTab === 'leaders'
+          className={`relative flex items-center justify-between w-full transition-[background-color,color,transform] duration-200 font-semibold tracking-wide text-[13px] px-4 py-3 rounded-xl cursor-pointer ${activeTab === 'leaders'
               ? 'bg-[#2e7d32] text-white shadow-md shadow-emerald-700/20 transform scale-[1.01]'
               : 'text-[#1f2d2a] hover:bg-[#cfead6]/40 hover:text-[#2e7d32]'
-          }`}
+            }`}
         >
           <div className="flex items-center gap-3">
             <Users size={18} strokeWidth={activeTab === 'leaders' ? 2.5 : 2} className={activeTab === 'leaders' ? 'text-white' : 'text-[#2e7d32] flex-shrink-0'} />
@@ -1154,11 +1149,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
             setActiveTab('departments');
             if (isMobile) setIsMobileMenuOpen(false);
           }}
-          className={`relative flex items-center justify-between w-full transition-[background-color,color,transform] duration-200 font-semibold tracking-wide text-[13px] px-4 py-3 rounded-xl cursor-pointer ${
-            activeTab === 'departments'
+          className={`relative flex items-center justify-between w-full transition-[background-color,color,transform] duration-200 font-semibold tracking-wide text-[13px] px-4 py-3 rounded-xl cursor-pointer ${activeTab === 'departments'
               ? 'bg-[#2e7d32] text-white shadow-md shadow-emerald-700/20 transform scale-[1.01]'
               : 'text-[#1f2d2a] hover:bg-[#cfead6]/40 hover:text-[#2e7d32]'
-          }`}
+            }`}
         >
           <div className="flex items-center gap-3">
             <Building size={18} strokeWidth={activeTab === 'departments' ? 2.5 : 2} className={activeTab === 'departments' ? 'text-white' : 'text-blue-600 flex-shrink-0'} />
@@ -1175,11 +1169,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
             setActiveTab('calendar');
             if (isMobile) setIsMobileMenuOpen(false);
           }}
-          className={`relative flex items-center justify-between w-full transition-[background-color,color,transform] duration-200 font-semibold tracking-wide text-[13px] px-4 py-3 rounded-xl cursor-pointer ${
-            activeTab === 'calendar'
+          className={`relative flex items-center justify-between w-full transition-[background-color,color,transform] duration-200 font-semibold tracking-wide text-[13px] px-4 py-3 rounded-xl cursor-pointer ${activeTab === 'calendar'
               ? 'bg-[#2e7d32] text-white shadow-md shadow-emerald-700/20 transform scale-[1.01]'
               : 'text-[#1f2d2a] hover:bg-[#cfead6]/40 hover:text-[#2e7d32]'
-          }`}
+            }`}
         >
           <div className="flex items-center gap-3">
             <Calendar size={18} strokeWidth={activeTab === 'calendar' ? 2.5 : 2} className={activeTab === 'calendar' ? 'text-white' : 'text-orange-500 flex-shrink-0'} />
@@ -1196,11 +1189,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
             setActiveTab('reports');
             if (isMobile) setIsMobileMenuOpen(false);
           }}
-          className={`relative flex items-center justify-between w-full transition-[background-color,color,transform] duration-200 font-semibold tracking-wide text-[13px] px-4 py-3 rounded-xl cursor-pointer ${
-            activeTab === 'reports'
+          className={`relative flex items-center justify-between w-full transition-[background-color,color,transform] duration-200 font-semibold tracking-wide text-[13px] px-4 py-3 rounded-xl cursor-pointer ${activeTab === 'reports'
               ? 'bg-[#2e7d32] text-white shadow-md shadow-emerald-700/20 transform scale-[1.01]'
               : 'text-[#1f2d2a] hover:bg-[#cfead6]/40 hover:text-[#2e7d32]'
-          }`}
+            }`}
         >
           <div className="flex items-center gap-3">
             <BarChart3 size={18} strokeWidth={activeTab === 'reports' ? 2.5 : 2} className={activeTab === 'reports' ? 'text-white' : 'text-purple-600 flex-shrink-0'} />
@@ -1217,11 +1209,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
             setActiveTab('settings');
             if (isMobile) setIsMobileMenuOpen(false);
           }}
-          className={`relative flex items-center justify-between w-full transition-[background-color,color,transform] duration-200 font-semibold tracking-wide text-[13px] px-4 py-3 rounded-xl cursor-pointer ${
-            activeTab === 'settings'
+          className={`relative flex items-center justify-between w-full transition-[background-color,color,transform] duration-200 font-semibold tracking-wide text-[13px] px-4 py-3 rounded-xl cursor-pointer ${activeTab === 'settings'
               ? 'bg-[#2e7d32] text-white shadow-md shadow-emerald-700/20 transform scale-[1.01]'
               : 'text-[#1f2d2a] hover:bg-[#cfead6]/40 hover:text-[#2e7d32]'
-          }`}
+            }`}
         >
           <div className="flex items-center gap-3">
             <Shield size={18} strokeWidth={activeTab === 'settings' ? 2.5 : 2} className={activeTab === 'settings' ? 'text-white' : 'text-emerald-600 flex-shrink-0'} />
@@ -1383,10 +1374,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
         {/* Toast Alert Banner */}
         {toastAlert && (
           <div className={`p-3 text-xs font-bold text-center flex items-center justify-center gap-2 sticky top-0 z-40 transition-all ${toastAlert.type === 'success'
-              ? 'bg-[#2e7d32] text-white shadow-md'
-              : toastAlert.type === 'info'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'bg-rose-600 text-white shadow-md'
+            ? 'bg-[#2e7d32] text-white shadow-md'
+            : toastAlert.type === 'info'
+              ? 'bg-blue-600 text-white shadow-md'
+              : 'bg-rose-600 text-white shadow-md'
             }`}>
             <Zap className="w-4 h-4 animate-bounce" />
             <span>{toastAlert.text}</span>
@@ -1511,13 +1502,12 @@ export const UnifiedAdminDashboard: React.FC = () => {
             <div className="bg-white rounded-2xl border border-[#dcdcdc] shadow-xs px-4 py-3 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
               <div className="flex items-center gap-3">
                 <div
-                  className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-white shadow-xs text-xs shrink-0 ${
-                    currentCadence === 'MOM'
+                  className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-white shadow-xs text-xs shrink-0 ${currentCadence === 'MOM'
                       ? 'bg-purple-600'
                       : currentCadence === 'WOM'
                         ? 'bg-blue-600'
                         : 'bg-gradient-to-br from-[#2e7d32] to-teal-700'
-                  }`}
+                    }`}
                 >
                   {currentCadence}
                 </div>
@@ -1576,15 +1566,14 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
                   <div className="flex items-center gap-3.5">
                     <div
-                      className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-white shadow-sm text-sm shrink-0 ${
-                        currentCadence === 'MOM'
+                      className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-white shadow-sm text-sm shrink-0 ${currentCadence === 'MOM'
                           ? 'bg-purple-600'
                           : currentCadence === 'WOM'
                             ? 'bg-blue-600'
                             : currentMeeting.is_holiday_or_shifted
                               ? 'bg-amber-600'
                               : 'bg-gradient-to-br from-[#2e7d32] to-teal-700'
-                      }`}
+                        }`}
                     >
                       {currentCadence}
                     </div>
@@ -1792,11 +1781,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
                         });
                         setTimeout(() => setToastAlert(null), 4000);
                       }}
-                      className={`px-2 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer active:scale-95 transition-all duration-150 border shrink-0 ${
-                        autoCeoitboxDispatch
+                      className={`px-2 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer active:scale-95 transition-all duration-150 border shrink-0 ${autoCeoitboxDispatch
                           ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
                           : 'bg-slate-200 text-slate-600 border-slate-300'
-                      }`}
+                        }`}
                       title="Auto-Scheduler Toggle"
                     >
                       <Clock className={`w-3.5 h-3.5 ${autoCeoitboxDispatch ? 'text-[#2e7d32]' : 'text-slate-400'}`} />
@@ -1835,16 +1823,14 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 {/* 1. Scheduled Today */}
                 <div
                   onClick={() => setStatusFilter('ALL')}
-                  className={`p-3 rounded-2xl border transition-all cursor-pointer group relative overflow-hidden ${
-                    statusFilter === 'ALL'
+                  className={`p-3 rounded-2xl border transition-all cursor-pointer group relative overflow-hidden ${statusFilter === 'ALL'
                       ? 'bg-gradient-to-br from-indigo-50 to-white border-indigo-500 ring-2 ring-indigo-500/30 shadow-md scale-[1.02]'
                       : 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-sm'
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center justify-between mb-1.5">
-                    <div className={`p-1.5 rounded-lg transition-transform group-hover:scale-110 duration-200 ${
-                      statusFilter === 'ALL' ? 'bg-indigo-600 text-white' : 'bg-indigo-100 text-indigo-700'
-                    }`}>
+                    <div className={`p-1.5 rounded-lg transition-transform group-hover:scale-110 duration-200 ${statusFilter === 'ALL' ? 'bg-indigo-600 text-white' : 'bg-indigo-100 text-indigo-700'
+                      }`}>
                       <Users className="w-4 h-4" />
                     </div>
                     <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-indigo-100 text-indigo-800 uppercase tracking-wider font-mono">
@@ -1859,16 +1845,14 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 {/* 2. Total Joined (Turnout Recorded) */}
                 <div
                   onClick={() => setStatusFilter(statusFilter === 'PRESENT' ? 'ALL' : 'PRESENT')}
-                  className={`p-3 rounded-2xl border transition-all cursor-pointer group relative overflow-hidden ${
-                    statusFilter === 'PRESENT'
+                  className={`p-3 rounded-2xl border transition-all cursor-pointer group relative overflow-hidden ${statusFilter === 'PRESENT'
                       ? 'bg-gradient-to-br from-emerald-50 to-white border-emerald-600 ring-2 ring-emerald-600/30 shadow-md scale-[1.02]'
                       : 'bg-white border-slate-200 hover:border-emerald-300 hover:shadow-sm'
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center justify-between mb-1.5">
-                    <div className={`p-1.5 rounded-lg transition-transform group-hover:scale-110 duration-200 ${
-                      statusFilter === 'PRESENT' ? 'bg-[#2e7d32] text-white' : 'bg-[#cfead6] text-[#2e7d32]'
-                    }`}>
+                    <div className={`p-1.5 rounded-lg transition-transform group-hover:scale-110 duration-200 ${statusFilter === 'PRESENT' ? 'bg-[#2e7d32] text-white' : 'bg-[#cfead6] text-[#2e7d32]'
+                      }`}>
                       <CheckCircle2 className="w-4 h-4" />
                     </div>
                     <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 uppercase tracking-wider font-mono">
@@ -1883,16 +1867,14 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 {/* 3. In-Person (Physical Room) */}
                 <div
                   onClick={() => setStatusFilter(statusFilter === 'PHYSICAL' ? 'ALL' : 'PHYSICAL')}
-                  className={`p-3 rounded-2xl border transition-all cursor-pointer group relative overflow-hidden ${
-                    statusFilter === 'PHYSICAL'
+                  className={`p-3 rounded-2xl border transition-all cursor-pointer group relative overflow-hidden ${statusFilter === 'PHYSICAL'
                       ? 'bg-gradient-to-br from-amber-50 to-white border-amber-600 ring-2 ring-amber-500/30 shadow-md scale-[1.02]'
                       : 'bg-white border-slate-200 hover:border-amber-300 hover:shadow-sm'
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center justify-between mb-1.5">
-                    <div className={`p-1.5 rounded-lg transition-transform group-hover:scale-110 duration-200 ${
-                      statusFilter === 'PHYSICAL' ? 'bg-amber-600 text-white' : 'bg-amber-100 text-amber-800'
-                    }`}>
+                    <div className={`p-1.5 rounded-lg transition-transform group-hover:scale-110 duration-200 ${statusFilter === 'PHYSICAL' ? 'bg-amber-600 text-white' : 'bg-amber-100 text-amber-800'
+                      }`}>
                       <Building className="w-4 h-4" />
                     </div>
                     <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-800 uppercase tracking-wider font-mono">
@@ -1907,16 +1889,14 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 {/* 4. Virtual (Meet) */}
                 <div
                   onClick={() => setStatusFilter(statusFilter === 'VIRTUAL' ? 'ALL' : 'VIRTUAL')}
-                  className={`p-3 rounded-2xl border transition-all cursor-pointer group relative overflow-hidden ${
-                    statusFilter === 'VIRTUAL'
+                  className={`p-3 rounded-2xl border transition-all cursor-pointer group relative overflow-hidden ${statusFilter === 'VIRTUAL'
                       ? 'bg-gradient-to-br from-sky-50 to-white border-sky-600 ring-2 ring-sky-500/30 shadow-md scale-[1.02]'
                       : 'bg-white border-slate-200 hover:border-sky-300 hover:shadow-sm'
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center justify-between mb-1.5">
-                    <div className={`p-1.5 rounded-lg transition-transform group-hover:scale-110 duration-200 ${
-                      statusFilter === 'VIRTUAL' ? 'bg-sky-600 text-white' : 'bg-sky-100 text-sky-800'
-                    }`}>
+                    <div className={`p-1.5 rounded-lg transition-transform group-hover:scale-110 duration-200 ${statusFilter === 'VIRTUAL' ? 'bg-sky-600 text-white' : 'bg-sky-100 text-sky-800'
+                      }`}>
                       <Video className="w-4 h-4" />
                     </div>
                     <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-sky-100 text-sky-800 uppercase tracking-wider font-mono">
@@ -1931,16 +1911,14 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 {/* 5. Late (Approved) */}
                 <div
                   onClick={() => setStatusFilter(statusFilter === 'INFORMED_LATE' ? 'ALL' : 'INFORMED_LATE')}
-                  className={`p-3 rounded-2xl border transition-all cursor-pointer group relative overflow-hidden ${
-                    statusFilter === 'INFORMED_LATE'
+                  className={`p-3 rounded-2xl border transition-all cursor-pointer group relative overflow-hidden ${statusFilter === 'INFORMED_LATE'
                       ? 'bg-gradient-to-br from-yellow-50 to-white border-yellow-600 ring-2 ring-yellow-500/30 shadow-md scale-[1.02]'
                       : 'bg-white border-slate-200 hover:border-yellow-300 hover:shadow-sm'
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center justify-between mb-1.5">
-                    <div className={`p-1.5 rounded-lg transition-transform group-hover:scale-110 duration-200 ${
-                      statusFilter === 'INFORMED_LATE' ? 'bg-yellow-600 text-white' : 'bg-yellow-100 text-yellow-800'
-                    }`}>
+                    <div className={`p-1.5 rounded-lg transition-transform group-hover:scale-110 duration-200 ${statusFilter === 'INFORMED_LATE' ? 'bg-yellow-600 text-white' : 'bg-yellow-100 text-yellow-800'
+                      }`}>
                       <Clock className="w-4 h-4" />
                     </div>
                     <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-yellow-100 text-yellow-800 uppercase tracking-wider font-mono">
@@ -1955,16 +1933,14 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 {/* 6. Approved Leave */}
                 <div
                   onClick={() => setStatusFilter(statusFilter === 'LEAVE' ? 'ALL' : 'LEAVE')}
-                  className={`p-3 rounded-2xl border transition-all cursor-pointer group relative overflow-hidden ${
-                    statusFilter === 'LEAVE'
+                  className={`p-3 rounded-2xl border transition-all cursor-pointer group relative overflow-hidden ${statusFilter === 'LEAVE'
                       ? 'bg-gradient-to-br from-purple-50 to-white border-purple-600 ring-2 ring-purple-500/30 shadow-md scale-[1.02]'
                       : 'bg-white border-slate-200 hover:border-purple-300 hover:shadow-sm'
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center justify-between mb-1.5">
-                    <div className={`p-1.5 rounded-lg transition-transform group-hover:scale-110 duration-200 ${
-                      statusFilter === 'LEAVE' ? 'bg-purple-600 text-white' : 'bg-purple-100 text-purple-800'
-                    }`}>
+                    <div className={`p-1.5 rounded-lg transition-transform group-hover:scale-110 duration-200 ${statusFilter === 'LEAVE' ? 'bg-purple-600 text-white' : 'bg-purple-100 text-purple-800'
+                      }`}>
                       <HelpCircle className="w-4 h-4" />
                     </div>
                     <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-purple-100 text-purple-800 uppercase tracking-wider font-mono">
@@ -1979,16 +1955,14 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 {/* 7. Absent */}
                 <div
                   onClick={() => setStatusFilter(statusFilter === 'ABSENT' ? 'ALL' : 'ABSENT')}
-                  className={`p-3 rounded-2xl border transition-all cursor-pointer group relative overflow-hidden ${
-                    statusFilter === 'ABSENT'
+                  className={`p-3 rounded-2xl border transition-all cursor-pointer group relative overflow-hidden ${statusFilter === 'ABSENT'
                       ? 'bg-gradient-to-br from-rose-50 to-white border-rose-600 ring-2 ring-rose-500/30 shadow-md scale-[1.02]'
                       : 'bg-white border-slate-200 hover:border-rose-300 hover:shadow-sm'
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center justify-between mb-1.5">
-                    <div className={`p-1.5 rounded-lg transition-transform group-hover:scale-110 duration-200 ${
-                      statusFilter === 'ABSENT' ? 'bg-rose-600 text-white' : 'bg-rose-100 text-rose-700'
-                    }`}>
+                    <div className={`p-1.5 rounded-lg transition-transform group-hover:scale-110 duration-200 ${statusFilter === 'ABSENT' ? 'bg-rose-600 text-white' : 'bg-rose-100 text-rose-700'
+                      }`}>
                       <XCircle className="w-4 h-4" />
                     </div>
                     <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-rose-100 text-rose-800 uppercase tracking-wider font-mono">
@@ -2373,10 +2347,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                             !isSelectedDateToday
                                               ? `Mark Present is only allowed on today's date (${todayIST})`
                                               : isSunday
-                                              ? 'Sunday is official weekly off. Standup attendance is disabled.'
-                                              : isHolidayOrRemovedDom
-                                              ? 'DOM meeting is not scheduled or has been removed for this date.'
-                                              : 'Mark Present unlocks at 09:30 AM IST on DOM standup day.'
+                                                ? 'Sunday is official weekly off. Standup attendance is disabled.'
+                                                : isHolidayOrRemovedDom
+                                                  ? 'DOM meeting is not scheduled or has been removed for this date.'
+                                                  : 'Mark Present unlocks at 09:30 AM IST on DOM standup day.'
                                           }
                                         >
                                           <Lock className="w-3.5 h-3.5 text-slate-400" />
@@ -2384,10 +2358,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                             {!isSelectedDateToday
                                               ? 'Today Only'
                                               : isSunday
-                                              ? 'Sunday Off'
-                                              : isHolidayOrRemovedDom
-                                              ? 'No DOM'
-                                              : 'At 09:30 AM'}
+                                                ? 'Sunday Off'
+                                                : isHolidayOrRemovedDom
+                                                  ? 'No DOM'
+                                                  : 'At 09:30 AM'}
                                           </span>
                                         </button>
                                       )
@@ -2627,33 +2601,30 @@ export const UnifiedAdminDashboard: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => setRosterStatusFilter('ALL')}
-                          className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                            rosterStatusFilter === 'ALL'
+                          className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${rosterStatusFilter === 'ALL'
                               ? 'bg-white text-[#1f2d2a] shadow-xs'
                               : 'text-slate-500 hover:text-[#1f2d2a]'
-                          }`}
+                            }`}
                         >
                           All ({leaders.length})
                         </button>
                         <button
                           type="button"
                           onClick={() => setRosterStatusFilter('ACTIVE')}
-                          className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                            rosterStatusFilter === 'ACTIVE'
+                          className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${rosterStatusFilter === 'ACTIVE'
                               ? 'bg-[#2e7d32] text-white shadow-xs'
                               : 'text-slate-500 hover:text-[#2e7d32]'
-                          }`}
+                            }`}
                         >
                           Active ({leaders.filter((l) => l.is_active !== false).length})
                         </button>
                         <button
                           type="button"
                           onClick={() => setRosterStatusFilter('DISABLED')}
-                          className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                            rosterStatusFilter === 'DISABLED'
+                          className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${rosterStatusFilter === 'DISABLED'
                               ? 'bg-slate-700 text-white shadow-xs'
                               : 'text-slate-500 hover:text-slate-900'
-                          }`}
+                            }`}
                         >
                           Disabled ({leaders.filter((l) => l.is_active === false).length})
                         </button>
@@ -2664,11 +2635,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => setLeaderViewMode('list')}
-                          className={`p-1.5 rounded-lg transition-all cursor-pointer ${
-                            leaderViewMode === 'list'
+                          className={`p-1.5 rounded-lg transition-all cursor-pointer ${leaderViewMode === 'list'
                               ? 'bg-white text-[#2e7d32] shadow-xs'
                               : 'text-slate-400 hover:text-[#1f2d2a]'
-                          }`}
+                            }`}
                           title="Detailed List / Table View"
                         >
                           <List size={16} />
@@ -2676,11 +2646,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => setLeaderViewMode('grid')}
-                          className={`p-1.5 rounded-lg transition-all cursor-pointer ${
-                            leaderViewMode === 'grid'
+                          className={`p-1.5 rounded-lg transition-all cursor-pointer ${leaderViewMode === 'grid'
                               ? 'bg-white text-[#2e7d32] shadow-xs'
                               : 'text-slate-400 hover:text-[#1f2d2a]'
-                          }`}
+                            }`}
                           title="Grid Cards View"
                         >
                           <Grid size={16} />
@@ -2731,9 +2700,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                           {filteredLeaders.map((lead) => (
                             <tr
                               key={lead.id}
-                              className={`transition-colors hover:bg-slate-50/60 ${
-                                lead.is_active === false ? 'opacity-65 bg-slate-50/40' : ''
-                              }`}
+                              className={`transition-colors hover:bg-slate-50/60 ${lead.is_active === false ? 'opacity-65 bg-slate-50/40' : ''
+                                }`}
                             >
                               {/* Leader Name, Role, Employee ID */}
                               <td className="py-3.5 px-4">
@@ -2794,11 +2762,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
                               {/* Expected Attendance Mode */}
                               <td className="py-3.5 px-4">
                                 <span
-                                  className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-lg border ${
-                                    lead.expected_mode === 'VIRTUAL'
+                                  className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-lg border ${lead.expected_mode === 'VIRTUAL'
                                       ? 'bg-blue-50 text-blue-700 border-blue-200'
                                       : 'bg-orange-50 text-orange-800 border-orange-200'
-                                  }`}
+                                    }`}
                                 >
                                   {lead.expected_mode === 'VIRTUAL' ? <Video size={13} /> : <Building size={13} />}
                                   <span>{lead.expected_mode === 'VIRTUAL' ? 'Virtual (Meet)' : 'Physical (Room)'}</span>
@@ -2830,11 +2797,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                 <button
                                   type="button"
                                   onClick={() => handleToggleLeaderStatus(lead)}
-                                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border cursor-pointer transition-all hover:scale-105 ${
-                                    lead.is_active !== false
+                                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border cursor-pointer transition-all hover:scale-105 ${lead.is_active !== false
                                       ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
                                       : 'bg-slate-200 text-slate-700 border-slate-300'
-                                  }`}
+                                    }`}
                                   title={lead.is_active !== false ? 'Click to Disable' : 'Click to Activate'}
                                 >
                                   <span className={`w-1.5 h-1.5 rounded-full ${lead.is_active !== false ? 'bg-[#2e7d32] animate-pulse' : 'bg-slate-400'}`} />
@@ -2875,9 +2841,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                     {filteredLeaders.map((lead) => (
                       <div
                         key={lead.id}
-                        className={`bg-white p-5 rounded-2xl border transition-all flex flex-col justify-between hover:border-[#2e7d32] shadow-sm ${
-                          lead.is_active !== false ? 'border-[#dcdcdc]' : 'border-slate-300 opacity-75 bg-slate-50/70'
-                        }`}
+                        className={`bg-white p-5 rounded-2xl border transition-all flex flex-col justify-between hover:border-[#2e7d32] shadow-sm ${lead.is_active !== false ? 'border-[#dcdcdc]' : 'border-slate-300 opacity-75 bg-slate-50/70'
+                          }`}
                       >
                         <div>
                           <div className="flex justify-between items-start">
@@ -2886,11 +2851,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                 {lead.role || 'LEADER'}
                               </span>
                               <span
-                                className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${
-                                  lead.is_active !== false
+                                className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${lead.is_active !== false
                                     ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
                                     : 'bg-slate-200 text-slate-700 border-slate-300'
-                                }`}
+                                  }`}
                               >
                                 {lead.is_active !== false ? 'Active' : 'Disabled'}
                               </span>
@@ -2949,11 +2913,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
                           <div className="flex items-center gap-1">
                             <button
                               onClick={() => handleToggleLeaderStatus(lead)}
-                              className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                                lead.is_active !== false
+                              className={`p-1.5 rounded-lg transition-colors cursor-pointer ${lead.is_active !== false
                                   ? 'text-slate-400 hover:text-amber-600 hover:bg-amber-50'
                                   : 'text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50'
-                              }`}
+                                }`}
                               title={lead.is_active !== false ? 'Disable Leader' : 'Activate Leader'}
                             >
                               {lead.is_active !== false ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
@@ -3059,11 +3022,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
                         <div className="mt-2 text-xs text-slate-600 flex items-center justify-between bg-slate-50 px-2.5 py-1.5 rounded-xl border border-slate-100">
                           <span className="text-[11px] font-bold text-slate-500">Assigned Leaders:</span>
-                          <span className={`font-black px-2 py-0.5 rounded-md text-xs border ${
-                            deptLeaders.length > 0
+                          <span className={`font-black px-2 py-0.5 rounded-md text-xs border ${deptLeaders.length > 0
                               ? 'bg-[#cfead6] text-[#2e7d32] border-[#2e7d32]/20'
                               : 'bg-white text-slate-400 border-slate-200'
-                          }`}>
+                            }`}>
                             {deptLeaders.length}
                           </span>
                         </div>
@@ -3087,9 +3049,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                     </div>
                                   </div>
                                   <div className="flex items-center gap-1 shrink-0">
-                                    <span className={`text-[8px] font-bold px-1.5 py-0.2 rounded-full ${
-                                      lead.is_active !== false ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-600'
-                                    }`}>
+                                    <span className={`text-[8px] font-bold px-1.5 py-0.2 rounded-full ${lead.is_active !== false ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-600'
+                                      }`}>
                                       {lead.is_active !== false ? 'Active' : 'Off'}
                                     </span>
                                     <button
@@ -3409,8 +3370,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                               <td className="py-3 px-3">
                                 <span
                                   className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${lead.expected_mode === 'VIRTUAL'
-                                      ? 'bg-blue-100 text-blue-800 border border-blue-200'
-                                      : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                    ? 'bg-blue-100 text-blue-800 border border-blue-200'
+                                    : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                                     }`}
                                 >
                                   {lead.expected_mode}
@@ -3458,8 +3419,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                               <td className="py-3 px-3 text-center">
                                 <span
                                   className={`px-2.5 py-0.5 rounded-full font-mono text-[11px] font-black inline-block ${clicks > 0
-                                      ? 'bg-teal-100 text-teal-900 border border-teal-300'
-                                      : 'bg-slate-100 text-slate-400'
+                                    ? 'bg-teal-100 text-teal-900 border border-teal-300'
+                                    : 'bg-slate-100 text-slate-400'
                                     }`}
                                 >
                                   {clicks} {clicks === 1 ? 'click' : 'clicks'}
@@ -4124,8 +4085,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                     type="button"
                     onClick={() => handleCadenceSelectionInModal('DOM')}
                     className={`p-3 rounded-xl border text-xs font-black transition-all flex items-center justify-between cursor-pointer ${schedForm.cadence === 'DOM' && !schedForm.is_holiday_or_shifted
-                        ? 'bg-orange-600 text-white border-orange-600 shadow-md shadow-orange-600/20'
-                        : 'bg-slate-50 hover:bg-orange-50 text-slate-700 border-slate-200'
+                      ? 'bg-orange-600 text-white border-orange-600 shadow-md shadow-orange-600/20'
+                      : 'bg-slate-50 hover:bg-orange-50 text-slate-700 border-slate-200'
                       }`}
                   >
                     <div>
@@ -4139,8 +4100,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                     type="button"
                     onClick={() => handleCadenceSelectionInModal('WOM')}
                     className={`p-3 rounded-xl border text-xs font-black transition-all flex items-center justify-between cursor-pointer ${schedForm.cadence === 'WOM' && !schedForm.is_holiday_or_shifted
-                        ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-600/20'
-                        : 'bg-slate-50 hover:bg-blue-50 text-slate-700 border-slate-200'
+                      ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-600/20'
+                      : 'bg-slate-50 hover:bg-blue-50 text-slate-700 border-slate-200'
                       }`}
                   >
                     <div>
@@ -4154,8 +4115,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                     type="button"
                     onClick={() => handleCadenceSelectionInModal('MOM')}
                     className={`p-3 rounded-xl border text-xs font-black transition-all flex items-center justify-between cursor-pointer ${schedForm.cadence === 'MOM' && !schedForm.is_holiday_or_shifted
-                        ? 'bg-purple-600 text-white border-purple-600 shadow-md shadow-purple-600/20'
-                        : 'bg-slate-50 hover:bg-purple-50 text-slate-700 border-slate-200'
+                      ? 'bg-purple-600 text-white border-purple-600 shadow-md shadow-purple-600/20'
+                      : 'bg-slate-50 hover:bg-purple-50 text-slate-700 border-slate-200'
                       }`}
                   >
                     <div>
@@ -4169,8 +4130,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                     type="button"
                     onClick={() => handleCadenceSelectionInModal('HOLIDAY')}
                     className={`p-3 rounded-xl border text-xs font-black transition-all flex items-center justify-between cursor-pointer ${schedForm.cadence === 'HOLIDAY' || schedForm.is_holiday_or_shifted
-                        ? 'bg-amber-600 text-white border-amber-600 shadow-md shadow-amber-600/20'
-                        : 'bg-slate-50 hover:bg-amber-50 text-slate-700 border-slate-200'
+                      ? 'bg-amber-600 text-white border-amber-600 shadow-md shadow-amber-600/20'
+                      : 'bg-slate-50 hover:bg-amber-50 text-slate-700 border-slate-200'
                       }`}
                   >
                     <div>
@@ -4398,11 +4359,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
                   <div className="text-xs font-black text-slate-800 flex items-center gap-2">
                     <span>Account Participation Status:</span>
                     <span
-                      className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border ${
-                        leaderForm.is_active
+                      className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border ${leaderForm.is_active
                           ? 'bg-[#cfead6] text-[#2e7d32] border-[#2e7d32]/20'
                           : 'bg-slate-200 text-slate-700 border-slate-300'
-                      }`}
+                        }`}
                     >
                       {leaderForm.is_active ? 'Active' : 'Disabled (Inactive)'}
                     </span>
@@ -4417,15 +4377,13 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setLeaderForm({ ...leaderForm, is_active: !leaderForm.is_active })}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                    leaderForm.is_active ? 'bg-[#2e7d32]' : 'bg-slate-300'
-                  }`}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${leaderForm.is_active ? 'bg-[#2e7d32]' : 'bg-slate-300'
+                    }`}
                   title={leaderForm.is_active ? 'Click to Disable' : 'Click to Activate'}
                 >
                   <span
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
-                      leaderForm.is_active ? 'translate-x-5' : 'translate-x-0'
-                    }`}
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${leaderForm.is_active ? 'translate-x-5' : 'translate-x-0'
+                      }`}
                   />
                 </button>
               </div>
@@ -4551,8 +4509,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
             {passMsg && (
               <div
                 className={`p-3 text-xs rounded-xl mb-3 font-semibold ${passMsg.success
-                    ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
-                    : 'bg-rose-50 border border-rose-200 text-rose-700'
+                  ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
+                  : 'bg-rose-50 border border-rose-200 text-rose-700'
                   }`}
               >
                 {passMsg.text}
@@ -4848,8 +4806,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                         }));
                       }}
                       className={`py-1.5 rounded-xl text-xs font-black cursor-pointer transition-all border ${informedLateModal.lateMinutes === mins
-                          ? 'bg-amber-600 text-white border-amber-700 shadow-xs'
-                          : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                        ? 'bg-amber-600 text-white border-amber-700 shadow-xs'
+                        : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
                         }`}
                     >
                       +{mins} min
@@ -4969,8 +4927,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                   setTimeout(() => setToastAlert(null), 4000);
                 }}
                 className={`px-4 py-2 text-white text-xs font-bold rounded-xl shadow-md transition-all ${informedLateModal.adminApproved
-                    ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/20 cursor-pointer'
-                    : 'bg-slate-300 cursor-not-allowed'
+                  ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/20 cursor-pointer'
+                  : 'bg-slate-300 cursor-not-allowed'
                   }`}
               >
                 Confirm & Approve Late Arrival
@@ -5105,7 +5063,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 <span className="text-[11px] text-teal-700 font-mono font-bold">Code.gs</span>
               </div>
               <pre className="bg-slate-900 text-teal-300 p-4 rounded-2xl border border-slate-800 text-[11px] font-mono whitespace-pre-wrap select-all overflow-x-auto">
-{`/**
+                {`/**
  * =======================================================================
  * SBH GROUP OF HOSPITALS, RAIPUR — DOM AUTOMATION PIPELINE (APPS SCRIPT)
  * Target Drive Folder: https://drive.google.com/drive/folders/1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD?usp=sharing
@@ -5316,15 +5274,14 @@ function doPost(e) {
           <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 transform transition-all">
             <div className="flex items-center gap-3 mb-4">
               <div
-                className={`w-10 h-10 rounded-2xl flex items-center justify-center ${
-                  confirmModal.type === 'danger'
+                className={`w-10 h-10 rounded-2xl flex items-center justify-center ${confirmModal.type === 'danger'
                     ? 'bg-rose-100 text-rose-600'
                     : confirmModal.type === 'warning'
-                    ? 'bg-amber-100 text-amber-600'
-                    : confirmModal.type === 'success'
-                    ? 'bg-emerald-100 text-emerald-600'
-                    : 'bg-blue-100 text-blue-600'
-                }`}
+                      ? 'bg-amber-100 text-amber-600'
+                      : confirmModal.type === 'success'
+                        ? 'bg-emerald-100 text-emerald-600'
+                        : 'bg-blue-100 text-blue-600'
+                  }`}
               >
                 {confirmModal.type === 'danger' ? (
                   <AlertTriangle className="w-5 h-5" />
@@ -5366,15 +5323,14 @@ function doPost(e) {
                     setConfirmModal((prev) => ({ ...prev, isOpen: false, isExecuting: false }));
                   }
                 }}
-                className={`px-5 py-2 text-white font-bold text-xs rounded-xl shadow-md flex items-center gap-1.5 transition-all cursor-pointer ${
-                  confirmModal.type === 'danger'
+                className={`px-5 py-2 text-white font-bold text-xs rounded-xl shadow-md flex items-center gap-1.5 transition-all cursor-pointer ${confirmModal.type === 'danger'
                     ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/30'
                     : confirmModal.type === 'success'
-                    ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/30'
-                    : confirmModal.type === 'warning'
-                    ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/30'
-                    : 'bg-[#2e7d32] hover:bg-[#256628] shadow-[#2e7d32]/30'
-                }`}
+                      ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/30'
+                      : confirmModal.type === 'warning'
+                        ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/30'
+                        : 'bg-[#2e7d32] hover:bg-[#256628] shadow-[#2e7d32]/30'
+                  }`}
               >
                 {confirmModal.isExecuting ? (
                   <>
