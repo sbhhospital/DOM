@@ -816,7 +816,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
     }
   };
 
-  // Direct PDF Sharing into WhatsApp Group (Native OS share + Silent Webhook)
+  // Direct PDF Sharing into WhatsApp Group (Native OS share + CEOITBOX Direct API)
   const handleSharePdfDirectly = async (date: string) => {
     setToastAlert({
       type: 'info',
@@ -833,10 +833,13 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
       const captionText = `🏥 *SBH GROUP OF HOSPITALS, RAIPUR*\n📊 *OFFICIAL ${cadence} LEADERSHIP ATTENDANCE REPORT (${date})*\n━━━━━━━━━━━━━━━━━━━━━━\n• Total Expected: ${forDate.length}\n• Attended: ${forDate.filter((r) => r.status === 'PRESENT' || r.admin_verified_attendance).length}\n• Approved Late: ${forDate.filter((r) => r.status === 'INFORMED_LATE' || (r.late_minutes && r.late_minutes > 0)).length}\n• Approved Leave: ${forDate.filter((r) => r.status === 'LEAVE').length}\n• Absent / Unreported: ${forDate.filter((r) => r.status === 'ABSENT' || (!r.admin_verified_attendance && r.status === 'PENDING' && r.selected_mode === 'NONE')).length}\n\n📁 Drive Archive: ${appSettings.google_drive_folder_url || 'https://drive.google.com/drive/folders/1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD?usp=sharing'}\n━━━━━━━━━━━━━━━━━━━━━━\nDOM Operations Command | SBH Raipur`;
 
-      // 1. Silent cloud sync: Save to Drive folder 1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD & Sheet in background
-      uploadReportToGoogleDriveAndSheet(date).catch((e) => console.warn('Background drive sync note:', e));
+      // 1. Silent cloud sync: Save to Supabase SQL Database & Drive archive
+      uploadReportToGoogleDriveAndSheet(date).catch((e) => console.warn('Background sync note:', e));
 
-      // 2. Try native Web Share API (Mobile / Desktop supported)
+      // 2. Direct CEOITBOX WhatsApp API dispatch to official group (120363432056023698@g.us)
+      await sendCeoitboxGroupBroadcast('1030', date);
+
+      // 3. Try native Web Share API (Mobile / Desktop supported)
       if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
         try {
           await navigator.share({
@@ -846,27 +849,25 @@ export const UnifiedAdminDashboard: React.FC = () => {
           });
           setToastAlert({
             type: 'success',
-            text: `✅ Report PDF successfully shared to WhatsApp Group!`,
+            text: `✅ Report PDF successfully shared to WhatsApp Group & dispatched via CEOITBOX API!`,
           });
           setTimeout(() => setToastAlert(null), 6000);
           return;
         } catch (shareErr: any) {
           if (shareErr.name === 'AbortError') {
-            setToastAlert({ type: 'info', text: 'Share canceled.' });
+            setToastAlert({ type: 'info', text: 'Share drawer closed.' });
             setTimeout(() => setToastAlert(null), 3000);
             return;
           }
-          console.warn('Web Share failed, falling back to background dispatch:', shareErr);
+          console.warn('Web Share failed, falling back:', shareErr);
         }
       }
 
-      // 3. Fallback for Desktop browsers without file Web Share:
-      // Trigger background CEOITBOX / Sheet Webhook dispatch to group 120363432056023698@g.us and download PDF locally
+      // 4. Download PDF locally
       doc.save(filename);
-      await sendCeoitboxGroupBroadcast('1030', date);
       setToastAlert({
         type: 'success',
-        text: `✅ Report PDF downloaded & dispatched to WhatsApp Group (${appSettings.admin_whatsapp_group || '120363432056023698@g.us'})!`,
+        text: `✅ Report PDF downloaded & dispatched to WhatsApp Group (${appSettings.admin_whatsapp_group || '120363432056023698@g.us'}) via CEOITBOX API!`,
       });
       setTimeout(() => setToastAlert(null), 8000);
     } catch (err: any) {
@@ -882,7 +883,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
     setIsSyncingDrive(true);
     setToastAlert({
       type: 'info',
-      text: 'Generating official PDF report & syncing with Google Drive & Sheet...',
+      text: 'Generating official PDF report & archiving to Supabase database...',
     });
     try {
       const res = await uploadReportToGoogleDriveAndSheet(selectedDate);
@@ -901,7 +902,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
     } catch (err: any) {
       setToastAlert({
         type: 'error',
-        text: `Upload error: ${err.message || 'Check network connection'}`,
+        text: `Archive error: ${err.message || 'Check network connection'}`,
       });
     } finally {
       setIsSyncingDrive(false);
@@ -1890,20 +1891,20 @@ export const UnifiedAdminDashboard: React.FC = () => {
                   <button
                     onClick={() =>
                       openConfirm({
-                        title: 'Save Report to Google Drive & Sheet',
+                        title: 'Save & Archive Report',
                         message:
-                          'Upload official attendance PDF report to Google Drive folder and record entry in Google Sheet?',
+                          `Archive official DOM attendance report for ${selectedDate} directly to Supabase SQL database, download signed PDF, and dispatch audit summary to Official WhatsApp Group (${appSettings.admin_whatsapp_group || '120363432056023698@g.us'})?`,
                         type: 'primary',
-                        confirmText: 'Upload & Sync',
+                        confirmText: 'Save & Archive',
                         onConfirm: handleUploadToDriveAndSheet,
                       })
                     }
                     disabled={isSyncingDrive}
-                    className="px-3.5 py-2 bg-gradient-to-r from-teal-700 to-emerald-700 hover:from-teal-800 hover:to-emerald-800 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
-                    title="Upload official PDF to Google Drive Folder & log to Google Sheet"
+                    className="px-3.5 py-2 bg-gradient-to-r from-teal-700 to-emerald-700 hover:from-teal-800 hover:to-emerald-800 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                    title="Archive report directly to Supabase SQL Database & dispatch to WhatsApp Group"
                   >
                     {isSyncingDrive ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Share2 className="w-3.5 h-3.5" />}
-                    <span>Save to Drive & Sheet</span>
+                    <span>Save & Archive Report</span>
                   </button>
 
                   <button
@@ -3208,8 +3209,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                     <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                                     <span>Present (Approved)</span>
                                     {record.late_minutes && record.late_minutes > 0 ? (
-                                      <span className="text-[9px] bg-emerald-200 text-emerald-950 px-1 py-0.2 rounded font-black">
-                                        +{record.late_minutes}m Late
+                                      <span className="text-[9px] bg-emerald-200 text-emerald-950 px-1.5 py-0.5 rounded font-black">
+                                        {formatLateDuration(record.late_minutes)}
                                       </span>
                                     ) : null}
                                   </span>
@@ -3218,8 +3219,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                     <Clock className="w-3 h-3 text-amber-600 animate-pulse" />
                                     <span>Approval Pending from Admin</span>
                                     {record?.late_minutes && record.late_minutes > 0 ? (
-                                      <span className="text-[9px] bg-amber-200 text-amber-950 px-1 py-0.2 rounded font-black">
-                                        +{record.late_minutes}m Late
+                                      <span className="text-[9px] bg-amber-200 text-amber-950 px-1.5 py-0.5 rounded font-black">
+                                        {formatLateDuration(record.late_minutes)}
                                       </span>
                                     ) : null}
                                   </span>
