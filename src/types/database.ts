@@ -106,4 +106,8 @@ export interface AppSettings {
   ceoitbox_username: string;
   ceoitbox_password: string;
   ceoitbox_api_url: string;
+  // Google Drive & Google Sheet Automation Pipeline
+  google_drive_folder_id?: string;
+  google_drive_folder_url?: string;
+  google_sheet_webhook_url?: string;
 }

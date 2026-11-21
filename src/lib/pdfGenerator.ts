@@ -711,6 +711,19 @@ export function downloadDirectorPdf(
   doc.save(filename);
 }
 
+export function getDirectorPdfBase64(
+  meeting: MeetingSchedule,
+  records: AttendanceRecord[],
+  settings: AppSettings
+): { base64: string; filename: string } {
+  const doc = generateDirectorPdf(meeting, records, settings);
+  const cadenceCode = meeting.cadence || (meeting.frequency === 'MONTHLY' ? 'MOM' : meeting.frequency === 'WEEKLY' ? 'WOM' : 'DOM');
+  const filename = `SBH_${cadenceCode}_Report_${meeting.meeting_date}.pdf`;
+  const dataUri = doc.output('datauristring');
+  const base64 = dataUri.split(',')[1] || '';
+  return { base64, filename };
+}
+
 export function openDirectorPdfInNewTab(
   meeting: MeetingSchedule,
   records: AttendanceRecord[],

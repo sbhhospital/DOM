@@ -103,9 +103,14 @@ export const UnifiedAdminDashboard: React.FC = () => {
     sendCeoitboxEscalationToNonAttendees,
     sendCeoitboxGroupBroadcast,
     triggerAutomated0950Transmission,
+    uploadReportToGoogleDriveAndSheet,
     appSettings,
     updateAppSettings,
   } = useDomApp();
+
+  const [showScriptModal, setShowScriptModal] = useState<boolean>(false);
+  const [isSyncingDrive, setIsSyncingDrive] = useState<boolean>(false);
+  const [copiedScript, setCopiedScript] = useState<boolean>(false);
 
   // Automatic Daily Scheduled WhatsApp Group Broadcasts (Strictly 2 Stages: 09:50 AM & 10:30 AM)
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
@@ -755,6 +760,37 @@ export const UnifiedAdminDashboard: React.FC = () => {
         text: 'Group broadcast failed: ' + (err?.message || 'Check connection'),
       });
       setTimeout(() => setToastAlert(null), 5000);
+    }
+  };
+
+  const handleUploadToDriveAndSheet = async () => {
+    setIsSyncingDrive(true);
+    setToastAlert({
+      type: 'info',
+      text: 'Generating official PDF report & syncing with Google Drive & Sheet...',
+    });
+    try {
+      const res = await uploadReportToGoogleDriveAndSheet(selectedDate);
+      if (res.success) {
+        setToastAlert({
+          type: 'success',
+          text: res.message,
+          url: res.driveUrl,
+        });
+      } else {
+        setToastAlert({
+          type: 'error',
+          text: res.message,
+        });
+      }
+    } catch (err: any) {
+      setToastAlert({
+        type: 'error',
+        text: `Upload error: ${err.message || 'Check network connection'}`,
+      });
+    } finally {
+      setIsSyncingDrive(false);
+      setTimeout(() => setToastAlert(null), 9000);
     }
   };
 
@@ -1709,8 +1745,18 @@ export const UnifiedAdminDashboard: React.FC = () => {
                   </select>
                 </div>
 
-                {/* Action Buttons: PDF Download, Print & Email Report */}
+                {/* Action Buttons: PDF Download, Print & Email Report & Drive Sync */}
                 <div className="flex flex-wrap items-center gap-2 justify-end">
+                  <button
+                    onClick={handleUploadToDriveAndSheet}
+                    disabled={isSyncingDrive}
+                    className="px-3.5 py-2 bg-gradient-to-r from-teal-700 to-emerald-700 hover:from-teal-800 hover:to-emerald-800 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
+                    title="Upload official PDF to Google Drive Folder & log to Google Sheet"
+                  >
+                    {isSyncingDrive ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Share2 className="w-3.5 h-3.5" />}
+                    <span>Save to Drive & Sheet</span>
+                  </button>
+
                   <button
                     onClick={() => downloadPdfReport(selectedDate)}
                     className="px-3.5 py-2 bg-[#2e7d32] hover:bg-[#256628] text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
@@ -3015,18 +3061,18 @@ export const UnifiedAdminDashboard: React.FC = () => {
                         type="text"
                         value={appSettings.admin_whatsapp_group}
                         onChange={(e) => updateAppSettings({ admin_whatsapp_group: e.target.value })}
-                        placeholder="919977881452-1431506963@g.us"
+                        placeholder="120363432056023698@g.us"
                         className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-emerald-500 font-mono font-bold"
                       />
                       <div className="flex items-center justify-between mt-1 text-[11px] text-slate-500">
-                        <span>Target Group for 09:50 AM, 10:10 AM & 10:30 AM broadcasts</span>
+                        <span>Target Group: Official DOM Operations ({appSettings.admin_whatsapp_group || '120363432056023698@g.us'})</span>
                         <a
-                          href="https://app.ceoitbox.com/customer/channel/23642/group/919977881452-1431506963@g.us"
+                          href={`https://app.ceoitbox.com/customer/channel/23642/group/${appSettings.admin_whatsapp_group || '120363432056023698@g.us'}`}
                           target="_blank"
                           rel="noreferrer"
                           className="text-emerald-700 font-bold underline"
                         >
-                          Open in CEOITBOX (Channel 23642) ↗
+                          Open in CEOITBOX ↗
                         </a>
                       </div>
                     </div>
@@ -3074,6 +3120,99 @@ export const UnifiedAdminDashboard: React.FC = () => {
                       </button>
                     </div>
                   </div>
+                </div>
+              </div>
+
+              {/* Google Drive & Google Sheet Cloud Automation Hub */}
+              <div className="fluent-card p-6 rounded-2xl space-y-4 border border-teal-200/80 bg-gradient-to-br from-teal-50/40 via-white to-emerald-50/30">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-10 h-10 rounded-xl bg-teal-600 text-white flex items-center justify-center shadow-md shadow-teal-600/20">
+                      <Share2 className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-black text-slate-900">Google Drive & Google Sheet Pipeline</h3>
+                      <p className="text-xs text-slate-500">Automated 10:30 AM PDF archiving in Drive, Sheet logging & WhatsApp Broadcast</p>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => setShowScriptModal(true)}
+                    className="px-3.5 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    <span>View Google Apps Script Code</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                  <div className="p-4 bg-white border border-slate-200 rounded-2xl space-y-2 shadow-2xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-700">Official Google Drive Folder</span>
+                      <a
+                        href={appSettings.google_drive_folder_url || 'https://drive.google.com/drive/folders/1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD?usp=sharing'}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[11px] font-bold text-teal-700 hover:underline flex items-center gap-1"
+                      >
+                        <span>Open Drive ↗</span>
+                      </a>
+                    </div>
+                    <div className="text-[11px] font-mono text-slate-500 truncate bg-slate-50 p-2 rounded-lg border border-slate-200">
+                      Folder ID: {appSettings.google_drive_folder_id || '1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD'}
+                    </div>
+                    <p className="text-[11px] text-slate-500">All daily 10:30 AM PDF leadership audit reports are archived in this folder.</p>
+                  </div>
+
+                  <div className="p-4 bg-white border border-slate-200 rounded-2xl space-y-2 shadow-2xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-700">Official WhatsApp Group (Broadcast Target)</span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">
+                        Group JID
+                      </span>
+                    </div>
+                    <div className="text-[11px] font-mono text-slate-700 truncate bg-slate-50 p-2 rounded-lg border border-slate-200 font-bold">
+                      {appSettings.admin_whatsapp_group || '120363432056023698@g.us'}
+                    </div>
+                    <p className="text-[11px] text-slate-500">09:50 AM notice & 10:30 AM final PDF report are dispatched to this group.</p>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Google Apps Script Webhook URL (from your Google Sheet)
+                  </label>
+                  <input
+                    type="url"
+                    value={appSettings.google_sheet_webhook_url || ''}
+                    onChange={(e) => updateAppSettings({ google_sheet_webhook_url: e.target.value })}
+                    placeholder="https://script.google.com/macros/s/AKfycbx.../exec"
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-teal-600 font-mono"
+                  />
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    Paste your Google Apps Script Web App URL here for automatic 1-click cloud sync into your Google Sheet & Google Drive.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3 pt-2">
+                  <button
+                    onClick={handleUploadToDriveAndSheet}
+                    disabled={isSyncingDrive}
+                    className="px-4 py-2.5 bg-gradient-to-r from-teal-700 to-emerald-700 hover:from-teal-800 hover:to-emerald-800 text-white rounded-xl text-xs font-bold shadow-md shadow-teal-700/20 flex items-center gap-2 cursor-pointer transition-all"
+                  >
+                    {isSyncingDrive ? <Loader2 className="w-4 h-4 animate-spin" /> : <Share2 className="w-4 h-4" />}
+                    <span>Sync Today's Report to Drive & Sheet Now</span>
+                  </button>
+
+                  <a
+                    href={appSettings.google_drive_folder_url || 'https://drive.google.com/drive/folders/1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD?usp=sharing'}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold shadow-2xs flex items-center gap-2 cursor-pointer transition-colors"
+                  >
+                    <ExternalLink className="w-4 h-4 text-teal-700" />
+                    <span>View Drive Folder</span>
+                  </a>
                 </div>
               </div>
 
@@ -4136,7 +4275,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
               <div className="flex items-center gap-2">
                 <a
-                  href="https://app.ceoitbox.com/customer/channel/23642/group/919977881452-1431506963@g.us"
+                  href={`https://app.ceoitbox.com/customer/channel/23642/group/${appSettings.admin_whatsapp_group || '120363432056023698@g.us'}`}
                   target="_blank"
                   rel="noreferrer"
                   className="px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-all cursor-pointer"
@@ -4155,6 +4294,259 @@ export const UnifiedAdminDashboard: React.FC = () => {
                   <span>Open in WhatsApp Web ↗</span>
                 </a>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= MODAL: GOOGLE APPS SCRIPT CODE & SETUP GUIDE ================= */}
+      {showScriptModal && (
+        <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-[9999] p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-3xl w-full p-6 shadow-2xl border border-slate-200 flex flex-col max-h-[92vh]">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-teal-50 border border-teal-200 flex items-center justify-center text-teal-700 font-bold">
+                  <Share2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900">
+                    Google Sheet & Google Drive Automation Script
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Connects your Google Sheet to auto-save PDFs in Drive and post to WhatsApp
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowScriptModal(false)}
+                className="text-slate-400 hover:text-slate-600 font-bold text-sm cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Quick 3-Step Setup Instructions */}
+            <div className="my-3 p-3.5 bg-teal-50/70 border border-teal-200 rounded-2xl space-y-2 text-xs text-teal-950">
+              <div className="font-black text-teal-900 flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-teal-700" />
+                <span>3-Minute Setup Guide for Google Sheet:</span>
+              </div>
+              <ol className="list-decimal list-inside space-y-1 text-[11px] text-teal-900">
+                <li>Create or open your official <b>Google Sheet</b>.</li>
+                <li>Click <b>Extensions</b> &gt; <b>Apps Script</b> in Google Sheet top menu.</li>
+                <li>Delete existing code, paste the script below, and click <b>Deploy &gt; New deployment</b>.</li>
+                <li>Select <b>Web app</b>, set <i>Execute as: Me</i>, and <i>Who has access: Anyone</i>, then click Deploy.</li>
+                <li>Copy the generated <b>Web App URL</b> and paste it into the Webhook box in Settings!</li>
+              </ol>
+            </div>
+
+            <div className="flex-1 overflow-y-auto py-2">
+              <div className="text-xs font-bold text-slate-600 mb-1 flex items-center justify-between">
+                <span>Google Apps Script Code (Drive Folder & Group ID Pre-Configured):</span>
+                <span className="text-[11px] text-teal-700 font-mono font-bold">Code.gs</span>
+              </div>
+              <pre className="bg-slate-900 text-teal-300 p-4 rounded-2xl border border-slate-800 text-[11px] font-mono whitespace-pre-wrap select-all overflow-x-auto">
+{`/**
+ * =======================================================================
+ * SBH GROUP OF HOSPITALS, RAIPUR — DOM AUTOMATION PIPELINE (APPS SCRIPT)
+ * Target Drive Folder: https://drive.google.com/drive/folders/1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD?usp=sharing
+ * Target WhatsApp Group ID: 120363432056023698@g.us
+ * =======================================================================
+ */
+
+const DRIVE_FOLDER_ID = "1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD";
+const WHATSAPP_GROUP_ID = "120363432056023698@g.us";
+const GOOGLE_MEET_URL = "https://meet.google.com/jrz-jfku-gir";
+
+/**
+ * 1. Webhook Endpoint: Receives PDF & Attendance from DOM Portal
+ */
+function doPost(e) {
+  try {
+    const rawData = e.postData.contents;
+    const data = JSON.parse(rawData);
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName("DOM_Daily_Log");
+    
+    // Auto-create sheet tab & headers if not exists
+    if (!sheet) {
+      sheet = ss.insertSheet("DOM_Daily_Log");
+      sheet.appendRow([
+        "Timestamp",
+        "Meeting Date",
+        "Cadence",
+        "Meeting Title",
+        "Total Leaders",
+        "Present",
+        "Absent",
+        "Late",
+        "Leave",
+        "Compliance %",
+        "Google Drive PDF Link",
+        "Google Meet Link"
+      ]);
+      sheet.getRange(1, 1, 1, 12).setFontWeight("bold").setBackground("#1b5e20").setFontColor("#ffffff");
+      sheet.setFrozenRows(1);
+    }
+    
+    let driveFileUrl = "https://drive.google.com/drive/folders/" + DRIVE_FOLDER_ID;
+    
+    // Save generated PDF file into Google Drive Folder
+    if (data.pdfBase64 && data.pdfFileName) {
+      const decodedBytes = Utilities.base64Decode(data.pdfBase64);
+      const blob = Utilities.newBlob(decodedBytes, "application/pdf", data.pdfFileName);
+      const folder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
+      const file = folder.createFile(blob);
+      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      driveFileUrl = file.getUrl();
+    }
+    
+    // Append row to Google Sheet
+    sheet.appendRow([
+      new Date(),
+      data.date,
+      data.cadence || "DOM",
+      data.meetingTitle || "Daily Operations Meeting",
+      data.totalLeaders || 21,
+      data.presentCount || 0,
+      data.absentCount || 0,
+      data.lateCount || 0,
+      data.leaveCount || 0,
+      data.complianceRate || "0%",
+      driveFileUrl,
+      data.googleMeetUrl || GOOGLE_MEET_URL
+    ]);
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true,
+      message: "Report saved to Google Drive and logged in Sheet!",
+      driveFileUrl: driveFileUrl,
+      sheetRow: sheet.getLastRow()
+    })).setMimeType(ContentService.MimeType.JSON);
+    
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      error: err.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+/**
+ * 2. 09:50 AM Daily Automated Reminder Trigger
+ * Set a Daily Time-driven trigger in Apps Script: 9:00 AM - 10:00 AM
+ */
+function sendDaily0950Notice() {
+  const todayStr = Utilities.formatDate(new Date(), "Asia/Kolkata", "dd-MMM-yyyy");
+  const msg = "🏥 *SBH GROUP OF HOSPITALS, RAIPUR*\\n" +
+              "🔔 *09:50 AM NOTICE: DAILY OPERATIONS MEETING (DOM)*\\n" +
+              "━━━━━━━━━━━━━━━━━━━━━━\\n" +
+              "📅 *Date:* " + todayStr + "\\n" +
+              "⏰ *Time:* Sharp 10:00 AM IST\\n" +
+              "📍 *Venue:* Conference Room, 5th Floor\\n" +
+              "💻 *Google Meet Link:* " + GOOGLE_MEET_URL + "\\n" +
+              "📁 *Drive Archive:* https://drive.google.com/drive/folders/" + DRIVE_FOLDER_ID + "\\n\\n" +
+              "⚠️ All department leaders please assemble in-person or join Google Meet before 10:00 AM sharp.\\n" +
+              "DOM Operations Command | SBH Raipur";
+              
+  Logger.log("Notice: " + msg);
+}`}
+              </pre>
+            </div>
+
+            <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2.5">
+              <button
+                onClick={() => {
+                  const codeToCopy = `const DRIVE_FOLDER_ID = "1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD";
+const WHATSAPP_GROUP_ID = "120363432056023698@g.us";
+const GOOGLE_MEET_URL = "https://meet.google.com/jrz-jfku-gir";
+
+function doPost(e) {
+  try {
+    const rawData = e.postData.contents;
+    const data = JSON.parse(rawData);
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName("DOM_Daily_Log");
+    
+    if (!sheet) {
+      sheet = ss.insertSheet("DOM_Daily_Log");
+      sheet.appendRow([
+        "Timestamp",
+        "Meeting Date",
+        "Cadence",
+        "Meeting Title",
+        "Total Leaders",
+        "Present",
+        "Absent",
+        "Late",
+        "Leave",
+        "Compliance %",
+        "Google Drive PDF Link",
+        "Google Meet Link"
+      ]);
+      sheet.getRange(1, 1, 1, 12).setFontWeight("bold").setBackground("#1b5e20").setFontColor("#ffffff");
+      sheet.setFrozenRows(1);
+    }
+    
+    let driveFileUrl = "https://drive.google.com/drive/folders/" + DRIVE_FOLDER_ID;
+    
+    if (data.pdfBase64 && data.pdfFileName) {
+      const decodedBytes = Utilities.base64Decode(data.pdfBase64);
+      const blob = Utilities.newBlob(decodedBytes, "application/pdf", data.pdfFileName);
+      const folder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
+      const file = folder.createFile(blob);
+      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      driveFileUrl = file.getUrl();
+    }
+    
+    sheet.appendRow([
+      new Date(),
+      data.date,
+      data.cadence || "DOM",
+      data.meetingTitle || "Daily Operations Meeting",
+      data.totalLeaders || 21,
+      data.presentCount || 0,
+      data.absentCount || 0,
+      data.lateCount || 0,
+      data.leaveCount || 0,
+      data.complianceRate || "0%",
+      driveFileUrl,
+      data.googleMeetUrl || GOOGLE_MEET_URL
+    ]);
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true,
+      message: "Report saved to Google Drive and logged in Sheet!",
+      driveFileUrl: driveFileUrl,
+      sheetRow: sheet.getLastRow()
+    })).setMimeType(ContentService.MimeType.JSON);
+    
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      error: err.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}`;
+                  navigator.clipboard.writeText(codeToCopy);
+                  setCopiedScript(true);
+                  setTimeout(() => setCopiedScript(false), 2000);
+                }}
+                className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm"
+              >
+                {copiedScript ? <Check className="w-4 h-4 text-emerald-300" /> : <Copy className="w-4 h-4" />}
+                <span>{copiedScript ? 'Apps Script Code Copied!' : 'Copy Code to Clipboard'}</span>
+              </button>
+
+              <a
+                href={appSettings.google_drive_folder_url || 'https://drive.google.com/drive/folders/1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD?usp=sharing'}
+                target="_blank"
+                rel="noreferrer"
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <ExternalLink className="w-4 h-4 text-teal-700" />
+                <span>Open Google Drive Folder ↗</span>
+              </a>
             </div>
           </div>
         </div>

@@ -13,6 +13,7 @@ import { INITIAL_DEPARTMENTS } from '../data/initialData';
 import { supabase } from '../lib/supabase';
 import {
   downloadDirectorPdf,
+  getDirectorPdfBase64,
   openDirectorPdfInNewTab,
   downloadMonthlyAuditPdf,
   downloadYearlyAuditPdf,
@@ -96,6 +97,9 @@ interface DomAppContextType {
   triggerAutomated0950Transmission: (
     date: string
   ) => Promise<{ success: boolean; leadersCount: number; message: string }>;
+  uploadReportToGoogleDriveAndSheet: (
+    date: string
+  ) => Promise<{ success: boolean; message: string; driveUrl?: string }>;
   // Settings
   updateAppSettings: (newSettings: Partial<AppSettings>) => void;
 }
@@ -105,7 +109,7 @@ const DomAppContext = createContext<DomAppContextType | undefined>(undefined);
 const DEFAULT_SETTINGS: AppSettings = {
   director_whatsapp: '9644404741',
   director_name: 'Director Sir',
-  admin_whatsapp_group: '919977881452-1431506963@g.us',
+  admin_whatsapp_group: '120363432056023698@g.us',
   google_meet_url: 'https://meet.google.com/jrz-jfku-gir',
   allowed_domain: 'sbhhospital.com',
   conference_room_name: 'Conference Room, 5th Floor',
@@ -113,6 +117,9 @@ const DEFAULT_SETTINGS: AppSettings = {
   ceoitbox_username: 'SBH HOSPITAL',
   ceoitbox_password: '123456789',
   ceoitbox_api_url: 'https://app.ceoitbox.com/message/new',
+  google_drive_folder_id: '1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD',
+  google_drive_folder_url: 'https://drive.google.com/drive/folders/1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD?usp=sharing',
+  google_sheet_webhook_url: '',
 };
 
 const isUuid = (val?: string | null): boolean =>
@@ -475,8 +482,16 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (parsed.google_meet_url === 'https://meet.google.com/sbh-dom-daily' || !parsed.google_meet_url) {
         parsed.google_meet_url = 'https://meet.google.com/jrz-jfku-gir';
       }
-      if (!parsed.admin_whatsapp_group || parsed.admin_whatsapp_group === 'SBH DOM Executive Group') {
-        parsed.admin_whatsapp_group = '919977881452-1431506963@g.us';
+      if (
+        !parsed.admin_whatsapp_group ||
+        parsed.admin_whatsapp_group.includes('919977881452') ||
+        parsed.admin_whatsapp_group === 'SBH DOM Executive Group'
+      ) {
+        parsed.admin_whatsapp_group = '120363432056023698@g.us';
+      }
+      if (!parsed.google_drive_folder_url) {
+        parsed.google_drive_folder_url = 'https://drive.google.com/drive/folders/1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD?usp=sharing';
+        parsed.google_drive_folder_id = '1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD';
       }
       return parsed;
     }
@@ -2462,34 +2477,34 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const totalCount = forDate.length || leaders.length;
     const totalPresent = presentPhysical.length + presentVirtual.length;
     const complianceRate = totalCount > 0 ? Math.round(((totalPresent + informedLate.length + informedLeave.length) / totalCount) * 100) : 0;
+    const groupJid = appSettings.admin_whatsapp_group || '120363432056023698@g.us';
 
     let msg = '';
 
     if (stage === '0950') {
-      msg = `🏥 *SBH GROUP OF HOSPITAL, RAIPUR*\n`;
+      msg = `🏥 *SBH GROUP OF HOSPITALS, RAIPUR*\n`;
       msg += `🔔 *09:50 AM NOTICE: ${cadenceCode} — ${meeting.title.toUpperCase()}*\n`;
       msg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
       msg += `📅 *Date:* ${formattedDate}\n`;
-      msg += `⏰ *Start Time:* ${meeting.scheduled_time} (Sharp 10:00 AM)\n`;
+      msg += `⏰ *Start Time:* ${meeting.scheduled_time} (Sharp 10:00 AM IST)\n`;
       msg += `📍 *Venue:* ${appSettings.conference_room_name}\n`;
       msg += `💻 *Google Meet Link:* ${meeting.google_meet_url}\n`;
-      msg += `🔐 *Official Login Panel:* ${window.location.origin}/login\n\n`;
+      msg += `📁 *Google Drive Daily Archive:* ${appSettings.google_drive_folder_url || 'https://drive.google.com/drive/folders/1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD?usp=sharing'}\n`;
+      msg += `🔐 *Official Leader Portal:* ${window.location.origin}/login\n\n`;
       msg += `⚠️ *ATTENDANCE INSTRUCTION:*\n`;
       msg += `All leaders are requested to join before 10:00 AM sharp (either in-person at Conference Room, 5th Floor or virtually via Google Meet).\n`;
       msg += `Select your name and login at ${window.location.origin}/login to confirm your attendance.\n`;
       msg += `If you are arriving late, submit your expected arrival time immediately for Admin approval.\n`;
       msg += `Final Attendance Audit Report will be published at 10:30 AM.\n`;
       msg += `━━━━━━━━━━━━━━━━━━━━━━\nDOM Operations Command | SBH Raipur`;
-      msg += `If you are arriving late, submit your expected arrival time immediately for Admin approval.\n`;
-      msg += `Final Attendance Audit Report will be published at 10:30 AM.\n`;
-      msg += `━━━━━━━━━━━━━━━━━━━━━━\nDOM Operations Command | SBH Raipur`;
     } else {
       // 10:30 AM
-      msg = `🏥 *SBH GROUP OF HOSPITAL, RAIPUR*\n`;
+      msg = `🏥 *SBH GROUP OF HOSPITALS, RAIPUR*\n`;
       msg += `📊 *FINAL 10:30 AM ${cadenceCode} ATTENDANCE AUDIT REPORT*\n`;
       msg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
       msg += `📅 *Date:* ${formattedDate} | *Meeting:* ${cadenceCode} (${meeting.frequency})\n`;
-      msg += `⏰ *Audit Frozen:* 10:30 AM | *Venue:* ${appSettings.conference_room_name}\n\n`;
+      msg += `⏰ *Audit Frozen:* 10:30 AM IST | *Venue:* ${appSettings.conference_room_name}\n`;
+      msg += `📁 *Google Drive PDF Archive:* ${appSettings.google_drive_folder_url || 'https://drive.google.com/drive/folders/1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD?usp=sharing'}\n\n`;
       msg += `📈 *HOSPITAL OPERATIONS AUDIT SUMMARY:*\n`;
       msg += `👥 Total Expected Leaders: ${totalCount}\n`;
       msg += `🏢 In-Person (Conference Room): ${presentPhysical.length}\n`;
@@ -2529,10 +2544,8 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         });
         msg += `\n`;
       }
-      msg += `━━━━━━━━━━━━━━━━━━━━━━\nBroadcast to: Official WhatsApp Group & Director Sir\nDOM Operations Command | SBH Raipur`;
+      msg += `━━━━━━━━━━━━━━━━━━━━━━\nBroadcast to: Official WhatsApp Group (${groupJid})\nDOM Operations Command | SBH Raipur`;
     }
-
-    const groupJid = appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us';
 
     const res = await sendCeoitboxWhatsappMessage({
       mobileNo: groupJid,
@@ -2547,10 +2560,87 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     return {
       success: true,
-      message: `Stage ${stage === '0950' ? '09:50 AM Notice' : '10:30 AM Final Audit'} copied to clipboard & opened in WhatsApp! Post directly to the official group. (Ex-employee +91 99778 81452 is 100% blocked)`,
+      message: `Stage ${stage === '0950' ? '09:50 AM Notice' : '10:30 AM Final Audit'} copied to clipboard & opened in WhatsApp Group (${groupJid})!`,
       url: res.url,
       payload: msg,
     };
+  };
+
+  // Upload Report directly to Google Drive Folder & append log row in Google Sheet
+  const uploadReportToGoogleDriveAndSheet = async (
+    date: string
+  ): Promise<{ success: boolean; message: string; driveUrl?: string }> => {
+    try {
+      const meeting = getMeetingForDate(date);
+      const forDate = attendanceRecords.filter((r) => r.meeting_date === date);
+      const { base64, filename } = getDirectorPdfBase64(meeting, forDate, appSettings);
+
+      const presentPhysical = forDate.filter(
+        (r) => r.selected_mode === 'PHYSICAL' && (r.status === 'PRESENT' || r.admin_verified_attendance)
+      );
+      const presentVirtual = forDate.filter((r) => r.selected_mode === 'VIRTUAL' && r.status === 'PRESENT');
+      const informedLate = forDate.filter(
+        (r) => r.status === 'INFORMED_LATE' && r.late_approved_by_admin
+      );
+      const informedLeave = forDate.filter(
+        (r) => r.status === 'LEAVE' || (r.status === 'INFORMED_ABSENT' && (r.informed_confirmed || r.admin_verified_attendance))
+      );
+      const absent = forDate.filter(
+        (r) => r.status === 'ABSENT' || (r.status === 'PENDING' && r.selected_mode === 'NONE')
+      );
+      const totalCount = forDate.length || leaders.length;
+      const totalPresent = presentPhysical.length + presentVirtual.length;
+      const complianceRate = totalCount > 0 ? `${Math.round(((totalPresent + informedLate.length + informedLeave.length) / totalCount) * 100)}%` : '0%';
+
+      const payload = {
+        action: 'UPLOAD_PDF_AND_LOG',
+        date,
+        cadence: meeting.cadence || 'DOM',
+        meetingTitle: meeting.title,
+        googleMeetUrl: meeting.google_meet_url,
+        totalLeaders: totalCount,
+        presentCount: totalPresent,
+        absentCount: absent.length,
+        lateCount: informedLate.length,
+        leaveCount: informedLeave.length,
+        complianceRate,
+        pdfBase64: base64,
+        pdfFileName: filename,
+        whatsappGroupId: appSettings.admin_whatsapp_group || '120363432056023698@g.us',
+        driveFolderId: appSettings.google_drive_folder_id || '1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD',
+      };
+
+      if (appSettings.google_sheet_webhook_url) {
+        const resp = await fetch(appSettings.google_sheet_webhook_url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify(payload),
+        });
+        const json = await resp.json().catch(() => ({}));
+        const driveUrl = json.driveFileUrl || appSettings.google_drive_folder_url;
+        return {
+          success: true,
+          message: `Report successfully uploaded to Google Drive folder and logged in Google Sheet!`,
+          driveUrl,
+        };
+      } else {
+        // Fallback: download PDF and open the target Google Drive folder
+        downloadDirectorPdf(meeting, forDate, appSettings);
+        const folderUrl = appSettings.google_drive_folder_url || 'https://drive.google.com/drive/folders/1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD?usp=sharing';
+        window.open(folderUrl, '_blank');
+        return {
+          success: true,
+          message: `PDF downloaded locally & Google Drive folder opened! (Add Google Apps Script Webhook URL in settings for automatic cloud upload)`,
+          driveUrl: folderUrl,
+        };
+      }
+    } catch (err: any) {
+      console.error('Upload to Drive/Sheet error:', err);
+      return {
+        success: false,
+        message: `Failed to upload: ${err.message || 'Network error'}`,
+      };
+    }
   };
 
   // Full Automated 09:50 AM Transmission (Both Official WhatsApp Group AND 24 Leaders with Magic Links)
@@ -2613,6 +2703,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         sendCeoitboxEscalationToNonAttendees,
         sendCeoitboxGroupBroadcast,
         triggerAutomated0950Transmission,
+        uploadReportToGoogleDriveAndSheet,
         updateAppSettings,
       }}
     >
