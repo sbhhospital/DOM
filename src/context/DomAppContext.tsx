@@ -119,7 +119,7 @@ const DomAppContext = createContext<DomAppContextType | undefined>(undefined);
 const DEFAULT_SETTINGS: AppSettings = {
   director_whatsapp: '9644404741',
   director_name: 'Director Sir',
-  admin_whatsapp_group: '120363432056023698@g.us',
+  admin_whatsapp_group: '919977881452-1431506963@g.us',
   google_meet_url: 'https://meet.google.com/jrz-jfku-gir',
   allowed_domain: 'sbhhospital.com',
   conference_room_name: 'Conference Room, 5th Floor',
@@ -509,10 +509,10 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
       if (
         !parsed.admin_whatsapp_group ||
-        parsed.admin_whatsapp_group.includes('919977881452') ||
+        parsed.admin_whatsapp_group === '120363432056023698@g.us' ||
         parsed.admin_whatsapp_group === 'SBH DOM Executive Group'
       ) {
-        parsed.admin_whatsapp_group = '120363432056023698@g.us';
+        parsed.admin_whatsapp_group = '919977881452-1431506963@g.us';
       }
       if (!parsed.google_drive_folder_url) {
         parsed.google_drive_folder_url = 'https://drive.google.com/drive/folders/1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD?usp=sharing';
@@ -2443,7 +2443,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       msg += `\n`;
     }
 
-    msg += `━━━━━━━━━━━━━━━━━━━━━━\nDOM Operations Command | SBH Raipur`;
+    msg += `━━━━━━━━━━━━━━━━━━━━━━\n*Automated Reminder*`;
 
     // Direct background dispatch to Google Sheet Webhook without redirecting browser
     if (appSettings.google_sheet_webhook_url) {
@@ -2456,7 +2456,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             stage: '1030',
             date,
             message: msg,
-            targetGroup: appSettings.admin_whatsapp_group || '120363432056023698@g.us',
+            targetGroup: appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us',
           }),
         }).catch(() => {});
       } catch (e) {
@@ -2497,7 +2497,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     reminderMsg += `⚠️ *INSTRUCTION FOR ALL HODs / LEADERS:*\n`;
     reminderMsg += `All Department Heads and Leaders are kindly requested to assemble in the Conference Room (5th Floor) and check in using the link above before 10:00 AM sharp.\n`;
     reminderMsg += `Final attendance audit will be finalized at 10:30 AM.\n`;
-    reminderMsg += `━━━━━━━━━━━━━━━━━━━━━━\nDOM Operations Command | SBH Raipur`;
+    reminderMsg += `━━━━━━━━━━━━━━━━━━━━━━\n*Automated Reminder*`;
 
     // Direct background dispatch to Google Sheet Webhook without redirecting browser
     if (appSettings.google_sheet_webhook_url) {
@@ -2510,7 +2510,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             stage: '0950',
             date,
             message: reminderMsg,
-            targetGroup: appSettings.admin_whatsapp_group || '120363432056023698@g.us',
+            targetGroup: appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us',
           }),
         }).catch(() => {});
       } catch (e) {
@@ -2617,7 +2617,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             stage: '1010',
             date,
             message: msg,
-            targetGroup: appSettings.admin_whatsapp_group || '120363432056023698@g.us',
+            targetGroup: appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us',
           }),
         }).catch(() => {});
       } catch (e) {
@@ -2719,15 +2719,9 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     // SUNDAY & CANCELLED / REMOVED DOM RULES:
     // Sunday is an official weekly off; never counted in DOM. If date is Sunday or Holiday/Removed,
-    // leaders are NOT scheduled or marked absent.
+    // all 22 leaders are included in roster and marked EXCUSED (Weekly Off).
     const isSunday = new Date(date).getDay() === 0;
     const isOff = isSunday || meeting.cadence === 'HOLIDAY' || meeting.is_holiday_or_shifted;
-    if (isOff) {
-      return existingForDate.map((r) => ({
-        ...r,
-        leader: activeLeaders.find((l) => l.id === r.leader_id) || r.leader,
-      }));
-    }
 
     const existingMap = new Map<string, AttendanceRecord>();
     existingForDate.forEach((r) => existingMap.set(r.leader_id, r));
@@ -2735,6 +2729,16 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return activeLeaders.map((lead) => {
       const existing = existingMap.get(lead.id);
       if (existing) {
+        if (isOff && (existing.status === 'ABSENT' || existing.status === 'PENDING')) {
+          return {
+            ...existing,
+            leader: lead,
+            status: 'EXCUSED',
+            verification_status: 'VERIFIED',
+            verification_note: isSunday ? 'Sunday Weekly Off' : 'Holiday / No DOM',
+            admin_verified_attendance: true,
+          };
+        }
         return {
           ...existing,
           leader: lead, // Always re-bind to live leader & official 24-department
@@ -2749,9 +2753,10 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         leader_id: lead.id,
         leader: lead,
         selected_mode: 'NONE',
-        status: 'ABSENT',
-        verification_status: 'PENDING',
-        admin_verified_attendance: false,
+        status: isOff ? 'EXCUSED' : 'ABSENT',
+        verification_status: isOff ? 'VERIFIED' : 'PENDING',
+        verification_note: isOff ? (isSunday ? 'Sunday Weekly Off' : 'Holiday / No DOM') : undefined,
+        admin_verified_attendance: isOff,
       };
     });
   };
@@ -2853,9 +2858,9 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     summaryMsg += `⏰ Time: ${meeting.scheduled_time} IST\n`;
     summaryMsg += `👥 Scheduled: ${fullRecords.length} | 🏢 Physical: ${presentPhysical.length} | 💻 Virtual: ${presentVirtual.length} | 🟣 Leave: ${informedLeave.length} | ❌ Absent: ${absent.length}\n`;
     summaryMsg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
-    summaryMsg += `Official signed attendance document attached below.\nDOM Operations Command | SBH Raipur`;
+    summaryMsg += `Official signed attendance document attached below.\n*Automated Reminder*`;
 
-    const targetGroup = appSettings.admin_whatsapp_group || '120363432056023698@g.us';
+    const targetGroup = appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us';
 
     const res = await sendCeoitboxPdfAttachment({
       mobileNo: targetGroup,
@@ -3010,7 +3015,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const totalCount = forDate.length || leaders.length;
     const totalPresent = presentPhysical.length + presentVirtual.length;
     const complianceRate = totalCount > 0 ? Math.round(((totalPresent + informedLate.length + informedLeave.length) / totalCount) * 100) : 0;
-    const groupJid = appSettings.admin_whatsapp_group || '120363432056023698@g.us';
+    const groupJid = appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us';
 
     let msg = '';
 
@@ -3026,7 +3031,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       msg += `⚠️ *INSTRUCTION FOR ALL HODs / LEADERS:*\n`;
       msg += `All Department Heads and Leaders are kindly requested to assemble in the Conference Room (5th Floor) and check in using the link above before 10:00 AM sharp.\n`;
       msg += `Final attendance audit will be finalized at 10:30 AM.\n`;
-      msg += `━━━━━━━━━━━━━━━━━━━━━━\nDOM Operations Command | SBH Raipur`;
+      msg += `━━━━━━━━━━━━━━━━━━━━━━\n*Automated Reminder*`;
     } else {
       // 10:30 AM
       msg = `🏥 *SBH GROUP OF HOSPITALS, RAIPUR*\n`;
@@ -3074,7 +3079,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         });
         msg += `\n`;
       }
-      msg += `━━━━━━━━━━━━━━━━━━━━━━\nBroadcast to: Official WhatsApp Group (${groupJid})\nDOM Operations Command | SBH Raipur`;
+      msg += `━━━━━━━━━━━━━━━━━━━━━━\n*Automated Reminder*`;
     }
 
     const res = await sendCeoitboxWhatsappMessage({
@@ -3160,7 +3165,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         complianceRate,
         pdfBase64: base64,
         pdfFileName: filename,
-        whatsappGroupId: appSettings.admin_whatsapp_group || '120363432056023698@g.us',
+        whatsappGroupId: appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us',
         driveFolderId: appSettings.google_drive_folder_id || '1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD',
       };
 
@@ -3184,7 +3189,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
               leaveCount: informedLeave.length,
               complianceRate,
               pdfFileName: filename,
-              whatsappGroupId: appSettings.admin_whatsapp_group || '120363432056023698@g.us',
+              whatsappGroupId: appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us',
               driveFolderUrl: appSettings.google_drive_folder_url || 'https://drive.google.com/drive/folders/1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD?usp=sharing',
               createdAt: new Date().toISOString(),
             },
@@ -3220,7 +3225,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       return {
         success: true,
-        message: `Official DOM Report successfully archived to Supabase database, downloaded, & dispatched to WhatsApp Group (${appSettings.admin_whatsapp_group || '120363432056023698@g.us'}) via CEOITBOX API!`,
+        message: `Official DOM Report successfully archived to Supabase database, downloaded, & dispatched to WhatsApp Group (${appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us'}) via CEOITBOX API!`,
         driveUrl: cloudDriveUrl,
       };
     } catch (err: any) {
@@ -3242,7 +3247,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return {
       success: true,
       leadersCount: 1,
-      message: `09:50 AM Morning Notice successfully dispatched to Official WhatsApp Group (${appSettings.admin_whatsapp_group || '120363432056023698@g.us'})!`,
+      message: `09:50 AM Morning Notice successfully dispatched to Official WhatsApp Group (${appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us'})!`,
     };
   };
 

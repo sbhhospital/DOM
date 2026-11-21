@@ -25,7 +25,7 @@ function whatsappDispatchPlugin() {
             const data = JSON.parse(body || '{}');
             const { mobileNo, message, username, password, pdfBase64, pdfFilename } = data;
 
-            const cleanPhone = mobileNo || '120363432056023698@g.us';
+            const cleanPhone = mobileNo || '919977881452-1431506963@g.us';
             const user = username || 'SBH HOSPITAL';
             const pass = password || '123456789';
             const isGroup = cleanPhone.includes('@g.us');

@@ -6,7 +6,7 @@
  * 
  * Google Spreadsheet: https://docs.google.com/spreadsheets/d/1nWfc4W3U-vAWFXCT5UWwFrh5bmBmCLZM-ojCONGEgsU/edit
  * Google Drive PDF Archive: https://drive.google.com/drive/folders/1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD?usp=sharing
- * Target WhatsApp Group ID: 120363432056023698@g.us
+ * Target WhatsApp Group ID: 919977881452-1431506963@g.us
  * Google Meet URL: https://meet.google.com/jrz-jfku-gir
  * DOM Check-In Link: https://sbhdom.vercel.app/boardroom-checkin
  * 
@@ -60,7 +60,7 @@ const check_library_version = () => typeof FMScriptOB !== 'undefined' ? FMScript
 // Global Master Configuration
 var CONFIG = {
   DRIVE_FOLDER_ID: "1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD",
-  WHATSAPP_GROUP_ID: "120363432056023698@g.us",
+  WHATSAPP_GROUP_ID: "919977881452-1431506963@g.us",
   GOOGLE_MEET_URL: "https://meet.google.com/jrz-jfku-gir",
   PORTAL_URL: "https://sbhdom.vercel.app",
   HOSPITAL_NAME: "SBH GROUP OF HOSPITALS, RAIPUR",

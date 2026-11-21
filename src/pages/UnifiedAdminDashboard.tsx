@@ -63,6 +63,7 @@ import { generateDailyMeetingLink } from '../lib/meetingLinks';
 import sbhLogo from '../assets/sbh-logo.png';
 import { BoardroomQrPosterModal } from '../components/BoardroomQrPosterModal';
 import { generateDirectorPdf } from '../lib/pdfGenerator';
+import { sendCeoitboxWhatsappMessage } from '../lib/whatsappService';
 
 const SidebarSystemClock: React.FC = React.memo(() => {
   const [timeStr, setTimeStr] = useState<string>(() =>
@@ -323,23 +324,35 @@ export const UnifiedAdminDashboard: React.FC = () => {
   const [isSyncingDrive, setIsSyncingDrive] = useState<boolean>(false);
   const [copiedScript, setCopiedScript] = useState<boolean>(false);
 
+  // Group Dispatch Modal & Button Loaders
+  const [showGroupDispatchModal, setShowGroupDispatchModal] = useState<boolean>(false);
+  const [isDispatchingGroup, setIsDispatchingGroup] = useState<'pdf' | 'text' | 'both' | null>(null);
+  const [isBroadcasting0950, setIsBroadcasting0950] = useState<boolean>(false);
+  const [isSendingNotice, setIsSendingNotice] = useState<boolean>(false);
+  const [isEscalating, setIsEscalating] = useState<boolean>(false);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState<boolean>(false);
+
   // Automatic Daily Scheduled WhatsApp Group Broadcasts (Strictly 2 Stages: 09:50 AM & 10:30 AM)
   const [autoCeoitboxDispatch, setAutoCeoitboxDispatch] = useState<boolean>(() => {
     return localStorage.getItem('sbh_auto_ceoitbox_enabled') !== 'false';
   });
 
-  // Automated background scheduler for 09:50 AM and 10:30 AM dispatches (Zero re-renders, silky smooth performance)
+  // Automated background scheduler for 09:50 AM and 10:30 AM dispatches (Evaluated in strict India Standard Time IST)
   useEffect(() => {
     if (!autoCeoitboxDispatch) return;
 
     const timer = setInterval(() => {
-      const now = new Date();
+      // Calculate current IST Time
+      const istDate = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
       // Skip Sundays automatically: No DOM standup on Sunday
-      if (now.getDay() === 0) return;
+      if (istDate.getDay() === 0) return;
 
-      const h = now.getHours();
-      const m = now.getMinutes();
-      const todayDate = now.toISOString().split('T')[0];
+      const h = istDate.getHours();
+      const m = istDate.getMinutes();
+      const yyyy = istDate.getFullYear();
+      const mm = String(istDate.getMonth() + 1).padStart(2, '0');
+      const dd = String(istDate.getDate()).padStart(2, '0');
+      const todayDate = `${yyyy}-${mm}-${dd}`;
 
       // Stage 1: 09:50 AM Auto-Broadcast
       if (h === 9 && m === 50) {
@@ -349,7 +362,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
           triggerAutomated0950Transmission(todayDate);
           setToastAlert({
             type: 'success',
-            text: '🔔 09:50 AM Automated Transmission Active: Notice broadcast to WhatsApp Group + all Leaders with 15-min Magic Links!',
+            text: '🔔 09:50 AM Automated Transmission Active: Notice broadcast to WhatsApp Group with Meeting Details!',
           });
           setTimeout(() => setToastAlert(null), 8000);
         }
@@ -578,7 +591,11 @@ export const UnifiedAdminDashboard: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('ALL');
 
   // Helper functions for Attendance Classification (strictly mutually exclusive)
+  const isSundayDate = new Date(selectedDate).getDay() === 0;
+  const isOffDate = isSundayDate || currentMeeting.cadence === 'HOLIDAY' || currentMeeting.is_holiday_or_shifted;
+
   const isPresentRecord = (r: AttendanceRecord) =>
+    r.status !== 'EXCUSED' &&
     r.verification_status !== 'REJECTED' &&
     r.status !== 'LEAVE' &&
     r.status !== 'INFORMED_ABSENT' &&
@@ -600,6 +617,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
     r.status === 'LEAVE' || r.status === 'INFORMED_ABSENT';
 
   const isAbsentRecord = (r: AttendanceRecord) =>
+    !isOffDate &&
+    r.status !== 'EXCUSED' &&
     !isPresentRecord(r) &&
     !isLeaveRecord(r) &&
     r.status !== 'INFORMED_LATE' &&
@@ -934,9 +953,9 @@ export const UnifiedAdminDashboard: React.FC = () => {
       const pdfFile = new File([pdfBlob], filename, { type: 'application/pdf' });
 
       // Structured WhatsApp Caption
-      const captionText = `🏥 *SBH GROUP OF HOSPITALS, RAIPUR*\n📊 *OFFICIAL ${cadence} LEADERSHIP ATTENDANCE REPORT (${date})*\n━━━━━━━━━━━━━━━━━━━━━━\n• Total Expected: ${forDate.length}\n• Attended: ${forDate.filter((r) => r.status === 'PRESENT' || r.admin_verified_attendance).length}\n• Approved Late: ${forDate.filter((r) => r.status === 'INFORMED_LATE' || (r.late_minutes && r.late_minutes > 0)).length}\n• Approved Leave: ${forDate.filter((r) => r.status === 'LEAVE').length}\n• Absent / Unreported: ${forDate.filter((r) => r.status === 'ABSENT' || (!r.admin_verified_attendance && r.status === 'PENDING' && r.selected_mode === 'NONE')).length}\n\n📄 *Official Signed Director Attendance PDF Report Attached*\n━━━━━━━━━━━━━━━━━━━━━━\nDOM Operations Command | SBH Raipur`;
+      const captionText = `🏥 *SBH GROUP OF HOSPITALS, RAIPUR*\n📊 *OFFICIAL ${cadence} LEADERSHIP ATTENDANCE REPORT (${date})*\n━━━━━━━━━━━━━━━━━━━━━━\n• Total Expected: ${forDate.length}\n• Attended: ${forDate.filter((r) => isPresentRecord(r)).length}\n• Approved Late: ${forDate.filter((r) => isLateRecord(r)).length}\n• Approved Leave: ${forDate.filter((r) => isLeaveRecord(r)).length}\n• Absent / Unreported: ${forDate.filter((r) => isAbsentRecord(r)).length}\n\n📄 *Official Signed Director Attendance PDF Report Attached*\n━━━━━━━━━━━━━━━━━━━━━━\n*Automated Reminder*`;
 
-      // 1. Direct Ceoitbox PDF Dispatch to WhatsApp Group (120363432056023698@g.us) via /api/v1/message/create
+      // 1. Direct Ceoitbox PDF Dispatch to WhatsApp Group (919977881452-1431506963@g.us) via /api/v1/message/create
       const dispatchPromise = sendDirectorPdfToWhatsappGroup(date);
       uploadReportToGoogleDriveAndSheet(date).catch((e) => console.warn('Background sync note:', e));
 
@@ -959,7 +978,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
       if (res.success) {
         setToastAlert({
           type: 'success',
-          text: `🎉 Official PDF Report directly dispatched to WhatsApp Group (${appSettings.admin_whatsapp_group || '120363432056023698@g.us'}) via Ceoitbox API!`,
+          text: `🎉 Official PDF Report directly dispatched to WhatsApp Group (${appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us'}) via Ceoitbox API!`,
         });
       } else {
         setToastAlert({
@@ -968,6 +987,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
         });
       }
       setTimeout(() => setToastAlert(null), 6000);
+      return res;
     } catch (err: any) {
       console.error('Error in handleSharePdfDirectly:', err);
       setToastAlert({
@@ -975,6 +995,92 @@ export const UnifiedAdminDashboard: React.FC = () => {
         text: `Share error: ${err.message}`,
       });
       setTimeout(() => setToastAlert(null), 5000);
+      throw err;
+    }
+  };
+
+  // Direct Absentee Text Report Sharing into WhatsApp Group
+  const handleSendAbsenteeTextReport = async (date: string) => {
+    const meeting = getMeetingForDate(date);
+    const cadenceCode = meeting.cadence || 'DOM';
+    const forDate = getFullRosterForDate(date);
+    const isSundayDateLocal = new Date(date).getDay() === 0;
+    const isOffDateLocal = isSundayDateLocal || meeting.cadence === 'HOLIDAY' || meeting.is_holiday_or_shifted;
+
+    const presentCount = forDate.filter((r) => isPresentRecord(r)).length;
+    const lateCount = forDate.filter((r) => isLateRecord(r)).length;
+    const leaveCount = forDate.filter((r) => isLeaveRecord(r)).length;
+    const absentees = isOffDateLocal ? [] : forDate.filter((r) => isAbsentRecord(r));
+
+    const formattedDate = new Date(date).toLocaleDateString('en-IN', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+
+    let textMsg = `🏥 *SBH GROUP OF HOSPITALS, RAIPUR*\n`;
+    textMsg += `📊 *OFFICIAL ${cadenceCode} ATTENDANCE REPORT (${formattedDate})*\n`;
+    textMsg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
+    textMsg += `⏰ Time: ${meeting.scheduled_time} IST | Venue: ${appSettings.conference_room_name || 'Conference Room, 5th Floor'}\n`;
+    textMsg += `👥 Scheduled Leaders: ${forDate.length}\n`;
+    textMsg += `✅ Attended: ${presentCount}\n`;
+    textMsg += `⏱️ Informed Late: ${lateCount}\n`;
+    textMsg += `🟣 Approved Leave: ${leaveCount}\n`;
+    textMsg += `❌ Total Absent: ${absentees.length}\n\n`;
+
+    if (isOffDateLocal) {
+      textMsg += `🏖️ *Official Weekly Off / Holiday — Zero Absentees Recorded.*\n`;
+    } else if (absentees.length > 0) {
+      textMsg += `❌ *ABSENT LEADERS (Action Required):*\n`;
+      absentees.forEach((p, idx) => {
+        textMsg += `${idx + 1}. *${p.leader?.full_name}* — ${p.leader?.department?.name || 'Department'}\n`;
+      });
+      textMsg += `\n`;
+    } else {
+      textMsg += `🎉 *100% Attendance Compliance Recorded Today!*\n\n`;
+    }
+
+    textMsg += `━━━━━━━━━━━━━━━━━━━━━━\n*Automated Reminder*`;
+
+    const groupJid = appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us';
+    const res = await sendCeoitboxWhatsappMessage({
+      mobileNo: groupJid,
+      name: 'SBH DOM Official Group',
+      message: textMsg,
+      settings: appSettings,
+    });
+    return res;
+  };
+
+  // Unified Handler for the 3 WhatsApp Group Dispatch Options
+  const handleGroupDispatchAction = async (action: 'pdf' | 'text' | 'both') => {
+    setIsDispatchingGroup(action);
+    try {
+      if (action === 'pdf' || action === 'both') {
+        await handleSharePdfDirectly(selectedDate);
+      }
+      if (action === 'text' || action === 'both') {
+        await handleSendAbsenteeTextReport(selectedDate);
+      }
+      setShowGroupDispatchModal(false);
+      setToastAlert({
+        type: 'success',
+        text: action === 'pdf'
+          ? '🎉 Official Signed PDF Report dispatched successfully to WhatsApp Group!'
+          : action === 'text'
+          ? '🎉 Absentee Text Report dispatched successfully to WhatsApp Group!'
+          : '🎉 PDF Report & Absentee Text Summary dispatched successfully to WhatsApp Group!',
+      });
+      setTimeout(() => setToastAlert(null), 5000);
+    } catch (err: any) {
+      setToastAlert({
+        type: 'error',
+        text: `Dispatch error: ${err.message || 'Network error'}`,
+      });
+      setTimeout(() => setToastAlert(null), 5000);
+    } finally {
+      setIsDispatchingGroup(null);
     }
   };
 
@@ -1203,25 +1309,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
           </span>
         </button>
 
-        {/* ⚙️ WhatsApp & Settings Button */}
-        <button
-          onClick={() => {
-            setActiveTab('settings');
-            if (isMobile) setIsMobileMenuOpen(false);
-          }}
-          className={`relative flex items-center justify-between w-full transition-[background-color,color,transform] duration-200 font-semibold tracking-wide text-[13px] px-4 py-3 rounded-xl cursor-pointer ${activeTab === 'settings'
-              ? 'bg-[#2e7d32] text-white shadow-md shadow-emerald-700/20 transform scale-[1.01]'
-              : 'text-[#1f2d2a] hover:bg-[#cfead6]/40 hover:text-[#2e7d32]'
-            }`}
-        >
-          <div className="flex items-center gap-3">
-            <Shield size={18} strokeWidth={activeTab === 'settings' ? 2.5 : 2} className={activeTab === 'settings' ? 'text-white' : 'text-emerald-600 flex-shrink-0'} />
-            <span className="truncate">WhatsApp & Gateway</span>
-          </div>
-          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${activeTab === 'settings' ? 'bg-white/20 text-white' : 'bg-slate-200/60 text-slate-700'}`}>
-            Config
-          </span>
-        </button>
+
 
         {/* PDF Reports Section */}
         <div className="pt-3 pb-1 px-3">
@@ -1634,18 +1722,44 @@ export const UnifiedAdminDashboard: React.FC = () => {
                     </button>
 
                     <button
-                      onClick={handleSendReminderNotice}
+                      onClick={async () => {
+                        setIsSendingNotice(true);
+                        try {
+                          await handleSendReminderNotice();
+                          setToastAlert({
+                            type: 'success',
+                            text: `✅ ${currentCadence} WhatsApp Notice dispatched to WhatsApp Group!`,
+                          });
+                          setTimeout(() => setToastAlert(null), 5000);
+                        } finally {
+                          setIsSendingNotice(false);
+                        }
+                      }}
+                      disabled={isSendingNotice}
                       className="px-3 py-1.5 bg-[#2e7d32] hover:bg-[#256628] text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150"
                     >
-                      <Send className="w-3.5 h-3.5" />
+                      {isSendingNotice ? <Loader2 className="w-3.5 h-3.5 animate-spin text-white" /> : <Send className="w-3.5 h-3.5" />}
                       <span>Send {currentCadence} WhatsApp Notice</span>
                     </button>
 
                     <button
-                      onClick={() => sendNonAttendeesEscalationNotice(selectedDate)}
+                      onClick={async () => {
+                        setIsEscalating(true);
+                        try {
+                          await sendNonAttendeesEscalationNotice(selectedDate);
+                          setToastAlert({
+                            type: 'success',
+                            text: '✅ Non-Attendees Escalation Notice dispatched successfully!',
+                          });
+                          setTimeout(() => setToastAlert(null), 5000);
+                        } finally {
+                          setIsEscalating(false);
+                        }
+                      }}
+                      disabled={isEscalating}
                       className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150"
                     >
-                      <AlertCircle className="w-3.5 h-3.5 text-rose-600" />
+                      {isEscalating ? <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-600" /> : <AlertCircle className="w-3.5 h-3.5 text-rose-600" />}
                       <span>Escalate Non-Attendees</span>
                     </button>
                   </div>
@@ -1666,13 +1780,30 @@ export const UnifiedAdminDashboard: React.FC = () => {
                             'Broadcast official 09:50 AM assembly notice with the boardroom check-in link to the Official WhatsApp Group?',
                           type: 'primary',
                           confirmText: 'Send Broadcast',
-                          onConfirm: handleTriggerAutomatedTransmission,
+                          onConfirm: async () => {
+                            setIsBroadcasting0950(true);
+                            try {
+                              await handleTriggerAutomatedTransmission();
+                              setToastAlert({
+                                type: 'success',
+                                text: '✅ 09:50 AM Morning Notice successfully dispatched to WhatsApp Group!',
+                              });
+                              setTimeout(() => setToastAlert(null), 5000);
+                            } finally {
+                              setIsBroadcasting0950(false);
+                            }
+                          },
                         })
                       }
+                      disabled={isBroadcasting0950}
                       className="px-2.5 py-1.5 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white rounded-xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150"
                       title="Broadcast 09:50 AM Notice to Official WhatsApp Group"
                     >
-                      <Zap className="w-3.5 h-3.5 text-yellow-200 fill-yellow-200" />
+                      {isBroadcasting0950 ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
+                      ) : (
+                        <Zap className="w-3.5 h-3.5 text-yellow-200 fill-yellow-200" />
+                      )}
                       <span>09:50 AM Broadcast</span>
                     </button>
 
@@ -1698,20 +1829,12 @@ export const UnifiedAdminDashboard: React.FC = () => {
                     </button>
 
                     <button
-                      onClick={() =>
-                        openConfirm({
-                          title: 'Submit & Direct Share PDF to WhatsApp Group',
-                          message: `Directly share official signed DOM attendance PDF report for ${selectedDate} to the Official WhatsApp Group (${appSettings.admin_whatsapp_group || '120363432056023698@g.us'})?\n\n• Total Scheduled: ${totalLeaders}\n• Total Joined: ${countPresent}\n• Late: ${countLate}\n• Approved Leave: ${countInformed}\n• Absent / Unreported: ${countAbsent}`,
-                          type: 'primary',
-                          confirmText: 'Share PDF to Group',
-                          onConfirm: () => handleSharePdfDirectly(selectedDate),
-                        })
-                      }
+                      onClick={() => setShowGroupDispatchModal(true)}
                       className="px-2.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150"
-                      title="Directly Share Signed PDF Report to Official WhatsApp Group"
+                      title="Send Official PDF or Absentee Text Report to SBH WhatsApp Group"
                     >
                       <Send className="w-3.5 h-3.5 text-emerald-200" />
-                      <span>Send Group Report</span>
+                      <span>Send to WhatsApp Group</span>
                     </button>
 
                     {/* Quick Remove / Enable DOM Toggle */}
@@ -2035,7 +2158,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                       openConfirm({
                         title: 'Save & Archive Report',
                         message:
-                          `Archive official DOM attendance report for ${selectedDate} directly to Supabase SQL database, download signed PDF, and dispatch audit summary to Official WhatsApp Group (${appSettings.admin_whatsapp_group || '120363432056023698@g.us'})?`,
+                          `Archive official DOM attendance report for ${selectedDate} directly to Supabase SQL database, download signed PDF, and dispatch audit summary to Official WhatsApp Group (${appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us'})?`,
                         type: 'primary',
                         confirmText: 'Save & Archive',
                         onConfirm: handleUploadToDriveAndSheet,
@@ -2050,28 +2173,33 @@ export const UnifiedAdminDashboard: React.FC = () => {
                   </button>
 
                   <button
-                    onClick={() =>
-                      openConfirm({
-                        title: 'Direct Share PDF to WhatsApp Group',
-                        message: `Directly share official signed Director Attendance PDF report for ${selectedDate} to the Official WhatsApp Group (${appSettings.admin_whatsapp_group || '120363432056023698@g.us'})?`,
-                        type: 'primary',
-                        confirmText: 'Share PDF Now',
-                        onConfirm: () => handleSharePdfDirectly(selectedDate),
-                      })
-                    }
+                    onClick={() => setShowGroupDispatchModal(true)}
                     className="px-2.5 py-1.5 bg-gradient-to-r from-emerald-600 to-green-700 hover:from-emerald-700 hover:to-green-800 text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 active:scale-95 transition-all duration-150 cursor-pointer"
-                    title="Directly share signed PDF Report to WhatsApp Group"
+                    title="Send Official PDF or Absentee Text Report to SBH WhatsApp Group"
                   >
                     <Send className="w-3.5 h-3.5 text-white" />
-                    <span>Share PDF to Group</span>
+                    <span>Send to WhatsApp Group</span>
                   </button>
 
                   <button
-                    onClick={() => downloadPdfReport(selectedDate)}
+                    onClick={() => {
+                      setIsDownloadingPdf(true);
+                      try {
+                        downloadPdfReport(selectedDate);
+                        setToastAlert({
+                          type: 'success',
+                          text: '✅ Official Director PDF generated & downloaded successfully!',
+                        });
+                        setTimeout(() => setToastAlert(null), 4000);
+                      } finally {
+                        setTimeout(() => setIsDownloadingPdf(false), 800);
+                      }
+                    }}
+                    disabled={isDownloadingPdf}
                     className="px-2.5 py-1.5 bg-[#2e7d32] hover:bg-[#256628] text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 active:scale-95 transition-all duration-150 cursor-pointer"
                     title="Download Official PDF Report for Director Sir"
                   >
-                    <Download className="w-3.5 h-3.5" />
+                    {isDownloadingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin text-white" /> : <Download className="w-3.5 h-3.5" />}
                     <span>Download Director PDF</span>
                   </button>
 
@@ -2174,7 +2302,12 @@ export const UnifiedAdminDashboard: React.FC = () => {
                               )}
                             </td>
                             <td className="py-3.5 px-4 text-center">
-                              {rec.verification_status === 'REJECTED' || rec.verification_note?.includes('Disapproved') || rec.verification_note?.includes('No Inform') ? (
+                              {rec.status === 'EXCUSED' || rec.verification_note?.includes('Weekly Off') || rec.verification_note?.includes('Sunday') || (isOffDate && rec.status !== 'PRESENT') ? (
+                                <span className="text-[11px] bg-slate-100 text-slate-700 font-bold px-2.5 py-1 rounded-full border border-slate-300 inline-flex items-center gap-1 shadow-2xs">
+                                  <Calendar className="w-3.5 h-3.5 text-slate-500" />
+                                  <span>{rec.verification_note || (isSundayDate ? 'Sunday Weekly Off' : 'Holiday / No DOM')}</span>
+                                </span>
+                              ) : rec.verification_status === 'REJECTED' || rec.verification_note?.includes('Disapproved') || rec.verification_note?.includes('No Inform') ? (
                                 <span className="text-[11px] bg-rose-100 text-rose-800 font-bold px-2.5 py-1 rounded-full border border-rose-300 inline-flex items-center gap-1">
                                   <XCircle className="w-3.5 h-3.5 text-rose-600" />
                                   <span>ABSENT (No Inform)</span>
@@ -2233,7 +2366,14 @@ export const UnifiedAdminDashboard: React.FC = () => {
                             </td>
                             <td className="py-3.5 px-4 text-right">
                               <div className="flex items-center justify-end gap-1.5">
-                                {/* If Leader submitted Informed Notice awaiting Admin confirmation */}
+                                {isOffDate ? (
+                                  <span className="px-2.5 py-1 bg-slate-100 text-slate-500 text-xs font-bold rounded-xl border border-slate-200 inline-flex items-center gap-1">
+                                    <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                                    <span>Weekly Off</span>
+                                  </span>
+                                ) : (
+                                  <>
+                                    {/* If Leader submitted Informed Notice awaiting Admin confirmation */}
                                 {rec.status === 'INFORMED_ABSENT' && !rec.informed_confirmed && (
                                   <>
                                     <button
@@ -2432,6 +2572,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                     Mark Absent
                                   </button>
                                 )}
+                              </>
+                            )}
                               </div>
                             </td>
                           </tr>
@@ -3546,13 +3688,13 @@ export const UnifiedAdminDashboard: React.FC = () => {
                         type="text"
                         value={appSettings.admin_whatsapp_group}
                         onChange={(e) => updateAppSettings({ admin_whatsapp_group: e.target.value })}
-                        placeholder="120363432056023698@g.us"
+                        placeholder="919977881452-1431506963@g.us"
                         className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-emerald-500 font-mono font-bold"
                       />
                       <div className="flex items-center justify-between mt-1 text-[11px] text-slate-500">
-                        <span>Target Group: Official DOM Operations ({appSettings.admin_whatsapp_group || '120363432056023698@g.us'})</span>
+                        <span>Target Group: Official DOM Operations ({appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us'})</span>
                         <a
-                          href={`https://app.ceoitbox.com/customer/channel/23642/group/${appSettings.admin_whatsapp_group || '120363432056023698@g.us'}`}
+                          href={`https://app.ceoitbox.com/customer/channel/23642/group/${appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us'}`}
                           target="_blank"
                           rel="noreferrer"
                           className="text-emerald-700 font-bold underline"
@@ -3657,7 +3799,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                       </span>
                     </div>
                     <div className="text-[11px] font-mono text-slate-700 truncate bg-slate-50 p-2 rounded-lg border border-slate-200 font-bold">
-                      {appSettings.admin_whatsapp_group || '120363432056023698@g.us'}
+                      {appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us'}
                     </div>
                     <p className="text-[11px] text-slate-500">09:50 AM notice & 10:30 AM final PDF report are dispatched to this group.</p>
                   </div>
@@ -5067,12 +5209,12 @@ export const UnifiedAdminDashboard: React.FC = () => {
  * =======================================================================
  * SBH GROUP OF HOSPITALS, RAIPUR — DOM AUTOMATION PIPELINE (APPS SCRIPT)
  * Target Drive Folder: https://drive.google.com/drive/folders/1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD?usp=sharing
- * Target WhatsApp Group ID: 120363432056023698@g.us
+ * Target WhatsApp Group ID: 919977881452-1431506963@g.us
  * =======================================================================
  */
 
 const DRIVE_FOLDER_ID = "1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD";
-const WHATSAPP_GROUP_ID = "120363432056023698@g.us";
+const WHATSAPP_GROUP_ID = "919977881452-1431506963@g.us";
 const GOOGLE_MEET_URL = "https://meet.google.com/jrz-jfku-gir";
 
 /**
@@ -5174,7 +5316,7 @@ function sendDaily0950Notice() {
               <button
                 onClick={() => {
                   const codeToCopy = `const DRIVE_FOLDER_ID = "1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD";
-const WHATSAPP_GROUP_ID = "120363432056023698@g.us";
+const WHATSAPP_GROUP_ID = "919977881452-1431506963@g.us";
 const GOOGLE_MEET_URL = "https://meet.google.com/jrz-jfku-gir";
 
 function doPost(e) {
@@ -5427,6 +5569,179 @@ function doPost(e) {
               >
                 <Mail className="w-3.5 h-3.5" />
                 <span>Open Email Client (mailto:)</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Toast Notification Banner */}
+      {toastAlert && (
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[10002] animate-in fade-in slide-in-from-top-4 duration-300 max-w-lg w-[90%]">
+          <div className={`p-4 rounded-2xl shadow-2xl flex items-center justify-between gap-3 text-sm font-bold border ${
+            toastAlert.type === 'success'
+              ? 'bg-emerald-700 text-white border-emerald-500 shadow-emerald-900/30'
+              : toastAlert.type === 'info'
+              ? 'bg-blue-700 text-white border-blue-500 shadow-blue-900/30'
+              : 'bg-rose-700 text-white border-rose-500 shadow-rose-900/30'
+          }`}>
+            <div className="flex items-center gap-2.5">
+              {toastAlert.type === 'success' ? (
+                <CheckCircle2 className="w-5 h-5 text-emerald-200 shrink-0" />
+              ) : toastAlert.type === 'info' ? (
+                <Clock className="w-5 h-5 text-blue-200 shrink-0" />
+              ) : (
+                <AlertTriangle className="w-5 h-5 text-rose-200 shrink-0" />
+              )}
+              <span className="leading-snug">{toastAlert.text}</span>
+            </div>
+            <button
+              onClick={() => setToastAlert(null)}
+              className="w-7 h-7 rounded-lg bg-white/20 hover:bg-white/30 flex items-center justify-center text-white shrink-0 cursor-pointer"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 📤 Unified WhatsApp Group Dispatch Modal */}
+      {showGroupDispatchModal && (
+        <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-[10001] p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 transform transition-all space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                  <Send className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900 leading-tight">
+                    Send to WhatsApp Group
+                  </h3>
+                  <p className="text-xs text-slate-500 font-medium">
+                    SBH Express Group ({appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us'})
+                  </p>
+                </div>
+              </div>
+              <button
+                disabled={isDispatchingGroup !== null}
+                onClick={() => setShowGroupDispatchModal(false)}
+                className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 font-bold cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Standup Metrics Snapshot */}
+            <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 text-xs text-slate-700 space-y-1.5">
+              <div className="flex items-center justify-between font-bold text-slate-800">
+                <span>Meeting Date:</span>
+                <span className="font-mono text-emerald-700">{selectedDate} ({currentCadence})</span>
+              </div>
+              <div className="grid grid-cols-4 gap-2 pt-1.5 text-center">
+                <div className="bg-white p-2 rounded-xl border border-slate-200 shadow-2xs">
+                  <div className="text-[10px] text-slate-500 font-bold">TOTAL</div>
+                  <div className="text-sm font-black text-slate-900">{recordsForDate.length}</div>
+                </div>
+                <div className="bg-white p-2 rounded-xl border border-slate-200 shadow-2xs">
+                  <div className="text-[10px] text-emerald-600 font-bold">ATTENDED</div>
+                  <div className="text-sm font-black text-emerald-700">{recordsForDate.filter((r) => isPresentRecord(r)).length}</div>
+                </div>
+                <div className="bg-white p-2 rounded-xl border border-slate-200 shadow-2xs">
+                  <div className="text-[10px] text-amber-600 font-bold">LATE</div>
+                  <div className="text-sm font-black text-amber-700">{recordsForDate.filter((r) => isLateRecord(r)).length}</div>
+                </div>
+                <div className="bg-white p-2 rounded-xl border border-slate-200 shadow-2xs">
+                  <div className="text-[10px] text-rose-600 font-bold">ABSENT</div>
+                  <div className="text-sm font-black text-rose-700">{isOffDate ? 0 : recordsForDate.filter((r) => isAbsentRecord(r)).length}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Selection Options */}
+            <div className="space-y-2.5">
+              <button
+                type="button"
+                disabled={isDispatchingGroup !== null}
+                onClick={() => handleGroupDispatchAction('pdf')}
+                className="w-full p-4 rounded-2xl border border-emerald-200 hover:border-emerald-500 hover:bg-emerald-50/50 bg-white flex items-center justify-between transition-all group cursor-pointer text-left shadow-2xs hover:shadow-xs"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                    {isDispatchingGroup === 'pdf' ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <Download className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                    )}
+                  </div>
+                  <div>
+                    <div className="text-xs font-black text-slate-900 group-hover:text-emerald-800">
+                      📄 Send Official PDF Report
+                    </div>
+                    <div className="text-[11px] text-slate-500">
+                      Dispatches signed PDF document directly into the WhatsApp group
+                    </div>
+                  </div>
+                </div>
+                <span className="text-xs font-bold text-emerald-700 px-3 py-1 bg-emerald-100 rounded-lg shrink-0">
+                  {isDispatchingGroup === 'pdf' ? 'Sending...' : 'Send PDF'}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                disabled={isDispatchingGroup !== null}
+                onClick={() => handleGroupDispatchAction('text')}
+                className="w-full p-4 rounded-2xl border border-blue-200 hover:border-blue-500 hover:bg-blue-50/50 bg-white flex items-center justify-between transition-all group cursor-pointer text-left shadow-2xs hover:shadow-xs"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
+                    {isDispatchingGroup === 'text' ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <MessageSquare className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                    )}
+                  </div>
+                  <div>
+                    <div className="text-xs font-black text-slate-900 group-hover:text-blue-800">
+                      📝 Send Absentee Text Report
+                    </div>
+                    <div className="text-[11px] text-slate-500">
+                      Dispatches formatted text report listing all absent leaders by name & department
+                    </div>
+                  </div>
+                </div>
+                <span className="text-xs font-bold text-blue-700 px-3 py-1 bg-blue-100 rounded-lg shrink-0">
+                  {isDispatchingGroup === 'text' ? 'Sending...' : 'Send Text'}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                disabled={isDispatchingGroup !== null}
+                onClick={() => handleGroupDispatchAction('both')}
+                className="w-full p-4 rounded-2xl border border-purple-200 hover:border-purple-500 hover:bg-purple-50/50 bg-white flex items-center justify-between transition-all group cursor-pointer text-left shadow-2xs hover:shadow-xs"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center shrink-0">
+                    {isDispatchingGroup === 'both' ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <Zap className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                    )}
+                  </div>
+                  <div>
+                    <div className="text-xs font-black text-slate-900 group-hover:text-purple-800">
+                      🚀 Send Both (PDF Document + Text Summary)
+                    </div>
+                    <div className="text-[11px] text-slate-500">
+                      Dispatches the official PDF file followed by the absentee summary
+                    </div>
+                  </div>
+                </div>
+                <span className="text-xs font-bold text-purple-700 px-3 py-1 bg-purple-100 rounded-lg shrink-0">
+                  {isDispatchingGroup === 'both' ? 'Sending...' : 'Send Both'}
+                </span>
               </button>
             </div>
           </div>

@@ -42,8 +42,10 @@ export async function sendCeoitboxWhatsappMessage({
 }: CeoitboxDispatchParams): Promise<{ success: boolean; status: string; url: string }> {
   const cleanPhone = cleanMobileNumber(mobileNo);
 
-  // Safety filter: never message former contact 9977881452
-  if (cleanPhone.includes('9977881452')) {
+  const isGroup = cleanPhone.includes('@g.us');
+
+  // Safety filter: never message former contact 9977881452 on personal chat (allow official groups)
+  if (!isGroup && (cleanPhone === '9977881452' || cleanPhone === '919977881452')) {
     return {
       success: false,
       status: 'Blocked former contact number.',
@@ -51,7 +53,6 @@ export async function sendCeoitboxWhatsappMessage({
     };
   }
 
-  const isGroup = cleanPhone.includes('@g.us');
   if (!isGroup && (!cleanPhone || cleanPhone.length < 10)) {
     return {
       success: false,

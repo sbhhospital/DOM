@@ -87,22 +87,28 @@ export function generateDirectorPdf(
 
   // 4. Executive Summary KPI Metric Cards
   const totalLeaders = records.length;
+  const isSundayMeeting = new Date(meeting.meeting_date).getDay() === 0;
+  const isMeetingOff = isSundayMeeting || meeting.cadence === 'HOLIDAY' || meeting.is_holiday_or_shifted;
+
   const approvedPresent = records.filter(
     (r) =>
+      r.status !== 'EXCUSED' &&
       (r.admin_verified_attendance || r.verification_status === 'VERIFIED') &&
       r.status !== 'ABSENT' &&
       r.verification_status !== 'REJECTED'
   ).length;
-  const pendingApproval = records.filter(
+  const pendingApproval = isMeetingOff ? 0 : records.filter(
     (r) =>
+      r.status !== 'EXCUSED' &&
       !r.admin_verified_attendance &&
       r.verification_status !== 'VERIFIED' &&
       r.verification_status !== 'REJECTED' &&
       (r.status === 'PRESENT' || r.status === 'INFORMED_LATE' || r.selected_mode === 'PHYSICAL' || r.selected_mode === 'VIRTUAL')
   ).length;
   const approvedLeave = records.filter((r) => r.status === 'LEAVE' || r.status === 'INFORMED_ABSENT').length;
-  const absentCount = records.filter(
+  const absentCount = isMeetingOff ? 0 : records.filter(
     (r) =>
+      r.status !== 'EXCUSED' &&
       !r.admin_verified_attendance &&
       r.verification_status !== 'VERIFIED' &&
       r.status !== 'PRESENT' &&
@@ -182,7 +188,10 @@ export function generateDirectorPdf(
     let statusDisplay = 'Absent (Unreported)';
     let auditDisplay = 'UNEXCUSED';
 
-    if (rec.verification_status === 'REJECTED' || rec.verification_note?.includes('Disapproved') || rec.verification_note?.includes('No Inform')) {
+    if (rec.status === 'EXCUSED' || rec.verification_note?.includes('Weekly Off') || rec.verification_note?.includes('Sunday') || (isMeetingOff && rec.status !== 'PRESENT')) {
+      statusDisplay = rec.verification_note || (isSundayMeeting ? 'Sunday Weekly Off' : 'Holiday / No DOM');
+      auditDisplay = 'EXCUSED';
+    } else if (rec.verification_status === 'REJECTED' || rec.verification_note?.includes('Disapproved') || rec.verification_note?.includes('No Inform')) {
       statusDisplay = 'Absent (No Inform)';
       auditDisplay = 'UNEXCUSED / REJECTED';
     } else if (rec.status === 'LEAVE' || (rec.status === 'INFORMED_ABSENT' && rec.informed_confirmed)) {
@@ -241,12 +250,13 @@ export function generateDirectorPdf(
     body: tableRows,
     theme: 'grid',
     styles: {
-      fontSize: 7.2,
-      cellPadding: 1.8,
+      fontSize: 7.0,
+      cellPadding: { top: 2, bottom: 2, left: 1.5, right: 1.5 },
       textColor: [30, 41, 59],
       lineColor: [226, 232, 240],
       lineWidth: 0.1,
       overflow: 'linebreak',
+      valign: 'middle',
     },
     headStyles: {
       fillColor: [234, 88, 12], // #ea580c Hospital Orange
@@ -256,14 +266,14 @@ export function generateDirectorPdf(
       halign: 'center',
     },
     columnStyles: {
-      0: { halign: 'center', cellWidth: 8 },
-      1: { fontStyle: 'bold', halign: 'left', cellWidth: 40 },
-      2: { halign: 'left', cellWidth: 31 },
-      3: { halign: 'center', cellWidth: 19 },
-      4: { halign: 'center', cellWidth: 23 },
-      5: { halign: 'center', cellWidth: 18 },
-      6: { halign: 'center', cellWidth: 24 },
-      7: { halign: 'center', cellWidth: 19 },
+      0: { halign: 'center', cellWidth: 7 },
+      1: { fontStyle: 'bold', halign: 'left', cellWidth: 38 },
+      2: { halign: 'left', cellWidth: 28 },
+      3: { halign: 'center', cellWidth: 14 },
+      4: { halign: 'center', cellWidth: 20 },
+      5: { halign: 'center', cellWidth: 17 },
+      6: { halign: 'center', cellWidth: 34 },
+      7: { halign: 'center', cellWidth: 24 },
     },
     didParseCell: (data) => {
       if (data.section === 'body') {
@@ -294,8 +304,9 @@ export function generateDirectorPdf(
     afterTableY = 20;
   }
 
-  const absentees = records.filter(
+  const absentees = isMeetingOff ? [] : records.filter(
     (r) =>
+      r.status !== 'EXCUSED' &&
       !r.admin_verified_attendance &&
       r.verification_status !== 'VERIFIED' &&
       r.status !== 'PRESENT' &&
@@ -307,7 +318,7 @@ export function generateDirectorPdf(
   afterTableY += 8;
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
-  doc.setTextColor(225, 29, 72);
+  doc.setTextColor(isMeetingOff ? 71 : 225, isMeetingOff ? 85 : 29, isMeetingOff ? 105 : 72);
   doc.text(`2. ACTION REQUIRED: UNREPORTED ABSENT LEADERS (${absentees.length})`, margin, afterTableY);
 
   afterTableY += 4;
@@ -315,7 +326,11 @@ export function generateDirectorPdf(
   doc.setFontSize(8);
   doc.setTextColor(71, 85, 105);
 
-  if (absentees.length === 0) {
+  if (isMeetingOff) {
+    doc.setTextColor(30, 41, 59);
+    doc.text('[OFFICIAL WEEKLY OFF / HOLIDAY] Standup is paused on off days. Zero absentees recorded.', margin, afterTableY);
+    afterTableY += 6;
+  } else if (absentees.length === 0) {
     doc.setTextColor(22, 163, 74);
     doc.text('[100% COMPLIANCE] All registered department heads participated and verified.', margin, afterTableY);
     afterTableY += 6;
