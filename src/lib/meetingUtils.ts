@@ -154,6 +154,26 @@ export function calculateLateMinutes(
 }
 
 /**
+ * Formats raw late minutes into human-friendly duration:
+ * e.g., 25 -> "+25m Late"
+ * 70 -> "+1h 10m Late"
+ * 515 -> "+8h 35m Late"
+ */
+export function formatLateDuration(lateMinutes?: number | null, prefixPlus: boolean = true): string {
+  if (!lateMinutes || lateMinutes <= 0) return '';
+  const prefix = prefixPlus ? '+' : '';
+  if (lateMinutes < 60) {
+    return `${prefix}${lateMinutes}m Late`;
+  }
+  const hours = Math.floor(lateMinutes / 60);
+  const mins = lateMinutes % 60;
+  if (mins === 0) {
+    return `${prefix}${hours}h Late`;
+  }
+  return `${prefix}${hours}h ${mins}m Late`;
+}
+
+/**
  * Returns today's live calendar date in IST (Asia/Kolkata) formatted as YYYY-MM-DD
  * Guarantees date accuracy regardless of UTC timezone offset or time of day.
  */

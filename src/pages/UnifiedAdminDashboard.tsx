@@ -52,7 +52,7 @@ import { useDomApp } from '../context/DomAppContext';
 import { useAuthSession } from '../context/AuthSessionContext';
 import { useNavigate } from 'react-router-dom';
 import { Leader, Department, AttendanceStatus, MeetingFrequency, CadenceType, AttendanceRecord } from '../types/database';
-import { getCadenceInfo } from '../lib/meetingUtils';
+import { getCadenceInfo, formatLateDuration } from '../lib/meetingUtils';
 import { MeetingCalendarView } from '../components/MeetingCalendarView';
 import { AnalyticsReportsView } from '../components/AnalyticsReportsView';
 import { generateDailyMeetingLink } from '../lib/meetingLinks';
@@ -104,9 +104,54 @@ export const UnifiedAdminDashboard: React.FC = () => {
     sendCeoitboxGroupBroadcast,
     triggerAutomated0950Transmission,
     uploadReportToGoogleDriveAndSheet,
+    getFullRosterForDate,
+    generateNonAttendeesEscalationEmail,
     appSettings,
     updateAppSettings,
   } = useDomApp();
+
+  // Confirmation Modal state
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmText?: string;
+    type?: 'primary' | 'warning' | 'danger' | 'success';
+    isExecuting?: boolean;
+    onConfirm: () => Promise<void> | void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
+
+  const openConfirm = (opts: {
+    title: string;
+    message: string;
+    confirmText?: string;
+    type?: 'primary' | 'warning' | 'danger' | 'success';
+    onConfirm: () => Promise<void> | void;
+  }) => {
+    setConfirmModal({
+      isOpen: true,
+      title: opts.title,
+      message: opts.message,
+      confirmText: opts.confirmText || 'Confirm',
+      type: opts.type || 'primary',
+      onConfirm: opts.onConfirm,
+    });
+  };
+
+  // Escalation Email Modal state
+  const [showEscalationModal, setShowEscalationModal] = useState(false);
+  const [escalationData, setEscalationData] = useState<{
+    subject: string;
+    body: string;
+    toEmails: string[];
+    mailtoUrl: string;
+    absentCount: number;
+  } | null>(null);
 
   const [showScriptModal, setShowScriptModal] = useState<boolean>(false);
   const [isSyncingDrive, setIsSyncingDrive] = useState<boolean>(false);
@@ -454,8 +499,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
       r.verification_status === 'REJECTED' ||
       (r.status === 'PENDING' && r.selected_mode === 'NONE'));
 
-  // Filter records for the selected date
-  const recordsForDate = attendanceRecords.filter((r) => r.meeting_date === selectedDate);
+  // Complete official roster for selected date (all active leaders represented)
+  const recordsForDate = getFullRosterForDate(selectedDate);
   const filteredRecords = recordsForDate.filter((r) => {
     const nameMatch =
       r.leader?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -1471,20 +1516,37 @@ export const UnifiedAdminDashboard: React.FC = () => {
                   {/* Card 3: Action Buttons & Auto Broadcast Engine */}
                   <div className="flex flex-wrap items-center justify-start md:justify-end gap-1.5">
                     <button
-                      onClick={handleTriggerAutomatedTransmission}
+                      onClick={() =>
+                        openConfirm({
+                          title: 'Broadcast 09:50 AM Morning Notice',
+                          message:
+                            'Broadcast official 09:50 AM assembly notice with the boardroom check-in link to the Official WhatsApp Group?',
+                          type: 'primary',
+                          confirmText: 'Send Broadcast',
+                          onConfirm: handleTriggerAutomatedTransmission,
+                        })
+                      }
                       className="px-3 py-2 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white rounded-xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
-                      title={`Broadcast 09:50 AM Alerts to WhatsApp Group and all ${leaders.length} registered leaders`}
+                      title="Broadcast 09:50 AM Notice to Official WhatsApp Group"
                     >
                       <Zap className="w-3.5 h-3.5 text-yellow-200 fill-yellow-200" />
                       <span>09:50 AM Broadcast</span>
                     </button>
 
                     <button
-                      onClick={async () => {
-                        const res = await approveAllPendingRecords(selectedDate);
-                        setToastAlert({ type: 'success', text: res.message });
-                        setTimeout(() => setToastAlert(null), 5000);
-                      }}
+                      onClick={() =>
+                        openConfirm({
+                          title: 'Approve All Joined Leaders',
+                          message: `Verify and approve attendance for all pending leaders who joined today (${selectedDate})?`,
+                          type: 'success',
+                          confirmText: 'Approve All',
+                          onConfirm: async () => {
+                            const res = await approveAllPendingRecords(selectedDate);
+                            setToastAlert({ type: 'success', text: res.message });
+                            setTimeout(() => setToastAlert(null), 5000);
+                          },
+                        })
+                      }
                       className="px-3 py-2 bg-[#cfead6] hover:bg-[#b8e4c3] text-[#2e7d32] border border-[#2e7d32]/25 rounded-xl text-xs font-bold shadow-2xs flex items-center gap-1 cursor-pointer transition-all active:scale-95"
                       title="Approve all leaders who have joined on this date"
                     >
@@ -1493,12 +1555,20 @@ export const UnifiedAdminDashboard: React.FC = () => {
                     </button>
 
                     <button
-                      onClick={() => handleSendGroupCeoitbox('0950')}
-                      className="px-2.5 py-2 bg-white hover:bg-slate-100 text-[#1f2d2a] border border-[#dcdcdc] rounded-xl text-xs font-bold shadow-2xs flex items-center gap-1 cursor-pointer transition-all"
+                      onClick={() =>
+                        openConfirm({
+                          title: 'Submit & Send Final WhatsApp Group Report',
+                          message: `Transmit final DOM attendance audit report for ${selectedDate} to the Official WhatsApp Group?\n\n• Total Scheduled: ${totalLeaders}\n• Total Joined: ${countPresent}\n• Late: ${countLate}\n• Approved Leave: ${countInformed}\n• Absent / Unreported: ${countAbsent}`,
+                          type: 'primary',
+                          confirmText: 'Send to WhatsApp Group',
+                          onConfirm: () => handleSendGroupCeoitbox('1030'),
+                        })
+                      }
+                      className="px-3 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
                       title="Official WhatsApp Group Broadcast"
                     >
-                      <MessageSquare className="w-3.5 h-3.5 text-[#2e7d32]" />
-                      <span>Group</span>
+                      <Send className="w-3.5 h-3.5 text-emerald-200" />
+                      <span>Send Group Report</span>
                     </button>
 
                     <button
@@ -1755,7 +1825,16 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 {/* Action Buttons: PDF Download, Print & Email Report & Drive Sync */}
                 <div className="flex flex-wrap items-center gap-2 justify-end">
                   <button
-                    onClick={handleUploadToDriveAndSheet}
+                    onClick={() =>
+                      openConfirm({
+                        title: 'Save Report to Google Drive & Sheet',
+                        message:
+                          'Upload official attendance PDF report to Google Drive folder and record entry in Google Sheet?',
+                        type: 'primary',
+                        confirmText: 'Upload & Sync',
+                        onConfirm: handleUploadToDriveAndSheet,
+                      })
+                    }
                     disabled={isSyncingDrive}
                     className="px-3.5 py-2 bg-gradient-to-r from-teal-700 to-emerald-700 hover:from-teal-800 hover:to-emerald-800 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
                     title="Upload official PDF to Google Drive Folder & log to Google Sheet"
@@ -1780,6 +1859,19 @@ export const UnifiedAdminDashboard: React.FC = () => {
                   >
                     <Printer className="w-3.5 h-3.5 text-orange-600" />
                     <span>Print PDF</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      const esc = generateNonAttendeesEscalationEmail(selectedDate);
+                      setEscalationData(esc);
+                      setShowEscalationModal(true);
+                    }}
+                    className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
+                    title="Send official absence explanation notice to all unreported leaders"
+                  >
+                    <AlertTriangle className="w-3.5 h-3.5 text-white" />
+                    <span>Email Non-Attendees ({countAbsent})</span>
                   </button>
 
                   <button
@@ -1855,53 +1947,118 @@ export const UnifiedAdminDashboard: React.FC = () => {
                               )}
                             </td>
                             <td className="py-3.5 px-4 text-center">
-                              {rec.verification_status === 'REJECTED' ? (
-                                <span className="text-[11px] bg-rose-100 text-rose-800 font-bold px-2.5 py-0.5 rounded-full border border-rose-300 inline-flex items-center gap-1">
+                              {rec.verification_status === 'REJECTED' || rec.verification_note?.includes('Disapproved') || rec.verification_note?.includes('No Inform') ? (
+                                <span className="text-[11px] bg-rose-100 text-rose-800 font-bold px-2.5 py-1 rounded-full border border-rose-300 inline-flex items-center gap-1">
                                   <XCircle className="w-3.5 h-3.5 text-rose-600" />
-                                  <span>REJECTED</span>
+                                  <span>ABSENT (No Inform)</span>
                                 </span>
-                              ) : isLeaveRecord(rec) ? (
-                                <span className="text-[11px] bg-purple-100 text-purple-900 font-bold px-2.5 py-0.5 rounded-full border border-purple-300">
-                                  APPROVED LEAVE {rec.informed_to_person ? `(${rec.informed_to_person})` : ''}
+                              ) : rec.status === 'LEAVE' || (rec.status === 'INFORMED_ABSENT' && rec.informed_confirmed) ? (
+                                <span className="text-[11px] bg-purple-100 text-purple-900 font-bold px-2.5 py-1 rounded-full border border-purple-300 inline-flex items-center gap-1">
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-purple-600" />
+                                  <span>APPROVED LEAVE {rec.informed_to_person ? `(${rec.informed_to_person})` : ''}</span>
                                 </span>
+                              ) : rec.status === 'INFORMED_ABSENT' && !rec.informed_confirmed ? (
+                                <div className="flex flex-col items-center gap-0.5">
+                                  <span className="text-[11px] bg-amber-100 text-amber-900 font-bold px-2.5 py-0.5 rounded-full border border-amber-300 inline-flex items-center gap-1 shadow-2xs">
+                                    <Clock className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
+                                    <span>Informed Awaiting Approval</span>
+                                  </span>
+                                  <span className="text-[10px] text-amber-800 font-medium">
+                                    To: {rec.informed_to_person || 'Authority'}
+                                  </span>
+                                </div>
                               ) : rec.admin_verified_attendance || rec.verification_status === 'VERIFIED' ? (
-                                <span className="text-[11px] bg-[#cfead6] text-[#2e7d32] font-bold px-2.5 py-0.5 rounded-full border border-[#2e7d32]/30 inline-flex items-center gap-1">
+                                <span className="text-[11px] bg-[#cfead6] text-[#2e7d32] font-bold px-2.5 py-1 rounded-full border border-[#2e7d32]/30 inline-flex items-center gap-1">
                                   <CheckCircle2 className="w-3.5 h-3.5 text-[#2e7d32]" />
                                   <span>PRESENT (Approved)</span>
                                   {rec.late_minutes && rec.late_minutes > 0 ? (
-                                    <span className="text-[9px] bg-[#2e7d32] text-white px-1.5 py-0.2 rounded font-black">
-                                      +{rec.late_minutes}m Late
+                                    <span className="text-[10px] bg-[#2e7d32] text-white px-1.5 py-0.5 rounded font-black tracking-wide">
+                                      {formatLateDuration(rec.late_minutes)}
                                     </span>
                                   ) : null}
                                 </span>
                               ) : !rec.admin_verified_attendance &&
                                 (rec.status === 'PRESENT' || rec.status === 'INFORMED_LATE' || rec.selected_mode !== 'NONE') ? (
-                                <span className="text-[11px] bg-amber-100 text-amber-900 font-bold px-2.5 py-0.5 rounded-full border border-amber-300 inline-flex items-center gap-1 shadow-2xs">
+                                <span className="text-[11px] bg-amber-100 text-amber-900 font-bold px-2.5 py-1 rounded-full border border-amber-300 inline-flex items-center gap-1 shadow-2xs">
                                   <Clock className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
-                                  <span>Approval Pending from Admin</span>
+                                  <span>Approval Pending</span>
                                   {rec.late_minutes && rec.late_minutes > 0 ? (
-                                    <span className="text-[9px] bg-amber-200 text-amber-950 px-1.5 py-0.2 rounded font-black">
-                                      +{rec.late_minutes}m Late
+                                    <span className="text-[10px] bg-amber-200 text-amber-950 px-1.5 py-0.5 rounded font-black tracking-wide">
+                                      {formatLateDuration(rec.late_minutes)}
                                     </span>
                                   ) : null}
                                 </span>
                               ) : (
-                                <span className="text-[11px] bg-rose-100 text-rose-800 font-bold px-2.5 py-0.5 rounded-full border border-rose-300">
-                                  ABSENT
+                                <span className="text-[11px] bg-rose-50 text-rose-700 font-bold px-2.5 py-1 rounded-full border border-rose-200 inline-flex items-center gap-1">
+                                  <span>ABSENT</span>
                                 </span>
                               )}
                             </td>
                             <td className="py-3.5 px-4 text-right">
                               <div className="flex items-center justify-end gap-1.5">
+                                {/* If Leader submitted Informed Notice awaiting Admin confirmation */}
+                                {rec.status === 'INFORMED_ABSENT' && !rec.informed_confirmed && (
+                                  <>
+                                    <button
+                                      onClick={() =>
+                                        openConfirm({
+                                          title: 'Approve Informed Leave',
+                                          message: `Confirm that ${rec.leader?.full_name} had informed ${rec.informed_to_person || 'Authority'}? Status will be marked as APPROVED LEAVE.`,
+                                          type: 'success',
+                                          confirmText: 'Approve Leave',
+                                          onConfirm: async () => {
+                                            await confirmInformedAbsence(rec.id, true);
+                                            setToastAlert({ type: 'success', text: `Leave approved for ${rec.leader?.full_name}!` });
+                                            setTimeout(() => setToastAlert(null), 3000);
+                                          },
+                                        })
+                                      }
+                                      className="px-2.5 py-1.5 bg-[#2e7d32] hover:bg-[#256628] text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer flex items-center gap-1 transition-all"
+                                      title="Confirm & Approve Leave"
+                                    >
+                                      <CheckCircle2 className="w-3.5 h-3.5" />
+                                      <span>Approve Leave</span>
+                                    </button>
+                                    <button
+                                      onClick={() =>
+                                        openConfirm({
+                                          title: 'Disapprove Inform (Mark Absent)',
+                                          message: `Reject ${rec.leader?.full_name}'s informed claim? (Admin confirms they did not inform). Status will be marked as ABSENT (No Inform).`,
+                                          type: 'danger',
+                                          confirmText: 'No Inform (Mark Absent)',
+                                          onConfirm: async () => {
+                                            await confirmInformedAbsence(rec.id, false);
+                                            setToastAlert({ type: 'error', text: `${rec.leader?.full_name} marked as ABSENT (No Inform)!` });
+                                            setTimeout(() => setToastAlert(null), 3000);
+                                          },
+                                        })
+                                      }
+                                      className="px-2.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer flex items-center gap-1 transition-all"
+                                      title="Admin Disapproves: Did not inform"
+                                    >
+                                      <XCircle className="w-3.5 h-3.5" />
+                                      <span>No Inform</span>
+                                    </button>
+                                  </>
+                                )}
+
                                 {/* Admin Direct Approval Button for pending attendance */}
                                 {!rec.admin_verified_attendance &&
                                   (rec.status === 'PRESENT' || rec.status === 'INFORMED_LATE' || rec.selected_mode !== 'NONE') && (
                                     <button
-                                      onClick={async () => {
-                                        const res = await approveAttendanceRecord(rec.id);
-                                        setToastAlert({ type: 'success', text: res.message });
-                                        setTimeout(() => setToastAlert(null), 4000);
-                                      }}
+                                      onClick={() =>
+                                        openConfirm({
+                                          title: 'Approve Attendance',
+                                          message: `Verify and confirm attendance for ${rec.leader?.full_name}?`,
+                                          type: 'success',
+                                          confirmText: 'Confirm Approve',
+                                          onConfirm: async () => {
+                                            const res = await approveAttendanceRecord(rec.id);
+                                            setToastAlert({ type: 'success', text: res.message });
+                                            setTimeout(() => setToastAlert(null), 4000);
+                                          },
+                                        })
+                                      }
                                       className="px-3 py-1.5 bg-[#2e7d32] hover:bg-[#256628] text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer flex items-center gap-1 transition-all"
                                       title="Approve Leader Attendance"
                                     >
@@ -1910,16 +2067,29 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                     </button>
                                   )}
 
-                                {rec.status !== 'PRESENT' && !rec.admin_verified_attendance && (
+                                {rec.status !== 'PRESENT' && !rec.admin_verified_attendance && rec.status !== 'INFORMED_ABSENT' && (
                                   <button
-                                    onClick={() => adminVerifyStatus(rec.id, 'PRESENT', true, 'Manual Conference Room Check')}
+                                    onClick={() =>
+                                      openConfirm({
+                                        title: 'Mark Present',
+                                        message: `Mark ${rec.leader?.full_name} as Present (Conference Room In-Person)?`,
+                                        type: 'success',
+                                        confirmText: 'Mark Present',
+                                        onConfirm: async () => {
+                                          await adminVerifyStatus(rec.id, 'PRESENT', true, 'Manual Conference Room Check');
+                                          setToastAlert({ type: 'success', text: `${rec.leader?.full_name} marked as Present!` });
+                                          setTimeout(() => setToastAlert(null), 3000);
+                                        },
+                                      })
+                                    }
                                     className="px-3 py-1.5 bg-[#2e7d32] hover:bg-[#256628] text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer transition-all"
                                     title="Mark Present & Verified"
                                   >
                                     Mark Present
                                   </button>
                                 )}
-                                {rec.status !== 'INFORMED_LATE' && rec.status !== 'PRESENT' && (
+
+                                {rec.status !== 'INFORMED_LATE' && rec.status !== 'PRESENT' && rec.status !== 'INFORMED_ABSENT' && (
                                   <button
                                     onClick={() => {
                                       setInformedLateModal({
@@ -1941,7 +2111,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                     <span>Informed Late</span>
                                   </button>
                                 )}
-                                {rec.status !== 'LEAVE' && (
+
+                                {rec.status !== 'LEAVE' && rec.status !== 'INFORMED_ABSENT' && (
                                   <button
                                     onClick={() => {
                                       setInformedLeaveModal({
@@ -1960,22 +2131,22 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                     <span>Informed Leave</span>
                                   </button>
                                 )}
-                                {rec.status === 'INFORMED_ABSENT' && (
+
+                                {rec.status !== 'ABSENT' && rec.status !== 'INFORMED_ABSENT' && (
                                   <button
-                                    onClick={() => confirmInformedAbsence(rec.id, true)}
-                                    className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer transition-all"
-                                    title="Approve Leave"
-                                  >
-                                    Approve Leave
-                                  </button>
-                                )}
-                                {rec.status !== 'ABSENT' && (
-                                  <button
-                                    onClick={async () => {
-                                      const res = await rejectAttendanceRecord(rec.id, 'Unexcused / Rejected by Admin');
-                                      setToastAlert({ type: 'info', text: res.message });
-                                      setTimeout(() => setToastAlert(null), 4000);
-                                    }}
+                                    onClick={() =>
+                                      openConfirm({
+                                        title: 'Mark Absent',
+                                        message: `Mark ${rec.leader?.full_name} as Absent?`,
+                                        type: 'danger',
+                                        confirmText: 'Mark Absent',
+                                        onConfirm: async () => {
+                                          const res = await rejectAttendanceRecord(rec.id, 'Unexcused / Rejected by Admin');
+                                          setToastAlert({ type: 'info', text: res.message });
+                                          setTimeout(() => setToastAlert(null), 4000);
+                                        },
+                                      })
+                                    }
                                     className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold cursor-pointer transition-all"
                                     title="Reject Attendance / Mark Absent"
                                   >
@@ -4555,6 +4726,173 @@ function doPost(e) {
                 <ExternalLink className="w-4 h-4 text-teal-700" />
                 <span>Open Google Drive Folder ↗</span>
               </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Action Modal with Animated Feedback */}
+      {confirmModal.isOpen && (
+        <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-[10001] p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 transform transition-all">
+            <div className="flex items-center gap-3 mb-4">
+              <div
+                className={`w-10 h-10 rounded-2xl flex items-center justify-center ${
+                  confirmModal.type === 'danger'
+                    ? 'bg-rose-100 text-rose-600'
+                    : confirmModal.type === 'warning'
+                    ? 'bg-amber-100 text-amber-600'
+                    : confirmModal.type === 'success'
+                    ? 'bg-emerald-100 text-emerald-600'
+                    : 'bg-blue-100 text-blue-600'
+                }`}
+              >
+                {confirmModal.type === 'danger' ? (
+                  <AlertTriangle className="w-5 h-5" />
+                ) : confirmModal.type === 'success' ? (
+                  <CheckCircle2 className="w-5 h-5" />
+                ) : confirmModal.type === 'warning' ? (
+                  <AlertCircle className="w-5 h-5" />
+                ) : (
+                  <Sparkles className="w-5 h-5" />
+                )}
+              </div>
+              <div>
+                <h3 className="text-base font-black text-slate-900 leading-tight">{confirmModal.title}</h3>
+                <p className="text-xs text-slate-500 font-medium">Please confirm before proceeding</p>
+              </div>
+            </div>
+
+            <div className="text-xs text-slate-700 font-medium bg-slate-50 p-3.5 rounded-2xl border border-slate-200 mb-5 whitespace-pre-line leading-relaxed">
+              {confirmModal.message}
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                disabled={confirmModal.isExecuting}
+                onClick={() => setConfirmModal((prev) => ({ ...prev, isOpen: false }))}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={confirmModal.isExecuting}
+                onClick={async () => {
+                  setConfirmModal((prev) => ({ ...prev, isExecuting: true }));
+                  try {
+                    await confirmModal.onConfirm();
+                  } finally {
+                    setConfirmModal((prev) => ({ ...prev, isOpen: false, isExecuting: false }));
+                  }
+                }}
+                className={`px-5 py-2 text-white font-bold text-xs rounded-xl shadow-md flex items-center gap-1.5 transition-all cursor-pointer ${
+                  confirmModal.type === 'danger'
+                    ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/30'
+                    : confirmModal.type === 'success'
+                    ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/30'
+                    : confirmModal.type === 'warning'
+                    ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/30'
+                    : 'bg-[#2e7d32] hover:bg-[#256628] shadow-[#2e7d32]/30'
+                }`}
+              >
+                {confirmModal.isExecuting ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Processing...</span>
+                  </>
+                ) : (
+                  <span>{confirmModal.confirmText || 'Confirm'}</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Non-Attendees Absence Escalation Email Modal */}
+      {showEscalationModal && escalationData && (
+        <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-[10001] p-3 sm:p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[92vh] overflow-y-auto custom-scrollbar p-6 shadow-2xl border border-slate-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center font-bold">
+                  <AlertTriangle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900">Email Non-Attendees Escalation Notice</h3>
+                  <p className="text-xs text-slate-500">
+                    Official absence explanation notice to all {escalationData.absentCount} unreported leaders
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowEscalationModal(false)}
+                className="text-slate-400 hover:text-slate-600 font-bold text-sm cursor-pointer p-1"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Recipient Emails ({escalationData.toEmails.length} Leaders with Email)
+                </label>
+                <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-800 max-h-24 overflow-y-auto">
+                  {escalationData.toEmails.length > 0 ? (
+                    escalationData.toEmails.join(', ')
+                  ) : (
+                    <span className="text-rose-500 font-sans">
+                      No leader email addresses found in roster. Update email in Leaders master.
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Email Subject</label>
+                <input
+                  type="text"
+                  readOnly
+                  value={escalationData.subject}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Escalation Notice Body</label>
+                <textarea
+                  rows={10}
+                  readOnly
+                  value={escalationData.body}
+                  className="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono text-slate-800 focus:outline-none leading-relaxed"
+                />
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-slate-100 flex flex-wrap items-center justify-end gap-2 mt-4">
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(escalationData.body);
+                  setToastAlert({ type: 'success', text: 'Escalation notice copied to clipboard!' });
+                  setTimeout(() => setToastAlert(null), 3000);
+                }}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl flex items-center gap-1.5 cursor-pointer"
+              >
+                <Copy className="w-3.5 h-3.5" />
+                <span>Copy Notice Text</span>
+              </button>
+              <button
+                onClick={() => {
+                  window.location.href = escalationData.mailtoUrl;
+                }}
+                className="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-md flex items-center gap-1.5 cursor-pointer"
+              >
+                <Mail className="w-3.5 h-3.5" />
+                <span>Open Email Client (mailto:)</span>
+              </button>
             </div>
           </div>
         </div>

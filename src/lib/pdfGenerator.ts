@@ -2,6 +2,7 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { MeetingSchedule, AttendanceRecord, AppSettings, Leader, Department } from '../types/database';
 import { sbhLogoBase64 } from '../assets/logoBase64';
+import { formatLateDuration } from './meetingUtils';
 
 export function generateDirectorPdf(
   meeting: MeetingSchedule,
@@ -178,19 +179,23 @@ export function generateDirectorPdf(
       rec.selected_mode === 'VIRTUAL';
     const isLate = (rec.late_minutes && rec.late_minutes > 0) || rec.status === 'INFORMED_LATE';
 
-    let statusDisplay = 'Absent';
+    let statusDisplay = 'Absent (Unreported)';
     let auditDisplay = 'UNEXCUSED';
 
-    if (rec.status === 'LEAVE') {
-      statusDisplay = 'Approved Leave';
+    if (rec.verification_status === 'REJECTED' || rec.verification_note?.includes('Disapproved') || rec.verification_note?.includes('No Inform')) {
+      statusDisplay = 'Absent (No Inform)';
+      auditDisplay = 'UNEXCUSED / REJECTED';
+    } else if (rec.status === 'LEAVE' || (rec.status === 'INFORMED_ABSENT' && rec.informed_confirmed)) {
+      statusDisplay = `Approved Leave (${rec.informed_to_person || 'Admin'})`;
       auditDisplay = 'EXCUSED';
     } else if (rec.status === 'INFORMED_ABSENT') {
       statusDisplay = `Informed (${rec.informed_to_person || 'HOD'})`;
       auditDisplay = rec.informed_confirmed ? 'APPROVED' : 'PENDING';
     } else if (hasJoined) {
+      const lateStr = isLate ? ` (${formatLateDuration(rec.late_minutes)})` : '';
       if (rec.admin_verified_attendance) {
         if (isLate) {
-          statusDisplay = `Late (+${rec.late_minutes}m)`;
+          statusDisplay = `Late${lateStr}`;
           auditDisplay = 'APPROVED';
         } else {
           statusDisplay = 'Present';
@@ -199,7 +204,7 @@ export function generateDirectorPdf(
       } else {
         // ADMIN APPROVAL IS PENDING
         if (isLate) {
-          statusDisplay = `Late (+${rec.late_minutes}m)`;
+          statusDisplay = `Late${lateStr}`;
           auditDisplay = 'PENDING';
         } else {
           statusDisplay = 'Present (Unverified)';
@@ -207,7 +212,7 @@ export function generateDirectorPdf(
         }
       }
     } else {
-      statusDisplay = 'Absent';
+      statusDisplay = 'Absent (Unreported)';
       auditDisplay = 'UNEXCUSED';
     }
 
