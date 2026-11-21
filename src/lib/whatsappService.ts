@@ -82,33 +82,62 @@ export async function sendCeoitboxWhatsappMessage({
   queryParams.set('message', message);
 
   const primaryGetUrl = `https://app.messageautosender.com/message/new?${queryParams.toString()}`;
-  const secondaryGetUrl = `https://app.ceoitbox.com/message/new?${queryParams.toString()}`;
 
-  // Execute direct API dispatches silently in background
+  // Execute dispatches via local Vite proxy + Google Apps Script Web App + direct fallback
   try {
-    // 1. Primary GET endpoint: app.messageautosender.com via fetch
+    // 1. Primary: Local Vite Node.js Proxy (bypasses browser CORS & localhost security policies)
+    try {
+      fetch('/api/whatsapp-dispatch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mobileNo: cleanPhone,
+          message,
+          username,
+          password,
+        }),
+      }).then(async (res) => {
+        const j = await res.json().catch(() => ({}));
+        console.info('[WhatsApp Local Proxy Result]:', j);
+      }).catch(() => {});
+    } catch (localProxyErr) {
+      console.warn('Local proxy dispatch note:', localProxyErr);
+    }
+
+    // 2. Secondary: Cloud Google Apps Script Web App (executed from Google Cloud servers)
+    const webhookUrl =
+      settings?.google_sheet_webhook_url ||
+      'https://script.google.com/macros/s/AKfycbyp3qzrQkP29pHmpz1bmcuwMYNSEncexZ6UE-Wr_1719eFiLvgUh7ETE0iexN4rGqvabw/exec';
+    if (webhookUrl) {
+      fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          action: 'SEND_WHATSAPP_BROADCAST',
+          stage: 'REMINDER',
+          date: new Date().toISOString().split('T')[0],
+          message,
+          targetGroup: cleanPhone,
+        }),
+      }).catch((e) => console.warn('Cloud Apps Script note:', e));
+    }
+
+    // 3. Fallback: Direct endpoint to app.messageautosender.com (DO NOT call app.ceoitbox.com to prevent 401 redirect errors)
     fetch(primaryGetUrl, {
       method: 'GET',
       mode: 'no-cors',
       cache: 'no-cache',
     }).catch(() => {});
 
-    // 2. High-reliability Image Beacon dispatch (bypasses CORS restrictions across all browsers)
+    // 4. Image Beacon fallback (handles any browser background restrictions)
     if (typeof window !== 'undefined') {
       try {
         const beacon = new window.Image();
         beacon.src = primaryGetUrl;
       } catch (beaconErr) {
-        console.warn('Beacon image dispatch note:', beaconErr);
+        console.warn('Beacon note:', beaconErr);
       }
     }
-
-    // 3. Secondary GET endpoint fallback: app.ceoitbox.com via fetch
-    fetch(secondaryGetUrl, {
-      method: 'GET',
-      mode: 'no-cors',
-      cache: 'no-cache',
-    }).catch(() => {});
 
     const targetLabel = isGroup ? `WhatsApp Group (${cleanPhone})` : `${receiverName} (${cleanPhone})`;
     return {

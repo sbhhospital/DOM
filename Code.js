@@ -347,7 +347,22 @@ function doPost(e) {
         ]);
       }
 
-      // 4. Trigger CEOITBOX WhatsApp Dispatch to Group if FMScriptOB library is active
+      // 4. Trigger Direct Cloud WhatsApp Dispatch to Group via Ceoitbox messageautosender
+      var cloudFetchSuccess = false;
+      try {
+        var reportCaption = "🏥 *SBH GROUP OF HOSPITALS, RAIPUR*\n📊 *OFFICIAL " + (data.cadence || "DOM") + " LEADERSHIP ATTENDANCE REPORT (" + (data.date || "") + ")*\n━━━━━━━━━━━━━━━━━━━━━━\n• Total Expected: " + (data.totalLeaders || 0) + "\n• Attended: " + (data.presentCount || 0) + "\n• Approved Late: " + (data.lateCount || 0) + "\n• Approved Leave: " + (data.leaveCount || 0) + "\n• Absent / Unreported: " + (data.absentCount || 0) + "\n\n📄 *Official Signed Director Attendance PDF Report Attached*\n━━━━━━━━━━━━━━━━━━━━━━\nDOM Operations Command | SBH Raipur";
+        var ceoQuery1030 = "username=" + encodeURIComponent("SBH HOSPITAL") +
+                           "&password=" + encodeURIComponent("123456789") +
+                           "&receiverMobileNo=" + encodeURIComponent(CONFIG.WHATSAPP_GROUP_ID) +
+                           "&receiverName=" + encodeURIComponent("SBH DOM Group") +
+                           "&message=" + encodeURIComponent(reportCaption);
+        var fetchRes1030 = UrlFetchApp.fetch("https://app.messageautosender.com/message/new?" + ceoQuery1030, { muteHttpExceptions: true });
+        cloudFetchSuccess = fetchRes1030.getResponseCode() === 200;
+      } catch (errFetch1030) {
+        console.warn("UrlFetchApp 1030 note:", errFetch1030);
+      }
+
+      // 5. Trigger CEOITBOX WhatsApp Dispatch to Group if FMScriptOB library is active
       var ceoitboxTriggered = false;
       try {
         if (typeof FMScriptOB !== 'undefined') {
@@ -369,6 +384,7 @@ function doPost(e) {
         driveFileUrl: driveFileUrl,
         driveFileId: driveFileId,
         sheetRow: reportSheet.getLastRow(),
+        cloudFetchSuccess: cloudFetchSuccess,
         ceoitboxTriggered: ceoitboxTriggered
       });
     }
@@ -394,7 +410,22 @@ function doPost(e) {
         ]);
       }
 
-      // Trigger CEOITBOX dispatch
+      // 1. Direct call from Google Cloud servers to Ceoitbox messageautosender API (Bypasses any browser/localhost CORS!)
+      var cloudFetchSuccess = false;
+      try {
+        var ceoQuery = "username=" + encodeURIComponent("SBH HOSPITAL") +
+                       "&password=" + encodeURIComponent("123456789") +
+                       "&receiverMobileNo=" + encodeURIComponent(targetGroup) +
+                       "&receiverName=" + encodeURIComponent("SBH DOM Group") +
+                       "&message=" + encodeURIComponent(msg);
+        var fetchRes = UrlFetchApp.fetch("https://app.messageautosender.com/message/new?" + ceoQuery, { muteHttpExceptions: true });
+        cloudFetchSuccess = fetchRes.getResponseCode() === 200;
+        console.log("Ceoitbox Cloud UrlFetch response: " + fetchRes.getContentText());
+      } catch (errFetch) {
+        console.warn("UrlFetchApp Ceoitbox note:", errFetch);
+      }
+
+      // 2. Trigger CEOITBOX library dispatch inside Google Sheets
       var ceoitboxTriggered = false;
       try {
         if (typeof FMScriptOB !== 'undefined' && FMScriptOB.dailyReminder) {
@@ -409,6 +440,7 @@ function doPost(e) {
         success: true,
         message: "Stage " + stage + " broadcast logged and dispatched to WhatsApp Group (" + targetGroup + ")!",
         timestamp: nowIstStr,
+        cloudFetchSuccess: cloudFetchSuccess,
         ceoitboxTriggered: ceoitboxTriggered
       });
     }
