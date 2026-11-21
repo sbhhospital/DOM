@@ -18,7 +18,7 @@ import {
   downloadMonthlyAuditPdf,
   downloadYearlyAuditPdf,
 } from '../lib/pdfGenerator';
-import { sendCeoitboxWhatsappMessage } from '../lib/whatsappService';
+import { sendCeoitboxWhatsappMessage, sendCeoitboxPdfAttachment } from '../lib/whatsappService';
 import { determineMeetingFrequency, getCadenceInfo, calculateLateMinutes, getLiveIndiaDateStr, formatLateDuration } from '../lib/meetingUtils';
 import { generateLeaderMagicLink } from '../lib/magicLink';
 import { generateDailyMeetingLink } from '../lib/meetingLinks';
@@ -97,6 +97,7 @@ interface DomAppContextType {
   downloadYearlyPdfReport: (year: number) => void;
   // CEOITBOX WhatsApp Automation
   sendDirectorCeoitboxWhatsapp: (date: string) => Promise<{ success: boolean; message: string; url: string }>;
+  sendDirectorPdfToWhatsappGroup: (date: string) => Promise<{ success: boolean; message: string }>;
   sendCeoitboxRemindersToAll: (date: string) => Promise<{ success: boolean; count: number; message: string }>;
   sendCeoitboxEscalationToNonAttendees: (date: string) => Promise<{ success: boolean; count: number; message: string }>;
   sendCeoitboxGroupBroadcast: (
@@ -2825,6 +2826,51 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
   };
 
+  // Direct PDF Attachment Dispatch to WhatsApp Group via CEOITBOX /api/v1/message/create
+  const sendDirectorPdfToWhatsappGroup = async (
+    date: string
+  ): Promise<{ success: boolean; message: string }> => {
+    const meeting = getMeetingForDate(date);
+    const cadenceCode = meeting.cadence || 'DOM';
+    const fullRecords = getFullRosterForDate(date);
+
+    // 1. Generate direct base64 PDF
+    const { base64: pdfBase64, filename } = getDirectorPdfBase64(meeting, fullRecords, appSettings);
+
+    // 2. Compute summary numbers for text dispatch
+    const presentPhysical = fullRecords.filter(
+      (r) => r.selected_mode === 'PHYSICAL' && (r.status === 'PRESENT' || r.admin_verified_attendance)
+    );
+    const presentVirtual = fullRecords.filter((r) => r.selected_mode === 'VIRTUAL' && r.status === 'PRESENT');
+    const informedLeave = fullRecords.filter((r) => r.status === 'LEAVE');
+    const absent = fullRecords.filter(
+      (r) => r.status === 'ABSENT' || (r.status === 'PENDING' && r.selected_mode === 'NONE')
+    );
+
+    let summaryMsg = `🏥 *SBH GROUP OF HOSPITALS, RAIPUR*\n`;
+    summaryMsg += `📄 *OFFICIAL ${cadenceCode} ATTENDANCE PDF REPORT*\n`;
+    summaryMsg += `📅 Date: ${date} (${cadenceCode})\n`;
+    summaryMsg += `⏰ Time: ${meeting.scheduled_time} IST\n`;
+    summaryMsg += `👥 Scheduled: ${fullRecords.length} | 🏢 Physical: ${presentPhysical.length} | 💻 Virtual: ${presentVirtual.length} | 🟣 Leave: ${informedLeave.length} | ❌ Absent: ${absent.length}\n`;
+    summaryMsg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
+    summaryMsg += `Official signed attendance document attached below.\nDOM Operations Command | SBH Raipur`;
+
+    const targetGroup = appSettings.admin_whatsapp_group || '120363432056023698@g.us';
+
+    const res = await sendCeoitboxPdfAttachment({
+      mobileNo: targetGroup,
+      pdfBase64,
+      filename,
+      message: summaryMsg,
+      settings: appSettings,
+    });
+
+    return {
+      success: res.success,
+      message: res.status,
+    };
+  };
+
   // Stage 1: Send Personalized 09:50 AM Alerts to All Leaders (Mon-Sat, Sunday Paused)
   const sendCeoitboxRemindersToAll = async (
     date: string
@@ -3242,6 +3288,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         downloadMonthlyPdfReport,
         downloadYearlyPdfReport,
         sendDirectorCeoitboxWhatsapp,
+        sendDirectorPdfToWhatsappGroup,
         sendCeoitboxRemindersToAll,
         sendCeoitboxEscalationToNonAttendees,
         sendCeoitboxGroupBroadcast,

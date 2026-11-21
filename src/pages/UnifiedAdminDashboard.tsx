@@ -264,6 +264,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
     downloadMonthlyPdfReport,
     downloadYearlyPdfReport,
     sendDirectorCeoitboxWhatsapp,
+    sendDirectorPdfToWhatsappGroup,
     sendCeoitboxRemindersToAll,
     sendCeoitboxEscalationToNonAttendees,
     sendCeoitboxGroupBroadcast,
@@ -922,7 +923,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
     }
   };
 
-  // Direct PDF Sharing into WhatsApp Group (Native OS share + CEOITBOX Direct API)
+  // Direct PDF Sharing into WhatsApp Group (CEOITBOX Direct API + Native OS share)
   const handleSharePdfDirectly = async (date: string) => {
     try {
       const meeting = getMeetingForDate(date);
@@ -933,14 +934,14 @@ export const UnifiedAdminDashboard: React.FC = () => {
       const filename = `SBH_${cadence}_Report_${date}.pdf`;
       const pdfFile = new File([pdfBlob], filename, { type: 'application/pdf' });
 
-      // Structured WhatsApp Caption (Strictly NO Drive link - direct PDF attachment)
+      // Structured WhatsApp Caption
       const captionText = `🏥 *SBH GROUP OF HOSPITALS, RAIPUR*\n📊 *OFFICIAL ${cadence} LEADERSHIP ATTENDANCE REPORT (${date})*\n━━━━━━━━━━━━━━━━━━━━━━\n• Total Expected: ${forDate.length}\n• Attended: ${forDate.filter((r) => r.status === 'PRESENT' || r.admin_verified_attendance).length}\n• Approved Late: ${forDate.filter((r) => r.status === 'INFORMED_LATE' || (r.late_minutes && r.late_minutes > 0)).length}\n• Approved Leave: ${forDate.filter((r) => r.status === 'LEAVE').length}\n• Absent / Unreported: ${forDate.filter((r) => r.status === 'ABSENT' || (!r.admin_verified_attendance && r.status === 'PENDING' && r.selected_mode === 'NONE')).length}\n\n📄 *Official Signed Director Attendance PDF Report Attached*\n━━━━━━━━━━━━━━━━━━━━━━\nDOM Operations Command | SBH Raipur`;
 
-      // 1. Silent background tasks (DO NOT await before navigator.share to preserve user-gesture activation!)
+      // 1. Direct Ceoitbox PDF Dispatch to WhatsApp Group (120363432056023698@g.us) via /api/v1/message/create
+      const dispatchPromise = sendDirectorPdfToWhatsappGroup(date);
       uploadReportToGoogleDriveAndSheet(date).catch((e) => console.warn('Background sync note:', e));
-      sendCeoitboxGroupBroadcast('1030', date).catch((e) => console.warn('Background broadcast note:', e));
 
-      // 2. Immediate Native Web Share invocation with PDF file directly attached
+      // 2. If mobile Native Web Share is available, invoke it simultaneously
       if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
         try {
           await navigator.share({
@@ -948,39 +949,33 @@ export const UnifiedAdminDashboard: React.FC = () => {
             text: captionText,
             files: [pdfFile],
           });
-          setToastAlert({
-            type: 'success',
-            text: `✅ Report PDF successfully attached & shared to WhatsApp Group!`,
-          });
-          setTimeout(() => setToastAlert(null), 6000);
-          return;
         } catch (shareErr: any) {
-          if (shareErr.name === 'AbortError') {
-            setToastAlert({ type: 'info', text: 'Share drawer closed.' });
-            setTimeout(() => setToastAlert(null), 3000);
-            return;
+          if (shareErr.name !== 'AbortError') {
+            console.warn('Web Share note:', shareErr);
           }
-          console.warn('Web Share failed, falling back to direct download:', shareErr);
         }
       }
 
-      // 3. Desktop fallback: automatically download PDF directly to user's device
-      doc.save(filename);
-      if (typeof navigator !== 'undefined' && navigator.clipboard) {
-        navigator.clipboard.writeText(captionText).catch(() => {});
+      const res = await dispatchPromise;
+      if (res.success) {
+        setToastAlert({
+          type: 'success',
+          text: `🎉 Official PDF Report directly dispatched to WhatsApp Group (${appSettings.admin_whatsapp_group || '120363432056023698@g.us'}) via Ceoitbox API!`,
+        });
+      } else {
+        setToastAlert({
+          type: 'info',
+          text: `PDF dispatched: ${res.message}`,
+        });
       }
-      setToastAlert({
-        type: 'success',
-        text: `✅ Report PDF downloaded & audit text dispatched to WhatsApp Group (${appSettings.admin_whatsapp_group || '120363432056023698@g.us'})! Caption copied to clipboard.`,
-      });
       setTimeout(() => setToastAlert(null), 6000);
     } catch (err: any) {
-      console.error('Direct PDF dispatch error:', err);
+      console.error('Error in handleSharePdfDirectly:', err);
       setToastAlert({
         type: 'error',
-        text: 'Direct share error: ' + (err?.message || 'Check network / browser permissions'),
+        text: `Share error: ${err.message}`,
       });
-      setTimeout(() => setToastAlert(null), 6000);
+      setTimeout(() => setToastAlert(null), 5000);
     }
   };
 

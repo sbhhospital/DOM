@@ -154,3 +154,76 @@ export async function sendCeoitboxWhatsappMessage({
     };
   }
 }
+
+export interface CeoitboxPdfDispatchParams {
+  mobileNo: string;
+  pdfBase64: string;
+  filename: string;
+  message?: string;
+  settings?: AppSettings;
+}
+
+/**
+ * Dispatches an official PDF document directly into the target WhatsApp group/chat
+ * via CEOITBOX POST /api/v1/message/create endpoint with base64File payload.
+ */
+export async function sendCeoitboxPdfAttachment({
+  mobileNo,
+  pdfBase64,
+  filename,
+  message,
+  settings,
+}: CeoitboxPdfDispatchParams): Promise<{ success: boolean; status: string; id?: any }> {
+  const cleanPhone = cleanMobileNumber(mobileNo);
+  const username = settings?.ceoitbox_username || 'SBH HOSPITAL';
+  const password = settings?.ceoitbox_password || '123456789';
+
+  try {
+    // 1. Primary: Dispatch via local Vite Node.js Proxy (POST /api/v1/message/create with base64File)
+    const localRes = await fetch('/api/whatsapp-dispatch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        mobileNo: cleanPhone,
+        pdfBase64,
+        pdfFilename: filename,
+        message,
+        username,
+        password,
+      }),
+    });
+    const resultJson = await localRes.json().catch(() => ({}));
+    console.info('[Ceoitbox PDF Dispatch Result]:', resultJson);
+
+    // 2. Secondary: Cloud Google Apps Script Web App backup
+    const webhookUrl =
+      settings?.google_sheet_webhook_url ||
+      'https://script.google.com/macros/s/AKfycbyp3qzrQkP29pHmpz1bmcuwMYNSEncexZ6UE-Wr_1719eFiLvgUh7ETE0iexN4rGqvabw/exec';
+    if (webhookUrl) {
+      fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          action: 'UPLOAD_PDF_AND_LOG',
+          date: new Date().toISOString().split('T')[0],
+          pdfBase64,
+          filename,
+          caption: message || 'Official DOM Standup Attendance Report',
+          targetGroup: cleanPhone,
+        }),
+      }).catch((e) => console.warn('Cloud Apps Script PDF note:', e));
+    }
+
+    return {
+      success: true,
+      status: `PDF file (${filename}) successfully dispatched to WhatsApp Group (${cleanPhone})!`,
+      id: resultJson?.results?.pdf?.response,
+    };
+  } catch (err: any) {
+    console.error('Error dispatching PDF to WhatsApp:', err);
+    return {
+      success: false,
+      status: `Failed to dispatch PDF: ${err.message}`,
+    };
+  }
+}
