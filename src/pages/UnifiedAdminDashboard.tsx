@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Users,
   UserPlus,
@@ -59,6 +59,129 @@ import { generateDailyMeetingLink } from '../lib/meetingLinks';
 import sbhLogo from '../assets/sbh-logo.png';
 import { BoardroomQrPosterModal } from '../components/BoardroomQrPosterModal';
 import { generateDirectorPdf } from '../lib/pdfGenerator';
+
+const SidebarSystemClock: React.FC = React.memo(() => {
+  const [timeStr, setTimeStr] = useState<string>(() =>
+    new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  );
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeStr(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <span className="text-[12px] font-black font-mono text-[#1f2d2a]">
+      {timeStr}
+    </span>
+  );
+});
+
+const LiveIndiaClockAndCountdown: React.FC<{ currentCadence: string }> = React.memo(({ currentCadence }) => {
+  const [time, setTime] = useState<Date>(() => new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const countdown = useMemo(() => {
+    const h = time.getHours();
+    const m = time.getMinutes();
+    const s = time.getSeconds();
+    const nowSecs = h * 3600 + m * 60 + s;
+
+    const target0950 = 9 * 3600 + 50 * 60; // 09:50 AM
+    const target1000 = 10 * 3600;           // 10:00 AM
+    const target1030 = 10 * 3600 + 30 * 60; // 10:30 AM
+
+    let diff = 0;
+    let targetMilestone = '';
+
+    if (nowSecs < target0950) {
+      diff = target0950 - nowSecs;
+      targetMilestone = '09:50 AM IST';
+    } else if (nowSecs < target1000) {
+      diff = target1000 - nowSecs;
+      targetMilestone = '10:00 AM IST';
+    } else if (nowSecs < target1030) {
+      diff = target1030 - nowSecs;
+      targetMilestone = '10:30 AM IST';
+    } else {
+      diff = (24 * 3600 - nowSecs) + target1000;
+      targetMilestone = 'Tomorrow 10:00 AM IST';
+    }
+
+    const hours = Math.floor(diff / 3600);
+    const mins = Math.floor((diff % 3600) / 60);
+    const secs = diff % 60;
+    const pad = (n: number) => n.toString().padStart(2, '0');
+
+    const liveIndiaTime = time.toLocaleTimeString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true,
+    });
+
+    return {
+      hoursStr: pad(hours),
+      minsStr: pad(mins),
+      secsStr: pad(secs),
+      targetMilestone,
+      liveIndiaTime,
+    };
+  }, [time]);
+
+  return (
+    <>
+      {/* Card 1: Live India Time (IST) */}
+      <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center shrink-0">
+          <Clock className="w-5 h-5 text-[#2e7d32]" />
+        </div>
+        <div>
+          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+            <span>Live India Time (IST)</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+          </div>
+          <div className="text-lg font-black font-mono text-[#1f2d2a] leading-tight">
+            {countdown.liveIndiaTime}
+          </div>
+          <div className="text-[11px] text-slate-500 font-medium">
+            {time.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+          </div>
+        </div>
+      </div>
+
+      {/* Card 2: Next Standup Countdown */}
+      <div className="bg-[#1f2d2a] p-3 rounded-xl border border-black/40 shadow-2xs text-white flex items-center justify-between">
+        <div>
+          <div className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
+            Next {currentCadence} Standup In
+          </div>
+          <div className="text-xl font-black font-mono tracking-tight flex items-center gap-1 text-emerald-300 mt-0.5">
+            <span>{countdown.hoursStr}</span><span className="text-slate-400 text-xs font-normal">HRS</span>
+            <span className="text-slate-600">:</span>
+            <span>{countdown.minsStr}</span><span className="text-slate-400 text-xs font-normal">MIN</span>
+            <span className="text-slate-600">:</span>
+            <span className="text-white">{countdown.secsStr}</span><span className="text-slate-400 text-xs font-normal">SEC</span>
+          </div>
+        </div>
+        <div className="text-right">
+          <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-white/10 text-slate-200">
+            Target: {countdown.targetMilestone}
+          </span>
+        </div>
+      </div>
+    </>
+  );
+});
 
 export const UnifiedAdminDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -159,153 +282,54 @@ export const UnifiedAdminDashboard: React.FC = () => {
   const [copiedScript, setCopiedScript] = useState<boolean>(false);
 
   // Automatic Daily Scheduled WhatsApp Group Broadcasts (Strictly 2 Stages: 09:50 AM & 10:30 AM)
-  const [currentTime, setCurrentTime] = useState<Date>(new Date());
   const [autoCeoitboxDispatch, setAutoCeoitboxDispatch] = useState<boolean>(() => {
     return localStorage.getItem('sbh_auto_ceoitbox_enabled') !== 'false';
   });
 
+  // Automated background scheduler for 09:50 AM and 10:30 AM dispatches (Zero re-renders, silky smooth performance)
   useEffect(() => {
+    if (!autoCeoitboxDispatch) return;
+
     const timer = setInterval(() => {
       const now = new Date();
-      setCurrentTime(now);
-
-      // Skip Sundays automatically: No DOM standup / reminders on Sunday
+      // Skip Sundays automatically: No DOM standup on Sunday
       if (now.getDay() === 0) return;
 
-      if (autoCeoitboxDispatch) {
-        const h = now.getHours();
-        const m = now.getMinutes();
-        const s = now.getSeconds();
-        const todayDate = now.toISOString().split('T')[0];
+      const h = now.getHours();
+      const m = now.getMinutes();
+      const todayDate = now.toISOString().split('T')[0];
 
-        // Stage 1: 09:50 AM Auto-Broadcast (Group + 24 Leaders with 15-min Magic Links)
-        if (h === 9 && m === 50 && s === 0) {
-          const key = `sbh_auto_group_0950_${todayDate}`;
-          if (!localStorage.getItem(key)) {
-            localStorage.setItem(key, 'dispatched');
-            triggerAutomated0950Transmission(todayDate);
-            setToastAlert({
-              type: 'success',
-              text: '🔔 09:50 AM Automated Transmission Active: Notice broadcast to WhatsApp Group + all 24 Leaders with 15-min Magic Links!',
-            });
-            setTimeout(() => setToastAlert(null), 8000);
-          }
-        }
-
-        // Stage 2: 10:30 AM Auto-Broadcast (Audit frozen & sent to Group)
-        if (h === 10 && m === 30 && s === 0) {
-          const key = `sbh_auto_group_1030_${todayDate}`;
-          if (!localStorage.getItem(key)) {
-            localStorage.setItem(key, 'dispatched');
-            sendCeoitboxGroupBroadcast('1030', todayDate);
-            setToastAlert({
-              type: 'success',
-              text: '📊 10:30 AM Final Leadership Audit Report automatically dispatched to WhatsApp Group!',
-            });
-            setTimeout(() => setToastAlert(null), 8000);
-          }
+      // Stage 1: 09:50 AM Auto-Broadcast
+      if (h === 9 && m === 50) {
+        const key = `sbh_auto_group_0950_${todayDate}`;
+        if (!localStorage.getItem(key)) {
+          localStorage.setItem(key, 'dispatched');
+          triggerAutomated0950Transmission(todayDate);
+          setToastAlert({
+            type: 'success',
+            text: '🔔 09:50 AM Automated Transmission Active: Notice broadcast to WhatsApp Group + all Leaders with 15-min Magic Links!',
+          });
+          setTimeout(() => setToastAlert(null), 8000);
         }
       }
-    }, 1000);
+
+      // Stage 2: 10:30 AM Auto-Broadcast
+      if (h === 10 && m === 30) {
+        const key = `sbh_auto_group_1030_${todayDate}`;
+        if (!localStorage.getItem(key)) {
+          localStorage.setItem(key, 'dispatched');
+          sendCeoitboxGroupBroadcast('1030', todayDate);
+          setToastAlert({
+            type: 'success',
+            text: '📊 10:30 AM Final Leadership Audit Report automatically dispatched to WhatsApp Group!',
+          });
+          setTimeout(() => setToastAlert(null), 8000);
+        }
+      }
+    }, 15000);
 
     return () => clearInterval(timer);
-  }, [autoCeoitboxDispatch, selectedDate]);
-
-  // Real-time second-by-second countdown calculation & Live India Time details
-  const countdown = (() => {
-    // Current IST hours, minutes, seconds
-    const h = currentTime.getHours();
-    const m = currentTime.getMinutes();
-    const s = currentTime.getSeconds();
-    const nowSecs = h * 3600 + m * 60 + s;
-
-    const target0950 = 9 * 3600 + 50 * 60; // 09:50 AM (35400s)
-    const target1000 = 10 * 3600;           // 10:00 AM (36000s)
-    const target1030 = 10 * 3600 + 30 * 60; // 10:30 AM (37800s)
-
-    let diff = 0;
-    let statusBadge = '';
-    let statusColor: 'blue' | 'amber' | 'emerald' | 'purple' = 'blue';
-    let countdownForTitle = '';
-    let countdownForDescription = '';
-    let targetMilestone = '';
-    let stageTitle = '';
-    let subtext = '';
-
-    if (nowSecs < target0950) {
-      diff = target0950 - nowSecs;
-      statusBadge = '09:50 AM NOTICE BROADCAST';
-      statusColor = 'blue';
-      targetMilestone = '09:50 AM IST';
-      stageTitle = 'Notice & 15-Minute Attendance Links Broadcast in';
-      countdownForTitle = '09:50 AM Standup Notice & 15-Minute Quick Attendance Links';
-      countdownForDescription = 'Automated transmission of official meeting agenda, Google Meet links, and personalized 15-minute quick attendance links to the WhatsApp Group and all 24 Department Leaders.';
-      subtext = 'Automated alert broadcast to WhatsApp Group & Leaders 10 minutes prior to session';
-    } else if (nowSecs < target1000) {
-      diff = target1000 - nowSecs;
-      statusBadge = '🚨 10:00 AM MEETING START';
-      statusColor = 'amber';
-      targetMilestone = '10:00 AM IST';
-      stageTitle = '10:00 AM Sharp DOM Standup Starts in';
-      countdownForTitle = '10:00 AM DOM Standup Assembly — All 24 Department Heads';
-      countdownForDescription = 'All 24 hospital department leaders assemble in-person at Conference Room, 5th Floor or verify attendance virtually via Google Meet before 10:00 AM sharp.';
-      subtext = 'All Department Leaders assemble in Boardroom / Virtual Meet';
-    } else if (nowSecs < target1030) {
-      diff = target1030 - nowSecs;
-      statusBadge = '⏱️ 10:30 AM AUDIT FREEZE';
-      statusColor = 'emerald';
-      targetMilestone = '10:30 AM IST';
-      stageTitle = 'Attendance Audit Freezes in';
-      countdownForTitle = '10:30 AM Final Attendance Audit & Director Report';
-      countdownForDescription = 'Meeting session actively underway. Late arrival verification and mode audit in progress. Executive compliance report freezes at 10:30 AM.';
-      subtext = 'Late arrival verification in progress • Final audit frozen at 10:30 AM';
-    } else {
-      diff = (24 * 3600 - nowSecs) + target1000;
-      statusBadge = 'TOMORROW 10:00 AM DOM';
-      statusColor = 'purple';
-      targetMilestone = 'Tomorrow 10:00 AM IST';
-      stageTitle = 'Next Daily Operations Standup in';
-      countdownForTitle = 'Next Daily Operations Standup (DOM) — Tomorrow 10:00 AM IST';
-      countdownForDescription = "Today's attendance audit has concluded and recorded. The next Daily Operations Standup will commence tomorrow at sharp 10:00 AM IST.";
-      subtext = "Today's Attendance Audit successfully completed and recorded";
-    }
-
-    const hours = Math.floor(diff / 3600);
-    const mins = Math.floor((diff % 3600) / 60);
-    const secs = diff % 60;
-    const pad = (n: number) => n.toString().padStart(2, '0');
-
-    const liveIndiaTime = currentTime.toLocaleTimeString('en-IN', {
-      timeZone: 'Asia/Kolkata',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: true,
-    });
-
-    const liveIndiaDate = currentTime.toLocaleDateString('en-IN', {
-      timeZone: 'Asia/Kolkata',
-      weekday: 'long',
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
-
-    return {
-      hoursStr: pad(hours),
-      minsStr: pad(mins),
-      secsStr: pad(secs),
-      statusBadge,
-      statusColor,
-      stageTitle,
-      subtext,
-      countdownForTitle,
-      countdownForDescription,
-      targetMilestone,
-      liveIndiaTime,
-      liveIndiaDate,
-    };
-  })();
+  }, [autoCeoitboxDispatch]);
 
   const currentMeeting = getMeetingForDate(selectedDate);
   const currentCadence = currentMeeting.cadence || (currentMeeting.frequency === 'MONTHLY' ? 'MOM' : currentMeeting.frequency === 'WEEKLY' ? 'WOM' : 'DOM');
@@ -818,10 +842,6 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
   // Direct PDF Sharing into WhatsApp Group (Native OS share + CEOITBOX Direct API)
   const handleSharePdfDirectly = async (date: string) => {
-    setToastAlert({
-      type: 'info',
-      text: 'Preparing official signed Director PDF for direct WhatsApp Group dispatch...',
-    });
     try {
       const meeting = getMeetingForDate(date);
       const forDate = getFullRosterForDate(date);
@@ -831,15 +851,14 @@ export const UnifiedAdminDashboard: React.FC = () => {
       const filename = `SBH_${cadence}_Report_${date}.pdf`;
       const pdfFile = new File([pdfBlob], filename, { type: 'application/pdf' });
 
-      const captionText = `🏥 *SBH GROUP OF HOSPITALS, RAIPUR*\n📊 *OFFICIAL ${cadence} LEADERSHIP ATTENDANCE REPORT (${date})*\n━━━━━━━━━━━━━━━━━━━━━━\n• Total Expected: ${forDate.length}\n• Attended: ${forDate.filter((r) => r.status === 'PRESENT' || r.admin_verified_attendance).length}\n• Approved Late: ${forDate.filter((r) => r.status === 'INFORMED_LATE' || (r.late_minutes && r.late_minutes > 0)).length}\n• Approved Leave: ${forDate.filter((r) => r.status === 'LEAVE').length}\n• Absent / Unreported: ${forDate.filter((r) => r.status === 'ABSENT' || (!r.admin_verified_attendance && r.status === 'PENDING' && r.selected_mode === 'NONE')).length}\n\n📁 Drive Archive: ${appSettings.google_drive_folder_url || 'https://drive.google.com/drive/folders/1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD?usp=sharing'}\n━━━━━━━━━━━━━━━━━━━━━━\nDOM Operations Command | SBH Raipur`;
+      // Structured WhatsApp Caption (Strictly NO Drive link - direct PDF attachment)
+      const captionText = `🏥 *SBH GROUP OF HOSPITALS, RAIPUR*\n📊 *OFFICIAL ${cadence} LEADERSHIP ATTENDANCE REPORT (${date})*\n━━━━━━━━━━━━━━━━━━━━━━\n• Total Expected: ${forDate.length}\n• Attended: ${forDate.filter((r) => r.status === 'PRESENT' || r.admin_verified_attendance).length}\n• Approved Late: ${forDate.filter((r) => r.status === 'INFORMED_LATE' || (r.late_minutes && r.late_minutes > 0)).length}\n• Approved Leave: ${forDate.filter((r) => r.status === 'LEAVE').length}\n• Absent / Unreported: ${forDate.filter((r) => r.status === 'ABSENT' || (!r.admin_verified_attendance && r.status === 'PENDING' && r.selected_mode === 'NONE')).length}\n\n📄 *Official Signed Director Attendance PDF Report Attached*\n━━━━━━━━━━━━━━━━━━━━━━\nDOM Operations Command | SBH Raipur`;
 
-      // 1. Silent cloud sync: Save to Supabase SQL Database & Drive archive
+      // 1. Silent background tasks (DO NOT await before navigator.share to preserve user-gesture activation!)
       uploadReportToGoogleDriveAndSheet(date).catch((e) => console.warn('Background sync note:', e));
+      sendCeoitboxGroupBroadcast('1030', date).catch((e) => console.warn('Background broadcast note:', e));
 
-      // 2. Direct CEOITBOX WhatsApp API dispatch to official group (120363432056023698@g.us)
-      await sendCeoitboxGroupBroadcast('1030', date);
-
-      // 3. Try native Web Share API (Mobile / Desktop supported)
+      // 2. Immediate Native Web Share invocation with PDF file directly attached
       if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
         try {
           await navigator.share({
@@ -849,7 +868,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
           });
           setToastAlert({
             type: 'success',
-            text: `✅ Report PDF successfully shared to WhatsApp Group & dispatched via CEOITBOX API!`,
+            text: `✅ Report PDF successfully attached & shared to WhatsApp Group!`,
           });
           setTimeout(() => setToastAlert(null), 6000);
           return;
@@ -859,18 +878,22 @@ export const UnifiedAdminDashboard: React.FC = () => {
             setTimeout(() => setToastAlert(null), 3000);
             return;
           }
-          console.warn('Web Share failed, falling back:', shareErr);
+          console.warn('Web Share failed, falling back to direct download:', shareErr);
         }
       }
 
-      // 4. Download PDF locally
+      // 3. Desktop fallback: automatically download PDF directly to user's device
       doc.save(filename);
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        navigator.clipboard.writeText(captionText).catch(() => {});
+      }
       setToastAlert({
         type: 'success',
-        text: `✅ Report PDF downloaded & dispatched to WhatsApp Group (${appSettings.admin_whatsapp_group || '120363432056023698@g.us'}) via CEOITBOX API!`,
+        text: `✅ Report PDF downloaded & audit text dispatched to WhatsApp Group (${appSettings.admin_whatsapp_group || '120363432056023698@g.us'})! Caption copied to clipboard.`,
       });
-      setTimeout(() => setToastAlert(null), 8000);
+      setTimeout(() => setToastAlert(null), 6000);
     } catch (err: any) {
+      console.error('Direct PDF dispatch error:', err);
       setToastAlert({
         type: 'error',
         text: 'Direct share error: ' + (err?.message || 'Check network / browser permissions'),
@@ -952,9 +975,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
             </div>
             <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">System Clock</span>
           </div>
-          <span className="text-[12px] font-black font-mono text-[#1f2d2a]">
-            {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-          </span>
+          <SidebarSystemClock />
         </div>
       </div>
 
@@ -1537,45 +1558,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
                 {/* Row 2: Live India Time (IST), Countdown, and Daily Operations Action Bar */}
                 <div className="p-3.5 sm:p-4 bg-slate-50/70 border-t border-slate-100 grid grid-cols-1 md:grid-cols-3 gap-3 items-center">
-                  {/* Card 1: Live India Time (IST) */}
-                  <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center shrink-0">
-                      <Clock className="w-5 h-5 text-[#2e7d32]" />
-                    </div>
-                    <div>
-                      <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-                        <span>Live India Time (IST)</span>
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-                      </div>
-                      <div className="text-lg font-black font-mono text-[#1f2d2a] leading-tight">
-                        {countdown.liveIndiaTime}
-                      </div>
-                      <div className="text-[11px] text-slate-500 font-medium">
-                        {new Date().toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Card 2: Next Standup Countdown */}
-                  <div className="bg-[#1f2d2a] p-3 rounded-xl border border-black/40 shadow-2xs text-white flex items-center justify-between">
-                    <div>
-                      <div className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
-                        Next {currentCadence} Standup In
-                      </div>
-                      <div className="text-xl font-black font-mono tracking-tight flex items-center gap-1 text-emerald-300 mt-0.5">
-                        <span>{countdown.hoursStr}</span><span className="text-slate-400 text-xs font-normal">HRS</span>
-                        <span className="text-slate-600">:</span>
-                        <span>{countdown.minsStr}</span><span className="text-slate-400 text-xs font-normal">MIN</span>
-                        <span className="text-slate-600">:</span>
-                        <span className="text-white">{countdown.secsStr}</span><span className="text-slate-400 text-xs font-normal">SEC</span>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-white/10 text-slate-200">
-                        Target: {countdown.targetMilestone}
-                      </span>
-                    </div>
-                  </div>
+                  {/* Isolated Live India Time & Standup Countdown (Zero re-renders on parent dashboard) */}
+                  <LiveIndiaClockAndCountdown currentCadence={currentCadence} />
 
                   {/* Card 3: Action Buttons & Auto Broadcast Engine */}
                   <div className="flex flex-wrap items-center justify-start md:justify-end gap-1.5">
@@ -4741,8 +4725,7 @@ function sendDaily0950Notice() {
               "📅 *Date:* " + todayStr + "\\n" +
               "⏰ *Time:* Sharp 10:00 AM IST\\n" +
               "📍 *Venue:* Conference Room, 5th Floor\\n" +
-              "💻 *Google Meet Link:* " + GOOGLE_MEET_URL + "\\n" +
-              "📁 *Drive Archive:* https://drive.google.com/drive/folders/" + DRIVE_FOLDER_ID + "\\n\\n" +
+              "💻 *Google Meet Link:* " + GOOGLE_MEET_URL + "\\n\\n" +
               "⚠️ All department leaders please assemble in-person or join Google Meet before 10:00 AM sharp.\\n" +
               "DOM Operations Command | SBH Raipur";
               

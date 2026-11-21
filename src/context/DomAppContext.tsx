@@ -2888,7 +2888,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       msg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
       msg += `📅 *Date:* ${formattedDate} | *Meeting:* ${cadenceCode} (${meeting.frequency})\n`;
       msg += `⏰ *Audit Frozen:* 10:30 AM IST | *Venue:* ${appSettings.conference_room_name}\n`;
-      msg += `📁 *Google Drive PDF Archive:* ${appSettings.google_drive_folder_url || 'https://drive.google.com/drive/folders/1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD?usp=sharing'}\n\n`;
+      msg += `📄 *Official Signed Director Attendance PDF Report Attached*\n\n`;
       msg += `📈 *HOSPITAL OPERATIONS AUDIT SUMMARY:*\n`;
       msg += `👥 Total Expected Leaders: ${totalCount}\n`;
       msg += `🏢 In-Person (Conference Room): ${presentPhysical.length}\n`;
