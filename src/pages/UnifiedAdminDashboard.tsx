@@ -58,6 +58,7 @@ import { AnalyticsReportsView } from '../components/AnalyticsReportsView';
 import { generateDailyMeetingLink } from '../lib/meetingLinks';
 import sbhLogo from '../assets/sbh-logo.png';
 import { BoardroomQrPosterModal } from '../components/BoardroomQrPosterModal';
+import { generateDirectorPdf } from '../lib/pdfGenerator';
 
 export const UnifiedAdminDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -815,6 +816,68 @@ export const UnifiedAdminDashboard: React.FC = () => {
     }
   };
 
+  // Direct PDF Sharing into WhatsApp Group (Native OS share + Silent Webhook)
+  const handleSharePdfDirectly = async (date: string) => {
+    setToastAlert({
+      type: 'info',
+      text: 'Preparing official signed Director PDF for direct WhatsApp Group dispatch...',
+    });
+    try {
+      const meeting = getMeetingForDate(date);
+      const forDate = getFullRosterForDate(date);
+      const doc = generateDirectorPdf(meeting, forDate, appSettings);
+      const pdfBlob = doc.output('blob');
+      const cadence = meeting.cadence || 'DOM';
+      const filename = `SBH_${cadence}_Report_${date}.pdf`;
+      const pdfFile = new File([pdfBlob], filename, { type: 'application/pdf' });
+
+      const captionText = `🏥 *SBH GROUP OF HOSPITALS, RAIPUR*\n📊 *OFFICIAL ${cadence} LEADERSHIP ATTENDANCE REPORT (${date})*\n━━━━━━━━━━━━━━━━━━━━━━\n• Total Expected: ${forDate.length}\n• Attended: ${forDate.filter((r) => r.status === 'PRESENT' || r.admin_verified_attendance).length}\n• Approved Late: ${forDate.filter((r) => r.status === 'INFORMED_LATE' || (r.late_minutes && r.late_minutes > 0)).length}\n• Approved Leave: ${forDate.filter((r) => r.status === 'LEAVE').length}\n• Absent / Unreported: ${forDate.filter((r) => r.status === 'ABSENT' || (!r.admin_verified_attendance && r.status === 'PENDING' && r.selected_mode === 'NONE')).length}\n\n📁 Drive Archive: ${appSettings.google_drive_folder_url || 'https://drive.google.com/drive/folders/1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD?usp=sharing'}\n━━━━━━━━━━━━━━━━━━━━━━\nDOM Operations Command | SBH Raipur`;
+
+      // 1. Silent cloud sync: Save to Drive folder 1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD & Sheet in background
+      uploadReportToGoogleDriveAndSheet(date).catch((e) => console.warn('Background drive sync note:', e));
+
+      // 2. Try native Web Share API (Mobile / Desktop supported)
+      if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+        try {
+          await navigator.share({
+            title: `SBH Hospital ${cadence} Report - ${date}`,
+            text: captionText,
+            files: [pdfFile],
+          });
+          setToastAlert({
+            type: 'success',
+            text: `✅ Report PDF successfully shared to WhatsApp Group!`,
+          });
+          setTimeout(() => setToastAlert(null), 6000);
+          return;
+        } catch (shareErr: any) {
+          if (shareErr.name === 'AbortError') {
+            setToastAlert({ type: 'info', text: 'Share canceled.' });
+            setTimeout(() => setToastAlert(null), 3000);
+            return;
+          }
+          console.warn('Web Share failed, falling back to background dispatch:', shareErr);
+        }
+      }
+
+      // 3. Fallback for Desktop browsers without file Web Share:
+      // Trigger background CEOITBOX / Sheet Webhook dispatch to group 120363432056023698@g.us and download PDF locally
+      doc.save(filename);
+      await sendCeoitboxGroupBroadcast('1030', date);
+      setToastAlert({
+        type: 'success',
+        text: `✅ Report PDF downloaded & dispatched to WhatsApp Group (${appSettings.admin_whatsapp_group || '120363432056023698@g.us'})!`,
+      });
+      setTimeout(() => setToastAlert(null), 8000);
+    } catch (err: any) {
+      setToastAlert({
+        type: 'error',
+        text: 'Direct share error: ' + (err?.message || 'Check network / browser permissions'),
+      });
+      setTimeout(() => setToastAlert(null), 6000);
+    }
+  };
+
   const handleUploadToDriveAndSheet = async () => {
     setIsSyncingDrive(true);
     setToastAlert({
@@ -1557,15 +1620,15 @@ export const UnifiedAdminDashboard: React.FC = () => {
                     <button
                       onClick={() =>
                         openConfirm({
-                          title: 'Submit & Send Final WhatsApp Group Report',
-                          message: `Transmit final DOM attendance audit report for ${selectedDate} to the Official WhatsApp Group?\n\n• Total Scheduled: ${totalLeaders}\n• Total Joined: ${countPresent}\n• Late: ${countLate}\n• Approved Leave: ${countInformed}\n• Absent / Unreported: ${countAbsent}`,
+                          title: 'Submit & Direct Share PDF to WhatsApp Group',
+                          message: `Directly share official signed DOM attendance PDF report for ${selectedDate} to the Official WhatsApp Group (${appSettings.admin_whatsapp_group || '120363432056023698@g.us'})?\n\n• Total Scheduled: ${totalLeaders}\n• Total Joined: ${countPresent}\n• Late: ${countLate}\n• Approved Leave: ${countInformed}\n• Absent / Unreported: ${countAbsent}`,
                           type: 'primary',
-                          confirmText: 'Send to WhatsApp Group',
-                          onConfirm: () => handleSendGroupCeoitbox('1030'),
+                          confirmText: 'Share PDF to Group',
+                          onConfirm: () => handleSharePdfDirectly(selectedDate),
                         })
                       }
                       className="px-3 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
-                      title="Official WhatsApp Group Broadcast"
+                      title="Directly Share Signed PDF Report to Official WhatsApp Group"
                     >
                       <Send className="w-3.5 h-3.5 text-emerald-200" />
                       <span>Send Group Report</span>
@@ -1841,6 +1904,23 @@ export const UnifiedAdminDashboard: React.FC = () => {
                   >
                     {isSyncingDrive ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Share2 className="w-3.5 h-3.5" />}
                     <span>Save to Drive & Sheet</span>
+                  </button>
+
+                  <button
+                    onClick={() =>
+                      openConfirm({
+                        title: 'Direct Share PDF to WhatsApp Group',
+                        message: `Directly share official signed Director Attendance PDF report for ${selectedDate} to the Official WhatsApp Group (${appSettings.admin_whatsapp_group || '120363432056023698@g.us'})?`,
+                        type: 'primary',
+                        confirmText: 'Share PDF Now',
+                        onConfirm: () => handleSharePdfDirectly(selectedDate),
+                      })
+                    }
+                    className="px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-green-700 hover:from-emerald-700 hover:to-green-800 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
+                    title="Directly share signed PDF Report to WhatsApp Group"
+                  >
+                    <Send className="w-3.5 h-3.5 text-white" />
+                    <span>Share PDF to Group</span>
                   </button>
 
                   <button
@@ -3316,11 +3396,11 @@ export const UnifiedAdminDashboard: React.FC = () => {
                   </div>
 
                   <button
-                    onClick={() => setShowScriptModal(true)}
-                    className="px-3.5 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
+                    onClick={() => handleSharePdfDirectly(selectedDate)}
+                    className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
                   >
-                    <FileText className="w-3.5 h-3.5" />
-                    <span>View Google Apps Script Code</span>
+                    <Send className="w-3.5 h-3.5" />
+                    <span>Direct Share PDF to WhatsApp Group</span>
                   </button>
                 </div>
 
@@ -4395,91 +4475,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Dedicated Official WhatsApp Group Dispatch Modal (100% Group Only, Ex-Employee Protected) */}
-      {groupDispatchModal && groupDispatchModal.isOpen && (
-        <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-[9999] p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 flex flex-col max-h-[92vh]">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600">
-                  <MessageSquare className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-black text-slate-900">
-                    Official WhatsApp Group Broadcast
-                  </h3>
-                  <p className="text-xs text-slate-500">
-                    Target: Official Hospital Group ({appSettings.admin_whatsapp_group})
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setGroupDispatchModal(null)}
-                className="text-slate-400 hover:text-slate-600 font-bold text-sm cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
 
-            {/* Security Guarantee Notice against ex-employee */}
-            <div className="my-3 p-3 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center gap-2.5">
-              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-              <div className="text-xs text-emerald-900">
-                <strong>Ex-Employee Safe:</strong> Individual number <span className="font-mono font-bold text-rose-700">+91 99778 81452</span> is blocked and will NEVER receive this. This message is prepared exclusively for the official WhatsApp group.
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto py-2">
-              <div className="text-xs font-bold text-slate-600 mb-1 flex items-center justify-between">
-                <span>Message Preview ({groupDispatchModal.title}):</span>
-                <span className="text-[11px] text-slate-400 font-normal">Pre-formatted English template</span>
-              </div>
-              <pre className="bg-slate-50 p-4 rounded-2xl border border-slate-200 text-[11px] font-mono text-slate-800 whitespace-pre-wrap select-all">
-                {groupDispatchModal.message}
-              </pre>
-            </div>
-
-            <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2.5">
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(groupDispatchModal.message);
-                  setCopiedGroupNotice(true);
-                  setTimeout(() => setCopiedGroupNotice(false), 2000);
-                }}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
-              >
-                {copiedGroupNotice ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
-                <span>{copiedGroupNotice ? 'Copied to Clipboard!' : 'Copy Notice Text'}</span>
-              </button>
-
-              <div className="flex items-center gap-2">
-                <a
-                  href={`https://app.ceoitbox.com/customer/channel/23642/group/${appSettings.admin_whatsapp_group || '120363432056023698@g.us'}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-all cursor-pointer"
-                >
-                  <Zap className="w-3.5 h-3.5 text-teal-300" />
-                  <span>CEOITBOX Group Chat ↗</span>
-                </a>
-
-                <a
-                  href={`https://web.whatsapp.com/send?text=${encodeURIComponent(groupDispatchModal.message)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-600/20 flex items-center gap-1.5 transition-all cursor-pointer"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>Open in WhatsApp Web ↗</span>
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ================= MODAL: GOOGLE APPS SCRIPT CODE & SETUP GUIDE ================= */}
-      {showScriptModal && (
+      {false && (
         <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-[9999] p-3 sm:p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl max-w-3xl w-full p-6 shadow-2xl border border-slate-200 flex flex-col max-h-[92vh]">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
