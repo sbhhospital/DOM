@@ -22,6 +22,8 @@ import {
   Phone,
   Mail,
   Shield,
+  ShieldCheck,
+  Lock,
   LogOut,
   Clock,
   Settings2,
@@ -372,6 +374,41 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
   const currentMeeting = getMeetingForDate(selectedDate);
   const currentCadence = currentMeeting.cadence || (currentMeeting.frequency === 'MONTHLY' ? 'MOM' : currentMeeting.frequency === 'WEEKLY' ? 'WOM' : 'DOM');
+
+  // India Date & Time calculation for Mark Present business rules
+  const [currentIstTime, setCurrentIstTime] = useState<Date>(() => new Date());
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentIstTime(new Date());
+    }, 10000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const todayIST = useMemo(() => {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(currentIstTime);
+  }, [currentIstTime]);
+
+  const isSelectedDateToday = selectedDate === todayIST;
+
+  const isSunday = useMemo(() => {
+    return new Date(selectedDate + 'T00:00:00').getDay() === 0;
+  }, [selectedDate]);
+
+  const isHolidayOrRemovedDom = currentMeeting.cadence === 'HOLIDAY' || Boolean(currentMeeting.is_holiday_or_shifted);
+
+  const isAfter0930Am = useMemo(() => {
+    const indiaParts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Kolkata',
+      hour: 'numeric',
+      minute: 'numeric',
+      hour12: false,
+    }).formatToParts(currentIstTime);
+    const h = parseInt(indiaParts.find((p) => p.type === 'hour')?.value || '0', 10);
+    const m = parseInt(indiaParts.find((p) => p.type === 'minute')?.value || '0', 10);
+    return h * 60 + m >= 570; // 09:30 AM IST = 570 minutes
+  }, [currentIstTime]);
+
+  const canMarkPresent = isSelectedDateToday && !isSunday && !isHolidayOrRemovedDom && isAfter0930Am;
 
   // Active Tab: 'attendance' | 'calendar' | 'reports' | 'leaders' | 'departments' | 'settings' | 'links' | 'geo-history'
   const [activeTab, setActiveTab] = useState<
@@ -2139,7 +2176,11 @@ export const UnifiedAdminDashboard: React.FC = () => {
                               </span>
                             </td>
                             <td className="py-3.5 px-4 text-center">
-                              {rec.selected_mode === 'PHYSICAL' ? (
+                              {rec.evidence_source === 'ADMIN_MANUAL' ? (
+                                <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-300 inline-flex items-center gap-1 shadow-2xs">
+                                  <Shield className="w-3.5 h-3.5 text-emerald-700" /> Admin Manual (In-Person)
+                                </span>
+                              ) : rec.selected_mode === 'PHYSICAL' ? (
                                 <span className="text-[11px] font-bold text-[#2e7d32] bg-[#cfead6] px-2.5 py-0.5 rounded-full border border-[#2e7d32]/20 inline-flex items-center gap-1">
                                   <CheckCircle2 className="w-3.5 h-3.5 text-[#2e7d32]" /> Physical (5th Flr)
                                 </span>
@@ -2184,6 +2225,16 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                     To: {rec.informed_to_person || 'Authority'}
                                   </span>
                                 </div>
+                              ) : (rec.admin_verified_attendance || rec.verification_status === 'VERIFIED') && rec.evidence_source === 'ADMIN_MANUAL' ? (
+                                <span className="text-[11px] bg-emerald-100 text-emerald-950 font-bold px-2.5 py-1 rounded-full border border-emerald-300 inline-flex items-center gap-1 shadow-2xs" title={rec.verification_note || 'Marked Present by Admin'}>
+                                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
+                                  <span>PRESENT (Marked by Admin)</span>
+                                  {rec.late_minutes && rec.late_minutes > 0 ? (
+                                    <span className="text-[10px] bg-emerald-700 text-white px-1.5 py-0.5 rounded font-black tracking-wide">
+                                      {formatLateDuration(rec.late_minutes)}
+                                    </span>
+                                  ) : null}
+                                </span>
                               ) : rec.admin_verified_attendance || rec.verification_status === 'VERIFIED' ? (
                                 <span className="text-[11px] bg-[#cfead6] text-[#2e7d32] font-bold px-2.5 py-1 rounded-full border border-[#2e7d32]/30 inline-flex items-center gap-1">
                                   <CheckCircle2 className="w-3.5 h-3.5 text-[#2e7d32]" />
@@ -2259,94 +2310,136 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                   </>
                                 )}
 
-                                {/* Admin Direct Approval Button for pending attendance */}
-                                {!rec.admin_verified_attendance &&
-                                  (rec.status === 'PRESENT' || rec.status === 'INFORMED_LATE' || rec.selected_mode !== 'NONE') && (
-                                    <button
-                                      onClick={() =>
-                                        openConfirm({
-                                          title: 'Approve Attendance',
-                                          message: `Verify and confirm attendance for ${rec.leader?.full_name}?`,
-                                          type: 'success',
-                                          confirmText: 'Confirm Approve',
-                                          onConfirm: async () => {
-                                            const res = await approveAttendanceRecord(rec.id);
-                                            setToastAlert({ type: 'success', text: res.message });
-                                            setTimeout(() => setToastAlert(null), 4000);
-                                          },
-                                        })
-                                      }
-                                      className="px-3 py-1.5 bg-[#2e7d32] hover:bg-[#256628] text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer flex items-center gap-1 transition-all"
-                                      title="Approve Leader Attendance"
-                                    >
-                                      <CheckCircle2 className="w-3.5 h-3.5" />
-                                      <span>Approve</span>
-                                    </button>
-                                  )}
+                                {/* Attendance locked once marked/verified: Cannot be marked again! */}
+                                {(rec.status === 'PRESENT' || rec.admin_verified_attendance || rec.verification_status === 'VERIFIED') ? (
+                                  <span className="px-2.5 py-1 bg-emerald-50 text-emerald-800 text-xs font-bold rounded-xl border border-emerald-300 inline-flex items-center gap-1 shadow-2xs">
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                    <span>{rec.evidence_source === 'ADMIN_MANUAL' ? 'Admin Marked (Locked)' : 'Verified (Locked)'}</span>
+                                  </span>
+                                ) : (
+                                  <>
+                                    {/* Admin Direct Approval Button for pending attendance */}
+                                    {!rec.admin_verified_attendance &&
+                                      (rec.status === 'INFORMED_LATE' || (rec.selected_mode !== 'NONE' && rec.status !== 'LEAVE')) && (
+                                        <button
+                                          onClick={() =>
+                                            openConfirm({
+                                              title: 'Approve Attendance',
+                                              message: `Verify and confirm attendance for ${rec.leader?.full_name}?`,
+                                              type: 'success',
+                                              confirmText: 'Confirm Approve',
+                                              onConfirm: async () => {
+                                                const res = await approveAttendanceRecord(rec.id);
+                                                setToastAlert({ type: 'success', text: res.message });
+                                                setTimeout(() => setToastAlert(null), 4000);
+                                              },
+                                            })
+                                          }
+                                          className="px-3 py-1.5 bg-[#2e7d32] hover:bg-[#256628] text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer flex items-center gap-1 transition-all active:scale-95"
+                                          title="Approve Leader Attendance"
+                                        >
+                                          <CheckCircle2 className="w-3.5 h-3.5" />
+                                          <span>Approve</span>
+                                        </button>
+                                      )}
 
-                                {rec.status !== 'PRESENT' && !rec.admin_verified_attendance && rec.status !== 'INFORMED_ABSENT' && (
-                                  <button
-                                    onClick={() =>
-                                      openConfirm({
-                                        title: 'Mark Present',
-                                        message: `Mark ${rec.leader?.full_name} as Present (Conference Room In-Person)?`,
-                                        type: 'success',
-                                        confirmText: 'Mark Present',
-                                        onConfirm: async () => {
-                                          await adminVerifyStatus(rec.id, 'PRESENT', true, 'Manual Conference Room Check');
-                                          setToastAlert({ type: 'success', text: `${rec.leader?.full_name} marked as Present!` });
-                                          setTimeout(() => setToastAlert(null), 3000);
-                                        },
-                                      })
-                                    }
-                                    className="px-3 py-1.5 bg-[#2e7d32] hover:bg-[#256628] text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer transition-all"
-                                    title="Mark Present & Verified"
-                                  >
-                                    Mark Present
-                                  </button>
-                                )}
+                                    {/* Admin Manual Mark Present with 6 business rules enforced */}
+                                    {rec.status !== 'INFORMED_ABSENT' && (
+                                      canMarkPresent ? (
+                                        <button
+                                          onClick={() =>
+                                            openConfirm({
+                                              title: 'Mark Present (Admin Manual)',
+                                              message: `Mark ${rec.leader?.full_name} as Present (Conference Room In-Person)? This will be recorded as Marked by Admin and locked.`,
+                                              type: 'success',
+                                              confirmText: 'Mark Present',
+                                              onConfirm: async () => {
+                                                const res = await adminVerifyStatus(rec.id, 'PRESENT', true, 'Marked Present by Admin (Manual Check)');
+                                                if (res && res.success === false) {
+                                                  setToastAlert({ type: 'error', text: res.message });
+                                                } else {
+                                                  setToastAlert({ type: 'success', text: `${rec.leader?.full_name} marked as Present by Admin!` });
+                                                }
+                                                setTimeout(() => setToastAlert(null), 3000);
+                                              },
+                                            })
+                                          }
+                                          className="px-3 py-1.5 bg-[#2e7d32] hover:bg-[#256628] text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer transition-all active:scale-95 flex items-center gap-1"
+                                          title="Mark Present & Verified by Admin"
+                                        >
+                                          <ShieldCheck className="w-3.5 h-3.5" />
+                                          <span>Mark Present</span>
+                                        </button>
+                                      ) : (
+                                        <button
+                                          disabled
+                                          className="px-2.5 py-1.5 bg-slate-100 text-slate-400 rounded-xl text-xs font-semibold border border-slate-200 cursor-not-allowed flex items-center gap-1 opacity-75"
+                                          title={
+                                            !isSelectedDateToday
+                                              ? `Mark Present is only allowed on today's date (${todayIST})`
+                                              : isSunday
+                                              ? 'Sunday is official weekly off. Standup attendance is disabled.'
+                                              : isHolidayOrRemovedDom
+                                              ? 'DOM meeting is not scheduled or has been removed for this date.'
+                                              : 'Mark Present unlocks at 09:30 AM IST on DOM standup day.'
+                                          }
+                                        >
+                                          <Lock className="w-3.5 h-3.5 text-slate-400" />
+                                          <span>
+                                            {!isSelectedDateToday
+                                              ? 'Today Only'
+                                              : isSunday
+                                              ? 'Sunday Off'
+                                              : isHolidayOrRemovedDom
+                                              ? 'No DOM'
+                                              : 'At 09:30 AM'}
+                                          </span>
+                                        </button>
+                                      )
+                                    )}
 
-                                {rec.status !== 'INFORMED_LATE' && rec.status !== 'PRESENT' && rec.status !== 'INFORMED_ABSENT' && (
-                                  <button
-                                    onClick={() => {
-                                      setInformedLateModal({
-                                        isOpen: true,
-                                        leaderId: rec.leader_id,
-                                        leaderName: rec.leader?.full_name || 'Leader',
-                                        departmentName: rec.leader?.department?.name || 'Hospital Staff',
-                                        lateMinutes: 15,
-                                        expectedTime: '10:15 AM',
-                                        informedTo: rec.informed_to_person || 'Director Sir',
-                                        reason: rec.late_reason || 'Ward Rounds / Patient Emergency',
-                                        adminApproved: true,
-                                      });
-                                    }}
-                                    className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer flex items-center gap-1 transition-all"
-                                    title="Document Late Arrival (Admin Approval Required)"
-                                  >
-                                    <Clock className="w-3.5 h-3.5" />
-                                    <span>Informed Late</span>
-                                  </button>
-                                )}
+                                    {rec.status !== 'INFORMED_LATE' && rec.status !== 'INFORMED_ABSENT' && (
+                                      <button
+                                        onClick={() => {
+                                          setInformedLateModal({
+                                            isOpen: true,
+                                            leaderId: rec.leader_id,
+                                            leaderName: rec.leader?.full_name || 'Leader',
+                                            departmentName: rec.leader?.department?.name || 'Hospital Staff',
+                                            lateMinutes: 15,
+                                            expectedTime: '10:15 AM',
+                                            informedTo: rec.informed_to_person || 'Director Sir',
+                                            reason: rec.late_reason || 'Ward Rounds / Patient Emergency',
+                                            adminApproved: true,
+                                          });
+                                        }}
+                                        className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer flex items-center gap-1 transition-all active:scale-95"
+                                        title="Document Late Arrival (Admin Approval Required)"
+                                      >
+                                        <Clock className="w-3.5 h-3.5" />
+                                        <span>Informed Late</span>
+                                      </button>
+                                    )}
 
-                                {rec.status !== 'LEAVE' && rec.status !== 'INFORMED_ABSENT' && (
-                                  <button
-                                    onClick={() => {
-                                      setInformedLeaveModal({
-                                        isOpen: true,
-                                        leaderId: rec.leader_id,
-                                        leaderName: rec.leader?.full_name || 'Leader',
-                                        departmentName: rec.leader?.department?.name || 'Hospital Staff',
-                                        informedTo: rec.informed_to_person || 'Director Sir',
-                                        reason: rec.informed_reason || 'Emergency Hospital Duty',
-                                      });
-                                    }}
-                                    className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer flex items-center gap-1 transition-all"
-                                    title="Mark Informed Leave (Admin Verified)"
-                                  >
-                                    <HelpCircle className="w-3.5 h-3.5" />
-                                    <span>Informed Leave</span>
-                                  </button>
+                                    {rec.status !== 'LEAVE' && rec.status !== 'INFORMED_ABSENT' && (
+                                      <button
+                                        onClick={() => {
+                                          setInformedLeaveModal({
+                                            isOpen: true,
+                                            leaderId: rec.leader_id,
+                                            leaderName: rec.leader?.full_name || 'Leader',
+                                            departmentName: rec.leader?.department?.name || 'Hospital Staff',
+                                            informedTo: rec.informed_to_person || 'Director Sir',
+                                            reason: rec.informed_reason || 'Emergency Hospital Duty',
+                                          });
+                                        }}
+                                        className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer flex items-center gap-1 transition-all active:scale-95"
+                                        title="Mark Informed Leave (Admin Verified)"
+                                      >
+                                        Leave
+                                      </button>
+                                    )}
+                                  </>
                                 )}
 
                                 {rec.status !== 'ABSENT' && rec.status !== 'INFORMED_ABSENT' && (
@@ -3930,7 +4023,12 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                 </td>
 
                                 <td className="py-3 px-4 text-center">
-                                  {isPhysical ? (
+                                  {rec.evidence_source === 'ADMIN_MANUAL' ? (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">
+                                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
+                                      <span>Admin Manual</span>
+                                    </span>
+                                  ) : isPhysical ? (
                                     <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
                                       <QrCode className="w-3.5 h-3.5 text-emerald-700" />
                                       <span>In-Person (Room QR)</span>

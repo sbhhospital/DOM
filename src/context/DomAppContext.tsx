@@ -72,7 +72,7 @@ interface DomAppContextType {
     informedTo: string,
     reason: string
   ) => Promise<void>;
-  adminVerifyStatus: (recordId: string, status: AttendanceStatus, verified: boolean, note?: string) => Promise<void>;
+  adminVerifyStatus: (recordId: string, status: AttendanceStatus, verified: boolean, note?: string) => Promise<{ success: boolean; message: string }>;
   confirmInformedAbsence: (recordId: string, confirmed: boolean) => Promise<void>;
   approveAttendanceRecord: (recordId: string) => Promise<{ success: boolean; message: string }>;
   approveAllPendingRecords: (date: string) => Promise<{ success: boolean; count: number; message: string }>;
@@ -2036,7 +2036,66 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     status: AttendanceStatus,
     verified: boolean,
     note?: string
-  ) => {
+  ): Promise<{ success: boolean; message: string }> => {
+    // 1. Strict Date, Cadence and Time Validation when Admin marks PRESENT
+    if (status === 'PRESENT') {
+      const todayIST = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
+      const isSelectedDateToday = selectedDate === todayIST;
+      const selectedDateObj = new Date(selectedDate + 'T00:00:00');
+      const isSunday = selectedDateObj.getDay() === 0;
+      const meeting = getMeetingForDate(selectedDate);
+      const isHolidayOrRemovedDom = meeting.cadence === 'HOLIDAY' || Boolean(meeting.is_holiday_or_shifted);
+
+      const now = new Date();
+      const indiaParts = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Kolkata',
+        hour: 'numeric',
+        minute: 'numeric',
+        hour12: false,
+      }).formatToParts(now);
+      const istHour = parseInt(indiaParts.find((p) => p.type === 'hour')?.value || '0', 10);
+      const istMinute = parseInt(indiaParts.find((p) => p.type === 'minute')?.value || '0', 10);
+      const istTotalMinutes = istHour * 60 + istMinute;
+      const isAfter0930Am = istTotalMinutes >= 570; // 09:30 AM IST = 570 minutes
+
+      if (!isSelectedDateToday) {
+        return {
+          success: false,
+          message: `Mark Present is strictly allowed only on today's date (${todayIST}). Past or future dates cannot be marked manually.`,
+        };
+      }
+      if (isSunday) {
+        return {
+          success: false,
+          message: 'Cannot mark attendance on Sunday (official weekly off).',
+        };
+      }
+      if (isHolidayOrRemovedDom) {
+        return {
+          success: false,
+          message: 'Cannot mark attendance: DOM meeting is not scheduled or has been removed for this date.',
+        };
+      }
+      if (!isAfter0930Am) {
+        return {
+          success: false,
+          message: 'Mark Present unlocks at 09:30 AM IST on DOM standup day.',
+        };
+      }
+    }
+
+    // 2. Idempotency Check: once marked and verified, do not allow duplicate re-marking
+    const existingRec = attendanceRecords.find((r) => r.id === recordId);
+    if (
+      existingRec &&
+      (existingRec.status === 'PRESENT' || existingRec.admin_verified_attendance || existingRec.verification_status === 'VERIFIED')
+    ) {
+      return {
+        success: false,
+        message: 'Attendance has already been marked and verified for this leader. It cannot be marked again.',
+      };
+    }
+
     const nowIso = new Date().toISOString();
     let updatedRec: AttendanceRecord | null = null;
 
@@ -2117,8 +2176,13 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
 
     if (updatedRec) {
-      syncAttendanceRecordToSupabase(updatedRec, note || `Status updated to ${status}`);
+      syncAttendanceRecordToSupabase(updatedRec, note || `Status updated to ${status} by Admin`);
     }
+
+    return {
+      success: true,
+      message: `Leader marked as ${status} by Admin.`,
+    };
   };
 
   const confirmInformedAbsence = async (recordId: string, confirmed: boolean) => {

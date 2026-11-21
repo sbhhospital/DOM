@@ -158,7 +158,8 @@ export function generateDirectorPdf(
     const expected = rec.leader?.expected_mode || 'PHYSICAL';
 
     let actualMode = '—';
-    if (rec.selected_mode === 'PHYSICAL') actualMode = 'In-Person (Room)';
+    if (rec.evidence_source === 'ADMIN_MANUAL') actualMode = 'In-Person (Admin)';
+    else if (rec.selected_mode === 'PHYSICAL') actualMode = 'In-Person (Room)';
     else if (rec.selected_mode === 'VIRTUAL') actualMode = 'Virtual (Meet)';
 
     let joinTime = '—';
@@ -193,12 +194,15 @@ export function generateDirectorPdf(
     } else if (hasJoined) {
       const lateStr = isLate ? ` (${formatLateDuration(rec.late_minutes)})` : '';
       if (rec.admin_verified_attendance) {
+        const isAdminMarked = rec.evidence_source === 'ADMIN_MANUAL' || rec.verification_note?.includes('Marked Present by Admin');
         if (isLate) {
-          statusDisplay = `Present (Late: ${formatLateDuration(rec.late_minutes)})`;
-          auditDisplay = 'APPROVED';
+          statusDisplay = isAdminMarked
+            ? `Present (Admin Late: ${formatLateDuration(rec.late_minutes)})`
+            : `Present (Late: ${formatLateDuration(rec.late_minutes)})`;
+          auditDisplay = isAdminMarked ? 'ADMIN MANUAL' : 'APPROVED';
         } else {
-          statusDisplay = 'Present';
-          auditDisplay = 'APPROVED';
+          statusDisplay = isAdminMarked ? 'Present (Admin Marked)' : 'Present';
+          auditDisplay = isAdminMarked ? 'ADMIN MANUAL' : 'APPROVED';
         }
       } else {
         // ADMIN APPROVAL IS PENDING
@@ -265,7 +269,7 @@ export function generateDirectorPdf(
       if (data.section === 'body') {
         if (data.column.index === 6 || data.column.index === 7) {
           const val = String(data.cell.raw);
-          if (val.includes('Approved') || val === 'APPROVED') {
+          if (val.includes('Approved') || val === 'APPROVED' || val.includes('ADMIN MANUAL') || val.includes('Admin Marked')) {
             data.cell.styles.textColor = [22, 163, 74]; // Emerald Green
             data.cell.styles.fontStyle = 'bold';
           } else if (val.includes('Pending') || val === 'PENDING') {
