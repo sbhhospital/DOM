@@ -998,7 +998,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
       const pdfFile = new File([pdfBlob], filename, { type: 'application/pdf' });
 
       // Structured WhatsApp Caption
-      const captionText = `🏥 *SBH GROUP OF HOSPITALS, RAIPUR*\n📊 *OFFICIAL ${cadence} LEADERSHIP ATTENDANCE REPORT (${date})*\n━━━━━━━━━━━━━━━━━━━━━━\n• Total Expected: ${forDate.length}\n• Attended: ${forDate.filter((r) => isPresentRecord(r)).length}\n• Approved Late: ${forDate.filter((r) => isLateRecord(r)).length}\n• Approved Leave: ${forDate.filter((r) => isLeaveRecord(r)).length}\n• Absent / Unreported: ${forDate.filter((r) => isAbsentRecord(r)).length}\n\n📄 *Official Signed Director Attendance PDF Report Attached*\n━━━━━━━━━━━━━━━━━━━━━━\n*Automated Reminder*`;
+      const captionText = `🏥 *SBH GROUP OF HOSPITALS, RAIPUR*\n📊 *OFFICIAL ${cadence} LEADERSHIP ATTENDANCE REPORT (${formatToIndianDate(date)})*\n━━━━━━━━━━━━━━━━━━━━━━\n• Total Expected: ${forDate.length}\n• Attended: ${forDate.filter((r) => isPresentRecord(r)).length}\n• Approved Late: ${forDate.filter((r) => isLateRecord(r)).length}\n• Approved Leave: ${forDate.filter((r) => isLeaveRecord(r)).length}\n• Absent / Unreported: ${forDate.filter((r) => isAbsentRecord(r)).length}\n\n📄 *Official Signed Director Attendance PDF Report Attached*\n━━━━━━━━━━━━━━━━━━━━━━\n*Automated Reminder*`;
 
       // 1. Direct Ceoitbox PDF Dispatch to WhatsApp Group (919977881452-1431506963@g.us) via /api/v1/message/create
       const dispatchPromise = sendDirectorPdfToWhatsappGroup(date);

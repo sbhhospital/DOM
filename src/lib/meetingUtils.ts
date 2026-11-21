@@ -210,6 +210,86 @@ export function formatToIndianDate(dateStr: string): string {
 }
 
 /**
+ * Evaluates whether current IST time is within the allowed DOM standup check-in window.
+ * - Opens at 09:50 AM IST (10 minutes prior to 10:00 AM start)
+ * - Closes at 10:20 AM IST (20 minutes past start)
+ * - Reconnects for already checked-in leaders are always permitted.
+ */
+export function checkStandupWindowStatus(
+  dateStr: string,
+  isAlreadyCheckedIn: boolean = false,
+  cadence: string = 'DOM'
+): {
+  allowed: boolean;
+  code: 'BEFORE_WINDOW' | 'OPEN' | 'AFTER_WINDOW' | 'HOLIDAY_OFF';
+  message: string;
+  isSundayOrHoliday: boolean;
+} {
+  const isSunday = new Date(dateStr + 'T00:00:00').getDay() === 0;
+  if (isSunday || cadence === 'HOLIDAY') {
+    return {
+      allowed: false,
+      code: 'HOLIDAY_OFF',
+      isSundayOrHoliday: true,
+      message: `Hospital Official Off: Today is an official off day (${isSunday ? 'Sunday Weekly Off' : 'Sanctioned Holiday'}). Standup attendance is not required today and zero absentees are recorded.`,
+    };
+  }
+
+  // Calculate current minutes from midnight in IST (Asia/Kolkata)
+  let currentMinutes = 0;
+  try {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Kolkata',
+      hour: 'numeric',
+      minute: 'numeric',
+      hour12: false,
+    }).formatToParts(new Date());
+    const h = parseInt(parts.find((p) => p.type === 'hour')?.value || '0', 10);
+    const m = parseInt(parts.find((p) => p.type === 'minute')?.value || '0', 10);
+    currentMinutes = h * 60 + m;
+  } catch (e) {
+    const d = new Date();
+    currentMinutes = d.getHours() * 60 + d.getMinutes();
+  }
+
+  const windowOpenMinutes = 590; // 09:50 AM IST
+  const windowCloseMinutes = 620; // 10:20 AM IST
+
+  if (currentMinutes < windowOpenMinutes) {
+    return {
+      allowed: false,
+      code: 'BEFORE_WINDOW',
+      isSundayOrHoliday: false,
+      message: 'Check-in Not Open Yet: Daily Operations Meeting starts at 10:00 AM IST. Check-in opens 10 minutes prior at 09:50 AM IST. Kindly check in between 09:50 AM and 10:20 AM IST.',
+    };
+  }
+
+  if (currentMinutes > windowCloseMinutes) {
+    if (isAlreadyCheckedIn) {
+      return {
+        allowed: true,
+        code: 'OPEN',
+        isSundayOrHoliday: false,
+        message: 'Reconnected to ongoing session.',
+      };
+    }
+    return {
+      allowed: false,
+      code: 'AFTER_WINDOW',
+      isSundayOrHoliday: false,
+      message: 'Check-in Closed: Daily Operations Meeting check-in closed at 10:20 AM IST. First-time submissions are no longer accepted for today. Unreported leaders are marked absent for the Director\'s audit.',
+    };
+  }
+
+  return {
+    allowed: true,
+    code: 'OPEN',
+    isSundayOrHoliday: false,
+    message: 'Check-in window is active.',
+  };
+}
+
+/**
  * Calculates distance in meters between two GPS coordinates using Haversine formula
  */
 export function calculateDistanceInMeters(

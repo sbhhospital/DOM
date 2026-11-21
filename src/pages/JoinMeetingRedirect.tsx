@@ -22,7 +22,7 @@ import confetti from 'canvas-confetti';
 import jsQR from 'jsqr';
 import { useDomApp } from '../context/DomAppContext';
 import { verifyDailyMeetingToken, DEFAULT_GOOGLE_MEET_URL } from '../lib/meetingLinks';
-import { formatToIndianDate, calculateDistanceInMeters } from '../lib/meetingUtils';
+import { formatToIndianDate, calculateDistanceInMeters, checkStandupWindowStatus } from '../lib/meetingUtils';
 import { Leader } from '../types/database';
 
 export const JoinMeetingRedirect: React.FC = () => {
@@ -135,6 +135,14 @@ export const JoinMeetingRedirect: React.FC = () => {
   const handleVirtualJoinClick = async () => {
     if (!leader || !targetDate) return;
 
+    const windowCheck = checkStandupWindowStatus(targetDate, joinCount > 0, activeMeeting.cadence);
+    if (!windowCheck.allowed) {
+      setVirtualSuccess(null);
+      setScannerError(windowCheck.message);
+      setIsScannerOpen(true);
+      return;
+    }
+
     let geoCoords: { latitude?: number; longitude?: number; accuracy?: number } | undefined;
     if (typeof navigator !== 'undefined' && 'geolocation' in navigator) {
       try {
@@ -167,6 +175,12 @@ export const JoinMeetingRedirect: React.FC = () => {
     setIsScannerOpen(true);
     setScannerError('');
 
+    const windowCheck = checkStandupWindowStatus(targetDate || new Date().toISOString().split('T')[0], isQrVerified, activeMeeting.cadence);
+    if (!windowCheck.allowed) {
+      setScannerError(windowCheck.message);
+      return;
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } },
@@ -180,7 +194,7 @@ export const JoinMeetingRedirect: React.FC = () => {
       }
     } catch (err: any) {
       console.warn('Camera error:', err);
-      setScannerError('Could not open camera. Please allow camera permissions or enter the session code below.');
+      setScannerError('Could not open camera. Please grant camera access permissions in your browser.');
     }
   };
 
@@ -221,6 +235,13 @@ export const JoinMeetingRedirect: React.FC = () => {
   const handleSuccessfulQrScan = async (scannedText: string) => {
     if (!leader || !targetDate) return;
 
+    // Check Standup Window
+    const windowCheck = checkStandupWindowStatus(targetDate, isQrVerified, activeMeeting.cadence);
+    if (!windowCheck.allowed) {
+      setScannerError(windowCheck.message);
+      return;
+    }
+
     // 1. Mandatory Geolocation verification
     let geoCoords: { latitude?: number; longitude?: number; accuracy?: number } | undefined;
     if (typeof navigator !== 'undefined' && 'geolocation' in navigator) {
@@ -238,16 +259,16 @@ export const JoinMeetingRedirect: React.FC = () => {
           accuracy: Math.round(pos.coords.accuracy),
         };
       } catch (e) {
-        setScannerError('⚠️ Location permission zaroori hai hospital presence verify karne ke liye. Kripya device me GPS enable karein.');
+        setScannerError('⚠️ Location permission is required to verify your presence in the Conference Room. Please enable GPS on your device.');
         return;
       }
     } else {
-      setScannerError('⚠️ Geolocation aapke device/browser me supported nahi hai.');
+      setScannerError('⚠️ Geolocation is not supported by your browser or device.');
       return;
     }
 
     if (!geoCoords?.latitude || !geoCoords?.longitude) {
-      setScannerError('⚠️ Hospital location detect nahi ho paya. Kripya GPS on karein aur dobara scan karein.');
+      setScannerError('⚠️ Hospital location could not be detected. Please ensure GPS is active and scan again.');
       return;
     }
 
@@ -265,7 +286,7 @@ export const JoinMeetingRedirect: React.FC = () => {
 
     if (appSettings.hospital_geofence_enabled !== false && distance > allowedRadius) {
       setScannerError(
-        `⚠️ Location Restriction: Kripya hospital 5th Floor Conference Room ke location se hi QR code scan karein! Aap conference room se lagbhag ${distance}m door hain (Allowed: ${allowedRadius}m).`
+        `⚠️ Location Restriction: Please scan the QR code from inside the Hospital 5th Floor Conference Room. You are currently approximately ${distance}m away (Allowed radius: ${allowedRadius}m).`
       );
       return;
     }
@@ -274,6 +295,10 @@ export const JoinMeetingRedirect: React.FC = () => {
 
     // 3. Submit verified QR check-in
     const res = await markRoomQrCheckIn(leader.id, geoCoords);
+    if (!res.success) {
+      setScannerError(res.message);
+      return;
+    }
     setIsQrVerified(true);
     setPhysicalSuccess('Conference Room In-Person Attendance Verified via Camera QR Scan!');
 

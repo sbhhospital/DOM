@@ -1,0 +1,69 @@
+name: Daily Standup WhatsApp Automation (DOM)
+
+on:
+  schedule:
+    # 04:20 UTC is 09:50 AM IST (Monday to Saturday, Sundays excluded)
+    - cron: '20 4 * * 1-6'
+  workflow_dispatch: # Allows manual run button from GitHub Actions UI
+
+jobs:
+  broadcast-standup-reminders:
+    name: 09:50 AM IST WhatsApp Reminder Broadcast
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Dispatch Standup Notice to Official WhatsApp Group
+        run: |
+          echo "Executing automated 09:50 AM IST Standup WhatsApp Broadcast..."
+          node -e "
+            const https = require('https');
+            
+            // Format today's date in Indian DD-MM-YYYY format
+            const today = new Date();
+            const istDate = new Date(today.getTime() + (5.5 * 60 * 60 * 1000));
+            const day = String(istDate.getUTCDate()).padStart(2, '0');
+            const month = String(istDate.getUTCMonth() + 1).padStart(2, '0');
+            const year = istDate.getUTCFullYear();
+            const formattedDate = day + '-' + month + '-' + year;
+            
+            const message = [
+              '🏥 *SBH GROUP OF HOSPITALS, RAIPUR*',
+              '🔔 *09:50 AM NOTICE: DAILY OPERATIONS MEETING (DOM)*',
+              '━━━━━━━━━━━━━━━━━━━━━━',
+              '📅 *Date:* ' + formattedDate,
+              '⏰ *Time:* Sharp 10:00 AM IST',
+              '📍 *Venue:* Conference Room, 5th Floor',
+              '',
+              '✅ *ATTENDANCE & CHECK-IN LINK:*',
+              '👉 https://sbhdom.vercel.app/boardroom-checkin',
+              '',
+              '📌 *MANDATORY CHECK-IN INSTRUCTION:*',
+              'Physical attendance in the 5th Floor Conference Room requires scanning the on-screen QR Code. Ensure your device GPS is active inside the room.',
+              '',
+              '⚠️ All Department Heads and Leaders please assemble in the 5th Floor Conference Room and check in before 10:00 AM sharp.',
+              'Final attendance audit freezes at 10:30 AM for Hospital Director review.',
+              '━━━━━━━━━━━━━━━━━━━━━━',
+              'DOM Operations Command | SBH Raipur'
+            ].join('\n');
+            
+            console.log('Dispatching notice to Ceoitbox messageautosender...');
+            const ceoQuery = 'username=' + encodeURIComponent('SBH HOSPITAL') +
+              '&password=' + encodeURIComponent('123456789') +
+              '&receiverMobileNo=' + encodeURIComponent('919977881452-1431506963@g.us') +
+              '&receiverName=' + encodeURIComponent('SBH DOM Group') +
+              '&message=' + encodeURIComponent(message);
+              
+            https.get('https://app.messageautosender.com/message/new?' + ceoQuery, (res) => {
+              console.log('Ceoitbox Response Status:', res.statusCode);
+              res.on('data', (d) => process.stdout.write(d));
+            }).on('error', (e) => {
+              console.error('Ceoitbox Error:', e.message);
+            });
+          "

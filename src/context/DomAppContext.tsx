@@ -479,6 +479,8 @@ export const INITIAL_LEADERS: Leader[] = [
     employee_code: '10231',
     expected_mode: 'PHYSICAL',
     is_active: true,
+    department_id: 'dept-it',
+    department: INITIAL_DEPARTMENTS[7],
   },
 ];
 
@@ -2901,7 +2903,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     let msg = `🏥 *SBH GROUP OF HOSPITAL, RAIPUR*\n`;
     msg += `📊 *OFFICIAL ${cadenceCode} ATTENDANCE REPORT*\n`;
-    msg += `📅 Date: ${date} (${cadenceCode} SESSION)\n`;
+    msg += `📅 Date: ${formatToIndianDate(date)} (${cadenceCode} SESSION)\n`;
     msg += `⏰ Scheduled Time: ${meeting.scheduled_time}\n`;
     msg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
     msg += `👥 Total Leaders Scheduled: ${forDate.length}\n`;
@@ -2957,7 +2959,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     let summaryMsg = `🏥 *SBH GROUP OF HOSPITALS, RAIPUR*\n`;
     summaryMsg += `📄 *OFFICIAL ${cadenceCode} ATTENDANCE PDF REPORT*\n`;
-    summaryMsg += `📅 Date: ${date} (${cadenceCode})\n`;
+    summaryMsg += `📅 Date: ${formatToIndianDate(date)} (${cadenceCode})\n`;
     summaryMsg += `⏰ Time: ${meeting.scheduled_time} IST\n`;
     summaryMsg += `👥 Scheduled: ${fullRecords.length} | 🏢 Physical: ${presentPhysical.length} | 💻 Virtual: ${presentVirtual.length} | 🟣 Leave: ${informedLeave.length} | ❌ Absent: ${absent.length}\n`;
     summaryMsg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
@@ -3323,12 +3325,9 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
       }
 
-      // 4. Download PDF locally
-      downloadDirectorPdf(meeting, forDate, appSettings);
-
       return {
         success: true,
-        message: `Official DOM Report successfully archived to Supabase database, downloaded, & dispatched to WhatsApp Group (${appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us'}) via CEOITBOX API!`,
+        message: `Official DOM Report successfully archived to Supabase database & dispatched to WhatsApp Group (${appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us'}) via CEOITBOX API!`,
         driveUrl: cloudDriveUrl,
       };
     } catch (err: any) {

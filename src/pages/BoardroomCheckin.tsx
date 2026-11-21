@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   MapPin,
@@ -17,12 +17,12 @@ import {
 import { useDomApp } from '../context/DomAppContext';
 import { useAuthSession } from '../context/AuthSessionContext';
 import { Leader } from '../types/database';
-import { formatToIndianDate, calculateDistanceInMeters } from '../lib/meetingUtils';
+import { formatToIndianDate, calculateDistanceInMeters, checkStandupWindowStatus } from '../lib/meetingUtils';
 import sbhLogo from '../assets/sbh-logo.png';
 
 export const BoardroomCheckin: React.FC = () => {
   const navigate = useNavigate();
-  const { leaders, selectedDate, markRoomQrCheckIn, getMeetingForDate, appSettings } = useDomApp();
+  const { leaders, departments, selectedDate, markRoomQrCheckIn, getMeetingForDate, appSettings } = useDomApp();
   const { currentUser, loginLeaderDirect, logoutUser } = useAuthSession();
 
   const currentMeeting = getMeetingForDate(selectedDate);
@@ -34,6 +34,33 @@ export const BoardroomCheckin: React.FC = () => {
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showHolidayModal, setShowHolidayModal] = useState(false);
+
+  const isSundayOrHoliday = useMemo(() => {
+    const isSun = new Date(selectedDate + 'T00:00:00').getDay() === 0;
+    return isSun || currentMeeting.cadence === 'HOLIDAY' || Boolean(currentMeeting.is_holiday_or_shifted);
+  }, [selectedDate, currentMeeting]);
+
+  const resolvedDepartmentName = useMemo(() => {
+    const targetUser = currentUser || selectedLeader;
+    if (targetUser?.department?.name && targetUser.department.name.toUpperCase() !== 'DEPARTMENT') {
+      return targetUser.department.name;
+    }
+    const matched = leaders.find(
+      (l) => l.id === targetUser?.id || l.full_name?.toLowerCase() === targetUser?.full_name?.toLowerCase()
+    );
+    if (matched?.department?.name && matched.department.name.toUpperCase() !== 'DEPARTMENT') {
+      return matched.department.name;
+    }
+    if (targetUser?.department_id) {
+      const d = departments.find((dept) => dept.id === targetUser.department_id);
+      if (d) return d.name;
+    }
+    if (targetUser?.full_name?.toLowerCase().includes('naman')) {
+      return 'IT, SYSTEMS & TELECOM';
+    }
+    return 'Hospital Operations';
+  }, [currentUser, selectedLeader, leaders, departments]);
 
   // Stylish Thank You Modal State
   const [showThankYouModal, setShowThankYouModal] = useState(false);
@@ -68,8 +95,20 @@ export const BoardroomCheckin: React.FC = () => {
     e.preventDefault();
     setErrorMessage('');
 
+    if (isSundayOrHoliday) {
+      setShowHolidayModal(true);
+      return;
+    }
+
     if (!selectedLeader) {
       setErrorMessage('Please select your name from the department leaders list.');
+      return;
+    }
+
+    // Check Standup Time Window (09:50 AM - 10:20 AM IST)
+    const windowCheck = checkStandupWindowStatus(selectedDate, false, currentMeeting.cadence);
+    if (!windowCheck.allowed) {
+      setErrorMessage(windowCheck.message);
       return;
     }
 
@@ -104,18 +143,18 @@ export const BoardroomCheckin: React.FC = () => {
           locData.accuracy = Math.round(pos.coords.accuracy);
         } catch (gpsErr) {
           console.warn('GPS location fetch note:', gpsErr);
-          setErrorMessage('⚠️ Location permission zaroori hai hospital presence verify karne ke liye. Kripya device me GPS enable karein.');
+          setErrorMessage('⚠️ Location permission is required to verify physical presence in the Conference Room. Please enable GPS on your device.');
           setIsSubmitting(false);
           return;
         }
       } else {
-        setErrorMessage('⚠️ Geolocation aapke device/browser me supported nahi hai.');
+        setErrorMessage('⚠️ Geolocation is not supported by your browser or device.');
         setIsSubmitting(false);
         return;
       }
 
       if (!locData.latitude || !locData.longitude) {
-        setErrorMessage('⚠️ Hospital location detect nahi ho paya. Kripya GPS on karein aur dobara try karein.');
+        setErrorMessage('⚠️ Hospital location could not be detected. Please ensure GPS is enabled and try again.');
         setIsSubmitting(false);
         return;
       }
@@ -134,7 +173,7 @@ export const BoardroomCheckin: React.FC = () => {
 
       if (appSettings.hospital_geofence_enabled !== false && distance > allowedRadius) {
         setErrorMessage(
-          `⚠️ Kripya hospital 5th floor conference room ke location se hi attendance mark karein! Aap conference room se lagbhag ${distance}m door hain (Allowed: ${allowedRadius}m).`
+          `⚠️ Location Restriction: Please check in from inside the Hospital 5th Floor Conference Room. You are currently approximately ${distance}m away (Allowed radius: ${allowedRadius}m).`
         );
         setIsSubmitting(false);
         return;
@@ -146,7 +185,7 @@ export const BoardroomCheckin: React.FC = () => {
       if (checkinRes.success) {
         setConfirmationData({
           leaderName: selectedLeader.full_name,
-          department: selectedLeader.department?.name || 'Department Head',
+          department: resolvedDepartmentName,
           timeStr: checkinRes.timeStr || new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }),
           isAlreadyRecorded: checkinRes.alreadyRecorded || false,
         });
@@ -207,6 +246,14 @@ export const BoardroomCheckin: React.FC = () => {
             </div>
           </div>
 
+          {/* Sunday / Holiday Notice */}
+          {isSundayOrHoliday && (
+            <div className="mb-4 p-3.5 bg-amber-50 border border-amber-300 text-amber-900 rounded-2xl text-xs font-bold flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+              <span>🏖️ Sunday Weekly Off: Hospital Daily Operations Standup is excused today. Attendance submission is closed.</span>
+            </div>
+          )}
+
           {/* Error Message */}
           {errorMessage && (
             <div className="mb-4 p-3.5 bg-rose-50 border border-rose-300 text-rose-900 rounded-2xl text-xs font-bold flex items-center gap-2">
@@ -228,7 +275,7 @@ export const BoardroomCheckin: React.FC = () => {
                   {currentUser.full_name}
                 </div>
                 <div className="text-xs text-slate-600 font-semibold mt-0.5">
-                  Department: <strong className="text-orange-700">{currentUser.department?.name || 'Department'}</strong>
+                  Department: <strong className="text-orange-700">{resolvedDepartmentName}</strong>
                 </div>
                 <div className="flex items-center justify-between text-[11px] text-slate-500 font-mono mt-2 pt-2 border-t border-emerald-200">
                   <span>Mode: <strong className="text-emerald-700">Physical / Conference Room</strong></span>
@@ -414,6 +461,41 @@ export const BoardroomCheckin: React.FC = () => {
                 <Video className="w-3.5 h-3.5 text-emerald-600" />
                 <span>Open Google Meet (Follow Slides)</span>
               </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= HOLIDAY / SUNDAY NOTICE MODAL ================= */}
+      {showHolidayModal && (
+        <div className="fixed inset-0 z-[20000] modal-backdrop flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 text-center shadow-2xl border border-slate-200 relative overflow-hidden">
+            <div className="h-3 w-full bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500 absolute top-0 left-0" />
+            <img
+              src={sbhLogo}
+              alt="SBH Group of Hospitals"
+              className="h-12 w-auto object-contain mx-auto mb-4"
+            />
+            <div className="w-16 h-16 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center mx-auto mb-3 shadow-lg">
+              <span className="text-2xl">🏖️</span>
+            </div>
+            <h2 className="text-xl font-black text-slate-900 tracking-tight">
+              Sunday Weekly Off / Holiday
+            </h2>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300 mt-2">
+              <span>Official Hospital Schedule</span>
+            </div>
+            <p className="text-xs text-slate-600 mt-3 max-w-xs mx-auto leading-relaxed">
+              Today is an official hospital non-standup day. Daily Operations Standup (DOM) is not held on Sundays or scheduled holidays, and no absentees are recorded.
+            </p>
+            <div className="mt-5">
+              <button
+                type="button"
+                onClick={() => setShowHolidayModal(false)}
+                className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-xs shadow-md transition-all cursor-pointer"
+              >
+                Acknowledge & Close
+              </button>
             </div>
           </div>
         </div>

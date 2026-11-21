@@ -33,24 +33,25 @@ export function generateDirectorPdf(
 
   const textStartX = margin + 41;
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(13);
+  doc.setFontSize(11);
   doc.setTextColor(15, 23, 42); // slate-900
-  doc.text('SBH GROUP OF HOSPITALS, RAIPUR', textStartX, 13);
+  doc.text('SBH GROUP OF HOSPITALS, RAIPUR', textStartX, 12.5);
 
-  doc.setFontSize(8);
+  doc.setFontSize(7.5);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(100, 116, 139); // slate-500
-  doc.text('Clinical Governance & Hospital Operations Command', textStartX, 18);
+  doc.text('Clinical Governance & Hospital Operations Command', textStartX, 17.5);
 
-  // Right-aligned report badge
+  // Right-aligned report badge (compact font to guarantee zero overlap with hospital title)
   const cadenceCode = meeting.cadence || (meeting.frequency === 'MONTHLY' ? 'MOM' : meeting.frequency === 'WEEKLY' ? 'WOM' : 'DOM');
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8.5);
+  doc.setFontSize(8);
   doc.setTextColor(234, 88, 12);
-  doc.text(`OFFICIAL ${cadenceCode} LEADERSHIP REPORT`, pageWidth - margin, 13, { align: 'right' });
-  doc.setFontSize(7.5);
+  doc.text(`OFFICIAL ${cadenceCode} LEADERSHIP REPORT`, pageWidth - margin, 12.5, { align: 'right' });
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'normal');
   doc.setTextColor(100, 116, 139);
-  doc.text(`Generated: ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })} IST`, pageWidth - margin, 18, { align: 'right' });
+  doc.text(`Generated: ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })} IST`, pageWidth - margin, 17.5, { align: 'right' });
 
   // Divider line
   let currentY = 22;
@@ -267,13 +268,13 @@ export function generateDirectorPdf(
     },
     columnStyles: {
       0: { halign: 'center', cellWidth: 7 },
-      1: { fontStyle: 'bold', halign: 'left', cellWidth: 38 },
-      2: { halign: 'left', cellWidth: 28 },
-      3: { halign: 'center', cellWidth: 14 },
-      4: { halign: 'center', cellWidth: 20 },
+      1: { fontStyle: 'bold', halign: 'left', cellWidth: 36 },
+      2: { halign: 'left', cellWidth: 26 },
+      3: { halign: 'center', cellWidth: 18, fontSize: 6.8 }, // Fits "PHYSICAL" on one line without wrap
+      4: { halign: 'center', cellWidth: 22 },
       5: { halign: 'center', cellWidth: 17 },
       6: { halign: 'center', cellWidth: 34 },
-      7: { halign: 'center', cellWidth: 24 },
+      7: { halign: 'center', cellWidth: 22 },
     },
     didParseCell: (data) => {
       if (data.section === 'body') {
