@@ -109,7 +109,7 @@ const SidebarSystemClock: React.FC<{ currentCadence?: string }> = React.memo(({ 
     let diff = 0;
     let label = 'Starts in';
 
-    if (isTodaySunday) {
+    if (isTodaySunday && currentCadence === 'HOLIDAY') {
       diff = (24 * 3600 - nowSecs) + target1000;
       label = 'WOM in';
     } else if (nowSecs < target0950) {
@@ -194,7 +194,7 @@ const LiveIndiaClockAndCountdown: React.FC<{ currentCadence: string }> = React.m
     let targetMilestone = '';
     let stageTitle = `Next ${currentCadence} Standup In`;
 
-    if (isTodaySunday) {
+    if (isTodaySunday && currentCadence === 'HOLIDAY') {
       // Today is Sunday (Weekly Off) -> Next standup is Monday 10:00 AM IST
       const mon = new Date(time);
       mon.setDate(mon.getDate() + 1);
@@ -648,11 +648,11 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
   const isSelectedDateToday = selectedDate === todayIST;
 
-  const isSunday = useMemo(() => {
-    return new Date(selectedDate + 'T00:00:00').getDay() === 0;
-  }, [selectedDate]);
-
   const isHolidayOrRemovedDom = currentMeeting.cadence === 'HOLIDAY' || Boolean(currentMeeting.is_holiday_or_shifted);
+
+  const isSunday = useMemo(() => {
+    return new Date(selectedDate + 'T00:00:00').getDay() === 0 && isHolidayOrRemovedDom;
+  }, [selectedDate, isHolidayOrRemovedDom]);
 
   const isAfter0930Am = useMemo(() => {
     const indiaParts = new Intl.DateTimeFormat('en-US', {
@@ -876,8 +876,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('ALL');
 
   // Helper functions for Attendance Classification (strictly mutually exclusive)
-  const isSundayDate = new Date(selectedDate).getDay() === 0;
-  const isOffDate = isSundayDate || currentMeeting.cadence === 'HOLIDAY' || currentMeeting.is_holiday_or_shifted;
+  const isOffDate = currentMeeting.cadence === 'HOLIDAY' || Boolean(currentMeeting.is_holiday_or_shifted);
+  const isSundayDate = new Date(selectedDate).getDay() === 0 && isOffDate;
   const liveTodayDate = getLiveIndiaDateStr();
   const isFutureDate = selectedDate > liveTodayDate;
 
@@ -1336,8 +1336,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
     const meeting = getMeetingForDate(date);
     const cadenceCode = meeting.cadence || 'DOM';
     const forDate = getFullRosterForDate(date);
-    const isSundayDateLocal = new Date(date).getDay() === 0;
-    const isOffDateLocal = isSundayDateLocal || meeting.cadence === 'HOLIDAY' || meeting.is_holiday_or_shifted;
+    const isOffDateLocal = meeting.cadence === 'HOLIDAY' || Boolean(meeting.is_holiday_or_shifted);
+    const isSundayDateLocal = new Date(date).getDay() === 0 && isOffDateLocal;
 
     const presentCount = forDate.filter((r) => isPresentRecord(r)).length;
     const lateCount = forDate.filter((r) => isLateRecord(r)).length;
@@ -2419,7 +2419,9 @@ export const UnifiedAdminDashboard: React.FC = () => {
                               updateMeetingSchedule(selectedDate, {
                                 cadence: restoreCadence,
                                 title: restoreTitle,
+                                scheduled_time: '10:00 AM IST',
                                 is_holiday_or_shifted: false,
+                                shift_reason: undefined,
                               });
                               setToastAlert({ type: 'success', text: `✅ ${restoreCadence} Standup enabled for ${selectedDate}!` });
                               setTimeout(() => setToastAlert(null), 4000);
@@ -2514,7 +2516,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
               )}
 
               {/* Sunday or Removed DOM / Holiday Banner */}
-              {(currentMeeting.cadence === 'HOLIDAY' || currentMeeting.is_holiday_or_shifted || new Date(selectedDate).getDay() === 0) && (
+              {(currentMeeting.cadence === 'HOLIDAY' || Boolean(currentMeeting.is_holiday_or_shifted)) && (
                 <div className="p-4 bg-amber-50/90 border border-amber-300 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-amber-950 shadow-xs mb-3">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-amber-200/80 text-amber-900 flex items-center justify-center shrink-0">

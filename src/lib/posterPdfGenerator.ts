@@ -96,7 +96,7 @@ export async function generateBoardroomPosterPdf(dateStr?: string): Promise<jsPD
   // 4. Central Emerald QR Code Box (Perfect Dead Center)
   y += 19;
   const qrBoxW = 92;
-  const qrBoxH = 98;
+  const qrBoxH = 88;
   const qrBoxX = (pageWidth - qrBoxW) / 2;
 
   // Background gradient-style box with Emerald border
@@ -128,16 +128,8 @@ export async function generateBoardroomPosterPdf(dateStr?: string): Promise<jsPD
   // Draw QR code image
   doc.addImage(qrDataUrl, 'PNG', qrImgX, qrImgY, qrImgSize, qrImgSize);
 
-  // Security Pill under QR
-  doc.setFillColor(15, 23, 42);
-  doc.roundedRect(pageWidth / 2 - 32, y + qrBoxH - 11, 64, 6.5, 3, 3, 'F');
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(6.5);
-  doc.setTextColor(255, 255, 255);
-  doc.text('🔒 HIGH-SECURITY IN-PERSON AUDIT', pageWidth / 2, y + qrBoxH - 6.8, { align: 'center' });
-
   // 5. Instruction text below QR Code
-  y += qrBoxH + 5.5;
+  y += qrBoxH + 6;
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
   doc.setTextColor(15, 23, 42);
@@ -355,15 +347,8 @@ export async function downloadBoardroomPosterPng(dateStr?: string): Promise<void
   const qrY = qrBoxY + 40;
   ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
 
-  // Security Badge
-  ctx.fillStyle = '#0f172a';
-  ctx.fillRect(width / 2 - 200, qrBoxY + qrBoxSize - 10, 400, 36);
-  ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 18px monospace';
-  ctx.fillText('🔒 HIGH-SECURITY IN-PERSON AUDIT', width / 2, qrBoxY + qrBoxSize + 15);
-
   // Instructions
-  const textY = qrBoxY + qrBoxSize + 85;
+  const textY = qrBoxY + qrBoxSize + 55;
   ctx.fillStyle = '#0f172a';
   ctx.font = 'bold 28px sans-serif';
   ctx.fillText('SCAN WITH SMARTPHONE CAMERA TO CONFIRM ATTENDANCE', width / 2, textY);

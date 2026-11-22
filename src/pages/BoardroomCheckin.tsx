@@ -38,6 +38,10 @@ export const BoardroomCheckin: React.FC = () => {
   const [showHolidayModal, setShowHolidayModal] = useState(false);
 
   const isSundayOrHoliday = useMemo(() => {
+    // If admin has explicitly scheduled/enabled a meeting in the database, respect that override!
+    if (currentMeeting.cadence && currentMeeting.cadence !== 'HOLIDAY' && !currentMeeting.is_holiday_or_shifted) {
+      return false;
+    }
     const isSun = new Date(selectedDate + 'T00:00:00').getDay() === 0;
     return isSun || currentMeeting.cadence === 'HOLIDAY' || Boolean(currentMeeting.is_holiday_or_shifted);
   }, [selectedDate, currentMeeting]);

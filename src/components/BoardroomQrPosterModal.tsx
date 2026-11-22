@@ -8,7 +8,6 @@ import {
   ShieldCheck,
   MapPin,
   Clock,
-  FileText,
   CheckCircle2,
   Maximize2,
   Minimize2,
@@ -17,6 +16,11 @@ import {
   ExternalLink,
   Loader2,
   FileDown,
+  Sparkles,
+  Smartphone,
+  ScanLine,
+  Shield,
+  Layers,
 } from 'lucide-react';
 import sbhLogo from '../assets/sbh-logo.png';
 import {
@@ -39,6 +43,7 @@ export const BoardroomQrPosterModal: React.FC<BoardroomQrPosterModalProps> = ({
   selectedDate,
 }) => {
   const posterRef = useRef<HTMLDivElement | null>(null);
+  const [activeTab, setActiveTab] = useState<'terminal' | 'poster'>('terminal');
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
   const [isDownloadingPng, setIsDownloadingPng] = useState(false);
@@ -48,10 +53,10 @@ export const BoardroomQrPosterModal: React.FC<BoardroomQrPosterModalProps> = ({
   // Generate instant local base64 QR code
   useEffect(() => {
     QRCode.toDataURL(TARGET_CHECKIN_URL, {
-      width: 600,
+      width: 700,
       margin: 1,
       color: {
-        dark: '#232d42',
+        dark: '#1e1b4b',
         light: '#ffffff',
       },
     })
@@ -141,78 +146,98 @@ export const BoardroomQrPosterModal: React.FC<BoardroomQrPosterModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-[10000] modal-backdrop flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
-      {/* Container */}
-      <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full my-auto overflow-hidden border border-[#f0f1f8] flex flex-col max-h-[96vh]">
-        {/* Top Control Bar matching Hope UI */}
-        <div className="p-3.5 sm:px-6 bg-white text-[#232d42] flex flex-wrap items-center justify-between gap-3 shrink-0 border-b border-[#f0f1f8]">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#eff0fe] text-[#7065f0] border border-indigo-200/50 flex items-center justify-center font-bold">
-              <QrCode className="w-5 h-5 text-[#7065f0]" />
+      {/* Container with Hope UI styling */}
+      <div className="bg-white rounded-[28px] sm:rounded-3xl shadow-2xl max-w-5xl w-full my-auto overflow-hidden border border-[#f0f1f8] flex flex-col max-h-[95vh] animate-in fade-in zoom-in-95 duration-150">
+        
+        {/* Top Control Bar matching Hope UI Executive Banner */}
+        <div className="px-4 sm:px-6 py-3.5 bg-white text-[#232d42] flex flex-wrap items-center justify-between gap-3 shrink-0 border-b border-[#f0f1f8] relative overflow-hidden">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#7065f0] to-[#8c7ff8] text-white flex items-center justify-center shadow-sm shadow-indigo-300/40 shrink-0">
+              <QrCode className="w-5 h-5 text-white" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm sm:text-base font-bold tracking-tight text-[#232d42]">
-                  Boardroom Attendance QR Poster (1-Page A4)
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-sm sm:text-base font-black tracking-tight text-[#232d42] truncate">
+                  Boardroom Attendance QR Hub
                 </h3>
-                <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-[#eff0fe] text-[#7065f0] border border-indigo-200/60">
-                  <ExternalLink className="w-2.5 h-2.5" /> sbhdom.vercel.app
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-[#eff0fe] text-[#7065f0] border border-indigo-200/60 shrink-0">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Live Terminal v2.1
                 </span>
               </div>
-              <p className="text-[11px] text-[#8a92a6]">
-                Official single-page A4 format designed for 5th Floor Conference Hall display
+              <p className="text-[11px] text-[#8a92a6] font-medium truncate">
+                5th Floor Conference Hall • Physical Scan Terminal ({formatToIndianDate(selectedDate)})
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-            {/* View Mode Toggle */}
+          {/* Interactive Mode Tabs */}
+          <div className="flex items-center gap-1.5 bg-slate-100/80 p-1 rounded-2xl border border-slate-200/80">
             <button
-              onClick={() => setIsFitToScreen(!isFitToScreen)}
-              className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#f4f5fa] hover:bg-slate-200/60 text-[#232d42] border border-slate-200 flex items-center gap-1.5 cursor-pointer transition-colors"
-              title={isFitToScreen ? 'Switch to 100% Size View' : 'Fit Entire Poster to Screen'}
+              onClick={() => setActiveTab('terminal')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                activeTab === 'terminal'
+                  ? 'bg-white text-[#7065f0] shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
             >
-              {isFitToScreen ? <Maximize2 className="w-3.5 h-3.5" /> : <Minimize2 className="w-3.5 h-3.5" />}
-              <span className="hidden md:inline">{isFitToScreen ? 'Full Size' : 'Fit Screen'}</span>
+              <Smartphone className="w-3.5 h-3.5" />
+              <span>Smart Screen</span>
             </button>
+            <button
+              onClick={() => setActiveTab('poster')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                activeTab === 'poster'
+                  ? 'bg-white text-[#7065f0] shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span>Printable A4 Poster</span>
+            </button>
+          </div>
 
+          {/* Action Toolbar */}
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
             {/* Copy Link Button */}
             <button
               onClick={handleCopyLink}
-              className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#f4f5fa] hover:bg-slate-200/60 text-[#232d42] border border-slate-200 flex items-center gap-1.5 cursor-pointer transition-colors"
+              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-[#f4f5fa] hover:bg-slate-200/60 text-[#232d42] border border-slate-200 flex items-center gap-1.5 cursor-pointer transition-colors"
               title="Copy Check-In Link"
             >
               {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-              <span className="hidden md:inline">{isCopied ? 'Copied!' : 'Copy URL'}</span>
+              <span className="hidden sm:inline">{isCopied ? 'Copied!' : 'Copy URL'}</span>
             </button>
 
-            {/* Download A4 PDF Button (Primary Action) */}
+            {/* Download A4 PDF Button (Clean without broken emoji) */}
             <button
               onClick={handleDownloadPdf}
               disabled={isDownloadingPdf}
               className="px-3.5 py-1.5 bg-[#1aa053] hover:bg-[#15803d] disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
-              title="Download official print-ready A4 PDF for wall pasting"
+              title="Download official print-ready A4 PDF without any garbled text"
             >
               {isDownloadingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileDown className="w-3.5 h-3.5" />}
-              <span>{isDownloadingPdf ? 'Generating PDF...' : 'Download PDF (Print)'}</span>
+              <span>{isDownloadingPdf ? 'Generating...' : 'Download PDF'}</span>
             </button>
 
             {/* Download PNG Button */}
             <button
               onClick={handleDownloadPng}
               disabled={isDownloadingPng}
-              className="px-3 py-1.5 bg-[#7065f0] hover:bg-[#5e52e4] disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-xs shadow-indigo-500/20 flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
+              className="hidden sm:flex px-3 py-1.5 bg-[#7065f0] hover:bg-[#5e52e4] disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-xs shadow-indigo-500/20 items-center gap-1.5 cursor-pointer transition-all active:scale-95"
             >
               {isDownloadingPng ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-              <span>{isDownloadingPng ? 'Exporting...' : 'Download PNG'}</span>
+              <span>{isDownloadingPng ? 'Exporting...' : 'PNG'}</span>
             </button>
 
             {/* Print A4 Button */}
             <button
               onClick={handlePrint}
-              className="px-3.5 py-1.5 bg-white hover:bg-[#f4f5fa] text-[#232d42] border border-slate-200 rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
+              className="px-3 py-1.5 bg-white hover:bg-[#f4f5fa] text-[#232d42] border border-slate-200 rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
+              title="Print directly to hospital printer"
             >
               <Printer className="w-3.5 h-3.5 text-slate-700" />
-              <span>Print A4</span>
+              <span className="hidden sm:inline">Print A4</span>
             </button>
 
             {/* Close Button */}
@@ -226,102 +251,301 @@ export const BoardroomQrPosterModal: React.FC<BoardroomQrPosterModalProps> = ({
           </div>
         </div>
 
-        {/* Poster Preview Body */}
-        <div className="flex-1 overflow-y-auto p-3 sm:p-6 bg-[#f4f5fa] flex items-center justify-center">
-          {/* Exact A4 Ratio Poster Container */}
-          <div
-            ref={posterRef}
-            id="sbh-boardroom-a4-poster"
-            className={`w-full max-w-[700px] bg-white rounded-3xl shadow-xl border border-slate-200/80 p-6 sm:p-8 text-[#232d42] relative overflow-hidden transition-all duration-200 ${
-              isFitToScreen ? 'max-h-[82vh] overflow-y-auto custom-scrollbar' : ''
-            }`}
-            style={{
-              fontFamily: 'system-ui, -apple-system, sans-serif',
-            }}
-          >
-            {/* Top Accent Line */}
-            <div className="h-2 w-full bg-gradient-to-r from-[#7065f0] via-[#5ec4c7] to-[#1aa053] rounded-full mb-4" />
+        {/* Modal Body */}
+        <div className="flex-1 overflow-y-auto p-3 sm:p-6 bg-[#f8fafc]">
 
-            {/* Header: Hospital Logo & Title */}
-            <div className="flex flex-col items-center text-center pb-4 border-b border-slate-100">
-              <img
-                src={sbhLogo}
-                alt="SBH Group of Hospitals"
-                className="h-12 sm:h-14 w-auto object-contain mb-2 drop-shadow-xs mx-auto"
-              />
-              <span className="text-[11px] font-bold text-[#7065f0] bg-[#eff0fe] border border-indigo-200/50 uppercase tracking-widest px-3 py-1 rounded-full mb-1">
-                Official Operations Management Protocol
-              </span>
-              <h1 className="text-xl sm:text-2xl font-black text-[#232d42] tracking-tight uppercase">
-                DAILY OPERATIONS STANDUP (DOM)
-              </h1>
-              <p className="text-xs text-slate-500 font-semibold mt-0.5">
-                Physical Attendance Verification • 5th Floor Conference Hall
-              </p>
-            </div>
+          {/* ================= TAB 1: SMART SCREEN TERMINAL ================= */}
+          {activeTab === 'terminal' && (
+            <div className="max-w-2xl mx-auto space-y-4">
+              {/* High-Tech Terminal Card */}
+              <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-lg border border-indigo-100 relative overflow-hidden text-center">
+                <div className="h-2 w-full bg-gradient-to-r from-[#7065f0] via-[#5ec4c7] to-[#1aa053] absolute top-0 left-0" />
 
-            {/* Session Info Badges */}
-            <div className="grid grid-cols-2 gap-3 my-4">
-              <div className="bg-[#f4f5fa] p-3 rounded-2xl border border-slate-200/60 text-center">
-                <span className="text-[10px] font-bold text-[#8a92a6] uppercase tracking-wider flex items-center justify-center gap-1">
-                  <MapPin className="w-3.5 h-3.5 text-[#7065f0]" /> Mandatory Venue
-                </span>
-                <span className="text-xs font-bold text-[#232d42] block mt-0.5">
-                  5th Floor Conference Hall
-                </span>
-              </div>
-              <div className="bg-[#f4f5fa] p-3 rounded-2xl border border-slate-200/60 text-center">
-                <span className="text-[10px] font-bold text-[#8a92a6] uppercase tracking-wider flex items-center justify-center gap-1">
-                  <Clock className="w-3.5 h-3.5 text-[#7065f0]" /> Standup Time
-                </span>
-                <span className="text-xs font-bold text-[#232d42] block mt-0.5">
-                  Sharp 10:00 AM IST (Window: 09:50 – 10:20 AM)
-                </span>
-              </div>
-            </div>
-
-            {/* High-Resolution Static QR Code */}
-            <div className="my-6 flex flex-col items-center justify-center">
-              <div className="p-4 bg-white rounded-3xl border-4 border-[#7065f0] shadow-md relative">
-                {qrCodeDataUrl ? (
-                  <img
-                    src={qrCodeDataUrl}
-                    alt="Boardroom Check-In QR"
-                    className="w-56 h-56 sm:w-64 sm:h-64 object-contain rounded-xl"
-                  />
-                ) : (
-                  <div className="w-56 h-56 flex items-center justify-center">
-                    <Loader2 className="w-10 h-10 animate-spin text-[#7065f0]" />
+                {/* Hospital Brand & Terminal Identity */}
+                <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                  <div className="flex items-center gap-2.5">
+                    <img src={sbhLogo} alt="SBH Logo" className="h-9 w-auto object-contain" />
+                    <div className="text-left">
+                      <div className="text-xs font-black uppercase text-[#232d42] leading-none">
+                        SBH Group of Hospitals
+                      </div>
+                      <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
+                        Raipur Central Operations
+                      </div>
+                    </div>
                   </div>
-                )}
+                  <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-bold">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Live GPS Geofence Active</span>
+                  </div>
+                </div>
+
+                {/* Central Futuristic QR Scanner Target Frame */}
+                <div className="my-6 relative flex flex-col items-center justify-center">
+                  <div className="relative p-6 bg-gradient-to-br from-indigo-50/50 via-white to-purple-50/50 rounded-3xl border-2 border-indigo-200/80 shadow-md">
+                    {/* Targeting Corner Brackets */}
+                    <div className="absolute top-2 left-2 w-5 h-5 border-t-3 border-l-3 border-[#7065f0] rounded-tl-lg" />
+                    <div className="absolute top-2 right-2 w-5 h-5 border-t-3 border-r-3 border-[#7065f0] rounded-tr-lg" />
+                    <div className="absolute bottom-2 left-2 w-5 h-5 border-b-3 border-l-3 border-[#7065f0] rounded-bl-lg" />
+                    <div className="absolute bottom-2 right-2 w-5 h-5 border-b-3 border-r-3 border-[#7065f0] rounded-br-lg" />
+
+                    {qrCodeDataUrl ? (
+                      <img
+                        src={qrCodeDataUrl}
+                        alt="Live Boardroom Check-in QR"
+                        className="w-56 h-56 sm:w-64 sm:h-64 object-contain rounded-2xl shadow-inner bg-white p-2"
+                      />
+                    ) : (
+                      <div className="w-56 h-56 sm:w-64 sm:h-64 flex items-center justify-center">
+                        <Loader2 className="w-10 h-10 animate-spin text-[#7065f0]" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Scan Instructions Pill */}
+                  <div className="mt-4 flex items-center gap-2 bg-[#eff0fe] text-[#7065f0] border border-purple-200 px-4 py-1.5 rounded-full text-xs font-bold shadow-2xs">
+                    <ScanLine className="w-4 h-4 text-[#7065f0] animate-pulse" />
+                    <span>Point Smartphone Camera or Any Scanner to Check In</span>
+                  </div>
+                </div>
+
+                {/* Location & Time Chips */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 my-4">
+                  <div className="bg-[#f8fafc] p-3 rounded-2xl border border-slate-200/70 flex items-center gap-2.5 text-left">
+                    <div className="w-8 h-8 rounded-xl bg-orange-100 text-orange-700 flex items-center justify-center shrink-0">
+                      <MapPin className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Venue</div>
+                      <div className="text-xs font-black text-[#232d42]">5th Floor Conference Hall</div>
+                    </div>
+                  </div>
+
+                  <div className="bg-[#f8fafc] p-3 rounded-2xl border border-slate-200/70 flex items-center gap-2.5 text-left">
+                    <div className="w-8 h-8 rounded-xl bg-indigo-100 text-[#7065f0] flex items-center justify-center shrink-0">
+                      <Clock className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Attendance Window</div>
+                      <div className="text-xs font-black text-[#232d42]">09:50 AM – 10:20 AM IST</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Direct Link with Test Check-In Action */}
+                <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/80 flex items-center justify-between gap-3 text-left">
+                  <div className="min-w-0 flex-1">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">
+                      Direct Terminal URL
+                    </span>
+                    <span className="text-xs font-mono font-bold text-[#7065f0] truncate block">
+                      {TARGET_CHECKIN_URL}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      onClick={handleCopyLink}
+                      className="px-2.5 py-1 text-xs font-bold text-slate-600 bg-white hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer"
+                    >
+                      {isCopied ? 'Copied' : 'Copy'}
+                    </button>
+                    <a
+                      href={TARGET_CHECKIN_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-2.5 py-1 text-xs font-bold text-white bg-[#7065f0] hover:bg-[#5e52e4] rounded-xl flex items-center gap-1"
+                    >
+                      <span>Open Link</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                </div>
               </div>
-              <span className="text-[11px] font-bold text-[#7065f0] mt-3 uppercase tracking-wider">
-                Scan with any Smartphone Camera or Scanner App
-              </span>
-            </div>
 
-            {/* Direct Target URL */}
-            <div className="p-3 bg-[#f4f5fa] rounded-2xl border border-slate-200/60 text-center">
-              <span className="text-[10px] font-bold text-[#8a92a6] uppercase tracking-wider block">
-                Direct Portal Web Address:
-              </span>
-              <a
-                href={TARGET_CHECKIN_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs font-mono font-bold text-[#7065f0] hover:underline"
+              {/* 3-Step Protocol Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <div className="bg-white p-3.5 rounded-2xl border border-slate-200/70 shadow-2xs">
+                  <div className="w-6 h-6 rounded-full bg-orange-500 text-white font-black text-xs flex items-center justify-center mb-1.5">
+                    1
+                  </div>
+                  <div className="text-xs font-bold text-slate-900">Scan In Boardroom</div>
+                  <div className="text-[11px] text-slate-500 mt-0.5 leading-snug">
+                    Scan upon entering 5th Floor Conference Hall before 10:00 AM.
+                  </div>
+                </div>
+
+                <div className="bg-white p-3.5 rounded-2xl border border-slate-200/70 shadow-2xs">
+                  <div className="w-6 h-6 rounded-full bg-emerald-600 text-white font-black text-xs flex items-center justify-center mb-1.5">
+                    2
+                  </div>
+                  <div className="text-xs font-bold text-slate-900">Select Name & PIN</div>
+                  <div className="text-[11px] text-slate-500 mt-0.5 leading-snug">
+                    Choose your department leader profile and confirm presence.
+                  </div>
+                </div>
+
+                <div className="bg-white p-3.5 rounded-2xl border border-slate-200/70 shadow-2xs">
+                  <div className="w-6 h-6 rounded-full bg-[#7065f0] text-white font-black text-xs flex items-center justify-center mb-1.5">
+                    3
+                  </div>
+                  <div className="text-xs font-bold text-slate-900">Audit Locked</div>
+                  <div className="text-[11px] text-slate-500 mt-0.5 leading-snug">
+                    Presence is recorded once per day and transmitted to Director Sir.
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ================= TAB 2: PRINTABLE A4 POSTER PREVIEW ================= */}
+          {activeTab === 'poster' && (
+            <div className="flex flex-col items-center justify-center">
+              <div className="mb-3 flex items-center justify-between w-full max-w-[700px] text-xs font-bold text-slate-600">
+                <span className="flex items-center gap-1.5">
+                  <Printer className="w-4 h-4 text-[#7065f0]" />
+                  <span>Standard A4 Paper Ratio (210mm × 297mm)</span>
+                </span>
+                <button
+                  onClick={() => setIsFitToScreen(!isFitToScreen)}
+                  className="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-slate-700 cursor-pointer flex items-center gap-1"
+                >
+                  {isFitToScreen ? <Maximize2 className="w-3 h-3" /> : <Minimize2 className="w-3 h-3" />}
+                  <span>{isFitToScreen ? 'Full Zoom' : 'Fit Screen'}</span>
+                </button>
+              </div>
+
+              {/* Exact A4 Ratio Poster Container */}
+              <div
+                ref={posterRef}
+                id="sbh-boardroom-a4-poster"
+                className={`w-full max-w-[700px] bg-white rounded-3xl shadow-xl border border-slate-200/80 p-6 sm:p-8 text-[#232d42] relative overflow-hidden transition-all duration-200 ${
+                  isFitToScreen ? 'max-h-[78vh] overflow-y-auto custom-scrollbar' : ''
+                }`}
+                style={{
+                  fontFamily: 'system-ui, -apple-system, sans-serif',
+                }}
               >
-                {TARGET_CHECKIN_URL}
-              </a>
-            </div>
+                {/* Top Accent Line */}
+                <div className="h-2 w-full bg-gradient-to-r from-[#ea580c] via-[#5ec4c7] to-[#16a34a] rounded-full mb-4" />
 
-            {/* Footer Compliance Notice */}
-            <div className="mt-5 pt-3 border-t border-slate-100 text-center">
-              <span className="text-[10px] font-semibold text-slate-500">
-                Hospital Director's Audit • Single Daily Submission Enforced • Geofenced to 5th Floor
-              </span>
+                {/* Header: Hospital Logo & Title */}
+                <div className="flex flex-col items-center text-center pb-4 border-b border-slate-100">
+                  <img
+                    src={sbhLogo}
+                    alt="SBH Group of Hospitals"
+                    className="h-12 sm:h-14 w-auto object-contain mb-2 drop-shadow-xs mx-auto"
+                  />
+                  <span className="text-[11px] font-bold text-[#16a34a] bg-emerald-50 border border-emerald-200 uppercase tracking-widest px-3 py-1 rounded-full mb-1">
+                    Hospital Operations & Management Command
+                  </span>
+                  <h1 className="text-xl sm:text-2xl font-black text-[#232d42] tracking-tight uppercase">
+                    DAILY OPERATIONS STANDUP (DOM)
+                  </h1>
+                  <p className="text-xs text-orange-600 font-bold mt-0.5 uppercase tracking-wider">
+                    Official Boardroom Attendance Check-In Terminal
+                  </p>
+                </div>
+
+                {/* Session Info Badges */}
+                <div className="grid grid-cols-3 gap-2.5 my-4">
+                  <div className="bg-[#f8fafc] p-2.5 rounded-2xl border border-slate-200/70 text-center">
+                    <span className="text-[9px] font-bold text-orange-600 uppercase tracking-wider block">
+                      VENUE
+                    </span>
+                    <span className="text-[11px] font-black text-[#232d42] block mt-0.5">
+                      Conference Room, 5th Flr
+                    </span>
+                  </div>
+                  <div className="bg-[#f8fafc] p-2.5 rounded-2xl border border-slate-200/70 text-center">
+                    <span className="text-[9px] font-bold text-emerald-600 uppercase tracking-wider block">
+                      CADENCE
+                    </span>
+                    <span className="text-[11px] font-black text-[#232d42] block mt-0.5">
+                      Daily Sharp 10:00 AM IST
+                    </span>
+                  </div>
+                  <div className="bg-[#f8fafc] p-2.5 rounded-2xl border border-slate-200/70 text-center">
+                    <span className="text-[9px] font-bold text-blue-600 uppercase tracking-wider block">
+                      SCAN WINDOW
+                    </span>
+                    <span className="text-[11px] font-black text-[#232d42] block mt-0.5">
+                      09:45 AM – 10:00 AM IST
+                    </span>
+                  </div>
+                </div>
+
+                {/* High-Resolution Clean QR Code Box (Zero Broken Characters) */}
+                <div className="my-5 flex flex-col items-center justify-center">
+                  <div className="p-4 bg-slate-50/70 rounded-3xl border-2 border-emerald-600 shadow-sm relative">
+                    {qrCodeDataUrl ? (
+                      <img
+                        src={qrCodeDataUrl}
+                        alt="Boardroom Check-In QR"
+                        className="w-56 h-56 sm:w-64 sm:h-64 object-contain rounded-xl bg-white p-2"
+                      />
+                    ) : (
+                      <div className="w-56 h-56 flex items-center justify-center">
+                        <Loader2 className="w-10 h-10 animate-spin text-emerald-600" />
+                      </div>
+                    )}
+                  </div>
+                  <span className="text-xs font-black text-slate-800 mt-3 uppercase tracking-wider text-center">
+                    SCAN WITH SMARTPHONE CAMERA TO CONFIRM ATTENDANCE
+                  </span>
+                  <span className="text-[11px] text-slate-500 font-medium text-center mt-0.5">
+                    Point mobile camera or scanner at the code to access the official SBH Attendance Terminal.
+                  </span>
+                </div>
+
+                {/* Direct Target URL */}
+                <div className="p-2.5 bg-emerald-50/70 rounded-2xl border border-emerald-200 text-center">
+                  <span className="text-[9px] font-bold text-emerald-700 uppercase tracking-wider block">
+                    Target URL:
+                  </span>
+                  <a
+                    href={TARGET_CHECKIN_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs font-mono font-bold text-emerald-800 hover:underline"
+                  >
+                    {TARGET_CHECKIN_URL}
+                  </a>
+                </div>
+
+                {/* 3-Step Protocol */}
+                <div className="grid grid-cols-3 gap-2 my-4">
+                  <div className="bg-[#f8fafc] p-2 rounded-xl border border-slate-200/60 text-left">
+                    <div className="text-[10px] font-bold text-orange-600">1. Scan In Boardroom</div>
+                    <div className="text-[9px] text-slate-500 mt-0.5">Scan upon entering 5th Floor Hall.</div>
+                  </div>
+                  <div className="bg-[#f8fafc] p-2 rounded-xl border border-slate-200/60 text-left">
+                    <div className="text-[10px] font-bold text-emerald-600">2. Verify Identity</div>
+                    <div className="text-[9px] text-slate-500 mt-0.5">Select name and enter PIN.</div>
+                  </div>
+                  <div className="bg-[#f8fafc] p-2 rounded-xl border border-slate-200/60 text-left">
+                    <div className="text-[10px] font-bold text-blue-600">3. Single Audit Lock</div>
+                    <div className="text-[9px] text-slate-500 mt-0.5">Attendance counted once per day.</div>
+                  </div>
+                </div>
+
+                {/* Footer SOP Terms */}
+                <div className="pt-3 border-t border-slate-100 text-left text-[9px] text-slate-500 space-y-1">
+                  <div className="font-bold text-slate-700 uppercase tracking-wider">
+                    Standing Operating Procedure (SOP) & Compliance Terms:
+                  </div>
+                  <div>• Punctuality Standard: Leaders attending physically must scan before 10:00 AM sharp.</div>
+                  <div>• Single Daily Count Guarantee: Presence is recorded once per day per leader.</div>
+                  <div>• Automated Director Report: DOM Register is finalized at 10:30 AM IST for Hospital Director Sir.</div>
+                </div>
+
+                <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[8px] text-slate-400 font-bold uppercase tracking-wider">
+                  <span>SBH GROUP OF HOSPITALS • Raipur</span>
+                  <span>Authorized by Hospital Management</span>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
+
         </div>
       </div>
     </div>

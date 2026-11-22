@@ -644,8 +644,17 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         'postgres_changes',
         { event: '*', schema: 'public', table: 'admin_audit_logs' },
         (payload) => {
-          // Only trigger sync if event relates to ATTENDANCE_RECORD
-          if (!payload.new || (payload.new as any).action === 'ATTENDANCE_RECORD') {
+          // Live Sync for Meeting Schedules (DOM Enable, Holiday Shift, Cadence Changes)
+          if (payload.new && (payload.new as any).action === 'MEETING_SCHEDULE') {
+            const newSched = (payload.new as any).after_data as MeetingSchedule;
+            const schedDate = (payload.new as any).entity_id;
+            if (newSched && schedDate) {
+              setMeetingSchedules((prev) => ({
+                ...prev,
+                [schedDate]: newSched,
+              }));
+            }
+          } else if (!payload.new || (payload.new as any).action === 'ATTENDANCE_RECORD') {
             triggerDebouncedLiveSync();
           }
         }
@@ -735,28 +744,37 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
     }
 
+    const isEnabling = resolvedCadence !== 'HOLIDAY' && !updates.is_holiday_or_shifted;
+
     const updated: MeetingSchedule = {
       ...current,
       ...updates,
       cadence: resolvedCadence,
       frequency: resolvedFrequency,
+      scheduled_time: isEnabling
+        ? updates.scheduled_time && updates.scheduled_time !== 'OFF'
+          ? updates.scheduled_time
+          : current.scheduled_time && current.scheduled_time !== 'OFF'
+            ? current.scheduled_time
+            : '10:00 AM IST'
+        : updates.scheduled_time || current.scheduled_time || 'OFF',
+      is_holiday_or_shifted:
+        updates.is_holiday_or_shifted !== undefined
+          ? updates.is_holiday_or_shifted
+          : resolvedCadence === 'HOLIDAY',
+      shift_reason: isEnabling
+        ? undefined
+        : updates.shift_reason || current.shift_reason,
       updated_at: new Date().toISOString(),
     };
 
-    setMeetingSchedules((prev) => {
-      const next = {
-        ...prev,
-        [date]: updated,
-      };
-      try {
-        localStorage.setItem('sbh_meeting_schedules', JSON.stringify(next));
-      } catch (e) {
-        console.warn('LocalStorage save warning for schedules:', e);
-      }
-      return next;
-    });
+    // 1. Immediately update in-memory state for instant UI responsiveness
+    setMeetingSchedules((prev) => ({
+      ...prev,
+      [date]: updated,
+    }));
 
-    // Persist directly into Supabase SQL database table
+    // 2. Persist directly into Supabase SQL database (admin_audit_logs table)
     try {
       supabase.from('admin_audit_logs').insert([
         {
@@ -764,17 +782,19 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           action: 'MEETING_SCHEDULE',
           entity_type: 'SCHEDULE',
           entity_id: date,
-          reason: `Meeting schedule updated for date ${date} at ${updated.scheduled_time}`,
+          reason: `Meeting schedule updated for date ${date}: ${resolvedCadence} (${updated.scheduled_time})`,
           after_data: updated,
         },
-      ]).then();
+      ]).then(({ error }) => {
+        if (error) console.error('Supabase meeting schedule save error:', error);
+      });
     } catch (e) {
       console.warn('Supabase meeting schedule save warning:', e);
     }
 
     return {
       success: true,
-      message: `Meeting schedule for ${date} updated to ${resolvedCadence} (${resolvedFrequency}) successfully!`,
+      message: `Meeting schedule for ${date} updated to ${resolvedCadence} (${resolvedFrequency}) successfully in SQL Database!`,
     };
   };
 
