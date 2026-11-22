@@ -794,6 +794,16 @@ export const UnifiedAdminDashboard: React.FC = () => {
     status: 'PRESENT',
   });
 
+  const [quickTimeModal, setQuickTimeModal] = useState<{
+    isOpen: boolean;
+    record: AttendanceRecord | null;
+    customTime: string;
+  }>({
+    isOpen: false,
+    record: null,
+    customTime: '10:00:00 AM',
+  });
+
   // Short Snappy Top Tab Loading Progress
   const [tabLoading, setTabLoading] = useState<boolean>(false);
   useEffect(() => {
@@ -998,8 +1008,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
     return nameMatch && statusMatch;
   });
 
-  // Calculate live statistics
-  const totalLeaders = leaders.length;
+  // Calculate live statistics (excluding executive Director Sir from departmental total)
+  const isDirectorLead = (l?: any) =>
+    l?.role === 'DIRECTOR' || l?.full_name?.toLowerCase().includes('director') || l?.id === '905b6cf2-0e49-40b1-aa7c-828fe88a55ad';
+  const totalLeaders = leaders.filter((l) => !isDirectorLead(l)).length;
   const countPresent = recordsForDate.filter(isPresentRecord).length;
   const countPhysical = recordsForDate.filter(isPhysicalRecord).length;
   const countVirtual = recordsForDate.filter(isVirtualRecord).length;
@@ -2863,6 +2875,37 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 </div>
               </div>
 
+              {/* Executive Attendance Highlight (Director Sir) */}
+              {(() => {
+                const dirRec = recordsForDate.find(
+                  (r) =>
+                    (r.leader?.role === 'DIRECTOR' || r.leader?.full_name?.toLowerCase().includes('director') || r.leader_id === '905b6cf2-0e49-40b1-aa7c-828fe88a55ad') &&
+                    (r.check_in_at || r.status === 'PRESENT')
+                );
+                if (!dirRec) return null;
+                const dirTime = dirRec.check_in_at
+                  ? new Date(dirRec.check_in_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
+                  : (dirRec as any).join_time || '10:00 AM';
+                return (
+                  <div className="p-3.5 bg-gradient-to-r from-amber-500/15 via-purple-500/10 to-indigo-500/10 border-2 border-amber-400/80 rounded-2xl flex items-center justify-between gap-3 shadow-xs mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center font-black text-lg shadow-xs">
+                        👑
+                      </div>
+                      <div>
+                        <div className="text-[10px] uppercase font-black text-amber-800 tracking-wider">Executive Presence</div>
+                        <div className="text-sm font-black text-slate-900">
+                          Director Sir <span className="font-semibold text-xs text-slate-600">— Joined {dirRec.selected_mode === 'PHYSICAL' ? 'In-Person (Conference Room, 5th Floor)' : 'Virtually via Google Meet'}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <span className="px-3 py-1 bg-amber-100 text-amber-900 border border-amber-300 rounded-full font-mono font-black text-xs">
+                      {dirTime} IST
+                    </span>
+                  </div>
+                );
+              })()}
+
               {/* Attendance Register Table */}
               <div id="attendance-register-table" className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden scroll-mt-20">
                 <div className="block lg:hidden px-3.5 py-1.5 bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 flex items-center justify-between">
@@ -2998,17 +3041,44 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                   );
                                 })()}
                               </td>
-                              <td className="py-2.5 px-3 text-center font-mono text-xs text-slate-800 font-bold">
-                                {rec.check_in_at ? (
-                                  new Date(rec.check_in_at).toLocaleTimeString('en-IN', {
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                    second: '2-digit',
-                                    hour12: true,
-                                  })
-                                ) : (
-                                  <span className="text-slate-400 font-semibold">—</span>
-                                )}
+                              <td className="py-2 px-3 text-center">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const curTime = rec.check_in_at
+                                      ? new Date(rec.check_in_at).toLocaleTimeString('en-IN', {
+                                          hour: '2-digit',
+                                          minute: '2-digit',
+                                          second: '2-digit',
+                                          hour12: true,
+                                        })
+                                      : (rec as any).join_time || '10:00:00 AM';
+                                    setQuickTimeModal({
+                                      isOpen: true,
+                                      record: rec,
+                                      customTime: curTime,
+                                    });
+                                  }}
+                                  className="group px-2.5 py-1.5 bg-slate-50 hover:bg-purple-50 text-slate-800 hover:text-[#7065f0] border border-slate-200 hover:border-purple-300 rounded-xl text-xs font-mono font-bold shadow-2xs transition-all cursor-pointer inline-flex items-center gap-1.5 active:scale-95"
+                                  title="Click to modify arrival time for this leader"
+                                >
+                                  <Clock className="w-3 h-3 text-slate-400 group-hover:text-[#7065f0] transition-colors" />
+                                  <span>
+                                    {rec.check_in_at ? (
+                                      new Date(rec.check_in_at).toLocaleTimeString('en-IN', {
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                        second: '2-digit',
+                                        hour12: true,
+                                      })
+                                    ) : (rec as any).join_time ? (
+                                      (rec as any).join_time
+                                    ) : (
+                                      <span className="text-slate-400 font-semibold">— (Set Time)</span>
+                                    )}
+                                  </span>
+                                  <Edit2 className="w-2.5 h-2.5 text-slate-400 group-hover:text-[#7065f0] transition-colors" />
+                                </button>
                               </td>
                               <td className="py-2.5 px-3 text-center">
                                 {isOffDate && rec.status !== 'PRESENT' ? (
@@ -7978,6 +8048,117 @@ function doPost(e) {
                 className="px-5 py-2 bg-gradient-to-r from-[#7065f0] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7065f0] text-white rounded-xl text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer"
               >
                 Save Attendance Record
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Quick Arrival Time Change Modal (Directly modifies leader arrival time) */}
+      {quickTimeModal.isOpen && quickTimeModal.record && (
+        <div className="fixed inset-0 z-[10001] modal-backdrop flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-in zoom-in-95">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-purple-100 text-[#7065f0] flex items-center justify-center">
+                  <Clock className="w-5 h-5 text-[#7065f0]" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-900">
+                    Change Arrival Time
+                  </h3>
+                  <p className="text-[11px] text-slate-500 font-medium">
+                    {quickTimeModal.record.leader?.full_name} ({quickTimeModal.record.leader?.department?.name || 'Dept'})
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setQuickTimeModal({ isOpen: false, record: null, customTime: '' })}
+                className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center text-xs font-bold cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="py-4 space-y-3.5">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  1-Click Quick Time Presets
+                </label>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {['09:55 AM', '10:00 AM', '10:05 AM', '10:10 AM', '10:15 AM', '10:20 AM', '10:25 AM', '10:30 AM'].map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setQuickTimeModal((prev) => ({ ...prev, customTime: t }))}
+                      className={`py-1.5 px-2 rounded-xl text-[11px] font-mono font-bold border transition-all cursor-pointer ${
+                        quickTimeModal.customTime.includes(t.replace(' AM', ''))
+                          ? 'bg-[#7065f0] text-white border-[#7065f0] shadow-xs'
+                          : 'bg-slate-50 hover:bg-purple-50 text-slate-700 hover:text-[#7065f0] border-slate-200'
+                      }`}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  Or Enter Exact Arrival Time (IST)
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={quickTimeModal.customTime}
+                    onChange={(e) => setQuickTimeModal((prev) => ({ ...prev, customTime: e.target.value }))}
+                    placeholder="e.g. 10:04:15 AM"
+                    className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-[#7065f0] focus:bg-white focus:ring-2 focus:ring-[#7065f0]/20"
+                  />
+                  <Clock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                </div>
+                <span className="text-[10px] text-slate-400 mt-1 block">
+                  Format: HH:MM:SS AM/PM or HH:MM AM/PM (DOM meeting starts at 10:00 AM IST)
+                </span>
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setQuickTimeModal({ isOpen: false, record: null, customTime: '' })}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!quickTimeModal.record) return;
+                  const rec = quickTimeModal.record;
+                  const timeInput = quickTimeModal.customTime.trim() || '10:00:00 AM';
+                  const targetStatus = rec.status === 'ABSENT' || rec.status === 'PENDING' ? 'PRESENT' : rec.status;
+                  const targetMode = rec.selected_mode === 'NONE' ? 'PHYSICAL' : rec.selected_mode;
+
+                  await overrideAttendanceTime(
+                    rec.id,
+                    timeInput,
+                    targetStatus,
+                    targetMode,
+                    `Arrival time updated to ${timeInput}`
+                  );
+
+                  setToastAlert({
+                    type: 'success',
+                    text: `✅ Arrival time for ${rec.leader?.full_name} updated to ${timeInput}!`,
+                  });
+                  setQuickTimeModal({ isOpen: false, record: null, customTime: '' });
+                  setTimeout(() => setToastAlert(null), 3500);
+                }}
+                className="px-5 py-2 bg-gradient-to-r from-[#7065f0] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7065f0] text-white rounded-xl text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer"
+              >
+                Update Arrival Time
               </button>
             </div>
           </div>

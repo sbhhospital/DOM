@@ -23,7 +23,7 @@ import sbhLogo from '../assets/sbh-logo.png';
 
 export const BoardroomCheckin: React.FC = () => {
   const navigate = useNavigate();
-  const { leaders, departments, selectedDate, markRoomQrCheckIn, getMeetingForDate, appSettings } = useDomApp();
+  const { leaders, departments, selectedDate, markRoomQrCheckIn, markVirtualJoin, getMeetingForDate, appSettings } = useDomApp();
   const { currentUser, loginLeaderDirect, logoutUser } = useAuthSession();
 
   const currentMeeting = getMeetingForDate(selectedDate);
@@ -36,6 +36,8 @@ export const BoardroomCheckin: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showHolidayModal, setShowHolidayModal] = useState(false);
+  const [checkinMode, setCheckinMode] = useState<'PHYSICAL' | 'VIRTUAL'>('PHYSICAL');
+  const [geoDistance, setGeoDistance] = useState<number | null>(null);
 
   const isSundayOrHoliday = useMemo(() => {
     // If admin has explicitly scheduled/enabled a meeting in the database, respect that override!
@@ -74,6 +76,8 @@ export const BoardroomCheckin: React.FC = () => {
     department: string;
     timeStr: string;
     isAlreadyRecorded: boolean;
+    mode?: 'PHYSICAL' | 'VIRTUAL';
+    meetUrl?: string;
   } | null>(null);
 
   useEffect(() => {
@@ -143,7 +147,7 @@ export const BoardroomCheckin: React.FC = () => {
         try {
           const pos: any = await new Promise((resolve, reject) => {
             navigator.geolocation.getCurrentPosition(resolve, reject, {
-              timeout: 6000,
+              timeout: 5000,
               enableHighAccuracy: true,
               maximumAge: 10000,
             });
@@ -153,16 +157,43 @@ export const BoardroomCheckin: React.FC = () => {
           locData.accuracy = Math.round(pos.coords.accuracy);
         } catch (gpsErr) {
           console.warn('GPS location fetch note:', gpsErr);
-          setErrorMessage('⚠️ Location permission is required to verify physical presence in the Conference Room. Please enable GPS on your device.');
-          setIsSubmitting(false);
-          return;
+          if (checkinMode === 'PHYSICAL') {
+            setErrorMessage('⚠️ Location permission is required to verify physical presence in the Conference Room. Please enable GPS on your device.');
+            setIsSubmitting(false);
+            return;
+          }
         }
-      } else {
-        setErrorMessage('⚠️ Geolocation is not supported by your browser or device.');
+      }
+
+      // ================= BRANCH: VIRTUAL ATTENDANCE (GOOGLE MEET) =================
+      if (checkinMode === 'VIRTUAL') {
+        const virtualRes = await markVirtualJoin(selectedLeader.id, selectedDate, locData);
+        if (virtualRes.success) {
+          const nowStr = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+          const targetMeet = virtualRes.meetUrl || currentMeeting.google_meet_url || 'https://meet.google.com/jrz-jfku-gir';
+          setConfirmationData({
+            leaderName: selectedLeader.full_name,
+            department: resolvedDepartmentName,
+            timeStr: nowStr,
+            isAlreadyRecorded: false,
+            mode: 'VIRTUAL',
+            meetUrl: targetMeet,
+          });
+          setShowThankYouModal(true);
+          // Auto launch Google Meet after brief delay
+          setTimeout(() => {
+            try {
+              window.open(targetMeet, '_blank');
+            } catch {}
+          }, 1500);
+        } else {
+          setErrorMessage(virtualRes.message || 'Virtual check-in failed. Please try again.');
+        }
         setIsSubmitting(false);
         return;
       }
 
+      // ================= BRANCH: PHYSICAL ATTENDANCE (CONFERENCE ROOM) =================
       if (!locData.latitude || !locData.longitude) {
         setErrorMessage('⚠️ Hospital location could not be detected. Please ensure GPS is enabled and try again.');
         setIsSubmitting(false);
@@ -183,10 +214,10 @@ export const BoardroomCheckin: React.FC = () => {
 
       if (appSettings.hospital_geofence_enabled !== false && distance > allowedRadius) {
         // Trigger markRoomQrCheckIn so the breach is officially logged into Supabase SQL database (admin_audit_logs)
-        const checkinRes = await markRoomQrCheckIn(selectedLeader.id, locData);
+        await markRoomQrCheckIn(selectedLeader.id, locData);
+        setGeoDistance(distance);
         setErrorMessage(
-          checkinRes.message ||
-          `🚫 Location Restriction: Physical check-in is ONLY permitted inside SBH Hospital campus (Allowed radius: ${allowedRadius}m). You are currently approximately ${distance}m away. Your location attempt has been recorded in the security audit log.`
+          `Physical Attendance Rejected: You are approximately ${distance}m away from SBH Hospital. Physical attendance can ONLY be verified inside SBH Hospital Campus (Allowed radius: ${allowedRadius}m). Your attempt and location have been recorded in the security audit log.`
         );
         setIsSubmitting(false);
         return;
@@ -201,6 +232,7 @@ export const BoardroomCheckin: React.FC = () => {
           department: resolvedDepartmentName,
           timeStr: checkinRes.timeStr || new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }),
           isAlreadyRecorded: checkinRes.alreadyRecorded || false,
+          mode: 'PHYSICAL',
         });
         setShowThankYouModal(true);
       } else {
@@ -229,10 +261,10 @@ export const BoardroomCheckin: React.FC = () => {
               className="h-14 sm:h-16 w-auto object-contain mx-auto mb-3 drop-shadow-xs"
             />
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-[#eff0fe] text-[#7065f0] border border-purple-200/60 uppercase tracking-wider mb-2">
-              <ShieldCheck className="w-3.5 h-3.5 text-[#7065f0]" /> 5th Floor Conference Hall Check-In
+              <ShieldCheck className="w-3.5 h-3.5 text-[#7065f0]" /> {checkinMode === 'PHYSICAL' ? '5th Floor Conference Hall Check-In' : 'Google Meet Online Standup'}
             </span>
             <h1 className="text-xl sm:text-2xl font-black text-[#232d42] tracking-tight">
-              BOARDROOM PHYSICAL ATTENDANCE
+              {checkinMode === 'PHYSICAL' ? 'BOARDROOM PHYSICAL ATTENDANCE' : 'DAILY OPERATIONS VIRTUAL STANDUP'}
             </h1>
             <p className="text-xs text-slate-500 mt-1">
               Daily Operations Standup (DOM) • Sharp 10:00 AM IST
@@ -253,6 +285,42 @@ export const BoardroomCheckin: React.FC = () => {
               </div>
             </div>
           )}
+
+          {/* Mode Selector Tabs (Physical vs Virtual) */}
+          <div className="grid grid-cols-2 gap-2 my-3 p-1.5 bg-slate-100 rounded-2xl border border-slate-200">
+            <button
+              type="button"
+              onClick={() => {
+                setCheckinMode('PHYSICAL');
+                setErrorMessage('');
+                setGeoDistance(null);
+              }}
+              className={`py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                checkinMode === 'PHYSICAL'
+                  ? 'bg-gradient-to-r from-[#7065f0] to-[#7f70f6] text-white shadow-md shadow-indigo-300/40'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+              }`}
+            >
+              <Building className="w-4 h-4" />
+              <span>In-Person (5th Floor)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setCheckinMode('VIRTUAL');
+                setErrorMessage('');
+                setGeoDistance(null);
+              }}
+              className={`py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                checkinMode === 'VIRTUAL'
+                  ? 'bg-gradient-to-r from-[#7065f0] to-[#7f70f6] text-white shadow-md shadow-indigo-300/40'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+              }`}
+            >
+              <Video className="w-4 h-4" />
+              <span>Virtual (Google Meet)</span>
+            </button>
+          </div>
 
           {/* Session Venue & Time Badges */}
           <div className="grid grid-cols-2 gap-2.5 my-4 text-center">
@@ -282,11 +350,30 @@ export const BoardroomCheckin: React.FC = () => {
             </div>
           )}
 
-          {/* Error Message */}
+          {/* Error Message with Remote / Virtual Fallback Option */}
           {errorMessage && (
-            <div className="mb-4 p-3.5 bg-rose-50 border border-rose-200 text-rose-900 rounded-2xl text-xs font-bold flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-              <span>{errorMessage}</span>
+            <div className="mb-4 p-4 bg-rose-50 border-2 border-rose-200 text-rose-950 rounded-2xl text-xs font-bold space-y-3 shadow-xs">
+              <div className="flex items-start gap-2.5">
+                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                <span className="leading-relaxed">{errorMessage}</span>
+              </div>
+              {checkinMode === 'PHYSICAL' && (
+                <div className="pt-2 border-t border-rose-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+                  <span className="text-slate-700 text-xs font-semibold">Attending from remote location or off-campus?</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCheckinMode('VIRTUAL');
+                      setErrorMessage('');
+                      setGeoDistance(null);
+                    }}
+                    className="px-3.5 py-2 bg-gradient-to-r from-[#7065f0] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7065f0] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-xs transition-all active:scale-95 shrink-0"
+                  >
+                    <Video className="w-3.5 h-3.5 text-white" />
+                    <span>Switch to Virtual Standup (Google Meet)</span>
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -306,7 +393,7 @@ export const BoardroomCheckin: React.FC = () => {
                   Department: <strong className="text-[#7065f0]">{resolvedDepartmentName}</strong>
                 </div>
                 <div className="flex items-center justify-between text-[11px] text-slate-500 font-mono mt-2 pt-2 border-t border-[#f0f1f8]">
-                  <span>Mode: <strong className="text-[#7065f0]">Physical / Conference Room</strong></span>
+                  <span>Mode: <strong className="text-[#7065f0]">{checkinMode === 'PHYSICAL' ? 'Physical / Conference Room' : 'Virtual / Google Meet'}</strong></span>
                   <button
                     type="button"
                     onClick={() => logoutUser()}
@@ -414,8 +501,8 @@ export const BoardroomCheckin: React.FC = () => {
                   <CheckCircle2 className="w-4 h-4 text-white" />
                   <span>
                     {isSubmitting
-                      ? 'Verifying Physical Attendance...'
-                      : 'Confirm My Physical Presence in Boardroom'}
+                      ? (checkinMode === 'PHYSICAL' ? 'Verifying Physical Attendance...' : 'Connecting to Virtual Standup...')
+                      : (checkinMode === 'PHYSICAL' ? 'Confirm My Physical Presence in Boardroom' : 'Confirm Virtual Presence & Join Google Meet')}
                   </span>
                 </>
               )}
@@ -454,11 +541,13 @@ export const BoardroomCheckin: React.FC = () => {
             </h2>
 
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#eff0fe] text-[#7065f0] border border-purple-200/60 mt-2">
-              <Sparkles className="w-3.5 h-3.5 text-[#7065f0]" /> Physical Attendance Confirmed
+              <Sparkles className="w-3.5 h-3.5 text-[#7065f0]" /> {confirmationData.mode === 'VIRTUAL' ? 'Virtual Standup Attendance Confirmed' : 'Physical Attendance Confirmed'}
             </div>
 
             <p className="text-xs text-slate-600 mt-3 max-w-xs mx-auto leading-relaxed">
-              Your in-person attendance inside the <strong className="text-slate-800">5th Floor Conference Room</strong> has been officially timestamped and locked in today's DOM register for Hospital Director review.
+              {confirmationData.mode === 'VIRTUAL'
+                ? 'Your virtual attendance via Google Meet has been officially timestamped and locked in today\'s DOM register for Hospital Director review.'
+                : 'Your in-person attendance inside the 5th Floor Conference Room has been officially timestamped and locked in today\'s DOM register for Hospital Director review.'}
             </p>
 
             {/* Audit Details Card */}
@@ -473,7 +562,7 @@ export const BoardroomCheckin: React.FC = () => {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-slate-500 font-semibold">Audit Status:</span>
-                <span className="font-bold text-[#7065f0]">PRESENT (Physical / Verified)</span>
+                <span className="font-bold text-[#7065f0]">{confirmationData.mode === 'VIRTUAL' ? 'PRESENT (Virtual / Google Meet)' : 'PRESENT (Physical / Verified)'}</span>
               </div>
               <div className="flex items-center justify-between pt-1 border-t border-[#f0f1f8]">
                 <span className="text-slate-500 font-semibold">Single Count Lock:</span>

@@ -315,6 +315,15 @@ const resolveLeaderDepartment = (lead: any, deptsList: Department[]): Department
   return deptsList[0];
 };
 
+export const isDirectorUser = (l?: Leader | null | { id?: string; full_name?: string; role?: string }) => {
+  if (!l) return false;
+  return (
+    l.role === 'DIRECTOR' ||
+    l.full_name?.toLowerCase().includes('director') ||
+    l.id === '905b6cf2-0e49-40b1-aa7c-828fe88a55ad'
+  );
+};
+
 export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const todayStr = getLiveIndiaDateStr();
   const [selectedDate, setSelectedDate] = useState<string>(todayStr);
@@ -2741,22 +2750,25 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const sendDailyWhatsappReport = (date: string) => {
     const meeting = getMeetingForDate(date);
     const forDate = getFullRosterForDate(date);
+    const isDir = (l?: any) => l?.role === 'DIRECTOR' || l?.full_name?.toLowerCase().includes('director') || l?.id === '905b6cf2-0e49-40b1-aa7c-828fe88a55ad';
+    const directorRec = forDate.find((r) => isDir(r.leader || { id: r.leader_id }) && (r.check_in_at || r.status === 'PRESENT'));
+
     const presentPhysical = forDate.filter(
-      (r) => r.selected_mode === 'PHYSICAL' && (r.status === 'PRESENT' || r.admin_verified_attendance)
+      (r) => !isDir(r.leader || { id: r.leader_id }) && r.selected_mode === 'PHYSICAL' && (r.status === 'PRESENT' || r.admin_verified_attendance)
     );
-    const presentVirtual = forDate.filter((r) => r.selected_mode === 'VIRTUAL' && r.status === 'PRESENT');
+    const presentVirtual = forDate.filter((r) => !isDir(r.leader || { id: r.leader_id }) && r.selected_mode === 'VIRTUAL' && r.status === 'PRESENT');
     const informedLate = forDate.filter(
-      (r) => r.status === 'INFORMED_LATE' && r.late_approved_by_admin
+      (r) => !isDir(r.leader || { id: r.leader_id }) && r.status === 'INFORMED_LATE' && r.late_approved_by_admin
     );
     const informedLeave = forDate.filter(
-      (r) => r.status === 'LEAVE' || (r.status === 'INFORMED_ABSENT' && (r.informed_confirmed || r.admin_verified_attendance))
+      (r) => !isDir(r.leader || { id: r.leader_id }) && (r.status === 'LEAVE' || (r.status === 'INFORMED_ABSENT' && (r.informed_confirmed || r.admin_verified_attendance)))
     );
     const absent = forDate.filter(
-      (r) => r.status === 'ABSENT' || (r.status === 'PENDING' && r.selected_mode === 'NONE') || r.verification_status === 'REJECTED'
+      (r) => !isDir(r.leader || { id: r.leader_id }) && (r.status === 'ABSENT' || (r.status === 'PENDING' && r.selected_mode === 'NONE') || r.verification_status === 'REJECTED')
     );
 
     const cadenceCode = meeting.cadence || 'DOM';
-    const totalCount = forDate.length || leaders.length;
+    const totalCount = forDate.filter((r) => !isDir(r.leader || { id: r.leader_id })).length;
     const totalPresent = presentPhysical.length + presentVirtual.length;
     const complianceRate = totalCount > 0 ? Math.round(((totalPresent + informedLate.length + informedLeave.length) / totalCount) * 100) : 0;
     const formattedDate = new Date(date).toLocaleDateString('en-IN', {
@@ -2770,7 +2782,15 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     msg += `📊 *FINAL 10:30 AM ${cadenceCode} ATTENDANCE AUDIT REPORT*\n`;
     msg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
     msg += `📅 *Date:* ${formattedDate} | *Meeting:* ${cadenceCode} (${meeting.frequency})\n`;
-    msg += `⏰ *Audit Frozen:* 10:30 AM | *Venue:* ${appSettings.conference_room_name}\n\n`;
+    msg += `⏰ *Audit Frozen:* 10:30 AM | *Venue:* ${appSettings.conference_room_name}\n`;
+    if (directorRec) {
+      const dirMode = directorRec.selected_mode === 'PHYSICAL' ? 'In-Person (Conference Room, 5th Flr)' : 'Virtually via Google Meet';
+      const dirTime = directorRec.check_in_at
+        ? new Date(directorRec.check_in_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
+        : (directorRec as any).join_time || '10:00 AM';
+      msg += `👑 *EXECUTIVE ATTENDANCE:* Director Sir (Joined ${dirMode} at ${dirTime})\n`;
+    }
+    msg += `\n`;
     msg += `📈 *HOSPITAL OPERATIONS AUDIT SUMMARY:*\n`;
     msg += `👥 Total Expected Leaders: ${totalCount}\n`;
     msg += `🏢 In-Person (Conference Room): ${presentPhysical.length}\n`;
@@ -3039,6 +3059,8 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     // Filter strictly leaders who are absent WITHOUT prior information / approved leave:
     const uninformedAbsentees = forDate.filter((r) => {
+      // Exclude Director Sir (Executive attendee, never counted as absentee or sent automated reminders)
+      if (isDirectorUser(r.leader) || r.leader_id === '905b6cf2-0e49-40b1-aa7c-828fe88a55ad') return false;
       // Exclude present leaders
       if (r.status === 'PRESENT' || r.status === 'CHECKED_IN' || r.admin_verified_attendance) return false;
       // Exclude approved leave or excused
@@ -3211,7 +3233,10 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const getFullRosterForDate = (date: string): AttendanceRecord[] => {
     const meeting = getMeetingForDate(date);
-    const activeLeaders = leaders.filter((l) => l.is_active !== false);
+
+    // Department Leaders who have mandatory daily attendance
+    const activeDepartmentLeaders = leaders.filter((l) => l.is_active !== false && !isDirectorUser(l));
+    const directorLead = leaders.find(isDirectorUser);
     const existingForDate = attendanceRecords.filter((r) => r.meeting_date === date);
 
     // SUNDAY & CANCELLED / REMOVED DOM RULES:
@@ -3225,15 +3250,15 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const existingMap = new Map<string, AttendanceRecord>();
     existingForDate.forEach((r) => existingMap.set(r.leader_id, r));
 
-    return activeLeaders.map((lead) => {
+    const deptRoster: AttendanceRecord[] = activeDepartmentLeaders.map((lead): AttendanceRecord => {
       const existing = existingMap.get(lead.id);
       if (existing) {
         if (isOff && (existing.status === 'ABSENT' || existing.status === 'PENDING')) {
           return {
             ...existing,
             leader: lead,
-            status: 'EXCUSED',
-            verification_status: 'VERIFIED',
+            status: 'EXCUSED' as AttendanceStatus,
+            verification_status: 'VERIFIED' as const,
             verification_note: isSunday ? 'Sunday Weekly Off' : 'Holiday / No DOM',
             admin_verified_attendance: true,
           };
@@ -3249,8 +3274,8 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           return {
             ...existing,
             leader: lead,
-            status: 'ABSENT',
-            verification_status: 'PENDING',
+            status: 'ABSENT' as AttendanceStatus,
+            verification_status: 'PENDING' as const,
             verification_note: undefined,
             admin_verified_attendance: false,
           };
@@ -3269,12 +3294,29 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         leader_id: lead.id,
         leader: lead,
         selected_mode: 'NONE',
-        status: isOff ? 'EXCUSED' : 'ABSENT',
+        status: (isOff ? 'EXCUSED' : 'ABSENT') as AttendanceStatus,
         verification_status: isOff ? 'VERIFIED' : 'PENDING',
         verification_note: isOff ? (isSunday ? 'Sunday Weekly Off' : 'Holiday / No DOM') : undefined,
         admin_verified_attendance: isOff,
       };
     });
+
+    // If Director Sir attended on this date, include his record at the top with VIP status
+    if (directorLead) {
+      const dirExisting = existingMap.get(directorLead.id);
+      if (dirExisting && (dirExisting.check_in_at || dirExisting.status === 'PRESENT' || (dirExisting as any).join_time)) {
+        const dirRec: AttendanceRecord = {
+          ...dirExisting,
+          leader: directorLead,
+          status: 'PRESENT' as AttendanceStatus,
+          verification_status: 'VERIFIED' as const,
+          admin_verified_attendance: true,
+        };
+        return [dirRec, ...deptRoster];
+      }
+    }
+
+    return deptRoster;
   };
 
   const downloadPdfReport = (date: string) => {
@@ -3445,7 +3487,10 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const cadenceCode = meeting.cadence || 'DOM';
     const forDate = attendanceRecords.filter((r) => r.meeting_date === date);
     const nonAttendees = forDate.filter(
-      (r) => r.status === 'PENDING' || r.status === 'ABSENT' || (r.selected_mode === 'NONE' && r.status !== 'LEAVE')
+      (r) =>
+        !isDirectorUser(r.leader) &&
+        r.leader_id !== '905b6cf2-0e49-40b1-aa7c-828fe88a55ad' &&
+        (r.status === 'PENDING' || r.status === 'ABSENT' || (r.selected_mode === 'NONE' && r.status !== 'LEAVE'))
     );
 
     if (nonAttendees.length === 0) {
@@ -3506,21 +3551,24 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       year: 'numeric',
     });
 
+    const isDir = (l?: any) => l?.role === 'DIRECTOR' || l?.full_name?.toLowerCase().includes('director') || l?.id === '905b6cf2-0e49-40b1-aa7c-828fe88a55ad';
+    const directorRec = forDate.find((r) => isDir(r.leader || { id: r.leader_id }) && (r.check_in_at || r.status === 'PRESENT'));
+
     const presentPhysical = forDate.filter(
-      (r) => r.selected_mode === 'PHYSICAL' && (r.status === 'PRESENT' || r.admin_verified_attendance)
+      (r) => !isDir(r.leader || { id: r.leader_id }) && r.selected_mode === 'PHYSICAL' && (r.status === 'PRESENT' || r.admin_verified_attendance)
     );
-    const presentVirtual = forDate.filter((r) => r.selected_mode === 'VIRTUAL' && r.status === 'PRESENT');
+    const presentVirtual = forDate.filter((r) => !isDir(r.leader || { id: r.leader_id }) && r.selected_mode === 'VIRTUAL' && r.status === 'PRESENT');
     const informedLate = forDate.filter(
-      (r) => r.status === 'INFORMED_LATE' && r.late_approved_by_admin
+      (r) => !isDir(r.leader || { id: r.leader_id }) && r.status === 'INFORMED_LATE' && r.late_approved_by_admin
     );
     const informedLeave = forDate.filter(
-      (r) => r.status === 'LEAVE' || (r.status === 'INFORMED_ABSENT' && (r.informed_confirmed || r.admin_verified_attendance))
+      (r) => !isDir(r.leader || { id: r.leader_id }) && (r.status === 'LEAVE' || (r.status === 'INFORMED_ABSENT' && (r.informed_confirmed || r.admin_verified_attendance)))
     );
     const absent = forDate.filter(
-      (r) => r.status === 'ABSENT' || (r.status === 'PENDING' && r.selected_mode === 'NONE') || r.verification_status === 'REJECTED'
+      (r) => !isDir(r.leader || { id: r.leader_id }) && (r.status === 'ABSENT' || (r.status === 'PENDING' && r.selected_mode === 'NONE') || r.verification_status === 'REJECTED')
     );
 
-    const totalCount = forDate.length || leaders.length;
+    const totalCount = forDate.filter((r) => !isDir(r.leader || { id: r.leader_id })).length;
     const totalPresent = presentPhysical.length + presentVirtual.length;
     const complianceRate = totalCount > 0 ? Math.round(((totalPresent + informedLate.length + informedLeave.length) / totalCount) * 100) : 0;
     const groupJid = appSettings.admin_whatsapp_group || '120363432056023698@g.us';
@@ -3553,7 +3601,15 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       msg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
       msg += `📅 *Date:* ${formattedDate} | *Meeting:* ${cleanCadence} (${meeting.frequency})\n`;
       msg += `⏰ *Audit Frozen:* 10:30 AM IST | *Venue:* ${appSettings.conference_room_name}\n`;
-      msg += `📄 *Official Signed Director Attendance PDF Report Attached*\n\n`;
+      msg += `📄 *Official Signed Director Attendance PDF Report Attached*\n`;
+      if (directorRec) {
+        const dirMode = directorRec.selected_mode === 'PHYSICAL' ? 'In-Person (Conference Room, 5th Flr)' : 'Virtually via Google Meet';
+        const dirTime = directorRec.check_in_at
+          ? new Date(directorRec.check_in_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
+          : (directorRec as any).join_time || '10:00 AM';
+        msg += `👑 *EXECUTIVE ATTENDANCE:* Director Sir (Joined ${dirMode} at ${dirTime})\n`;
+      }
+      msg += `\n`;
       msg += `📈 *HOSPITAL OPERATIONS AUDIT SUMMARY:*\n`;
       msg += `👥 Total Expected Leaders: ${totalCount}\n`;
       msg += `🏢 In-Person (Conference Room): ${presentPhysical.length}\n`;
@@ -3892,6 +3948,10 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const fullRoster = getFullRosterForDate(date);
 
     for (const rec of fullRoster) {
+      // Director Sir is an executive attendee, never locked as absent
+      if (rec.leader?.role === 'DIRECTOR' || rec.leader?.full_name?.toLowerCase().includes('director') || rec.leader_id === '905b6cf2-0e49-40b1-aa7c-828fe88a55ad') {
+        continue;
+      }
       const isPresent = rec.status === 'PRESENT' || rec.admin_verified_attendance || rec.verification_status === 'VERIFIED';
       const isLeave = rec.status === 'LEAVE' || (rec.status === 'INFORMED_ABSENT' && rec.informed_confirmed);
       const isExcused = rec.status === 'EXCUSED';
@@ -4026,34 +4086,72 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const isAbsent = status === 'ABSENT';
     const isLeave = status === 'LEAVE';
 
-    setAttendanceRecords((prev) =>
-      prev.map((r) => {
-        if (r.id === recordId) {
-          const recDate = r.meeting_date || selectedDate;
-          const newCheckInIso = isAbsent || isLeave ? undefined : buildCheckInIso(recDate, customTimeStr);
-          const lateMins = isAbsent || isLeave ? undefined : calculateLate(customTimeStr);
+    setAttendanceRecords((prev) => {
+      const exists = prev.some((r) => r.id === recordId);
+      if (exists) {
+        return prev.map((r) => {
+          if (r.id === recordId) {
+            const recDate = r.meeting_date || selectedDate;
+            const newCheckInIso = isAbsent || isLeave ? undefined : buildCheckInIso(recDate, customTimeStr);
+            const lateMins = isAbsent || isLeave ? undefined : calculateLate(customTimeStr);
 
-          const updated: AttendanceRecord = {
-            ...r,
-            check_in_at: newCheckInIso,
-            selected_mode: isAbsent || isLeave ? 'NONE' : mode,
-            evidence_source: 'ADMIN_MANUAL',
-            status,
-            verification_status: isAbsent ? 'REJECTED' : 'VERIFIED',
-            admin_verified_attendance: !isAbsent && !isLeave,
-            verification_note: customNote || `Marked by Admin (${customTimeStr})`,
-            late_minutes: lateMins && lateMins > 0 ? lateMins : undefined,
-            informed_to_person: informedToPerson || r.informed_to_person,
-            late_expired: false,
-            updated_at: nowIso,
-          };
-          (updated as any).join_time = isAbsent || isLeave ? undefined : customTimeStr;
-          targetRec = updated;
-          return updated;
-        }
-        return r;
-      })
-    );
+            const updated: AttendanceRecord = {
+              ...r,
+              check_in_at: newCheckInIso,
+              selected_mode: isAbsent || isLeave ? 'NONE' : mode,
+              evidence_source: 'ADMIN_MANUAL',
+              status,
+              verification_status: isAbsent ? 'REJECTED' : 'VERIFIED',
+              admin_verified_attendance: !isAbsent && !isLeave,
+              verification_note: customNote || `Marked by Admin (${customTimeStr})`,
+              late_minutes: lateMins && lateMins > 0 ? lateMins : undefined,
+              informed_to_person: informedToPerson || r.informed_to_person,
+              late_expired: false,
+              updated_at: nowIso,
+            };
+            (updated as any).join_time = isAbsent || isLeave ? undefined : customTimeStr;
+            targetRec = updated;
+            return updated;
+          }
+          return r;
+        });
+      }
+
+      // Record doesn't exist in state yet (synthetic row from getFullRosterForDate)
+      const extractedLeaderId = recordId.startsWith(`att-${selectedDate}-`)
+        ? recordId.replace(`att-${selectedDate}-`, '')
+        : recordId;
+      const lead = leaders.find((l) => l.id === extractedLeaderId);
+      const meeting = getMeetingForDate(selectedDate);
+      const newCheckInIso = isAbsent || isLeave ? undefined : buildCheckInIso(selectedDate, customTimeStr);
+      const lateMins = isAbsent || isLeave ? undefined : calculateLate(customTimeStr);
+
+      const newRec: AttendanceRecord = {
+        id: recordId,
+        meeting_id: meeting.id,
+        meeting_date: selectedDate,
+        meeting_frequency: meeting.frequency,
+        cadence: meeting.cadence,
+        leader_id: lead?.id || extractedLeaderId,
+        leader: lead,
+        selected_mode: isAbsent || isLeave ? 'NONE' : mode,
+        status,
+        evidence_source: 'ADMIN_MANUAL',
+        verification_status: isAbsent ? 'REJECTED' : 'VERIFIED',
+        admin_verified_attendance: !isAbsent && !isLeave,
+        verification_note: customNote || `Marked by Admin (${customTimeStr})`,
+        late_minutes: lateMins && lateMins > 0 ? lateMins : undefined,
+        informed_to_person: informedToPerson,
+        late_expired: false,
+        check_in_at: newCheckInIso,
+        verified_at: nowIso,
+        created_at: nowIso,
+        updated_at: nowIso,
+      };
+      (newRec as any).join_time = isAbsent || isLeave ? undefined : customTimeStr;
+      targetRec = newRec;
+      return [...prev, newRec];
+    });
 
     if (targetRec) {
       await syncAttendanceRecordToSupabase(targetRec, `Admin Manual Override Time: ${customTimeStr}`);

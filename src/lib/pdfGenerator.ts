@@ -115,7 +115,11 @@ export function generateDirectorPdf(
   currentY += 26;
 
   // 4. Executive Summary KPI Metric Cards
-  const totalLeaders = records.length;
+  const isDirector = (l?: any) =>
+    l?.role === 'DIRECTOR' || l?.full_name?.toLowerCase().includes('director') || l?.id === '905b6cf2-0e49-40b1-aa7c-828fe88a55ad';
+
+  const directorAttended = records.find((r) => isDirector(r.leader) && (r.check_in_at || r.status === 'PRESENT'));
+  const totalLeaders = records.filter((r) => !isDirector(r.leader)).length;
   const isSundayMeeting = new Date(meeting.meeting_date).getDay() === 0;
   const isExplicitlyEnabled = (meeting.cadence === 'DOM' || meeting.cadence === 'WOM' || meeting.cadence === 'MOM') && !meeting.is_holiday_or_shifted;
   const isMeetingOff = !isExplicitlyEnabled && (isSundayMeeting || meeting.cadence === 'HOLIDAY' || Boolean(meeting.is_holiday_or_shifted));
@@ -178,6 +182,23 @@ export function generateDirectorPdf(
   });
 
   currentY += cardHeight + 4;
+
+  if (directorAttended) {
+    const dirMode = directorAttended.selected_mode === 'PHYSICAL' ? 'In-Person (Conference Room, 5th Floor)' : 'Virtually via Google Meet';
+    const dirTime = directorAttended.check_in_at
+      ? new Date(directorAttended.check_in_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
+      : (directorAttended as any).join_time || '10:00 AM';
+
+    doc.setFillColor(254, 243, 199);
+    doc.roundedRect(margin, currentY, pageWidth - margin * 2, 6.5, 1.5, 1.5, 'F');
+    doc.setDrawColor(245, 158, 11);
+    doc.roundedRect(margin, currentY, pageWidth - margin * 2, 6.5, 1.5, 1.5, 'S');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7);
+    doc.setTextColor(180, 83, 9);
+    doc.text(`EXECUTIVE LEADERSHIP ATTENDANCE: Director Sir  —  Joined ${dirMode} at ${dirTime} IST`, margin + 3, currentY + 4.5);
+    currentY += 8.5;
+  }
 
   // Segmented Visual Graph / Bar (Executive Compliance Overview)
   const totalBarWidth = pageWidth - margin * 2;
@@ -427,6 +448,7 @@ export function generateDirectorPdf(
 
   const absentees = isMeetingOff ? [] : records.filter(
     (r) =>
+      !isDirector(r.leader) &&
       r.status !== 'EXCUSED' &&
       !r.admin_verified_attendance &&
       r.verification_status !== 'VERIFIED' &&
