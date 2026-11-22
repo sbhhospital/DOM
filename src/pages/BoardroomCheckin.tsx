@@ -24,7 +24,7 @@ import sbhLogo from '../assets/sbh-logo.png';
 
 export const BoardroomCheckin: React.FC = () => {
   const navigate = useNavigate();
-  const { leaders, departments, selectedDate, markRoomQrCheckIn, markVirtualJoin, getMeetingForDate, appSettings } = useDomApp();
+  const { leaders, departments, selectedDate, attendanceRecords, markRoomQrCheckIn, markVirtualJoin, getMeetingForDate, appSettings } = useDomApp();
   const { currentUser, loginLeaderDirect, logoutUser } = useAuthSession();
 
   const currentMeeting = getMeetingForDate(selectedDate);
@@ -48,6 +48,41 @@ export const BoardroomCheckin: React.FC = () => {
     const isSun = new Date(selectedDate + 'T00:00:00').getDay() === 0;
     return isSun || currentMeeting.cadence === 'HOLIDAY' || Boolean(currentMeeting.is_holiday_or_shifted);
   }, [selectedDate, currentMeeting]);
+
+  const activeLeader = currentUser || selectedLeader;
+  const todayRecord = useMemo(() => {
+    if (!activeLeader) return null;
+    return (
+      attendanceRecords.find(
+        (r) =>
+          (r.leader_id === activeLeader.id || r.leader?.id === activeLeader.id) &&
+          r.meeting_date === selectedDate
+      ) || null
+    );
+  }, [activeLeader, attendanceRecords, selectedDate]);
+
+  const isOnLeave = Boolean(
+    todayRecord &&
+      (todayRecord.status === 'LEAVE' ||
+        (todayRecord.status === 'INFORMED_ABSENT' && todayRecord.informed_confirmed))
+  );
+
+  const windowStatus = useMemo(() => {
+    const hasInformedLate = Boolean(
+      todayRecord &&
+        todayRecord.status === 'INFORMED_LATE' &&
+        !todayRecord.late_expired
+    );
+    return checkStandupWindowStatus(
+      selectedDate,
+      hasInformedLate,
+      currentMeeting.cadence,
+      currentMeeting.scheduled_time
+    );
+  }, [selectedDate, todayRecord, currentMeeting]);
+
+  const isCutoffLocked = !windowStatus.allowed;
+  const isCheckInDisabled = isSundayOrHoliday || isOnLeave || isCutoffLocked || currentMeeting.is_completed;
 
   const resolvedDepartmentName = useMemo(() => {
     const targetUser = currentUser || selectedLeader;
@@ -115,15 +150,18 @@ export const BoardroomCheckin: React.FC = () => {
       return;
     }
 
-    if (!selectedLeader) {
-      setErrorMessage('Please select your name from the department leaders list.');
+    if (isOnLeave) {
+      setErrorMessage("Access Denied: You are officially on sanctioned leave today. Standup attendance check-in is excused.");
       return;
     }
 
-    // Check Standup Time Window (Opens 10m before start, Closes 20m past start - dynamic on rescheduled time)
-    const windowCheck = checkStandupWindowStatus(selectedDate, false, currentMeeting.cadence, currentMeeting.scheduled_time);
-    if (!windowCheck.allowed) {
-      setErrorMessage(windowCheck.message);
+    if (isCutoffLocked) {
+      setErrorMessage(windowStatus.message || `Access Denied: Standup check-in window closed at ${windowStatus.windowCloseStr} (10:20 AM Cutoff). Attendance is now locked.`);
+      return;
+    }
+
+    if (!selectedLeader) {
+      setErrorMessage('Please select your name from the department leaders list.');
       return;
     }
 
@@ -272,20 +310,40 @@ export const BoardroomCheckin: React.FC = () => {
             </p>
           </div>
 
-          {/* Meeting Concluded & Locked Alert Banner */}
-          {currentMeeting.is_completed && (
-            <div className="my-4 p-4 rounded-2xl bg-rose-50 border-2 border-rose-300 text-rose-950 flex items-start gap-3 shadow-xs">
-              <div className="w-9 h-9 rounded-xl bg-rose-600 text-white flex items-center justify-center shrink-0">
-                <Lock className="w-5 h-5" />
+          {/* Status Alert Banners */}
+          {currentMeeting.is_completed ? (
+            <div className="my-3 p-3.5 rounded-2xl bg-rose-50 border-2 border-rose-300 text-rose-950 flex items-start gap-2.5 shadow-2xs">
+              <div className="w-8 h-8 rounded-xl bg-rose-600 text-white flex items-center justify-center shrink-0">
+                <Lock className="w-4 h-4" />
               </div>
               <div className="text-xs">
-                <strong className="block font-black text-rose-950 text-sm">Meeting Concluded: Check-In Closed</strong>
+                <strong className="block font-black text-rose-950">Meeting Concluded: Check-In Closed</strong>
                 <span className="text-rose-800 font-medium leading-relaxed block mt-0.5">
-                  Today's meeting session has officially concluded and been closed by Operations Command. Check-in is locked. All unrecorded leaders have been finalized as <strong>ABSENT</strong>.
+                  Today's meeting session has concluded. Check-in is locked. Unrecorded leaders are finalized as <strong>ABSENT</strong>.
                 </span>
               </div>
             </div>
-          )}
+          ) : isSundayOrHoliday ? (
+            <div className="my-3 p-3.5 bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl text-xs font-bold flex items-center gap-2 shadow-2xs">
+              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+              <span>🏖️ Sunday Weekly Off: Hospital Daily Operations Standup is excused today. Attendance submission is closed.</span>
+            </div>
+          ) : isOnLeave ? (
+            <div className="my-3 p-3.5 bg-emerald-50 border border-emerald-300 text-emerald-950 rounded-2xl text-xs font-bold flex items-center gap-2 shadow-2xs">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>🏖️ Official Sanctioned Leave: You are marked on official leave for today. Standup check-in is excused.</span>
+            </div>
+          ) : isCutoffLocked ? (
+            <div className="my-3 p-3.5 bg-rose-50 border-2 border-rose-300 text-rose-950 rounded-2xl text-xs font-bold flex items-start gap-2.5 shadow-2xs">
+              <Lock className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+              <div className="text-xs">
+                <strong className="block font-black text-rose-950">Check-In Window Locked ({windowStatus.windowCloseStr})</strong>
+                <span className="text-rose-800 font-medium leading-relaxed block mt-0.5">
+                  Standup check-in closed at {windowStatus.windowCloseStr} (10:20 AM Cutoff). Attendance is now locked. You are finalized as <strong>ABSENT</strong> on the Director's Register.
+                </span>
+              </div>
+            </div>
+          ) : null}
 
           {/* Mode Selector Tabs (Physical vs Virtual) */}
           <div className="grid grid-cols-2 gap-2 my-3 p-1.5 bg-slate-100 rounded-2xl border border-slate-200">
@@ -342,14 +400,6 @@ export const BoardroomCheckin: React.FC = () => {
               </span>
             </div>
           </div>
-
-          {/* Sunday / Holiday Notice */}
-          {isSundayOrHoliday && (
-            <div className="mb-4 p-3.5 bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl text-xs font-bold flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-              <span>🏖️ Sunday Weekly Off: Hospital Daily Operations Standup is excused today. Attendance submission is closed.</span>
-            </div>
-          )}
 
           {/* Error Message with Remote / Virtual Fallback Option */}
           {errorMessage && (
@@ -486,19 +536,35 @@ export const BoardroomCheckin: React.FC = () => {
               </>
             )}
 
-            {/* Submit Physical Check-in Button */}
+            {/* Submit Physical / Virtual Check-in Button */}
             <button
               type="submit"
-              disabled={isSubmitting || currentMeeting.is_completed}
-              className={`w-full py-3.5 px-4 rounded-2xl font-black text-sm shadow-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98] ${currentMeeting.is_completed
+              disabled={isSubmitting || isCheckInDisabled}
+              className={`w-full py-3.5 px-4 rounded-2xl font-black text-sm shadow-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98] ${
+                isCheckInDisabled
                   ? 'bg-slate-400 text-white cursor-not-allowed shadow-none opacity-60'
                   : 'bg-gradient-to-r from-[#7065f0] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7065f0] text-white shadow-indigo-300/40 cursor-pointer disabled:opacity-50'
-                }`}
+              }`}
             >
               {currentMeeting.is_completed ? (
                 <>
                   <Lock className="w-4 h-4 text-white" />
                   <span>Meeting Concluded: Check-In Closed</span>
+                </>
+              ) : isSundayOrHoliday ? (
+                <>
+                  <Lock className="w-4 h-4 text-white" />
+                  <span>Standup Excused (Sunday Off)</span>
+                </>
+              ) : isOnLeave ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4 text-white" />
+                  <span>Official Leave Sanctioned (Excused)</span>
+                </>
+              ) : isCutoffLocked ? (
+                <>
+                  <Lock className="w-4 h-4 text-white" />
+                  <span>Check-In Locked ({windowStatus.windowCloseStr} Cutoff)</span>
                 </>
               ) : (
                 <>
