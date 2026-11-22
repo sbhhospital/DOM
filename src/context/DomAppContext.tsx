@@ -19,7 +19,16 @@ import {
   downloadYearlyAuditPdf,
 } from '../lib/pdfGenerator';
 import { sendCeoitboxWhatsappMessage, sendCeoitboxPdfAttachment } from '../lib/whatsappService';
-import { determineMeetingFrequency, getCadenceInfo, calculateLateMinutes, getLiveIndiaDateStr, formatLateDuration, formatToIndianDate } from '../lib/meetingUtils';
+import {
+  determineMeetingFrequency,
+  getCadenceInfo,
+  calculateLateMinutes,
+  getLiveIndiaDateStr,
+  formatLateDuration,
+  formatToIndianDate,
+  calculateDistanceInMeters,
+  checkStandupWindowStatus,
+} from '../lib/meetingUtils';
 import { generateLeaderMagicLink } from '../lib/magicLink';
 import { generateDailyMeetingLink } from '../lib/meetingLinks';
 
@@ -1472,9 +1481,25 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     leaderId: string,
     customDate?: string,
     locationData?: { latitude?: number; longitude?: number; accuracy?: number; device?: string }
-  ): Promise<{ success: boolean; meetUrl: string; clicksCount: number }> => {
+  ): Promise<{ success: boolean; meetUrl: string; clicksCount: number; message?: string }> => {
     const targetDate = customDate || selectedDate;
     const meeting = getMeetingForDate(targetDate);
+    const existingPrior = attendanceRecords.find((r) => r.leader_id === leaderId && r.meeting_date === targetDate);
+    const isAlreadyCheckedIn = Boolean(
+      existingPrior?.check_in_at || existingPrior?.status === 'PRESENT' || existingPrior?.status === 'INFORMED_LATE'
+    );
+
+    // Standup window & holiday check
+    const windowStatus = checkStandupWindowStatus(targetDate, isAlreadyCheckedIn, meeting.cadence);
+    if (!windowStatus.allowed) {
+      return {
+        success: false,
+        meetUrl: meeting.google_meet_url || 'https://meet.google.com/jrz-jfku-gir',
+        clicksCount: existingPrior?.virtual_clicks_count || 0,
+        message: windowStatus.message,
+      };
+    }
+
     const nowIso = new Date().toISOString();
     const lateMinutes = calculateLateMinutes(targetDate, meeting.scheduled_time, new Date());
     const isLate = lateMinutes > 0;
@@ -1668,6 +1693,47 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     locationData?: { latitude?: number; longitude?: number; accuracy?: number; device?: string }
   ): Promise<{ success: boolean; message: string; alreadyRecorded?: boolean; timeStr?: string }> => {
     const meeting = getMeetingForDate(selectedDate);
+    const existingRec = attendanceRecords.find((r) => r.leader_id === leaderId && r.meeting_date === selectedDate);
+    const isAlreadyRecordedPrior = Boolean(
+      existingRec?.check_in_at || existingRec?.status === 'PRESENT' || existingRec?.status === 'INFORMED_LATE'
+    );
+
+    // 1. Standup Window Status & Holiday Check
+    const windowStatus = checkStandupWindowStatus(selectedDate, isAlreadyRecordedPrior, meeting.cadence);
+    if (!windowStatus.allowed) {
+      return {
+        success: false,
+        message: windowStatus.message,
+        alreadyRecorded: isAlreadyRecordedPrior,
+      };
+    }
+
+    // 2. Strict Hospital Geofence Check (Conference Room, 5th Floor)
+    if (appSettings.hospital_geofence_enabled !== false) {
+      if (locationData?.latitude == null || locationData?.longitude == null) {
+        return {
+          success: false,
+          message:
+            '🚫 Location Permission Required: Physical attendance requires GPS verification. Please allow location access on your mobile device to verify presence inside the 5th Floor Conference Hall.',
+        };
+      }
+      const hospitalLat = appSettings.hospital_latitude || 21.2514;
+      const hospitalLng = appSettings.hospital_longitude || 81.6296;
+      const allowedRadius = appSettings.hospital_radius_meters || 50;
+      const distance = calculateDistanceInMeters(
+        locationData.latitude,
+        locationData.longitude,
+        hospitalLat,
+        hospitalLng
+      );
+      if (distance > allowedRadius) {
+        return {
+          success: false,
+          message: `🚫 Location Restriction: You are approximately ${distance}m away from SBH Hospital. Physical attendance can ONLY be verified inside the 5th Floor Conference Hall (Allowed radius: ${allowedRadius}m).`,
+        };
+      }
+    }
+
     const nowIso = new Date().toISOString();
     const lateMinutes = calculateLateMinutes(selectedDate, meeting.scheduled_time, new Date());
     const isLate = lateMinutes > 0;

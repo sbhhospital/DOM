@@ -51,6 +51,7 @@ import {
   Grid,
   MapPin,
   Navigation,
+  Volume2,
 } from 'lucide-react';
 import { useDomApp } from '../context/DomAppContext';
 import { useAuthSession } from '../context/AuthSessionContext';
@@ -344,6 +345,72 @@ export const UnifiedAdminDashboard: React.FC = () => {
   const [isEscalating, setIsEscalating] = useState<boolean>(false);
   const [isDownloadingPdf, setIsDownloadingPdf] = useState<boolean>(false);
 
+  // 10:00 AM Standup Meeting Audio Announcement & Countdown Dropdown Banner State
+  const [standupAnnouncement, setStandupAnnouncement] = useState<{
+    active: boolean;
+    secondsLeft: number;
+    cadence: string;
+    title: string;
+    meetUrl: string;
+  }>({
+    active: false,
+    secondsLeft: 5,
+    cadence: 'DOM',
+    title: '',
+    meetUrl: '',
+  });
+
+  // Native Web Speech API Voice Synthesizer
+  const playStandupVoiceAnnouncement = (cadenceType: string) => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    try {
+      window.speechSynthesis.cancel();
+      const meetingName =
+        cadenceType === 'WOM'
+          ? 'Weekly Operations Meeting'
+          : cadenceType === 'MOM'
+          ? 'Monthly Operations Meeting'
+          : 'Daily Operations Meeting';
+      const text = `Welcome dear leaders. Today's ${meetingName} has now commenced. Please join the conference hall or Google Meet.`;
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 0.95;
+      utterance.pitch = 1.0;
+      utterance.lang = 'en-US';
+      window.speechSynthesis.speak(utterance);
+    } catch (e) {
+      console.warn('Speech synthesis voice announcement error:', e);
+    }
+  };
+
+  // Test 10:00 AM Announcement Button Handler
+  const triggerTestAnnouncement = () => {
+    const curMeeting = getMeetingForDate(selectedDate);
+    const cadence = curMeeting.cadence || (curMeeting.frequency === 'MONTHLY' ? 'MOM' : curMeeting.frequency === 'WEEKLY' ? 'WOM' : 'DOM');
+    setStandupAnnouncement({
+      active: true,
+      secondsLeft: 5,
+      cadence,
+      title: curMeeting.title,
+      meetUrl: curMeeting.google_meet_url || 'https://meet.google.com/jrz-jfku-gir',
+    });
+    playStandupVoiceAnnouncement(cadence);
+  };
+
+  // 1-second countdown ticker for standupAnnouncement
+  useEffect(() => {
+    if (!standupAnnouncement.active) return;
+    if (standupAnnouncement.secondsLeft <= 0) return;
+
+    const timer = setTimeout(() => {
+      setStandupAnnouncement((prev) => ({
+        ...prev,
+        secondsLeft: prev.secondsLeft - 1,
+      }));
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [standupAnnouncement.active, standupAnnouncement.secondsLeft]);
+
   // Automatic Daily Scheduled WhatsApp Group Broadcasts (Strictly 2 Stages: 09:50 AM & 10:30 AM)
   const [autoCeoitboxDispatch, setAutoCeoitboxDispatch] = useState<boolean>(() => {
     return localStorage.getItem('sbh_auto_ceoitbox_enabled') !== 'false';
@@ -384,6 +451,24 @@ export const UnifiedAdminDashboard: React.FC = () => {
             });
           }
           setTimeout(() => setToastAlert(null), 8000);
+        }
+      }
+
+      // Stage 1.5: 09:59 AM Standup Commencement Countdown & Web Speech Announcement
+      if (!isSundayToday && h === 9 && m === 59) {
+        const key = `sbh_standup_announced_${todayDate}`;
+        if (!localStorage.getItem(key)) {
+          localStorage.setItem(key, 'announced');
+          const curMeeting = getMeetingForDate(todayDate);
+          const cadence = curMeeting.cadence || 'DOM';
+          setStandupAnnouncement({
+            active: true,
+            secondsLeft: 5,
+            cadence,
+            title: curMeeting.title,
+            meetUrl: curMeeting.google_meet_url || 'https://meet.google.com/jrz-jfku-gir',
+          });
+          playStandupVoiceAnnouncement(cadence);
         }
       }
 
@@ -1542,6 +1627,51 @@ export const UnifiedAdminDashboard: React.FC = () => {
           </div>
         )}
 
+        {/* 10:00 AM Standup Meeting Live Dropdown Banner */}
+        {standupAnnouncement.active && (
+          <div className="sticky top-0 z-[200] w-full bg-gradient-to-r from-[#7065f0] via-[#8577ff] to-[#45b7b8] text-white shadow-xl border-b-2 border-white/30 px-4 sm:px-6 py-3 animate-slide-down">
+            <div className="max-w-[1600px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-white text-[#7065f0] font-black flex items-center justify-center text-sm shadow-md shrink-0 animate-pulse">
+                  {standupAnnouncement.secondsLeft > 0 ? `${standupAnnouncement.secondsLeft}s` : 'LIVE'}
+                </div>
+                <div>
+                  <div className="text-[10px] font-black uppercase tracking-wider text-amber-200 flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-200" />
+                    <span>Official Standup Meeting Active</span>
+                    <span className="bg-white/20 px-2 py-0.5 rounded-full text-white text-[9px] font-mono">10:00 AM IST</span>
+                  </div>
+                  <div className="text-sm sm:text-base font-extrabold text-white">
+                    Welcome Dear Leaders • {standupAnnouncement.title}
+                  </div>
+                  <div className="text-[11px] text-white/80">
+                    Venue: {appSettings.conference_room_name || 'Conference Room, 5th Floor'} • Mode: In-Person Boardroom & Google Meet
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <a
+                  href={standupAnnouncement.meetUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2 bg-white text-[#7065f0] hover:bg-slate-50 font-bold rounded-xl text-xs flex items-center gap-2 shadow-md transition-all active:scale-95 cursor-pointer"
+                >
+                  <Video className="w-4 h-4 text-[#7065f0]" />
+                  <span>Join Google Meet Now</span>
+                </a>
+                <button
+                  onClick={() => setStandupAnnouncement((prev) => ({ ...prev, active: false }))}
+                  className="p-2 rounded-xl bg-white/20 hover:bg-white/30 text-white transition-colors cursor-pointer"
+                  title="Dismiss banner"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Top Header Bar Attached to Dashboard */}
         <header className="sticky top-0 z-[100] w-full bg-white/95 backdrop-blur-md border-b border-[#f0f1f8]/60 shadow-2xs">
           <div className="px-4 sm:px-6 py-3.5 flex justify-between items-center gap-4">
@@ -1649,7 +1779,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
         </header>
 
         {/* Main Body Container Attached Directly to the Right of Sidebar */}
-        <div className="flex-1 p-4 sm:p-6 space-y-6 max-w-[1600px] w-full mx-auto">
+        <div key={activeTab} className="flex-1 p-4 sm:p-6 space-y-6 max-w-[1600px] w-full mx-auto page-transition">
           {/* Top Meeting Header for Non-Attendance Tabs */}
           {activeTab !== 'attendance' && (
             <div className="bg-white rounded-3xl border border-[#f0f1f8]/80 shadow-xs px-4 py-3 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
@@ -1819,12 +1949,25 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 </div>
 
                 {/* Row 2: Live India Time (IST), Countdown, and Daily Operations Action Bar */}
-                <div className="p-3 sm:p-3.5 bg-slate-50/50 border-t border-[#f0f1f8] grid grid-cols-1 md:grid-cols-3 gap-2.5 items-center">
-                  {/* Isolated Live India Time & Standup Countdown (Zero re-renders on parent dashboard) */}
-                  <LiveIndiaClockAndCountdown currentCadence={currentCadence} />
+                <div className="p-3 sm:p-3.5 bg-slate-50/50 border-t border-[#f0f1f8] flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-3">
+                  {/* Left: Isolated Live India Time & Standup Countdown */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 flex-1 max-w-2xl">
+                    <LiveIndiaClockAndCountdown currentCadence={currentCadence} />
+                  </div>
 
-                  {/* Card 3: Action Buttons & Auto Broadcast Engine */}
-                  <div className="flex flex-wrap items-center justify-start md:justify-end gap-1.5">
+                  {/* Right: Unified Executive Action Toolbar (Clean h-9 pills, no jagged wrapping) */}
+                  <div className="flex flex-wrap items-center justify-start xl:justify-end gap-2 pt-2 xl:pt-0 border-t xl:border-t-0 border-[#f0f1f8]">
+                    {/* 🧪 Test 10:00 AM Announcement Button */}
+                    <button
+                      onClick={triggerTestAnnouncement}
+                      className="h-9 px-3.5 bg-[#eff0fe] hover:bg-[#e0e3fc] text-[#7065f0] border border-purple-200/80 rounded-2xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150 shrink-0"
+                      title="Test 10:00 AM Countdown, Dropdown Top Bar & Audio Voice Announcement"
+                    >
+                      <Volume2 className="w-3.5 h-3.5 text-[#7065f0]" />
+                      <span>🧪 Test 10:00 AM Announcement</span>
+                    </button>
+
+                    {/* 09:50 AM Broadcast Button */}
                     <button
                       onClick={() =>
                         openConfirm({
@@ -1849,7 +1992,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                         })
                       }
                       disabled={isBroadcasting0950}
-                      className="px-3 py-1.5 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white rounded-2xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150"
+                      className="h-9 px-3.5 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white rounded-2xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150 shrink-0"
                       title="Broadcast 09:50 AM Notice to Official WhatsApp Group"
                     >
                       {isBroadcasting0950 ? (
@@ -1860,6 +2003,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                       <span>09:50 AM Broadcast</span>
                     </button>
 
+                    {/* Approve Joined */}
                     <button
                       onClick={() =>
                         openConfirm({
@@ -1874,16 +2018,17 @@ export const UnifiedAdminDashboard: React.FC = () => {
                           },
                         })
                       }
-                      className="px-3 py-1.5 bg-[#ecfdf5] hover:bg-[#d1fae5] text-[#059669] border border-emerald-200/80 rounded-2xl text-xs font-bold shadow-2xs flex items-center gap-1 cursor-pointer active:scale-95 transition-all duration-150"
+                      className="h-9 px-3.5 bg-[#ecfdf5] hover:bg-[#d1fae5] text-[#059669] border border-emerald-200/80 rounded-2xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150 shrink-0"
                       title="Approve all leaders who have joined on this date"
                     >
                       <CheckCircle2 className="w-3.5 h-3.5 text-[#059669]" />
                       <span>Approve Joined</span>
                     </button>
 
+                    {/* Send to WhatsApp Group */}
                     <button
                       onClick={() => setShowGroupDispatchModal(true)}
-                      className="px-3 py-1.5 bg-gradient-to-r from-[#7065f0] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7065f0] text-white rounded-2xl text-xs font-bold shadow-sm shadow-indigo-200/50 flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150"
+                      className="h-9 px-3.5 bg-gradient-to-r from-[#7065f0] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7065f0] text-white rounded-2xl text-xs font-bold shadow-sm shadow-indigo-200/50 flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150 shrink-0"
                       title="Send Official PDF or Absentee Text Report to SBH WhatsApp Group"
                     >
                       <Send className="w-3.5 h-3.5 text-white" />
@@ -1910,7 +2055,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                             },
                           })
                         }
-                        className="px-3 py-1.5 bg-gradient-to-r from-[#32b87f] to-[#59d49c] hover:from-[#2ba16f] hover:to-[#4ec48f] text-white rounded-2xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150"
+                        className="h-9 px-3.5 bg-gradient-to-r from-[#32b87f] to-[#59d49c] hover:from-[#2ba16f] hover:to-[#4ec48f] text-white rounded-2xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150 shrink-0"
                         title="Re-instate DOM Standup"
                       >
                         <Check className="w-3.5 h-3.5 text-white" />
@@ -1936,7 +2081,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                             },
                           })
                         }
-                        className="px-3 py-1.5 bg-[#fff1f2] hover:bg-[#ffe4e6] text-[#e11d48] border border-rose-200 rounded-2xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150"
+                        className="h-9 px-3.5 bg-[#fff1f2] hover:bg-[#ffe4e6] text-[#e11d48] border border-rose-200 rounded-2xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150 shrink-0"
                         title="Remove DOM for this date (Zero absentees will be counted)"
                       >
                         <X className="w-3.5 h-3.5 text-[#e11d48]" />
@@ -1957,10 +2102,11 @@ export const UnifiedAdminDashboard: React.FC = () => {
                         });
                         setTimeout(() => setToastAlert(null), 4000);
                       }}
-                      className={`px-3 py-1.5 rounded-2xl text-xs font-bold flex items-center gap-1 cursor-pointer active:scale-95 transition-all duration-150 border shrink-0 ${autoCeoitboxDispatch
+                      className={`h-9 px-3.5 rounded-2xl text-xs font-bold flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150 border shrink-0 ${
+                        autoCeoitboxDispatch
                           ? 'bg-[#eff0fe] text-[#7065f0] border-purple-200'
                           : 'bg-slate-100 text-slate-500 border-slate-200'
-                        }`}
+                      }`}
                       title="Auto-Scheduler Toggle"
                     >
                       <Clock className={`w-3.5 h-3.5 ${autoCeoitboxDispatch ? 'text-[#7065f0]' : 'text-slate-400'}`} />

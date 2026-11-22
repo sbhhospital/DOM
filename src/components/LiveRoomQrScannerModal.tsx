@@ -30,6 +30,7 @@ export const LiveRoomQrScannerModal: React.FC<LiveRoomQrScannerModalProps> = ({
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [gpsStatus, setGpsStatus] = useState<'acquiring' | 'verified' | 'unavailable'>('acquiring');
   const [gpsCoords, setGpsCoords] = useState<{ latitude?: number; longitude?: number; accuracy?: number }>({});
+  const gpsCoordsRef = useRef<{ latitude?: number; longitude?: number; accuracy?: number }>({});
   const [isVerifying, setIsVerifying] = useState<boolean>(false);
 
   // Stop camera tracks cleanly
@@ -52,18 +53,20 @@ export const LiveRoomQrScannerModal: React.FC<LiveRoomQrScannerModalProps> = ({
       setGpsStatus('acquiring');
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          setGpsCoords({
+          const coords = {
             latitude: pos.coords.latitude,
             longitude: pos.coords.longitude,
             accuracy: Math.round(pos.coords.accuracy),
-          });
+          };
+          setGpsCoords(coords);
+          gpsCoordsRef.current = coords;
           setGpsStatus('verified');
         },
         (err) => {
           console.warn('GPS location notice:', err.message);
           setGpsStatus('unavailable');
         },
-        { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 }
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
       );
     } else {
       setGpsStatus('unavailable');
@@ -168,11 +171,12 @@ export const LiveRoomQrScannerModal: React.FC<LiveRoomQrScannerModalProps> = ({
             setIsVerifying(true);
             stopCamera();
             setTimeout(() => {
+              const liveGps = gpsCoordsRef.current;
               onScanSuccess({
                 scannedData: raw,
-                latitude: gpsCoords.latitude,
-                longitude: gpsCoords.longitude,
-                accuracy: gpsCoords.accuracy,
+                latitude: liveGps.latitude ?? gpsCoords.latitude,
+                longitude: liveGps.longitude ?? gpsCoords.longitude,
+                accuracy: liveGps.accuracy ?? gpsCoords.accuracy,
               });
             }, 300);
             return;

@@ -201,7 +201,7 @@ export const BoardroomCheckin: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#f4f5fa] via-[#f4f5fa] to-[#f4f5fa] text-slate-800 flex flex-col font-sans p-4 sm:p-6 pb-24 items-center justify-center">
+    <div className="min-h-screen bg-gradient-to-br from-[#f4f5fa] via-[#f4f5fa] to-[#f4f5fa] text-slate-800 flex flex-col font-sans p-4 sm:p-6 pb-24 items-center justify-center page-transition">
       <div className="w-full max-w-lg space-y-6">
         {/* Main Check-In Card */}
         <div className="bg-white rounded-[32px] p-6 sm:p-8 shadow-2xl shadow-indigo-200/50 border border-[#f0f1f8] relative overflow-hidden">

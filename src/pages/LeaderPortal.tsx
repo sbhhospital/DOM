@@ -16,6 +16,7 @@ import {
   Lock,
   ShieldCheck,
   Camera,
+  FileText,
 } from 'lucide-react';
 import { useDomApp } from '../context/DomAppContext';
 import { useAuthSession } from '../context/AuthSessionContext';
@@ -159,6 +160,13 @@ export const LeaderPortal: React.FC = () => {
         todayRecord.status === 'INFORMED_LATE')
   );
 
+  const hasInformedAbsence = Boolean(
+    todayRecord &&
+      (todayRecord.status === 'INFORMED_ABSENT' ||
+        todayRecord.status === 'LEAVE' ||
+        todayRecord.informed_reason)
+  );
+
   const formattedCheckInTime = todayRecord?.check_in_at
     ? new Date(todayRecord.check_in_at).toLocaleTimeString('en-IN', {
         hour: '2-digit',
@@ -258,7 +266,7 @@ export const LeaderPortal: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#f4f5fa] via-[#f4f5fa] to-[#f4f5fa] text-[#232d42] flex flex-col font-sans p-4 sm:p-6 pb-24 items-center">
+    <div className="min-h-screen bg-gradient-to-br from-[#f4f5fa] via-[#f4f5fa] to-[#f4f5fa] text-[#232d42] flex flex-col font-sans p-4 sm:p-6 pb-24 items-center page-transition">
       <div className="w-full max-w-xl space-y-6">
         {/* Header Branding (SaaS Lavender Reference Theme) */}
         <div className="rounded-[32px] p-6 text-center relative overflow-hidden bg-white shadow-xl shadow-purple-900/5 border border-[#f0f1f8]">
@@ -525,9 +533,66 @@ export const LeaderPortal: React.FC = () => {
                   </p>
                 </div>
               </div>
+            ) : hasInformedAbsence ? (
+              /* State B: Prior Informed Absence Notice Registered Today */
+              <div className="space-y-4">
+                <div className="p-5 rounded-2xl bg-gradient-to-br from-amber-50/70 via-white to-white border-2 border-amber-200 shadow-sm space-y-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <span className="text-[10px] uppercase font-mono tracking-wider text-amber-800 bg-amber-100 px-3 py-1 rounded-full border border-amber-200 font-bold inline-flex items-center gap-1.5">
+                        <FileText className="w-3.5 h-3.5 text-amber-700" /> Absence Notice Documented
+                      </span>
+                      <h4 className="text-base font-bold text-[#232d42] mt-2">
+                        Today's Absence / Leave Notice Registered
+                      </h4>
+                      <p className="text-xs text-slate-500 mt-0.5 font-medium">
+                        Your absence details have been logged in the hospital attendance database for today.
+                      </p>
+                    </div>
+                    <span
+                      className={`text-[10px] uppercase font-bold px-2.5 py-1 rounded-lg border shrink-0 ${
+                        todayRecord?.status === 'LEAVE'
+                          ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                          : 'bg-amber-100 text-amber-800 border-amber-200'
+                      }`}
+                    >
+                      {todayRecord?.status === 'LEAVE' ? 'Sanctioned Leave' : 'Awaiting Admin Approval'}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs pt-1">
+                    <div className="bg-white border border-[#f0f1f8] rounded-xl p-3">
+                      <div className="text-[10px] text-slate-400 font-bold uppercase">Stated Reason</div>
+                      <div className="font-bold text-[#232d42] mt-1 text-xs">
+                        "{todayRecord?.informed_reason || 'Informed Absence'}"
+                      </div>
+                    </div>
+                    <div className="bg-white border border-[#f0f1f8] rounded-xl p-3">
+                      <div className="text-[10px] text-slate-400 font-bold uppercase">Informed To</div>
+                      <div className="font-bold text-[#232d42] mt-1 text-xs">
+                        {todayRecord?.informed_to_person || 'Hospital Authority'}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-amber-50/80 rounded-xl border border-amber-200/80 text-[11px] text-amber-900 font-medium">
+                    ℹ️ You do not need to check in again today. Daily check-in status resets automatically for the next scheduled DOM session.
+                  </div>
+                </div>
+              </div>
             ) : (
-              /* State B: Not Checked In Yet -> Show Physical QR Camera Scanner & Virtual Options */
-              <>
+              /* State C: Not Checked In Yet -> Mandatory Daily Check-in Alert & Verification Modes */
+              <div className="space-y-4">
+                <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-2.5 text-rose-950 shadow-2xs">
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                  <div className="text-xs">
+                    <strong className="block font-bold">Daily Check-in Mandatory</strong>
+                    <span>
+                      Please submit your presence before 10:20 AM IST. Leaders without a recorded check-in or approved notice will be marked <strong>ABSENT (No Information)</strong> on the Hospital Director's 10:30 AM Audit Report.
+                    </span>
+                  </div>
+                </div>
+
                 <div>
                   <h4 className="text-xs font-bold text-slate-600 uppercase tracking-wider mb-3">
                     Confirm Today's DOM Presence
@@ -546,7 +611,7 @@ export const LeaderPortal: React.FC = () => {
                         Attending In-Person
                       </div>
                       <p className="text-[11px] text-slate-500 mt-1 font-medium">
-                        Opens live camera to scan Boardroom QR code in 5th Floor Conference Hall.
+                        Opens live camera to scan Boardroom QR code in 5th Floor Conference Hall (GPS Verified).
                       </p>
                     </button>
 
@@ -578,7 +643,7 @@ export const LeaderPortal: React.FC = () => {
                     <span>Cannot attend? Submit prior informed notice / leave</span>
                   </button>
                 </div>
-              </>
+              </div>
             )}
           </div>
         )}
