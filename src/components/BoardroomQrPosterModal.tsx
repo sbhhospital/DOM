@@ -418,129 +418,165 @@ export const BoardroomQrPosterModal: React.FC<BoardroomQrPosterModalProps> = ({
               <div
                 ref={posterRef}
                 id="sbh-boardroom-a4-poster"
-                className={`w-full max-w-[700px] bg-white rounded-3xl shadow-xl border border-slate-200/80 p-6 sm:p-8 text-[#232d42] relative overflow-hidden transition-all duration-200 ${
+                className={`w-full max-w-[700px] bg-white rounded-3xl shadow-xl border border-slate-300 p-6 sm:p-8 text-[#0f172a] relative overflow-hidden transition-all duration-200 ${
                   isFitToScreen ? 'max-h-[78vh] overflow-y-auto custom-scrollbar' : ''
                 }`}
                 style={{
                   fontFamily: 'system-ui, -apple-system, sans-serif',
                 }}
               >
-                {/* Top Accent Line */}
-                <div className="h-2 w-full bg-gradient-to-r from-[#ea580c] via-[#5ec4c7] to-[#16a34a] rounded-full mb-4" />
-
-                {/* Header: Hospital Logo & Title */}
-                <div className="flex flex-col items-center text-center pb-4 border-b border-slate-100">
-                  <img
-                    src={sbhLogo}
-                    alt="SBH Group of Hospitals"
-                    className="h-12 sm:h-14 w-auto object-contain mb-2 drop-shadow-xs mx-auto"
-                  />
-                  <span className="text-[11px] font-bold text-[#16a34a] bg-emerald-50 border border-emerald-200 uppercase tracking-widest px-3 py-1 rounded-full mb-1">
-                    Hospital Operations & Management Command
-                  </span>
-                  <h1 className="text-xl sm:text-2xl font-black text-[#232d42] tracking-tight uppercase">
-                    DAILY OPERATIONS STANDUP (DOM)
-                  </h1>
-                  <p className="text-xs text-orange-600 font-bold mt-0.5 uppercase tracking-wider">
-                    Official Boardroom Attendance Check-In Terminal
-                  </p>
+                {/* Top Prestige Bar: Deep Navy + Hospital Emerald */}
+                <div className="h-2 w-full flex rounded-full overflow-hidden mb-5">
+                  <div className="h-full w-2/3 bg-[#0f172a]" />
+                  <div className="h-full w-1/3 bg-[#059669]" />
                 </div>
 
-                {/* Session Info Badges */}
-                <div className="grid grid-cols-3 gap-2.5 my-4">
-                  <div className="bg-[#f8fafc] p-2.5 rounded-2xl border border-slate-200/70 text-center">
-                    <span className="text-[9px] font-bold text-orange-600 uppercase tracking-wider block">
-                      VENUE
-                    </span>
-                    <span className="text-[11px] font-black text-[#232d42] block mt-0.5">
-                      Conference Room, 5th Flr
-                    </span>
+                {/* Double Border Inner Container */}
+                <div className="border border-slate-200/90 rounded-2xl p-4 sm:p-6 bg-white">
+                  {/* Header: Hospital Logo & Title */}
+                  <div className="flex flex-col items-center text-center pb-4 border-b border-slate-100">
+                    <img
+                      src={sbhLogo}
+                      alt="SBH Group of Hospitals"
+                      className="h-12 sm:h-14 w-auto object-contain mb-3 drop-shadow-xs mx-auto"
+                    />
+                    <div className="inline-flex items-center justify-center px-4 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-bold uppercase tracking-wider mb-2">
+                      Hospital Operations & Management Command
+                    </div>
+                    <h1 className="text-xl sm:text-2xl font-black text-[#0f172a] tracking-tight uppercase">
+                      DAILY OPERATIONS STANDUP (DOM)
+                    </h1>
+                    <p className="text-xs text-amber-600 font-bold mt-1 uppercase tracking-wider">
+                      Official In-Person Boardroom Attendance Terminal
+                    </p>
                   </div>
-                  <div className="bg-[#f8fafc] p-2.5 rounded-2xl border border-slate-200/70 text-center">
-                    <span className="text-[9px] font-bold text-emerald-600 uppercase tracking-wider block">
-                      CADENCE
-                    </span>
-                    <span className="text-[11px] font-black text-[#232d42] block mt-0.5">
-                      Daily Sharp 10:00 AM IST
-                    </span>
-                  </div>
-                  <div className="bg-[#f8fafc] p-2.5 rounded-2xl border border-slate-200/70 text-center">
-                    <span className="text-[9px] font-bold text-blue-600 uppercase tracking-wider block">
-                      SCAN WINDOW
-                    </span>
-                    <span className="text-[11px] font-black text-[#232d42] block mt-0.5">
-                      09:45 AM – 10:00 AM IST
-                    </span>
-                  </div>
-                </div>
 
-                {/* High-Resolution Clean QR Code Box (Zero Broken Characters) */}
-                <div className="my-5 flex flex-col items-center justify-center">
-                  <div className="p-4 bg-slate-50/70 rounded-3xl border-2 border-emerald-600 shadow-sm relative">
-                    {qrCodeDataUrl ? (
-                      <img
-                        src={qrCodeDataUrl}
-                        alt="Boardroom Check-In QR"
-                        className="w-56 h-56 sm:w-64 sm:h-64 object-contain rounded-xl bg-white p-2"
-                      />
-                    ) : (
-                      <div className="w-56 h-56 flex items-center justify-center">
-                        <Loader2 className="w-10 h-10 animate-spin text-emerald-600" />
+                  {/* Session Info Badges */}
+                  <div className="grid grid-cols-3 gap-2.5 my-4">
+                    <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-center">
+                      <span className="text-[9px] font-bold text-amber-600 uppercase tracking-wider block">
+                        PHYSICAL VENUE
+                      </span>
+                      <span className="text-[11px] font-black text-[#0f172a] block mt-0.5">
+                        Conference Room, 5th Floor
+                      </span>
+                    </div>
+                    <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-center">
+                      <span className="text-[9px] font-bold text-emerald-600 uppercase tracking-wider block">
+                        DAILY CADENCE
+                      </span>
+                      <span className="text-[11px] font-black text-[#0f172a] block mt-0.5">
+                        Daily Sharp 10:00 AM IST
+                      </span>
+                    </div>
+                    <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-center">
+                      <span className="text-[9px] font-bold text-indigo-600 uppercase tracking-wider block">
+                        SCAN WINDOW
+                      </span>
+                      <span className="text-[11px] font-black text-[#0f172a] block mt-0.5">
+                        09:45 AM – 10:00 AM IST
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* High-Resolution Clean QR Code Box with Corner L-Brackets */}
+                  <div className="my-5 flex flex-col items-center justify-center">
+                    <div className="p-4 sm:p-5 bg-slate-50 rounded-2xl border-2 border-[#059669] shadow-sm relative">
+                      {/* Targeting Corner Brackets in Emerald */}
+                      <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-[#059669] rounded-tl" />
+                      <div className="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2 border-[#059669] rounded-tr" />
+                      <div className="absolute bottom-2 left-2 w-4 h-4 border-b-2 border-l-2 border-[#059669] rounded-bl" />
+                      <div className="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-[#059669] rounded-br" />
+
+                      {qrCodeDataUrl ? (
+                        <div className="bg-white p-2.5 rounded-xl border border-slate-200 shadow-inner">
+                          <img
+                            src={qrCodeDataUrl}
+                            alt="Boardroom Check-In QR"
+                            className="w-52 h-52 sm:w-60 sm:h-60 object-contain"
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-52 h-52 sm:w-60 sm:h-60 flex items-center justify-center">
+                          <Loader2 className="w-10 h-10 animate-spin text-[#059669]" />
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-xs sm:text-sm font-black text-[#0f172a] mt-3 uppercase tracking-wider text-center">
+                      SCAN WITH SMARTPHONE CAMERA TO CONFIRM ATTENDANCE
+                    </span>
+                    <span className="text-[11px] text-slate-500 font-medium text-center mt-0.5">
+                      Open your phone camera or scanner app to access the official SBH Attendance Portal.
+                    </span>
+                  </div>
+
+                  {/* Direct Target URL */}
+                  <div className="p-2 bg-slate-50 rounded-xl border border-slate-200 text-center my-3">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mr-1.5">
+                      Target:
+                    </span>
+                    <a
+                      href={TARGET_CHECKIN_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs font-mono font-bold text-[#0f172a] hover:underline"
+                    >
+                      {TARGET_CHECKIN_URL}
+                    </a>
+                  </div>
+
+                  {/* 3-Step Protocol */}
+                  <div className="grid grid-cols-3 gap-2.5 my-4">
+                    <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-left">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span className="w-5 h-5 rounded-full bg-amber-600 text-white font-bold text-[10px] flex items-center justify-center shrink-0">
+                          1
+                        </span>
+                        <span className="text-[10px] font-bold text-[#0f172a]">Scan In Boardroom</span>
                       </div>
-                    )}
+                      <div className="text-[9px] text-slate-500 pl-6 leading-tight">
+                        Scan upon entering 5th Floor Hall.
+                      </div>
+                    </div>
+                    <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-left">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span className="w-5 h-5 rounded-full bg-emerald-600 text-white font-bold text-[10px] flex items-center justify-center shrink-0">
+                          2
+                        </span>
+                        <span className="text-[10px] font-bold text-[#0f172a]">Verify Identity</span>
+                      </div>
+                      <div className="text-[9px] text-slate-500 pl-6 leading-tight">
+                        Select your name & confirm PIN.
+                      </div>
+                    </div>
+                    <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-left">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span className="w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-[10px] flex items-center justify-center shrink-0">
+                          3
+                        </span>
+                        <span className="text-[10px] font-bold text-[#0f172a]">Single Audit Lock</span>
+                      </div>
+                      <div className="text-[9px] text-slate-500 pl-6 leading-tight">
+                        Attendance locked for Director audit.
+                      </div>
+                    </div>
                   </div>
-                  <span className="text-xs font-black text-slate-800 mt-3 uppercase tracking-wider text-center">
-                    SCAN WITH SMARTPHONE CAMERA TO CONFIRM ATTENDANCE
-                  </span>
-                  <span className="text-[11px] text-slate-500 font-medium text-center mt-0.5">
-                    Point mobile camera or scanner at the code to access the official SBH Attendance Terminal.
-                  </span>
-                </div>
 
-                {/* Direct Target URL */}
-                <div className="p-2.5 bg-emerald-50/70 rounded-2xl border border-emerald-200 text-center">
-                  <span className="text-[9px] font-bold text-emerald-700 uppercase tracking-wider block">
-                    Target URL:
-                  </span>
-                  <a
-                    href={TARGET_CHECKIN_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs font-mono font-bold text-emerald-800 hover:underline"
-                  >
-                    {TARGET_CHECKIN_URL}
-                  </a>
-                </div>
+                  {/* Footer SOP Terms */}
+                  <div className="pt-3 border-t border-slate-200 text-left text-[9px] text-slate-600 space-y-1">
+                    <div className="font-bold text-[#0f172a] uppercase tracking-wider">
+                      STANDING OPERATING PROCEDURE (SOP) & COMPLIANCE TERMS:
+                    </div>
+                    <div>• Punctuality Standard: Leaders attending physically must scan before 10:00 AM sharp. Late scans audited as Late Arrival.</div>
+                    <div>• Single Daily Count Guarantee: Presence is recorded once per day. Rejoining preserves initial check-in timestamp.</div>
+                    <div>• Automated Director Report: The DOM Register is finalized at 10:30 AM IST and transmitted directly to the Hospital Director.</div>
+                    <div>• Boardroom Exclusivity: This QR terminal is valid strictly for physical presence inside the 5th Floor Boardroom.</div>
+                  </div>
 
-                {/* 3-Step Protocol */}
-                <div className="grid grid-cols-3 gap-2 my-4">
-                  <div className="bg-[#f8fafc] p-2 rounded-xl border border-slate-200/60 text-left">
-                    <div className="text-[10px] font-bold text-orange-600">1. Scan In Boardroom</div>
-                    <div className="text-[9px] text-slate-500 mt-0.5">Scan upon entering 5th Floor Hall.</div>
+                  <div className="mt-3 pt-2.5 border-t border-slate-200 flex items-center justify-between text-[8px] text-slate-400 font-bold uppercase tracking-wider">
+                    <span>SBH GROUP OF HOSPITALS • Raipur Central Operations</span>
+                    <span>Authorized by Director Sir & Hospital Operations Command</span>
                   </div>
-                  <div className="bg-[#f8fafc] p-2 rounded-xl border border-slate-200/60 text-left">
-                    <div className="text-[10px] font-bold text-emerald-600">2. Verify Identity</div>
-                    <div className="text-[9px] text-slate-500 mt-0.5">Select name and enter PIN.</div>
-                  </div>
-                  <div className="bg-[#f8fafc] p-2 rounded-xl border border-slate-200/60 text-left">
-                    <div className="text-[10px] font-bold text-blue-600">3. Single Audit Lock</div>
-                    <div className="text-[9px] text-slate-500 mt-0.5">Attendance counted once per day.</div>
-                  </div>
-                </div>
-
-                {/* Footer SOP Terms */}
-                <div className="pt-3 border-t border-slate-100 text-left text-[9px] text-slate-500 space-y-1">
-                  <div className="font-bold text-slate-700 uppercase tracking-wider">
-                    Standing Operating Procedure (SOP) & Compliance Terms:
-                  </div>
-                  <div>• Punctuality Standard: Leaders attending physically must scan before 10:00 AM sharp.</div>
-                  <div>• Single Daily Count Guarantee: Presence is recorded once per day per leader.</div>
-                  <div>• Automated Director Report: DOM Register is finalized at 10:30 AM IST for Hospital Director Sir.</div>
-                </div>
-
-                <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[8px] text-slate-400 font-bold uppercase tracking-wider">
-                  <span>SBH GROUP OF HOSPITALS • Raipur</span>
-                  <span>Authorized by Hospital Management</span>
                 </div>
               </div>
             </div>

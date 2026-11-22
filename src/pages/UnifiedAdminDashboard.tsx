@@ -60,7 +60,7 @@ import { useDomApp } from '../context/DomAppContext';
 import { useAuthSession } from '../context/AuthSessionContext';
 import { useNavigate } from 'react-router-dom';
 import { Leader, Department, AttendanceStatus, MeetingFrequency, CadenceType, AttendanceRecord } from '../types/database';
-import { getCadenceInfo, formatLateDuration, formatToIndianDate, calculateDistanceInMeters, getLiveIndiaDateStr, calculateLateMinutes } from '../lib/meetingUtils';
+import { getCadenceInfo, formatLateDuration, formatToIndianDate, calculateDistanceInMeters, getLiveIndiaDateStr, calculateLateMinutes, calculateMeetingDuration } from '../lib/meetingUtils';
 import { MeetingCalendarView } from '../components/MeetingCalendarView';
 import { AnalyticsReportsView } from '../components/AnalyticsReportsView';
 import { generateDailyMeetingLink } from '../lib/meetingLinks';
@@ -1429,10 +1429,13 @@ export const UnifiedAdminDashboard: React.FC = () => {
       year: 'numeric',
     });
 
+    const durationInfo = calculateMeetingDuration(meeting.scheduled_time || '10:00 AM', meeting.closed_at || new Date());
+
     let textMsg = `*SBH GROUP OF HOSPITALS, RAIPUR*\n`;
     textMsg += `📊 *OFFICIAL ${cadenceCode} ATTENDANCE REPORT (${formattedDate})*\n`;
     textMsg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
     textMsg += `⏰ Time: ${meeting.scheduled_time} IST | Venue: ${appSettings.conference_room_name || 'Conference Room, 5th Floor'}\n`;
+    textMsg += `⏱️ Meeting Duration: ${durationInfo.durationFormatted} (${durationInfo.startTimeFormatted} – ${durationInfo.endTimeFormatted} IST)\n`;
     textMsg += `👥 Scheduled Leaders: ${forDate.length}\n`;
     textMsg += `✅ Attended: ${presentCount}\n`;
     textMsg += `⏱️ Informed Late: ${lateCount}\n`;

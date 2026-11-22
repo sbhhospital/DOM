@@ -366,6 +366,88 @@ export function checkStandupWindowStatus(
 }
 
 /**
+ * Calculates meeting duration from scheduled start time (e.g. 10:00 AM)
+ * to conclusion time (closed_at timestamp or current time).
+ */
+export interface MeetingDurationInfo {
+  durationMinutes: number;
+  durationFormatted: string;
+  startTimeFormatted: string;
+  endTimeFormatted: string;
+  fullDurationString: string;
+}
+
+export function calculateMeetingDuration(
+  scheduledTime: string = '10:00 AM',
+  concludeTime?: string | Date | null
+): MeetingDurationInfo {
+  let startH = 10;
+  let startM = 0;
+  try {
+    const match = (scheduledTime || '10:00 AM').match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+    if (match) {
+      startH = parseInt(match[1], 10);
+      startM = parseInt(match[2], 10);
+      const meridian = match[3]?.toUpperCase();
+      if (meridian === 'PM' && startH < 12) startH += 12;
+      if (meridian === 'AM' && startH === 12) startH = 0;
+    }
+  } catch {
+    startH = 10;
+    startM = 0;
+  }
+
+  let endH = 10;
+  let endM = 30;
+  try {
+    const d = concludeTime ? (typeof concludeTime === 'string' ? new Date(concludeTime) : concludeTime) : new Date();
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Kolkata',
+      hour: 'numeric',
+      minute: 'numeric',
+      hour12: false,
+    }).formatToParts(d);
+    endH = parseInt(parts.find((p) => p.type === 'hour')?.value || '10', 10);
+    endM = parseInt(parts.find((p) => p.type === 'minute')?.value || '30', 10);
+  } catch {
+    endH = 10;
+    endM = 30;
+  }
+
+  const startTotalMinutes = startH * 60 + startM;
+  const endTotalMinutes = endH * 60 + endM;
+  let diffMinutes = endTotalMinutes - startTotalMinutes;
+  if (diffMinutes < 0) {
+    diffMinutes = Math.max(diffMinutes, 0);
+  }
+
+  const formatTimeParts = (h: number, m: number) => {
+    const meridian = h >= 12 ? 'PM' : 'AM';
+    const displayH = h % 12 === 0 ? 12 : h % 12;
+    const displayM = m < 10 ? `0${m}` : `${m}`;
+    return `${displayH}:${displayM} ${meridian}`;
+  };
+
+  const startTimeFormatted = formatTimeParts(startH, startM);
+  const endTimeFormatted = formatTimeParts(endH, endM);
+
+  let durationFormatted = `${diffMinutes} mins`;
+  if (diffMinutes >= 60) {
+    const hrs = Math.floor(diffMinutes / 60);
+    const remMins = diffMinutes % 60;
+    durationFormatted = remMins > 0 ? `${hrs} hr ${remMins} mins` : `${hrs} hr`;
+  }
+
+  return {
+    durationMinutes: diffMinutes,
+    durationFormatted,
+    startTimeFormatted,
+    endTimeFormatted,
+    fullDurationString: `${durationFormatted} (${startTimeFormatted} – ${endTimeFormatted} IST)`,
+  };
+}
+
+/**
  * Calculates distance in meters between two GPS coordinates using Haversine formula
  */
 export function calculateDistanceInMeters(
@@ -386,4 +468,5 @@ export function calculateDistanceInMeters(
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return Math.round(R * c);
 }
+
 

@@ -29,6 +29,7 @@ import {
   formatToIndianDate,
   calculateDistanceInMeters,
   checkStandupWindowStatus,
+  calculateMeetingDuration,
 } from '../lib/meetingUtils';
 import { generateLeaderMagicLink } from '../lib/magicLink';
 import { generateDailyMeetingLink } from '../lib/meetingLinks';
@@ -3563,7 +3564,8 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const { base64: pdfBase64, filename } = getDirectorPdfBase64(meeting, fullRecords, appSettings);
 
     // 2. Clean concise caption: PDF is dispatched exclusively without duplicate text
-    const summaryMsg = `*SBH GROUP OF HOSPITALS, RAIPUR*\n📄 *OFFICIAL ${cadenceCode} SIGNED ATTENDANCE PDF REPORT (${formatToIndianDate(date)})*\n*Automated Reminder*`;
+    const durationInfo = calculateMeetingDuration(meeting.scheduled_time || '10:00 AM', meeting.closed_at || new Date());
+    const summaryMsg = `*SBH GROUP OF HOSPITALS, RAIPUR*\n📄 *OFFICIAL ${cadenceCode} SIGNED ATTENDANCE PDF REPORT (${formatToIndianDate(date)})*\n⏱️ *Meeting Duration:* ${durationInfo.durationFormatted} (${durationInfo.startTimeFormatted} – ${durationInfo.endTimeFormatted} IST)\n*Automated Reminder*`;
 
     const targetGroup = appSettings.is_test_mode
       ? (appSettings.test_whatsapp_group || '120363432056023698@g.us')
@@ -3757,11 +3759,13 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       msg += `━━━━━━━━━━━━━━━━━━━━━━\n*Automated Reminder*`;
     } else {
       // 10:30 AM
+      const durationInfo = calculateMeetingDuration(meeting.scheduled_time || '10:00 AM', meeting.closed_at || new Date());
       msg = `*SBH GROUP OF HOSPITALS, RAIPUR*\n`;
       msg += `📊 *FINAL 10:30 AM ${cleanCadence} ATTENDANCE AUDIT REPORT*\n`;
       msg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
       msg += `📅 *Date:* ${formattedDate} | *Meeting:* ${cleanCadence} (${meeting.frequency})\n`;
       msg += `⏰ *Audit Frozen:* 10:30 AM IST | *Venue:* ${appSettings.conference_room_name}\n`;
+      msg += `⏱️ *Meeting Duration:* ${durationInfo.durationFormatted} (${durationInfo.startTimeFormatted} – ${durationInfo.endTimeFormatted} IST)\n`;
       msg += `📄 *Official Signed Director Attendance PDF Report Attached*\n`;
       if (directorRec) {
         const dirMode = directorRec.selected_mode === 'PHYSICAL' ? 'In-Person (Conference Room, 5th Flr)' : 'Virtually via Google Meet';

@@ -3,7 +3,7 @@ import autoTable from 'jspdf-autotable';
 import { MeetingSchedule, AttendanceRecord, AppSettings, Leader, Department } from '../types/database';
 import { sbhLogoBase64 } from '../assets/logoBase64';
 import { defaultLeaderAvatarBase64 } from '../assets/defaultLeaderAvatarBase64';
-import { formatLateDuration, formatToIndianDate } from './meetingUtils';
+import { formatLateDuration, formatToIndianDate, calculateMeetingDuration } from './meetingUtils';
 
 // Subtle Official Hospital Logo Watermark on Every Page
 function addHospitalLogoWatermark(doc: jsPDF) {
@@ -88,11 +88,13 @@ export function generateDirectorPdf(
   doc.line(margin, currentY, pageWidth - margin, currentY);
 
   // 3. Meeting Title & Frequency Banner
+  const durationInfo = calculateMeetingDuration(meeting.scheduled_time || '10:00 AM', meeting.closed_at || new Date());
   currentY += 7;
+  const bannerH = 26;
   doc.setFillColor(248, 250, 252); // slate-50
-  doc.roundedRect(margin, currentY, pageWidth - margin * 2, 22, 3, 3, 'F');
+  doc.roundedRect(margin, currentY, pageWidth - margin * 2, bannerH, 3, 3, 'F');
   doc.setDrawColor(203, 213, 225);
-  doc.roundedRect(margin, currentY, pageWidth - margin * 2, 22, 3, 3, 'S');
+  doc.roundedRect(margin, currentY, pageWidth - margin * 2, bannerH, 3, 3, 'S');
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
@@ -107,12 +109,13 @@ export function generateDirectorPdf(
   });
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8.5);
+  doc.setFontSize(8);
   doc.setTextColor(71, 85, 105);
-  doc.text(`Date: ${formatToIndianDate(meeting.meeting_date)} (${formattedDate})   |   Scheduled Time: ${meeting.scheduled_time}   |   Cadence: ${cadenceCode} (${meeting.frequency})`, margin + 4, currentY + 12);
-  doc.text(`Venue: ${settings.conference_room_name}   |   Portal URL: https://sbhdom.vercel.app`, margin + 4, currentY + 17);
+  doc.text(`Date: ${formatToIndianDate(meeting.meeting_date)} (${formattedDate})   |   Start: ${durationInfo.startTimeFormatted}   |   Concluded: ${durationInfo.endTimeFormatted}`, margin + 4, currentY + 11.5);
+  doc.text(`Cadence: ${cadenceCode} (${meeting.frequency})   |   Total Meeting Duration: ${durationInfo.durationFormatted}   |   Venue: ${settings.conference_room_name}`, margin + 4, currentY + 16.5);
+  doc.text(`Official Portal: https://sbhdom.vercel.app   |   Verified by Operations Command   |   Director Sign-off`, margin + 4, currentY + 21.5);
 
-  currentY += 26;
+  currentY += bannerH + 4;
 
   // 4. Executive Summary KPI Metric Cards
   const isDirector = (l?: any) =>
