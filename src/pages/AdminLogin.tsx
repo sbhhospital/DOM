@@ -36,6 +36,7 @@ export const AdminLogin: React.FC = () => {
     loginLeaderDirect,
     loginLeaderDirectlyWithoutPassword,
     loginAdminDirectly,
+    logoutAdmin,
     adminProfile,
     fetchLiveAdminProfile,
   } = useAuthSession();
@@ -268,28 +269,7 @@ export const AdminLogin: React.FC = () => {
     const email = (emailClean || '').trim().toLowerCase();
     if (!email) return;
 
-    // 1. Fetch live admin profile from SQL database
-    const currentAdmin = await fetchLiveAdminProfile();
-    const adminEmail = (currentAdmin?.email || adminProfile?.email || 'it.head@sbhhospital.com').trim().toLowerCase();
-
-    // Check if email matches Administrator
-    if (
-      email === adminEmail ||
-      email === 'admin@sbhhospital.com' ||
-      email === 'it.head@sbhhospital.com' ||
-      email === 'it@sbhhospital.com'
-    ) {
-      loginAdminDirectly();
-      setLoggedInName(currentAdmin?.full_name || 'Administrator');
-      setShowSuccessPopup(true);
-      window.history.replaceState({}, document.title, window.location.pathname);
-      setTimeout(() => {
-        navigate('/dashboard');
-      }, 1200);
-      return;
-    }
-
-    // 2. Fetch fresh leaders from Supabase to guarantee 100% accurate match
+    // 1. Fetch fresh leaders from Supabase to guarantee 100% accurate match
     let leaderList = dbLeaders && dbLeaders.length > 0 ? dbLeaders : leaders;
     try {
       const { data: supaLeaders } = await supabase.from('leaders').select('*');
@@ -301,39 +281,63 @@ export const AdminLogin: React.FC = () => {
       console.warn('Error refreshing leaders for Google Auth:', e);
     }
 
-    const matched = leaderList.find((l) => l.email.trim().toLowerCase() === email);
+    const matched = leaderList.find((l) => l.email && l.email.trim().toLowerCase() === email);
 
-    if (!matched) {
-      setUnauthorizedModal({
-        isOpen: true,
-        attemptedEmail: email,
-        reason: 'This Google account is not registered in the DOM Clinical Leadership database.',
-      });
+    // If user is a registered leader in the database, log them in as a LEADER (not admin!)
+    if (matched) {
+      if (matched.is_active === false) {
+        try {
+          await supabase.auth.signOut();
+        } catch (e) {}
+        setUnauthorizedModal({
+          isOpen: true,
+          attemptedEmail: email,
+          reason: 'This leadership account has been deactivated. Access is currently disabled.',
+        });
+        window.history.replaceState({}, document.title, window.location.pathname);
+        return;
+      }
+
+      // Explicitly clear any existing admin session so user is strictly a Department Leader
+      logoutAdmin();
+      loginLeaderDirectlyWithoutPassword(matched);
+      localStorage.setItem('sbh_device_remembered_leader', JSON.stringify(matched));
+      setLoggedInName(matched.full_name);
+      setShowSuccessPopup(true);
       window.history.replaceState({}, document.title, window.location.pathname);
+      const params = new URLSearchParams(window.location.search);
+      const targetPath = params.get('mode') === 'room_qr' ? '/boardroom-checkin' : '/portal';
+      setTimeout(() => {
+        navigate(targetPath);
+      }, 1000);
       return;
     }
 
-    if (matched.is_active === false) {
-      setUnauthorizedModal({
-        isOpen: true,
-        attemptedEmail: email,
-        reason: 'This leadership account has been deactivated. Access is currently disabled.',
-      });
+    // 2. ONLY if NOT a leader in roster, check if it's the designated super-administrator
+    const currentAdmin = await fetchLiveAdminProfile();
+    const adminEmail = (currentAdmin?.email || 'admin@sbhhospital.com').trim().toLowerCase();
+
+    if (email === adminEmail || email === 'admin@sbhhospital.com') {
+      loginAdminDirectly();
+      setLoggedInName(currentAdmin?.full_name || 'Administrator');
+      setShowSuccessPopup(true);
       window.history.replaceState({}, document.title, window.location.pathname);
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 1000);
       return;
     }
 
-    // 3. User is valid and active leader
-    loginLeaderDirectlyWithoutPassword(matched);
-    localStorage.setItem('sbh_device_remembered_leader', JSON.stringify(matched));
-    setLoggedInName(matched.full_name);
-    setShowSuccessPopup(true);
+    // 3. User is not registered in system
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {}
+    setUnauthorizedModal({
+      isOpen: true,
+      attemptedEmail: email,
+      reason: 'This Google account is not registered in the DOM Clinical Leadership database.',
+    });
     window.history.replaceState({}, document.title, window.location.pathname);
-    const params = new URLSearchParams(window.location.search);
-    const targetPath = params.get('mode') === 'room_qr' ? '/boardroom-checkin' : '/portal';
-    setTimeout(() => {
-      navigate(targetPath);
-    }, 1200);
   };
 
   // Launch Real Google Login / OAuth flow
@@ -349,11 +353,15 @@ export const AdminLogin: React.FC = () => {
     }, 12000);
 
     try {
+      const redirectOrigin = window.location.hostname.includes('localhost')
+        ? window.location.origin
+        : 'https://sbhdom.vercel.app';
+
       // 1. Trigger Supabase Google OAuth (Generates real Google Account OAuth authorization URL)
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/login`,
+          redirectTo: `${redirectOrigin}/login`,
           queryParams: {
             access_type: 'offline',
             prompt: 'select_account',
@@ -830,17 +838,6 @@ export const AdminLogin: React.FC = () => {
             )}
             <span>{isGoogleLoading ? 'Connecting with Google...' : 'Sign in with Google Authenticator'}</span>
           </button>
-
-          <div className="flex items-center justify-between px-1 mt-2 text-[10px] text-slate-400 font-medium">
-            <span>Hospital Verified Google Sign-In</span>
-            <button
-              type="button"
-              onClick={() => setShowGoogleProviderSetupModal(true)}
-              className="text-[#5b4eed] hover:text-[#4f42dc] font-bold underline cursor-pointer"
-            >
-              How to enable Google Auth?
-            </button>
-          </div>
         </div>
       </div>
 
@@ -1030,8 +1027,13 @@ export const AdminLogin: React.FC = () => {
 
               <button
                 type="button"
-                onClick={() => setUnauthorizedModal({ isOpen: false, attemptedEmail: '', reason: '' })}
-                className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer"
+                onClick={async () => {
+                  try {
+                    await supabase.auth.signOut();
+                  } catch (e) {}
+                  setUnauthorizedModal({ isOpen: false, attemptedEmail: '', reason: '' });
+                }}
+                className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl text-xs font-bold cursor-pointer transition-colors"
               >
                 Close
               </button>

@@ -1405,9 +1405,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
             <div className="truncate font-black text-[#1e1b4b] text-xs leading-tight">
               {adminProfile?.full_name || 'Administrator'}
             </div>
-            <div className="text-[9px] text-[#6351e8] font-bold flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#6351e8] animate-ping inline-block" />
-              <span className="truncate">Operations Command • SBH Raipur</span>
+            <div className="text-[10px] text-slate-400 font-semibold truncate">
+              Hospital Admin
             </div>
           </div>
         </div>
@@ -1443,16 +1442,16 @@ export const UnifiedAdminDashboard: React.FC = () => {
           className="w-full flex items-center justify-center gap-2.5 p-2.5 bg-white text-rose-600 font-bold text-[12px] tracking-wider rounded-2xl border border-rose-100 hover:bg-rose-50 transition-all duration-200 active:scale-95 shadow-sm cursor-pointer"
         >
           <LogOut size={16} />
-          <span>Sign Out / Logout</span>
+          <span>Sign Out</span>
         </button>
       </div>
     </>
   );
 
   return (
-    <div className="min-h-screen bg-[#f6f8fd] flex font-sans antialiased text-[#1f2d2a]">
+    <div className="min-h-screen bg-[#f6effb] flex font-sans antialiased text-[#1e1b4b]">
       {/* Desktop Fixed Left Sidebar */}
-      <aside className="hidden lg:flex w-68 xl:w-72 bg-white text-[#1f2d2a] shrink-0 sticky top-0 h-[calc(100vh-2.5rem)] flex-col border-r border-slate-200/90 z-30 shadow-xs overflow-hidden">
+      <aside className="hidden lg:flex w-68 xl:w-72 bg-white text-[#1e1b4b] shrink-0 sticky top-0 h-[calc(100vh-2.5rem)] flex-col border-r border-purple-100/70 z-30 shadow-xs overflow-hidden">
         {renderSidebarNav(false)}
       </aside>
 
@@ -1463,26 +1462,26 @@ export const UnifiedAdminDashboard: React.FC = () => {
             className="fixed inset-0 modal-backdrop transition-opacity"
             onClick={() => setIsMobileMenuOpen(false)}
           />
-          <aside className="fixed inset-y-0 left-0 w-72 max-w-[85vw] bg-white flex flex-col border-r border-slate-200 shadow-2xl overflow-hidden z-10 animate-in slide-in-from-left duration-200">
+          <aside className="fixed inset-y-0 left-0 w-72 max-w-[85vw] bg-white flex flex-col border-r border-purple-100/70 shadow-2xl overflow-hidden z-10 animate-in slide-in-from-left duration-200">
             {renderSidebarNav(true)}
           </aside>
         </div>
       )}
 
       {/* ================= RIGHT DASHBOARD CONTENT AREA ================= */}
-      <div className="flex-1 min-w-0 flex flex-col min-h-screen bg-[#f6f8fd] pb-16">
+      <div className="flex-1 min-w-0 flex flex-col min-h-screen bg-[#f6effb] pb-16">
         {/* Mobile Top Navbar (lg:hidden) */}
-        <div className="lg:hidden sticky top-0 z-40 w-full bg-white border-b border-slate-200 px-3.5 py-2.5 flex items-center justify-between shadow-xs">
+        <div className="lg:hidden sticky top-0 z-40 w-full bg-white border-b border-purple-100/70 px-3.5 py-2.5 flex items-center justify-between shadow-xs">
           <div className="flex items-center gap-2.5">
             <button
               onClick={() => setIsMobileMenuOpen(true)}
-              className="p-2 rounded-xl text-[#1f2d2a] hover:bg-slate-100 border border-slate-200 cursor-pointer"
+              className="p-2 rounded-2xl text-[#1e1b4b] hover:bg-slate-100 border border-purple-100 cursor-pointer"
               title="Open Navigation Menu"
             >
               <Menu size={20} />
             </button>
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-[#ede9fe] rounded-lg p-1 border border-purple-200/50 shadow-2xs">
+              <div className="w-8 h-8 bg-[#ede9fe] rounded-xl p-1 border border-purple-200/50 shadow-2xs">
                 <img src={sbhLogo} alt="Logo" className="w-full h-full object-contain" />
               </div>
               <div>
@@ -1547,11 +1546,11 @@ export const UnifiedAdminDashboard: React.FC = () => {
           <div className="px-4 sm:px-6 py-3.5 flex justify-between items-center gap-4">
             <div className="flex items-center gap-3">
               <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-[#1e1b4b] tracking-tight flex items-center gap-3 uppercase">
+                <h1 className="text-xl sm:text-2xl font-bold text-[#1e1b4b] tracking-tight flex items-center gap-3">
                   {activeTab === 'attendance' && (
                     <>
                       Daily Attendance <span className="text-[#6351e8]">Register ({currentCadence})</span>
-                      <span className="px-3 py-1 rounded-2xl bg-[#ede9fe] border border-purple-200/60 text-[10px] font-bold text-[#6351e8] tracking-wider whitespace-nowrap uppercase">
+                      <span className="px-3 py-1 rounded-2xl bg-[#ede9fe] border border-purple-200/60 text-[10px] font-bold text-[#6351e8] tracking-wider whitespace-nowrap">
                         Live Sync v2.1
                       </span>
                     </>
@@ -1559,7 +1558,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                   {activeTab === 'links' && (
                     <>
                       Daily Meeting <span className="text-[#6351e8]">Links & Tracker</span>
-                      <span className="px-3 py-1 rounded-2xl bg-[#ede9fe] border border-purple-200/60 text-[10px] font-bold text-[#6351e8] tracking-wider whitespace-nowrap uppercase font-mono">
+                      <span className="px-3 py-1 rounded-2xl bg-[#ede9fe] border border-purple-200/60 text-[10px] font-bold text-[#6351e8] tracking-wider whitespace-nowrap font-mono">
                         {formatToIndianDate(selectedDate)}
                       </span>
                     </>
@@ -1567,7 +1566,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                   {activeTab === 'geo-history' && (
                     <>
                       Attendance <span className="text-[#6351e8]">Geo-History & Location Logs</span>
-                      <span className="px-3 py-1 rounded-2xl bg-[#ede9fe] border border-purple-200/60 text-[10px] font-bold text-[#6351e8] tracking-wider whitespace-nowrap uppercase">
+                      <span className="px-3 py-1 rounded-2xl bg-[#ede9fe] border border-purple-200/60 text-[10px] font-bold text-[#6351e8] tracking-wider whitespace-nowrap">
                         Live GPS Verification
                       </span>
                     </>
@@ -1585,7 +1584,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                   {activeTab === 'leaders' && (
                     <>
                       Hospital Leaders <span className="text-[#6351e8]">Roster</span>
-                      <span className="px-3 py-1 rounded-2xl bg-[#ede9fe] border border-purple-200/60 text-[10px] font-bold text-[#6351e8] tracking-wider whitespace-nowrap uppercase">
+                      <span className="px-3 py-1 rounded-2xl bg-[#ede9fe] border border-purple-200/60 text-[10px] font-bold text-[#6351e8] tracking-wider whitespace-nowrap">
                         {leaders.length} Leaders
                       </span>
                     </>
@@ -1593,7 +1592,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                   {activeTab === 'departments' && (
                     <>
                       Hospital <span className="text-[#6351e8]">Departments Master</span>
-                      <span className="px-3 py-1 rounded-2xl bg-[#ede9fe] border border-purple-200/60 text-[10px] font-bold text-[#6351e8] tracking-wider whitespace-nowrap uppercase">
+                      <span className="px-3 py-1 rounded-2xl bg-[#ede9fe] border border-purple-200/60 text-[10px] font-bold text-[#6351e8] tracking-wider whitespace-nowrap">
                         {departments.length} Depts
                       </span>
                     </>
@@ -1604,9 +1603,6 @@ export const UnifiedAdminDashboard: React.FC = () => {
                     </>
                   )}
                 </h1>
-                <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest opacity-80">
-                  Raipur Hospital Operations • Venue: {appSettings.conference_room_name}
-                </p>
               </div>
             </div>
 
@@ -1644,27 +1640,27 @@ export const UnifiedAdminDashboard: React.FC = () => {
         <div className="flex-1 p-4 sm:p-6 space-y-6 max-w-[1600px] w-full mx-auto">
           {/* Top Meeting Header for Non-Attendance Tabs */}
           {activeTab !== 'attendance' && (
-            <div className="bg-white rounded-2xl border border-[#dcdcdc] shadow-xs px-4 py-3 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+            <div className="bg-white rounded-3xl border border-purple-100/80 shadow-xs px-4 py-3 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
               <div className="flex items-center gap-3">
                 <div
-                  className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-white shadow-xs text-xs shrink-0 ${currentCadence === 'MOM'
+                  className={`w-9 h-9 rounded-2xl flex items-center justify-center font-black text-white shadow-xs text-xs shrink-0 ${currentCadence === 'MOM'
                       ? 'bg-purple-600'
                       : currentCadence === 'WOM'
                         ? 'bg-blue-600'
-                        : 'bg-gradient-to-br from-[#2e7d32] to-teal-700'
+                        : 'bg-gradient-to-br from-[#5f4de6] to-[#7f70f6]'
                     }`}
                 >
                   {currentCadence}
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold text-emerald-900 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                    <span className="text-[10px] font-bold text-[#5b4eed] bg-[#ede9fe] border border-purple-200/60 px-2 py-0.5 rounded-full">
                       {currentCadence} Cadence
                     </span>
-                    <span className="text-sm font-bold text-[#1f2d2a]">{currentMeeting.title}</span>
+                    <span className="text-sm font-bold text-[#1e1b4b]">{currentMeeting.title}</span>
                   </div>
                   <div className="text-xs text-slate-500 font-mono">
-                    Scheduled: {currentMeeting.scheduled_time} • Raipur Hospital Operations
+                    Scheduled: {currentMeeting.scheduled_time}
                   </div>
                 </div>
               </div>
@@ -1683,7 +1679,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                     });
                     setShowScheduleEditModal(true);
                   }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-[#1f2d2a] border border-[#dcdcdc] rounded-xl text-xs font-bold shadow-2xs transition-colors cursor-pointer"
+                  className="flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-50 text-[#1e1b4b] border border-purple-100 rounded-2xl text-xs font-bold shadow-2xs transition-colors cursor-pointer"
                 >
                   <Settings2 className="w-3.5 h-3.5 text-slate-600" />
                   <span>Modify Cadence</span>
@@ -1691,7 +1687,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
                 <button
                   onClick={handleSendReminderNotice}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2e7d32] hover:bg-[#256628] text-white rounded-xl text-xs font-bold shadow-2xs transition-all cursor-pointer"
+                  className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-[#5f4de6] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7060f0] text-white rounded-2xl text-xs font-bold shadow-2xs transition-all cursor-pointer"
                 >
                   <Send className="w-3.5 h-3.5" />
                   <span>Notice</span>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthSessionProvider, useAuthSession } from './context/AuthSessionContext';
 import { DomAppProvider } from './context/DomAppContext';
@@ -9,6 +9,11 @@ import { BoardroomCheckin } from './pages/BoardroomCheckin';
 import { JoinMeetingRedirect } from './pages/JoinMeetingRedirect';
 import { HospitalFooter } from './components/HospitalFooter';
 import { PageLoadingBar } from './components/PageLoadingBar';
+
+// Automatic Canonical URL Enforcer: Prevent Vercel preview domain redirects from Google Auth
+if (typeof window !== 'undefined' && window.location.hostname.includes('sbhdom-') && window.location.hostname.includes('.vercel.app')) {
+  window.location.replace(`https://sbhdom.vercel.app${window.location.pathname}${window.location.search}${window.location.hash}`);
+}
 
 // Admin Protected Route Guard
 const AdminProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
