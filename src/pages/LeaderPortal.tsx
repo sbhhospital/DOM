@@ -318,6 +318,76 @@ export const LeaderPortal: React.FC = () => {
 
   const isCheckInDisabled = isCutoffLocked || isSundayOrHoliday || isOnLeave;
 
+  // Handle Boardroom Physical QR Scan Arrival (?action=room_qr)
+  useEffect(() => {
+    if (!activeLeader) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('action') === 'room_qr') {
+      // Clear parameter from URL so reload does not re-trigger
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState({}, '', cleanUrl);
+
+      // If already recorded today, immediately show confirmation modal
+      if (hasJoinedToday) {
+        setAttendanceSuccessModal({
+          isOpen: true,
+          mode: 'PHYSICAL',
+          leaderName: activeLeader.full_name,
+          departmentName: activeLeader.department?.name || 'Leadership',
+          joinTime: todayRecord?.check_in_at
+            ? new Date(todayRecord.check_in_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
+            : 'Recorded Today',
+        });
+        return;
+      }
+
+      // Execute physical check-in submission
+      (async () => {
+        let geoCoords: { latitude?: number; longitude?: number; accuracy?: number } | undefined;
+        if (typeof navigator !== 'undefined' && 'geolocation' in navigator) {
+          try {
+            const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+              navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 3500, enableHighAccuracy: true });
+            });
+            geoCoords = {
+              latitude: pos.coords.latitude,
+              longitude: pos.coords.longitude,
+              accuracy: Math.round(pos.coords.accuracy),
+            };
+          } catch (e) {
+            console.warn('Geolocation not acquired on scan:', e);
+          }
+        }
+
+        const isSundayTest = new Date(selectedDate + 'T00:00:00').getDay() === 0;
+        const res = await markRoomQrCheckIn(activeLeader.id, {
+          ...geoCoords,
+          device: typeof navigator !== 'undefined' ? navigator.userAgent : 'Direct Boardroom Scan',
+          isTestMode: isSundayTest,
+        });
+
+        if (res.success) {
+          setAttendanceSuccessModal({
+            isOpen: true,
+            mode: 'PHYSICAL',
+            leaderName: activeLeader.full_name,
+            departmentName: activeLeader.department?.name || 'Leadership',
+            joinTime: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }),
+          });
+          setActionMessage({
+            success: true,
+            text: '✅ Boardroom physical attendance confirmed via QR scan!',
+          });
+        } else {
+          setActionMessage({
+            success: false,
+            text: res.message || 'Boardroom QR verification failed.',
+          });
+        }
+      })();
+    }
+  }, [activeLeader, hasJoinedToday, todayRecord, markRoomQrCheckIn, selectedDate]);
+
   const hasInformedAbsence = Boolean(
     todayRecord &&
       (todayRecord.status === 'INFORMED_ABSENT' ||

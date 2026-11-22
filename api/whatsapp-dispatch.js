@@ -27,17 +27,12 @@ export default async function handler(req, res) {
       filePathUrl,
     } = req.body || {};
 
-    let cleanPhone = (mobileNo || '120363432056023698@g.us').trim();
+    let cleanPhone = (mobileNo || '919977881452-1431506963@g.us').trim();
     const isGroup = cleanPhone.includes('@g.us');
 
     // Strict safety protection: NEVER message single contact 9977881452
     if (!isGroup && cleanPhone.replace(/\D/g, '').includes('9977881452')) {
-      return res.status(200).json({ success: false, message: 'Blocked individual dispatch to 9977881452 in testing mode.' });
-    }
-
-    // Testing phase protection: Do NOT message official group (919977881452-1431506963@g.us)
-    if (cleanPhone === '919977881452-1431506963@g.us' || !cleanPhone) {
-      cleanPhone = '120363432056023698@g.us';
+      return res.status(200).json({ success: false, message: 'Blocked individual dispatch to 9977881452.' });
     }
 
     const user = username || 'SBH HOSPITAL';

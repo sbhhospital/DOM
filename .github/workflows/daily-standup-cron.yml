@@ -41,8 +41,8 @@ jobs:
               '⏰ *Time:* Sharp 10:00 AM IST',
               '📍 *Venue:* Conference Room, 5th Floor',
               '',
-              '✅ *ATTENDANCE & CHECK-IN LINK:*',
-              '👉 https://sbhdom.vercel.app/boardroom-checkin',
+              '✅ *PORTAL LOGIN & ATTENDANCE LINK:*',
+              '👉 https://sbhdom.vercel.app/',
               '',
               '📌 *MANDATORY CHECK-IN INSTRUCTION:*',
               'Physical attendance in the 5th Floor Conference Room requires scanning the on-screen QR Code. Ensure your device GPS is active inside the room.',
@@ -53,17 +53,51 @@ jobs:
               'DOM Operations Command | SBH Raipur'
             ].join('\n');
             
-            console.log('Dispatching notice to Ceoitbox messageautosender...');
+            const targetGroupId = '919977881452-1431506963@g.us';
+            const audioUrl = 'https://sbhdom.vercel.app/audio/announcement-dom.mp3';
+            
+            console.log('Dispatching notice & audio to target group: ' + targetGroupId);
+            
+            // 1. Dispatch via Vercel Dispatch Proxy (handles both message + audio attachment)
+            const postPayload = JSON.stringify({
+              mobileNo: targetGroupId,
+              message: message,
+              audioFilename: 'announcement-dom.mp3',
+              filePathUrl: audioUrl
+            });
+            
+            const vercelReq = https.request({
+              hostname: 'sbhdom.vercel.app',
+              path: '/api/whatsapp-dispatch',
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(postPayload)
+              }
+            }, (res) => {
+              console.log('Vercel API Dispatch Status:', res.statusCode);
+              res.on('data', (d) => process.stdout.write(d));
+            });
+            
+            vercelReq.on('error', (e) => {
+              console.warn('Vercel Dispatch Error, falling back to direct Ceoitbox:', e.message);
+            });
+            
+            vercelReq.write(postPayload);
+            vercelReq.end();
+            
+            // 2. Direct fallback call to Ceoitbox messageautosender
             const ceoQuery = 'username=' + encodeURIComponent('SBH HOSPITAL') +
               '&password=' + encodeURIComponent('123456789') +
-              '&receiverMobileNo=' + encodeURIComponent('919977881452-1431506963@g.us') +
+              '&receiverMobileNo=' + encodeURIComponent(targetGroupId) +
               '&receiverName=' + encodeURIComponent('SBH DOM Group') +
-              '&message=' + encodeURIComponent(message);
+              '&message=' + encodeURIComponent(message) +
+              '&filePathUrl=' + encodeURIComponent(audioUrl);
               
             https.get('https://app.messageautosender.com/message/new?' + ceoQuery, (res) => {
-              console.log('Ceoitbox Response Status:', res.statusCode);
+              console.log('\nDirect Ceoitbox Response Status:', res.statusCode);
               res.on('data', (d) => process.stdout.write(d));
             }).on('error', (e) => {
-              console.error('Ceoitbox Error:', e.message);
+              console.error('Direct Ceoitbox Error:', e.message);
             });
           "

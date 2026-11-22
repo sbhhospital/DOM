@@ -84,12 +84,8 @@ export async function sendCeoitboxWhatsappMessage({
     };
   }
 
-  // Testing phase protection: Do NOT message official group (919977881452-1431506963@g.us).
-  // All testing notices and reminders MUST go exclusively to testing group: 120363432056023698@g.us!
-  let cleanPhone = rawClean;
-  if (cleanPhone === '919977881452-1431506963@g.us' || !cleanPhone) {
-    cleanPhone = '120363432056023698@g.us';
-  }
+  // Official live group ID: 919977881452-1431506963@g.us
+  let cleanPhone = rawClean || (settings?.admin_whatsapp_group || '919977881452-1431506963@g.us');
 
   if (!isGroup && (!cleanPhone || cleanPhone.length < 10)) {
     return {

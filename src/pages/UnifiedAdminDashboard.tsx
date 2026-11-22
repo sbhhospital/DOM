@@ -1377,7 +1377,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
         return { success: false, message: 'Meeting has not started yet' };
       }
 
-      // 1. Direct Ceoitbox PDF Dispatch to WhatsApp Group (120363432056023698@g.us) via /api/v1/message/create
+      // 1. Direct Ceoitbox PDF Dispatch to WhatsApp Group (919977881452-1431506963@g.us) via /api/v1/message/create
       const dispatchPromise = sendDirectorPdfToWhatsappGroup(date);
       uploadReportToGoogleDriveAndSheet(date).catch((e) => console.warn('Background sync note:', e));
 
@@ -1385,7 +1385,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
       if (res.success) {
         setToastAlert({
           type: 'success',
-          text: `🎉 Official Signed PDF Report sent successfully to WhatsApp Group (${appSettings.admin_whatsapp_group || '120363432056023698@g.us'}) via Ceoitbox API!`,
+          text: `🎉 Official Signed PDF Report sent successfully to WhatsApp Group (${appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us'}) via Ceoitbox API!`,
         });
       } else {
         setToastAlert({
@@ -1450,7 +1450,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
     textMsg += `━━━━━━━━━━━━━━━━━━━━━━\n*Automated Reminder*`;
 
-    const groupJid = appSettings.admin_whatsapp_group || '120363432056023698@g.us';
+    const groupJid = appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us';
     const res = await sendCeoitboxWhatsappMessage({
       mobileNo: groupJid,
       name: 'SBH DOM Official Group',
@@ -4667,13 +4667,13 @@ export const UnifiedAdminDashboard: React.FC = () => {
                         type="text"
                         value={appSettings.admin_whatsapp_group}
                         onChange={(e) => updateAppSettings({ admin_whatsapp_group: e.target.value })}
-                        placeholder="120363432056023698@g.us"
+                        placeholder="919977881452-1431506963@g.us"
                         className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-emerald-500 font-mono font-bold"
                       />
                       <div className="flex items-center justify-between mt-1 text-[11px] text-slate-500">
-                        <span>Target Group: Official DOM Operations ({appSettings.admin_whatsapp_group || '120363432056023698@g.us'})</span>
+                        <span>Target Group: Official DOM Operations ({appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us'})</span>
                         <a
-                          href={`https://app.ceoitbox.com/customer/channel/23642/group/${appSettings.admin_whatsapp_group || '120363432056023698@g.us'}`}
+                          href={`https://app.ceoitbox.com/customer/channel/23642/group/${appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us'}`}
                           target="_blank"
                           rel="noreferrer"
                           className="text-emerald-700 font-bold underline"
@@ -4778,7 +4778,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                       </span>
                     </div>
                     <div className="text-[11px] font-mono text-slate-700 truncate bg-slate-50 p-2 rounded-lg border border-slate-200 font-bold">
-                      {appSettings.admin_whatsapp_group || '120363432056023698@g.us'}
+                      {appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us'}
                     </div>
                     <p className="text-[11px] text-slate-500">09:50 AM notice & 10:30 AM final PDF report are sent to this group.</p>
                   </div>
@@ -6040,7 +6040,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                     onChange={(e) => setNotifyGroupOnScheduleChange(e.target.checked)}
                     className="rounded text-[#7065f0] focus:ring-[#7065f0] w-4 h-4 cursor-pointer"
                   />
-                  <span>Immediately Notify WhatsApp Group ({appSettings.admin_whatsapp_group || '120363432056023698@g.us'}) of this Schedule Update</span>
+                  <span>Immediately Notify WhatsApp Group ({appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us'}) of this Schedule Update</span>
                 </label>
               </div>
 
@@ -6925,12 +6925,12 @@ export const UnifiedAdminDashboard: React.FC = () => {
  * =======================================================================
  * SBH GROUP OF HOSPITALS, RAIPUR — DOM AUTOMATION PIPELINE (APPS SCRIPT)
  * Target Drive Folder: https://drive.google.com/drive/folders/1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD?usp=sharing
- * Target WhatsApp Group ID: 120363432056023698@g.us
+ * Target WhatsApp Group ID: 919977881452-1431506963@g.us
  * =======================================================================
  */
 
 const DRIVE_FOLDER_ID = "1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD";
-const WHATSAPP_GROUP_ID = "120363432056023698@g.us";
+const WHATSAPP_GROUP_ID = "919977881452-1431506963@g.us";
 const CHECKIN_PORTAL_URL = "https://sbhdom.vercel.app/";
 
 /**
@@ -7032,7 +7032,7 @@ function sendDaily0950Notice() {
               <button
                 onClick={() => {
                   const codeToCopy = `const DRIVE_FOLDER_ID = "1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD";
-const WHATSAPP_GROUP_ID = "120363432056023698@g.us";
+const WHATSAPP_GROUP_ID = "919977881452-1431506963@g.us";
 const CHECKIN_PORTAL_URL = "https://sbhdom.vercel.app/";
 
 function doPost(e) {
@@ -7431,7 +7431,7 @@ function doPost(e) {
                     Send to WhatsApp Group
                   </h3>
                   <p className="text-xs text-slate-500 font-medium">
-                    SBH Express Group ({appSettings.admin_whatsapp_group || '120363432056023698@g.us'})
+                    SBH Express Group ({appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us'})
                   </p>
                 </div>
               </div>
