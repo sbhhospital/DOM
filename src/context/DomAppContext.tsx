@@ -3570,11 +3570,11 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     msg += `Welcome to the SBH Operations Leadership Team. Your secure login credentials for the Daily Operations Meeting (DOM / WOM / MOM) Attendance Portal have been provisioned:\n\n`;
     msg += `🌐 *Portal Login URL:* https://sbhdom.vercel.app/login\n`;
     msg += `👤 *Username:* ${leader.full_name}\n`;
-    msg += `✉️ *Email ID:* ${leader.email}\n`;
-    msg += `📱 *Registered Mobile:* ${leader.phone}\n`;
     if (assignedPassword) {
       msg += `🔑 *Password:* ${assignedPassword}\n`;
     }
+    msg += `✉️ *Email ID:* ${leader.email}\n`;
+    msg += `📱 *Registered Mobile:* ${leader.phone}\n`;
     msg += `🏢 *Department:* ${deptName}\n\n`;
     msg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
     msg += `📌 *QUICK START LOGIN & CHECK-IN GUIDE:*\n`;
