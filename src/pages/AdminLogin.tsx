@@ -1032,6 +1032,36 @@ export const AdminLogin: React.FC = () => {
                     </a>
                   </div>
                 </div>
+
+                <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-purple-600 text-white text-[10px] font-black flex items-center justify-center shrink-0">
+                      3
+                    </span>
+                    <strong className="text-slate-900">Supabase URL Configuration (Vercel Redirect Fix):</strong>
+                  </div>
+                  <p className="text-[11px] text-slate-600 pl-7 leading-relaxed">
+                    Supabase Project &gt; <strong>Authentication &gt; URL Configuration</strong> me <strong>Site URL</strong> ko <code>https://sbhdom.vercel.app</code> set karein (na ki vercel.com dashboard).
+                  </p>
+                  <div className="pl-7 space-y-1">
+                    <div className="text-[10px] font-bold text-slate-700">Add to Redirect URLs:</div>
+                    <div className="bg-white border border-slate-200 rounded-lg p-2 font-mono text-[10px] text-slate-800 space-y-0.5">
+                      <div>https://sbhdom.vercel.app/**</div>
+                      <div>http://localhost:5173/**</div>
+                    </div>
+                  </div>
+                  <div className="pl-7 pt-1">
+                    <a
+                      href="https://supabase.com/dashboard/project/bbykxaxndzkapdjdgeap/auth/url-configuration"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-[11px] font-bold shadow-xs cursor-pointer"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span>Open Supabase URL Configuration ↗</span>
+                    </a>
+                  </div>
+                </div>
               </div>
 
               <div className="pt-2 flex flex-col gap-2">

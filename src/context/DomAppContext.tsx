@@ -2611,13 +2611,12 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           calculatedLate = calculateLateMinutes(existing.meeting_date || selectedDate, meeting.scheduled_time, checkTime);
         }
         const isLate = calculatedLate > 0;
-        const autoNote =
-          note ||
-          (status === 'PRESENT'
-            ? isLate
-              ? `Marked Present by Admin (Late: ${formatLateDuration(calculatedLate)}) at ${new Date(nowIso).toLocaleTimeString()}`
-              : `Marked Present by Admin (On-Time) at ${new Date(nowIso).toLocaleTimeString()}`
-            : `Marked Absent by Admin at ${new Date(nowIso).toLocaleTimeString()}`);
+        const lateSuffix = isLate ? ` (Late: ${formatLateDuration(calculatedLate)})` : ' (On-Time)';
+        const autoNote = note
+          ? `${note}${isLate ? lateSuffix : ''}`
+          : status === 'PRESENT'
+            ? `Marked Present by Admin${lateSuffix} at ${new Date(nowIso).toLocaleTimeString()}`
+            : `Marked Absent by Admin at ${new Date(nowIso).toLocaleTimeString()}`;
 
         const updated: AttendanceRecord = {
           ...existing,
@@ -2643,13 +2642,12 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         calculatedLate = calculateLateMinutes(selectedDate, meeting.scheduled_time, new Date());
       }
       const isLate = calculatedLate > 0;
-      const autoNote =
-        note ||
-        (status === 'PRESENT'
-          ? isLate
-            ? `Marked Present by Admin (Late: ${formatLateDuration(calculatedLate)}) at ${new Date(nowIso).toLocaleTimeString()}`
-            : `Marked Present by Admin (On-Time) at ${new Date(nowIso).toLocaleTimeString()}`
-          : `Marked Absent by Admin at ${new Date(nowIso).toLocaleTimeString()}`);
+      const lateSuffix = isLate ? ` (Late: ${formatLateDuration(calculatedLate)})` : ' (On-Time)';
+      const autoNote = note
+        ? `${note}${isLate ? lateSuffix : ''}`
+        : status === 'PRESENT'
+          ? `Marked Present by Admin${lateSuffix} at ${new Date(nowIso).toLocaleTimeString()}`
+          : `Marked Absent by Admin at ${new Date(nowIso).toLocaleTimeString()}`;
 
       const newRec: AttendanceRecord = {
         id: recordId,

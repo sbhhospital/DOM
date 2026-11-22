@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Hospital,
   QrCode,
@@ -22,11 +23,17 @@ import { useDomApp } from '../context/DomAppContext';
 import { useAuthSession } from '../context/AuthSessionContext';
 import { Leader } from '../types/database';
 import { verifyLeaderMagicLink } from '../lib/magicLink';
-import { getLiveIndiaDateStr, checkStandupWindowStatus } from '../lib/meetingUtils';
+import {
+  getLiveIndiaDateStr,
+  checkStandupWindowStatus,
+  formatToIndianDate,
+  formatFriendlyDate,
+} from '../lib/meetingUtils';
 import { LiveRoomQrScannerModal } from '../components/LiveRoomQrScannerModal';
 import sbhLogo from '../assets/sbh-logo.png';
 
 export const LeaderPortal: React.FC = () => {
+  const navigate = useNavigate();
   const {
     leaders,
     selectedDate,
@@ -168,6 +175,34 @@ export const LeaderPortal: React.FC = () => {
   const [pendingLateMode, setPendingLateMode] = useState<'PHYSICAL' | 'VIRTUAL' | null>(null);
   const [lateReasonInput, setLateReasonInput] = useState<string>('');
   const [calculatedLateMinutes, setCalculatedLateMinutes] = useState<number>(0);
+  const [showScannerModal, setShowScannerModal] = useState(false);
+
+  // Lock body scroll and keep view centered whenever any modal is opened
+  useEffect(() => {
+    const isAnyModalOpen =
+      showInformedModal ||
+      showLateReasonModal ||
+      showUserPassModal ||
+      showExpiredAccessModal ||
+      showMeetingClosedModal ||
+      showScannerModal;
+
+    if (isAnyModalOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [
+    showInformedModal,
+    showLateReasonModal,
+    showUserPassModal,
+    showExpiredAccessModal,
+    showMeetingClosedModal,
+    showScannerModal,
+  ]);
 
   const checkIsBetween1005And1020 = () => {
     let h = 0;
@@ -195,8 +230,6 @@ export const LeaderPortal: React.FC = () => {
   };
 
   const activeLeader = currentUser || selectedLeader;
-
-  const [showScannerModal, setShowScannerModal] = useState(false);
 
   const filteredLeaders = leaders.filter(
     (l) =>
@@ -444,6 +477,18 @@ export const LeaderPortal: React.FC = () => {
         {/* Header Branding (SaaS Lavender Reference Theme) */}
         <div className="rounded-[32px] p-6 text-center relative overflow-hidden bg-white shadow-xl shadow-purple-900/5 border border-[#f0f1f8]">
           <div className="h-2 w-full bg-gradient-to-r from-[#7065f0] via-[#7065f0] to-[#8577ff] absolute top-0 left-0" />
+          
+          {/* Top Right Admin Direct Access */}
+          <button
+            type="button"
+            onClick={() => navigate('/login')}
+            className="absolute top-4 right-4 text-[11px] font-bold text-slate-500 hover:text-[#7065f0] flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-purple-50 border border-slate-200 hover:border-purple-200 transition-all cursor-pointer shadow-2xs z-10"
+            title="Go to Command Admin Login"
+          >
+            <ShieldCheck className="w-3.5 h-3.5 text-[#7065f0]" />
+            <span className="hidden sm:inline">Admin Login</span>
+          </button>
+
           <div className="flex items-center justify-center mx-auto mb-3 pt-2">
             <img src={sbhLogo} alt="SBH Group of Hospitals" className="h-11 w-auto object-contain" />
           </div>
@@ -467,13 +512,16 @@ export const LeaderPortal: React.FC = () => {
             </span>
           </div>
 
-          <p className="text-xs text-slate-500 mt-2 flex items-center justify-center gap-1.5 font-medium">
+          <p className="text-xs text-slate-500 mt-2 flex items-center justify-center gap-1.5 font-medium flex-wrap">
             <Calendar className="w-3.5 h-3.5 text-[#7065f0]" />
             <span>Date: </span>
-            <span className="font-mono text-[#232d42] font-bold">{selectedDate}</span>
+            <span className="font-extrabold text-[#232d42]">
+              {formatFriendlyDate(selectedDate)}
+            </span>
+            <span className="text-slate-400 font-mono text-[11px]">({formatToIndianDate(selectedDate)})</span>
             <span>•</span>
             <Clock className="w-3.5 h-3.5 text-[#7065f0]" />
-            <span>{currentMeeting.scheduled_time}</span>
+            <span className="font-semibold text-slate-700">{currentMeeting.scheduled_time}</span>
           </p>
 
           {currentMeeting.is_holiday_or_shifted && (
@@ -1002,54 +1050,54 @@ export const LeaderPortal: React.FC = () => {
 
         {/* Modal: Informed Late / Absence Notice */}
         {showInformedModal && (
-          <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-in fade-in zoom-in duration-150">
+          <div className="fixed inset-0 modal-backdrop flex items-start sm:items-center justify-center z-[2500] p-3 sm:p-4 overflow-y-auto">
+            <div className="bg-white rounded-3xl max-w-md w-full p-4 sm:p-6 shadow-2xl border border-slate-200 my-auto max-h-[92vh] overflow-y-auto animate-in fade-in zoom-in duration-150">
               <h3 className="text-base font-black text-slate-900 mb-1">
                 Hospital Standup Notice Submission
               </h3>
-              <p className="text-xs text-slate-500 mb-4">
+              <p className="text-xs text-slate-500 mb-3">
                 Inform hospital operations whether you are joining late with a committed arrival window or requesting full leave for today.
               </p>
 
-              <form onSubmit={handleInformedSubmit} className="space-y-4">
+              <form onSubmit={handleInformedSubmit} className="space-y-3">
                 {/* Notice Type Selector */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">
                     Select Notice Category <span className="text-rose-500">*</span>
                   </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <button
                       type="button"
                       onClick={() => setInformedNoticeType('LATE')}
-                      className={`p-3 rounded-2xl border text-left cursor-pointer transition-all ${
+                      className={`p-2.5 rounded-2xl border text-left cursor-pointer transition-all ${
                         informedNoticeType === 'LATE'
                           ? 'bg-[#eff0fe] text-[#7065f0] border-purple-400 shadow-xs ring-2 ring-[#7065f0]/20'
                           : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
                       }`}
                     >
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-1.5 mb-0.5">
                         <Clock className="w-4 h-4 text-[#7065f0]" />
                         <span className="font-extrabold text-xs text-[#232d42]">⏱️ Joining Late</span>
                       </div>
                       <p className="text-[10px] text-slate-500 font-semibold leading-snug">
-                        Committed arrival window (5–30 Mins). Must check in before deadline or status becomes Absent.
+                        Committed arrival (5–30m). Must check in before deadline.
                       </p>
                     </button>
                     <button
                       type="button"
                       onClick={() => setInformedNoticeType('LEAVE')}
-                      className={`p-3 rounded-2xl border text-left cursor-pointer transition-all ${
+                      className={`p-2.5 rounded-2xl border text-left cursor-pointer transition-all ${
                         informedNoticeType === 'LEAVE'
                           ? 'bg-amber-50 text-amber-900 border-amber-400 shadow-xs ring-2 ring-amber-400/20'
                           : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
                       }`}
                     >
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-1.5 mb-0.5">
                         <FileText className="w-4 h-4 text-amber-700" />
-                        <span className="font-extrabold text-xs text-[#232d42]">🚫 Unable to Attend DOM</span>
+                        <span className="font-extrabold text-xs text-[#232d42]">🚫 Unable to Attend</span>
                       </div>
                       <p className="text-[10px] text-slate-500 font-semibold leading-snug">
-                        Sanctioned Leave / Duty emergency. Submits request to Admin for Approved Leave.
+                        Sanctioned Leave / Duty emergency request to Admin.
                       </p>
                     </button>
                   </div>
@@ -1057,7 +1105,7 @@ export const LeaderPortal: React.FC = () => {
 
                 {/* Delay Dropdown if Running Late */}
                 {informedNoticeType === 'LATE' && (
-                  <div className="p-3.5 bg-purple-50/70 border border-purple-200 rounded-2xl space-y-2">
+                  <div className="p-3 bg-purple-50/70 border border-purple-200 rounded-2xl space-y-1.5">
                     <label className="block text-xs font-bold text-slate-900">
                       Committed Late Arrival Time (Max 30 Mins):
                     </label>
@@ -1073,7 +1121,7 @@ export const LeaderPortal: React.FC = () => {
                       <option value={30}>30 Minutes Late (Extended Standup Window: 10:30 AM IST)</option>
                     </select>
                     <div className="text-[10px] text-purple-900 font-semibold leading-relaxed">
-                      ⚠️ <strong>Strict Rule:</strong> You must check in before your committed time expires. If you fail to join within this window, the system will automatically record you as <strong>ABSENT</strong> and further entry will be blocked.
+                      ⚠️ <strong>Strict Rule:</strong> You must check in before committed time expires or you will be marked <strong>ABSENT</strong>.
                     </div>
                   </div>
                 )}
@@ -1097,7 +1145,7 @@ export const LeaderPortal: React.FC = () => {
                     Reason <span className="text-rose-500">*</span>
                   </label>
                   <textarea
-                    rows={3}
+                    rows={2}
                     required
                     placeholder={
                       informedNoticeType === 'LATE'
@@ -1106,7 +1154,7 @@ export const LeaderPortal: React.FC = () => {
                     }
                     value={informedReason}
                     onChange={(e) => setInformedReason(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-purple-500 font-medium"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-purple-500 font-medium resize-none"
                   />
                 </div>
 
@@ -1132,8 +1180,8 @@ export const LeaderPortal: React.FC = () => {
 
         {/* Modal: Access Denied Expired Window */}
         {showExpiredAccessModal && (
-          <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border-2 border-rose-300 animate-in fade-in zoom-in duration-150">
+          <div className="fixed inset-0 modal-backdrop flex items-start sm:items-center justify-center z-[2500] p-3 sm:p-4 overflow-y-auto">
+            <div className="bg-white rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl border-2 border-rose-300 my-auto max-h-[92vh] overflow-y-auto animate-in fade-in zoom-in duration-150">
               <div className="flex items-center gap-2 mb-2 text-rose-700">
                 <AlertCircle className="w-6 h-6 text-rose-600 shrink-0" />
                 <h3 className="text-base font-black text-slate-900">
@@ -1160,8 +1208,8 @@ export const LeaderPortal: React.FC = () => {
 
         {/* Modal: Meeting Concluded & Locked */}
         {showMeetingClosedModal && (
-          <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border-2 border-rose-300 animate-in fade-in zoom-in duration-150">
+          <div className="fixed inset-0 modal-backdrop flex items-start sm:items-center justify-center z-[2500] p-3 sm:p-4 overflow-y-auto">
+            <div className="bg-white rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl border-2 border-rose-300 my-auto max-h-[92vh] overflow-y-auto animate-in fade-in zoom-in duration-150">
               <div className="flex items-center gap-2 mb-2 text-rose-700">
                 <AlertCircle className="w-6 h-6 text-rose-600 shrink-0" />
                 <h3 className="text-base font-black text-slate-900">
@@ -1188,8 +1236,8 @@ export const LeaderPortal: React.FC = () => {
 
         {/* Modal: Leader Personal Password Change */}
         {showUserPassModal && (
-          <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-200">
+          <div className="fixed inset-0 modal-backdrop flex items-start sm:items-center justify-center z-[2500] p-3 sm:p-4 overflow-y-auto">
+            <div className="bg-white rounded-3xl max-w-sm w-full p-5 sm:p-6 shadow-2xl border border-slate-200 my-auto max-h-[92vh] overflow-y-auto animate-in fade-in zoom-in duration-150">
               <h3 className="text-base font-black text-slate-900 mb-1 flex items-center gap-2">
                 <Lock className="w-4 h-4 text-emerald-600" />
                 Change Personal Password
@@ -1253,8 +1301,8 @@ export const LeaderPortal: React.FC = () => {
 
         {/* Modal: 10:05 AM to 10:20 AM Mandatory Late Arrival Reason */}
         {showLateReasonModal && (
-          <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border-2 border-amber-300">
+          <div className="fixed inset-0 modal-backdrop flex items-start sm:items-center justify-center z-[2500] p-3 sm:p-4 overflow-y-auto">
+            <div className="bg-white rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl border-2 border-amber-300 my-auto max-h-[92vh] overflow-y-auto animate-in fade-in zoom-in duration-150">
               <div className="flex items-center gap-2 mb-2 text-amber-700">
                 <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
                 <h3 className="text-base font-bold text-slate-900">
@@ -1283,12 +1331,12 @@ export const LeaderPortal: React.FC = () => {
                     Reason for Late Arrival <span className="text-rose-500">*</span>
                   </label>
                   <textarea
-                    rows={3}
+                    rows={2}
                     required
                     placeholder="e.g. Traffic delay / Emergency patient consultation in OPD / Ward handover"
                     value={lateReasonInput}
                     onChange={(e) => setLateReasonInput(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-amber-500 font-medium"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-amber-500 font-medium resize-none"
                   />
                 </div>
 
@@ -1316,13 +1364,15 @@ export const LeaderPortal: React.FC = () => {
         )}
 
         {/* Footer Admin Link */}
-        <div className="text-center pt-2 pb-8">
-          <a
-            href="/login"
-            className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-orange-50 hover:bg-orange-100 text-xs text-orange-700 font-bold border border-orange-200 shadow-xs transition-all"
+        <div className="relative z-30 text-center pt-3 pb-20">
+          <button
+            type="button"
+            onClick={() => navigate('/login')}
+            className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-orange-50 hover:bg-orange-100 text-xs text-orange-800 font-bold border border-orange-300 shadow-sm transition-all hover:scale-105 active:scale-95 cursor-pointer"
           >
-            <span>Admin Command Center Login &rarr;</span>
-          </a>
+            <ShieldCheck className="w-4 h-4 text-orange-600" />
+            <span>Command Admin Center Login &rarr;</span>
+          </button>
         </div>
       </div>
 

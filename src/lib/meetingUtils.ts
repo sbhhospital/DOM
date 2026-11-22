@@ -137,23 +137,24 @@ export function calculateLateMinutes(
       }
     }
 
-    // Parse meeting date (YYYY-MM-DD)
-    const dateParts = meetingDateStr.split('-');
-    if (dateParts.length !== 3) return 0;
+    const scheduledStartMinutes = hours * 60 + minutes;
 
-    const scheduledDate = new Date(
-      parseInt(dateParts[0], 10),
-      parseInt(dateParts[1], 10) - 1,
-      parseInt(dateParts[2], 10),
-      hours,
-      minutes,
-      0,
-      0
-    );
+    // Check-in time in minutes of the day (0 to 1439)
+    const checkInHours = checkInDate.getHours();
+    const checkInMins = checkInDate.getMinutes();
+    const checkInTotalMins = checkInHours * 60 + checkInMins;
 
-    const diffMs = checkInDate.getTime() - scheduledDate.getTime();
-    if (diffMs > 0) {
-      return Math.floor(diffMs / 60000);
+    // Standard day difference
+    let diff = checkInTotalMins - scheduledStartMinutes;
+
+    // If check-in occurred after midnight / early hours (e.g. 12:00 AM to 05:59 AM) when testing,
+    // in hospital operations that represents testing/joining late night after the 10:00 AM standup
+    if (checkInTotalMins < 360 && scheduledStartMinutes >= 540) {
+      diff = (1440 - scheduledStartMinutes) + checkInTotalMins;
+    }
+
+    if (diff > 0) {
+      return diff;
     }
     return 0;
   } catch (err) {
@@ -207,6 +208,24 @@ export function formatToIndianDate(dateStr: string): string {
     return `${parts[2]}-${parts[1]}-${parts[0]}`;
   }
   return dateStr;
+}
+
+/**
+ * Formats YYYY-MM-DD into professional friendly Indian date (e.g. "Sunday, 22 Nov 2026")
+ */
+export function formatFriendlyDate(dateStr: string): string {
+  if (!dateStr) return '';
+  try {
+    const d = new Date(dateStr + 'T12:00:00');
+    return d.toLocaleDateString('en-IN', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+  } catch {
+    return formatToIndianDate(dateStr);
+  }
 }
 
 /**

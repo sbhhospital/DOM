@@ -60,7 +60,7 @@ import { useDomApp } from '../context/DomAppContext';
 import { useAuthSession } from '../context/AuthSessionContext';
 import { useNavigate } from 'react-router-dom';
 import { Leader, Department, AttendanceStatus, MeetingFrequency, CadenceType, AttendanceRecord } from '../types/database';
-import { getCadenceInfo, formatLateDuration, formatToIndianDate, calculateDistanceInMeters, getLiveIndiaDateStr } from '../lib/meetingUtils';
+import { getCadenceInfo, formatLateDuration, formatToIndianDate, calculateDistanceInMeters, getLiveIndiaDateStr, calculateLateMinutes } from '../lib/meetingUtils';
 import { MeetingCalendarView } from '../components/MeetingCalendarView';
 import { AnalyticsReportsView } from '../components/AnalyticsReportsView';
 import { generateDailyMeetingLink } from '../lib/meetingLinks';
@@ -2927,8 +2927,14 @@ export const UnifiedAdminDashboard: React.FC = () => {
                       ) : (
                         filteredRecords.map((rec) => {
                           const isPresent = rec.status === 'PRESENT' || rec.admin_verified_attendance || rec.verification_status === 'VERIFIED';
-                          const isInformedLate = rec.status === 'INFORMED_LATE' || (rec.late_minutes && rec.late_minutes > 0 && rec.verification_note?.includes('Informed'));
-                          const isLateNoInfo = (rec.late_minutes && rec.late_minutes > 0 && !rec.verification_note?.includes('Informed')) || rec.verification_note?.includes('No Inform');
+                          const dynamicLateMins = (rec.late_minutes && rec.late_minutes > 0)
+                            ? rec.late_minutes
+                            : rec.check_in_at
+                              ? calculateLateMinutes(rec.meeting_date || selectedDate, currentMeeting.scheduled_time, new Date(rec.check_in_at))
+                              : 0;
+                          const isLate = dynamicLateMins > 0 || rec.status === 'INFORMED_LATE' || Boolean(rec.verification_note?.includes('Late'));
+                          const isInformedLate = rec.status === 'INFORMED_LATE' || (dynamicLateMins > 0 && rec.verification_note?.includes('Informed'));
+                          const isLateNoInfo = (dynamicLateMins > 0 && !rec.verification_note?.includes('Informed')) || rec.verification_note?.includes('No Inform');
                           const isLeave = rec.status === 'LEAVE' || (rec.status === 'INFORMED_ABSENT' && rec.informed_confirmed);
                           const isAbsentNoInfo = !isPresent && !isLeave && !isOffDate && (rec.status === 'ABSENT' || rec.verification_status === 'REJECTED' || rec.verification_note?.includes('No Inform'));
 
@@ -3080,15 +3086,15 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                       Awaiting Check-in
                                     </span>
                                   </div>
-                                ) : (Boolean(rec.admin_verified_attendance || rec.verification_status === 'VERIFIED') || rec.status === 'PRESENT' || Boolean(rec.check_in_at)) && ((rec.late_minutes && rec.late_minutes > 0) || rec.status === 'INFORMED_LATE' || rec.verification_note?.includes('Late')) ? (
+                                ) : (isPresent || Boolean(rec.check_in_at)) && isLate ? (
                                   <span className="text-xs bg-amber-50 text-amber-900 font-bold px-2.5 py-1 rounded-lg border border-amber-300 inline-flex items-center gap-1.5 shadow-2xs">
                                     <Clock className="w-3.5 h-3.5 text-amber-600" />
                                     <span>
                                       {rec.status === 'INFORMED_LATE' || rec.verification_note?.includes('Informed')
-                                        ? `PRESENT (Informed Late: +${rec.committed_late_minutes || rec.late_minutes || 10}m)`
+                                        ? `PRESENT (Informed Late: ${formatLateDuration(dynamicLateMins || rec.committed_late_minutes || 10)})`
                                         : rec.evidence_source === 'ADMIN_MANUAL'
-                                          ? `PRESENT (Admin Late: +${rec.late_minutes || 15}m)`
-                                          : `PRESENT (Late: +${rec.late_minutes || 10}m)`}
+                                          ? `PRESENT (Admin Late: ${formatLateDuration(dynamicLateMins || 15)})`
+                                          : `PRESENT (Late: ${formatLateDuration(dynamicLateMins || 10)})`}
                                     </span>
                                   </span>
                                 ) : (rec.admin_verified_attendance || rec.verification_status === 'VERIFIED') && rec.evidence_source === 'ADMIN_MANUAL' ? (
