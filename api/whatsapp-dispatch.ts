@@ -16,7 +16,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { mobileNo, message, username, password, pdfBase64, pdfFilename } = req.body || {};
+    const {
+      mobileNo,
+      message,
+      username,
+      password,
+      pdfBase64,
+      pdfFilename,
+      audioBase64,
+      audioFilename,
+      filePathUrl,
+    } = req.body || {};
 
     let cleanPhone = (mobileNo || '120363432056023698@g.us').trim();
     const isGroup = cleanPhone.includes('@g.us');
@@ -30,22 +40,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (cleanPhone === '919977881452-1431506963@g.us' || !cleanPhone) {
       cleanPhone = '120363432056023698@g.us';
     }
+
+    const user = username || 'SBH HOSPITAL';
+    const pass = password || '123456789';
     const authHeader = 'Basic ' + Buffer.from(`${user}:${pass}`).toString('base64');
 
     const results: Record<string, any> = {};
 
-    // 1. If PDF attachment is provided, dispatch via POST /api/v1/message/create with base64File
+    // 1. If PDF or direct Audio attachment is provided, dispatch via POST /api/v1/message/create with base64File
+    let filePayload: { name: string; body: string } | null = null;
     if (pdfBase64) {
+      filePayload = {
+        name: pdfFilename || `SBH_DOM_Report_${new Date().toISOString().split('T')[0]}.pdf`,
+        body: pdfBase64,
+      };
+    } else if (audioBase64) {
+      filePayload = {
+        name: audioFilename || 'announcement-dom.mp3',
+        body: audioBase64,
+      };
+    }
+
+    const effectiveFilePathUrl = filePathUrl || (audioFilename ? `https://sbhdom.vercel.app/audio/${audioFilename}` : undefined);
+
+    if (filePayload || effectiveFilePathUrl) {
       await new Promise<void>((resolve) => {
         const postPayload = JSON.stringify({
           recipientIds: isGroup ? [cleanPhone] : undefined,
           receiverMobileNo: cleanPhone,
-          base64File: [
-            {
-              name: pdfFilename || `SBH_DOM_Report_${new Date().toISOString().split('T')[0]}.pdf`,
-              body: pdfBase64,
-            },
-          ],
+          base64File: filePayload ? [filePayload] : undefined,
+          filePathUrl: effectiveFilePathUrl,
         });
 
         const postReq = https.request(
@@ -65,14 +89,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             let respData = '';
             apiRes.on('data', (c) => (respData += c));
             apiRes.on('end', () => {
-              results.pdf = { statusCode: apiRes.statusCode, response: respData.trim() };
+              results.file = { statusCode: apiRes.statusCode, response: respData.trim() };
               resolve();
             });
           }
         );
 
         postReq.on('error', (err) => {
-          results.pdf = { error: err.message };
+          results.file = { error: err.message };
           resolve();
         });
 

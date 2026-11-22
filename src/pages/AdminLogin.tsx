@@ -28,7 +28,7 @@ import { useDomApp } from '../context/DomAppContext';
 import { INITIAL_LEADERS } from '../data/hospitalLeadersData';
 import { supabase } from '../lib/supabase';
 import { Leader } from '../types/database';
-import defaultLeaderAvatar from '../assets/default-leader-avatar.jpg';
+import defaultLeaderAvatar from '../assets/default-leader-avatar.png';
 import sbhLogo from '../assets/sbh-logo.png';
 
 export const AdminLogin: React.FC = () => {

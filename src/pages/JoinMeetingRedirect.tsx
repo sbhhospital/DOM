@@ -24,6 +24,7 @@ import { useDomApp } from '../context/DomAppContext';
 import { verifyDailyMeetingToken, DEFAULT_GOOGLE_MEET_URL } from '../lib/meetingLinks';
 import { formatToIndianDate, calculateDistanceInMeters, checkStandupWindowStatus } from '../lib/meetingUtils';
 import { Leader } from '../types/database';
+import defaultLeaderAvatar from '../assets/default-leader-avatar.png';
 
 export const JoinMeetingRedirect: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -355,9 +356,12 @@ export const JoinMeetingRedirect: React.FC = () => {
               {/* Leader Identification Card */}
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 shadow-xs flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-500 text-white flex items-center justify-center font-bold text-base shadow-sm">
-                    {leader.full_name.charAt(0)}
-                  </div>
+                  <img
+                    src={defaultLeaderAvatar}
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/default-leader-avatar.png'; }}
+                    alt={leader.full_name}
+                    className="w-11 h-11 rounded-full object-cover border border-purple-200 shadow-sm shrink-0"
+                  />
                   <div>
                     <h2 className="text-base font-black text-slate-900 leading-tight">{leader.full_name}</h2>
                     <div className="text-xs text-slate-500 font-semibold flex items-center gap-2 mt-0.5">

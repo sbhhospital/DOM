@@ -19,7 +19,7 @@ import {
   downloadMonthlyAuditPdf,
   downloadYearlyAuditPdf,
 } from '../lib/pdfGenerator';
-import { sendCeoitboxWhatsappMessage, sendCeoitboxPdfAttachment } from '../lib/whatsappService';
+import { sendCeoitboxWhatsappMessage, sendCeoitboxPdfAttachment, getAudioBase64 } from '../lib/whatsappService';
 import {
   determineMeetingFrequency,
   getCadenceInfo,
@@ -2397,15 +2397,22 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       reminderMsg += `📌 *MANDATORY CHECK-IN INSTRUCTION:*\n`;
       reminderMsg += `QR Code scanning at the 5th Floor Conference Room is MANDATORY for physical attendance. Physical attendance will not be counted without scanning the room QR code.\n\n`;
       reminderMsg += `✅ *Direct Attendance Link:* https://sbhdom.vercel.app/boardroom-checkin\n`;
-      reminderMsg += `🎙️ *Official Audio Briefing:* https://sbhdom.vercel.app/audio/announcement-${cadenceCode.toLowerCase()}.mp3\n`;
       reminderMsg += `━━━━━━━━━━━━━━━━━━━━━━\n*Automated Reminder*`;
     }
 
-    // 1. Direct WhatsApp Dispatch via CEOITBOX API
+    // Direct Native Audio File Dispatch (Sent as direct playable WhatsApp audio attachment, not a text link)
+    const isOff = isSunday || isHoliday;
+    const audioFilename = !isOff ? `announcement-${cadenceCode.toLowerCase()}.mp3` : undefined;
+    const audioBase64 = !isOff ? await getAudioBase64(cadenceCode) : undefined;
+
+    // 1. Direct WhatsApp Dispatch via CEOITBOX API (Broadcast Message + Direct Playable Audio Attachment)
     const res = await sendCeoitboxWhatsappMessage({
       mobileNo: targetGroup,
       name: 'SBH DOM Official Group',
       message: reminderMsg,
+      audioBase64,
+      audioFilename,
+      filePathUrl: audioFilename ? `https://sbhdom.vercel.app/audio/${audioFilename}` : undefined,
       settings: appSettings,
     });
 
@@ -3010,8 +3017,6 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       msg += `📍 *Venue:* ${appSettings.conference_room_name || 'Conference Room, 5th Floor'}\n\n`;
       msg += `✅ *ATTENDANCE & CHECK-IN LINK:*\n`;
       msg += `👉 https://sbhdom.vercel.app/boardroom-checkin\n\n`;
-      msg += `🎙️ *OFFICIAL AUDIO BRIEFING:*\n`;
-      msg += `🔊 https://sbhdom.vercel.app/audio/announcement-${cadenceCode.toLowerCase()}.mp3\n\n`;
       msg += `⚠️ *INSTRUCTION FOR ALL HODs / LEADERS:*\n`;
       msg += `All Department Heads and Leaders are kindly requested to assemble in the Conference Room (5th Floor) and check in using the link above before 10:00 AM sharp.\n`;
       msg += `Final attendance audit will be finalized at 10:30 AM.\n`;
@@ -3066,10 +3071,16 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       msg += `━━━━━━━━━━━━━━━━━━━━━━\n*Automated Reminder*`;
     }
 
+    const audioFilename = stage === '0950' ? `announcement-${cadenceCode.toLowerCase()}.mp3` : undefined;
+    const audioBase64 = stage === '0950' ? await getAudioBase64(cadenceCode) : undefined;
+
     const res = await sendCeoitboxWhatsappMessage({
       mobileNo: groupJid,
       name: 'SBH DOM Official Group',
       message: msg,
+      audioBase64,
+      audioFilename,
+      filePathUrl: audioFilename ? `https://sbhdom.vercel.app/audio/${audioFilename}` : undefined,
       settings: appSettings,
     });
 

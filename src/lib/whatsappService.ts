@@ -26,6 +26,32 @@ export interface CeoitboxDispatchParams {
   name: string;
   message: string;
   settings?: AppSettings;
+  audioBase64?: string;
+  audioFilename?: string;
+  filePathUrl?: string;
+}
+
+/**
+ * Loads the base64 data URI of a static audio announcement file from public/audio/
+ */
+export async function getAudioBase64(cadence: string): Promise<string> {
+  const filename = `announcement-${cadence.toLowerCase()}.mp3`;
+  try {
+    const res = await fetch(`/audio/${filename}`);
+    if (!res.ok) return '';
+    const blob = await res.blob();
+    return new Promise<string>((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        resolve(reader.result as string || '');
+      };
+      reader.onerror = () => resolve('');
+      reader.readAsDataURL(blob);
+    });
+  } catch (err) {
+    console.warn('[Audio Fetch] Could not load audio base64:', err);
+    return '';
+  }
 }
 
 // In-memory dedup cache: prevents spamming or multiple dispatches within 5 seconds for same recipient & message
@@ -41,6 +67,9 @@ export async function sendCeoitboxWhatsappMessage({
   name,
   message,
   settings,
+  audioBase64,
+  audioFilename,
+  filePathUrl,
 }: CeoitboxDispatchParams): Promise<{ success: boolean; status: string; url: string }> {
   const rawClean = cleanMobileNumber(mobileNo);
   const isGroup = rawClean.includes('@g.us');
@@ -107,6 +136,9 @@ export async function sendCeoitboxWhatsappMessage({
         message,
         username,
         password,
+        audioBase64,
+        audioFilename,
+        filePathUrl,
       }),
     });
 

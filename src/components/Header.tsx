@@ -3,6 +3,7 @@ import { Bell, Clock, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useDom } from '../context/DomContext';
+import defaultLeaderAvatar from '../assets/default-leader-avatar.png';
 
 export const Header: React.FC = () => {
   const navigate = useNavigate();
@@ -88,13 +89,12 @@ export const Header: React.FC = () => {
                 {currentLeader.employee_code} • {currentLeader.role}
               </div>
             </div>
-            <div className="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
-              {currentLeader.full_name
-                .split(' ')
-                .map((n) => n[0])
-                .join('')
-                .slice(0, 2)}
-            </div>
+            <img
+              src={defaultLeaderAvatar}
+              onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/default-leader-avatar.png'; }}
+              alt={currentLeader.full_name}
+              className="w-9 h-9 rounded-full object-cover border border-purple-200 shadow-xs shrink-0"
+            />
             <button
               onClick={handleLogout}
               title="Sign Out"

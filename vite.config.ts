@@ -23,9 +23,22 @@ function whatsappDispatchPlugin() {
         req.on('end', async () => {
           try {
             const data = JSON.parse(body || '{}');
-            const { mobileNo, message, username, password, pdfBase64, pdfFilename } = data;
+            const {
+              mobileNo,
+              message,
+              username,
+              password,
+              pdfBase64,
+              pdfFilename,
+              audioBase64,
+              audioFilename,
+              filePathUrl,
+            } = data;
 
-            const cleanPhone = mobileNo || '919977881452-1431506963@g.us';
+            let cleanPhone = mobileNo || '120363432056023698@g.us';
+            if (cleanPhone === '919977881452-1431506963@g.us') {
+              cleanPhone = '120363432056023698@g.us';
+            }
             const user = username || 'SBH HOSPITAL';
             const pass = password || '123456789';
             const isGroup = cleanPhone.includes('@g.us');
@@ -33,18 +46,29 @@ function whatsappDispatchPlugin() {
 
             const results: any = {};
 
-            // 1. If PDF attachment is provided, dispatch directly via POST /api/v1/message/create
+            // 1. If PDF or direct Audio attachment is provided, dispatch via POST /api/v1/message/create
+            let filePayload: { name: string; body: string } | null = null;
             if (pdfBase64) {
+              filePayload = {
+                name: pdfFilename || `SBH_DOM_Report_${new Date().toISOString().split('T')[0]}.pdf`,
+                body: pdfBase64,
+              };
+            } else if (audioBase64) {
+              filePayload = {
+                name: audioFilename || 'announcement-dom.mp3',
+                body: audioBase64,
+              };
+            }
+
+            const effectiveFilePathUrl = filePathUrl || (audioFilename ? `https://sbhdom.vercel.app/audio/${audioFilename}` : undefined);
+
+            if (filePayload || effectiveFilePathUrl) {
               await new Promise<void>((resolve) => {
                 const postPayload = JSON.stringify({
                   recipientIds: isGroup ? [cleanPhone] : undefined,
                   receiverMobileNo: isGroup ? undefined : cleanPhone,
-                  base64File: [
-                    {
-                      name: pdfFilename || `SBH_DOM_Report_${new Date().toISOString().split('T')[0]}.pdf`,
-                      body: pdfBase64,
-                    },
-                  ],
+                  base64File: filePayload ? [filePayload] : undefined,
+                  filePathUrl: effectiveFilePathUrl,
                 });
 
                 const postReq = https.request(
@@ -64,16 +88,16 @@ function whatsappDispatchPlugin() {
                     let respData = '';
                     apiRes.on('data', (c: any) => (respData += c));
                     apiRes.on('end', () => {
-                      console.log('[Ceoitbox Proxy] PDF Dispatch Result:', apiRes.statusCode, respData.trim());
-                      results.pdf = { statusCode: apiRes.statusCode, response: respData.trim() };
+                      console.log('[Ceoitbox Proxy] Attachment Dispatch Result:', apiRes.statusCode, respData.trim());
+                      results.file = { statusCode: apiRes.statusCode, response: respData.trim() };
                       resolve();
                     });
                   }
                 );
 
                 postReq.on('error', (err: any) => {
-                  console.error('[Ceoitbox Proxy] PDF Network Error:', err.message);
-                  results.pdf = { error: err.message };
+                  console.error('[Ceoitbox Proxy] Attachment Network Error:', err.message);
+                  results.file = { error: err.message };
                   resolve();
                 });
 

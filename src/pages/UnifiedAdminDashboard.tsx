@@ -65,7 +65,7 @@ import { MeetingCalendarView } from '../components/MeetingCalendarView';
 import { AnalyticsReportsView } from '../components/AnalyticsReportsView';
 import { generateDailyMeetingLink } from '../lib/meetingLinks';
 import sbhLogo from '../assets/sbh-logo.png';
-import defaultLeaderAvatar from '../assets/default-leader-avatar.jpg';
+import defaultLeaderAvatar from '../assets/default-leader-avatar.png';
 import { BoardroomQrPosterModal } from '../components/BoardroomQrPosterModal';
 import { generateDirectorPdf } from '../lib/pdfGenerator';
 import { sendCeoitboxWhatsappMessage } from '../lib/whatsappService';
@@ -90,6 +90,7 @@ const SidebarSystemClock: React.FC = React.memo(() => {
 });
 
 const LiveIndiaClockAndCountdown: React.FC<{ currentCadence: string }> = React.memo(({ currentCadence }) => {
+  const { getMeetingForDate } = useDomApp();
   const [time, setTime] = useState<Date>(() => new Date());
 
   useEffect(() => {
@@ -118,28 +119,47 @@ const LiveIndiaClockAndCountdown: React.FC<{ currentCadence: string }> = React.m
 
     if (isTodaySunday) {
       // Today is Sunday (Weekly Off) -> Next standup is Monday 10:00 AM IST
+      const mon = new Date(time);
+      mon.setDate(mon.getDate() + 1);
+      const monStr = mon.toISOString().split('T')[0];
+      const monMeeting = getMeetingForDate(monStr);
+      const nextCadence = monMeeting?.cadence || (monMeeting?.frequency === 'MONTHLY' ? 'MOM' : monMeeting?.frequency === 'WEEKLY' ? 'WOM' : 'DOM');
       diff = (24 * 3600 - nowSecs) + target1000;
       targetMilestone = 'Monday 10:00 AM IST';
-      stageTitle = 'Sunday Off • Next DOM Standup';
+      stageTitle = `Sunday Off • Next ${nextCadence} Standup`;
     } else if (nowSecs < target0950) {
       diff = target0950 - nowSecs;
       targetMilestone = '09:50 AM IST';
+      stageTitle = `Next ${currentCadence} Standup In`;
     } else if (nowSecs < target1000) {
       diff = target1000 - nowSecs;
       targetMilestone = '10:00 AM IST';
+      stageTitle = `Today's ${currentCadence} Starts In`;
     } else if (nowSecs < target1030) {
       diff = target1030 - nowSecs;
       targetMilestone = '10:30 AM IST';
+      stageTitle = `${currentCadence} In Session`;
     } else {
       // After 10:30 AM today:
       // If today is Saturday (6), tomorrow is Sunday (Weekly Off). Next standup is Monday (2 days away)!
       if (dayOfWeek === 6) {
+        const mon = new Date(time);
+        mon.setDate(mon.getDate() + 2);
+        const monStr = mon.toISOString().split('T')[0];
+        const monMeeting = getMeetingForDate(monStr);
+        const nextCadence = monMeeting?.cadence || (monMeeting?.frequency === 'MONTHLY' ? 'MOM' : monMeeting?.frequency === 'WEEKLY' ? 'WOM' : 'DOM');
         diff = (24 * 3600 - nowSecs) + (24 * 3600) + target1000;
         targetMilestone = 'Monday 10:00 AM IST';
-        stageTitle = 'Next DOM Standup (Monday)';
+        stageTitle = `Next ${nextCadence} Standup (Monday)`;
       } else {
+        const tom = new Date(time);
+        tom.setDate(tom.getDate() + 1);
+        const tomStr = tom.toISOString().split('T')[0];
+        const tomMeeting = getMeetingForDate(tomStr);
+        const nextCadence = tomMeeting?.cadence || (tomMeeting?.frequency === 'MONTHLY' ? 'MOM' : tomMeeting?.frequency === 'WEEKLY' ? 'WOM' : 'DOM');
         diff = (24 * 3600 - nowSecs) + target1000;
         targetMilestone = 'Tomorrow 10:00 AM IST';
+        stageTitle = `Next ${nextCadence} Standup In`;
       }
     }
 
@@ -363,7 +383,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
     meetUrl: string;
   }>({
     active: false,
-    secondsLeft: 5,
+    secondsLeft: 13,
     cadence: 'DOM',
     title: '',
     meetUrl: '',
@@ -371,16 +391,22 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
   // Native Indian English Voice Synthesizer & Custom Audio Player
   const playStandupVoiceAnnouncement = (cadenceType: string) => {
-    // 1. First attempt: Play dedicated web boardroom audio file
+    // 1. First attempt: Play dedicated web boardroom audio file (13s auto-close)
     const webAudioPath = `/audio/web-boardroom-${cadenceType.toLowerCase()}.mp3`;
     const fallbackAudioPath = `/audio/announcement-${cadenceType.toLowerCase()}.mp3`;
 
     const audio = new Audio(webAudioPath);
+    audio.onended = () => {
+      setStandupAnnouncement((prev) => ({ ...prev, active: false }));
+    };
     audio.play().then(() => {
-      console.info('[Voice Announcement] Playing pre-recorded web boardroom audio file:', webAudioPath);
+      console.info('[Voice Announcement] Playing pre-recorded web boardroom audio file (13s):', webAudioPath);
     }).catch(() => {
       // Try fallback pre-recorded audio file
       const fallbackAudio = new Audio(fallbackAudioPath);
+      fallbackAudio.onended = () => {
+        setStandupAnnouncement((prev) => ({ ...prev, active: false }));
+      };
       fallbackAudio.play().then(() => {
         console.info('[Voice Announcement] Playing general pre-recorded audio file:', fallbackAudioPath);
       }).catch(() => {
@@ -392,8 +418,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
             cadenceType === 'WOM'
               ? `Thank you for joining, department leaders. Our Weekly Operations Review is about to begin. If you haven't scanned the boardroom QR code yet, please do so right away. Thank you for your presence, and let's begin the review!`
               : cadenceType === 'MOM'
-              ? `Thank you for joining, leadership team. Our Monthly Strategic Review is starting now. Please ensure your physical check-in is recorded by scanning the room QR code. Thank you everyone, and let's start the meeting!`
-              : `Thank you for joining, leaders. We are starting our Daily Operations Meeting in a few moments. If anyone has not scanned the conference room QR code yet, please scan it now to record your attendance. Thank you, and let's get started!`;
+                ? `Thank you for joining, leadership team. Our Monthly Strategic Review is starting now. Please ensure your physical check-in is recorded by scanning the room QR code. Thank you everyone, and let's start the meeting!`
+                : `Thank you for joining, leaders. We are starting our Daily Operations Meeting in a few moments. If anyone has not scanned the conference room QR code yet, please scan it now to record your attendance. Thank you, and let's get started!`;
 
           const utterance = new SpeechSynthesisUtterance(text);
           utterance.rate = 0.90;
@@ -436,13 +462,13 @@ export const UnifiedAdminDashboard: React.FC = () => {
     });
   };
 
-  // Test 10:00 AM Announcement Button Handler (10s Auto-Close)
+  // Test 10:00 AM Announcement Button Handler (13s Auto-Close)
   const triggerTestAnnouncement = () => {
     const curMeeting = getMeetingForDate(selectedDate);
     const cadence = curMeeting.cadence || (curMeeting.frequency === 'MONTHLY' ? 'MOM' : curMeeting.frequency === 'WEEKLY' ? 'WOM' : 'DOM');
     setStandupAnnouncement({
       active: true,
-      secondsLeft: 10,
+      secondsLeft: 13,
       cadence,
       title: curMeeting.title,
       meetUrl: curMeeting.google_meet_url || 'https://meet.google.com/jrz-jfku-gir',
@@ -450,14 +476,12 @@ export const UnifiedAdminDashboard: React.FC = () => {
     playStandupVoiceAnnouncement(cadence);
   };
 
-  // 1-second countdown ticker for standupAnnouncement with 10s auto-dismiss
+  // 1-second countdown ticker for standupAnnouncement with 13s auto-dismiss
   useEffect(() => {
     if (!standupAnnouncement.active) return;
     if (standupAnnouncement.secondsLeft <= 0) {
-      const dismissTimer = setTimeout(() => {
-        setStandupAnnouncement((prev) => ({ ...prev, active: false }));
-      }, 1000);
-      return () => clearTimeout(dismissTimer);
+      setStandupAnnouncement((prev) => ({ ...prev, active: false }));
+      return;
     }
 
     const timer = setTimeout(() => {
@@ -522,7 +546,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
           const cadence = curMeeting.cadence || 'DOM';
           setStandupAnnouncement({
             active: true,
-            secondsLeft: 10,
+            secondsLeft: 13,
             cadence,
             title: curMeeting.title,
             meetUrl: curMeeting.google_meet_url || 'https://meet.google.com/jrz-jfku-gir',
@@ -1329,8 +1353,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
         text: action === 'pdf'
           ? '🎉 Official Signed PDF Report dispatched successfully to WhatsApp Group!'
           : action === 'text'
-          ? '🎉 Absentee Text Report dispatched successfully to WhatsApp Group!'
-          : '🎉 PDF Report & Absentee Text Summary dispatched successfully to WhatsApp Group!',
+            ? '🎉 Absentee Text Report dispatched successfully to WhatsApp Group!'
+            : '🎉 PDF Report & Absentee Text Summary dispatched successfully to WhatsApp Group!',
       });
       setTimeout(() => setToastAlert(null), 5000);
     } catch (err: any) {
@@ -1436,8 +1460,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
             if (isMobile) setIsMobileMenuOpen(false);
           }}
           className={`relative flex items-center justify-between w-full transition-all duration-200 font-semibold tracking-wide text-[13px] px-3.5 py-2.5 rounded-2xl cursor-pointer ${activeTab === 'attendance'
-              ? 'bg-[#eff0fe] text-[#7065f0] font-bold shadow-xs transform scale-[1.01]'
-              : 'text-slate-600 hover:bg-[#f5f3ff] hover:text-[#7065f0]'
+            ? 'bg-[#eff0fe] text-[#7065f0] font-bold shadow-xs transform scale-[1.01]'
+            : 'text-slate-600 hover:bg-[#f5f3ff] hover:text-[#7065f0]'
             }`}
         >
           <div className="flex items-center gap-3">
@@ -1456,8 +1480,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
             if (isMobile) setIsMobileMenuOpen(false);
           }}
           className={`relative flex items-center justify-between w-full transition-all duration-200 font-semibold tracking-wide text-[13px] px-3.5 py-2.5 rounded-2xl cursor-pointer ${activeTab === 'links'
-              ? 'bg-[#eff0fe] text-[#7065f0] font-bold shadow-xs transform scale-[1.01]'
-              : 'text-slate-600 hover:bg-[#f5f3ff] hover:text-[#7065f0]'
+            ? 'bg-[#eff0fe] text-[#7065f0] font-bold shadow-xs transform scale-[1.01]'
+            : 'text-slate-600 hover:bg-[#f5f3ff] hover:text-[#7065f0]'
             }`}
         >
           <div className="flex items-center gap-3">
@@ -1476,8 +1500,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
             if (isMobile) setIsMobileMenuOpen(false);
           }}
           className={`relative flex items-center justify-between w-full transition-all duration-200 font-semibold tracking-wide text-[13px] px-3.5 py-2.5 rounded-2xl cursor-pointer ${activeTab === 'geo-history'
-              ? 'bg-[#eff0fe] text-[#7065f0] font-bold shadow-xs transform scale-[1.01]'
-              : 'text-slate-600 hover:bg-[#f5f3ff] hover:text-[#7065f0]'
+            ? 'bg-[#eff0fe] text-[#7065f0] font-bold shadow-xs transform scale-[1.01]'
+            : 'text-slate-600 hover:bg-[#f5f3ff] hover:text-[#7065f0]'
             }`}
         >
           <div className="flex items-center gap-3">
@@ -1496,8 +1520,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
             if (isMobile) setIsMobileMenuOpen(false);
           }}
           className={`relative flex items-center justify-between w-full transition-all duration-200 font-semibold tracking-wide text-[13px] px-3.5 py-2.5 rounded-2xl cursor-pointer ${activeTab === 'leaders'
-              ? 'bg-[#eff0fe] text-[#7065f0] font-bold shadow-xs transform scale-[1.01]'
-              : 'text-slate-600 hover:bg-[#f5f3ff] hover:text-[#7065f0]'
+            ? 'bg-[#eff0fe] text-[#7065f0] font-bold shadow-xs transform scale-[1.01]'
+            : 'text-slate-600 hover:bg-[#f5f3ff] hover:text-[#7065f0]'
             }`}
         >
           <div className="flex items-center gap-3">
@@ -1516,8 +1540,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
             if (isMobile) setIsMobileMenuOpen(false);
           }}
           className={`relative flex items-center justify-between w-full transition-all duration-200 font-semibold tracking-wide text-[13px] px-3.5 py-2.5 rounded-2xl cursor-pointer ${activeTab === 'departments'
-              ? 'bg-[#eff0fe] text-[#7065f0] font-bold shadow-xs transform scale-[1.01]'
-              : 'text-slate-600 hover:bg-[#f5f3ff] hover:text-[#7065f0]'
+            ? 'bg-[#eff0fe] text-[#7065f0] font-bold shadow-xs transform scale-[1.01]'
+            : 'text-slate-600 hover:bg-[#f5f3ff] hover:text-[#7065f0]'
             }`}
         >
           <div className="flex items-center gap-3">
@@ -1536,8 +1560,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
             if (isMobile) setIsMobileMenuOpen(false);
           }}
           className={`relative flex items-center justify-between w-full transition-all duration-200 font-semibold tracking-wide text-[13px] px-3.5 py-2.5 rounded-2xl cursor-pointer ${activeTab === 'calendar'
-              ? 'bg-[#eff0fe] text-[#7065f0] font-bold shadow-xs transform scale-[1.01]'
-              : 'text-slate-600 hover:bg-[#f5f3ff] hover:text-[#7065f0]'
+            ? 'bg-[#eff0fe] text-[#7065f0] font-bold shadow-xs transform scale-[1.01]'
+            : 'text-slate-600 hover:bg-[#f5f3ff] hover:text-[#7065f0]'
             }`}
         >
           <div className="flex items-center gap-3">
@@ -1556,8 +1580,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
             if (isMobile) setIsMobileMenuOpen(false);
           }}
           className={`relative flex items-center justify-between w-full transition-all duration-200 font-semibold tracking-wide text-[13px] px-3.5 py-2.5 rounded-2xl cursor-pointer ${activeTab === 'reports'
-              ? 'bg-[#eff0fe] text-[#7065f0] font-bold shadow-xs transform scale-[1.01]'
-              : 'text-slate-600 hover:bg-[#f5f3ff] hover:text-[#7065f0]'
+            ? 'bg-[#eff0fe] text-[#7065f0] font-bold shadow-xs transform scale-[1.01]'
+            : 'text-slate-600 hover:bg-[#f5f3ff] hover:text-[#7065f0]'
             }`}
         >
           <div className="flex items-center gap-3">
@@ -1576,8 +1600,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
             if (isMobile) setIsMobileMenuOpen(false);
           }}
           className={`relative flex items-center justify-between w-full transition-all duration-200 font-semibold tracking-wide text-[13px] px-3.5 py-2.5 rounded-2xl cursor-pointer ${activeTab === 'late-audit'
-              ? 'bg-[#eff0fe] text-[#7065f0] font-bold shadow-xs transform scale-[1.01]'
-              : 'text-slate-600 hover:bg-[#f5f3ff] hover:text-[#7065f0]'
+            ? 'bg-[#eff0fe] text-[#7065f0] font-bold shadow-xs transform scale-[1.01]'
+            : 'text-slate-600 hover:bg-[#f5f3ff] hover:text-[#7065f0]'
             }`}
         >
           <div className="flex items-center gap-3">
@@ -1596,8 +1620,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
             if (isMobile) setIsMobileMenuOpen(false);
           }}
           className={`relative flex items-center justify-between w-full transition-all duration-200 font-semibold tracking-wide text-[13px] px-3.5 py-2.5 rounded-2xl cursor-pointer ${activeTab === 'compliance-audit'
-              ? 'bg-[#eff0fe] text-[#7065f0] font-bold shadow-xs transform scale-[1.01]'
-              : 'text-slate-600 hover:bg-[#f5f3ff] hover:text-[#7065f0]'
+            ? 'bg-[#eff0fe] text-[#7065f0] font-bold shadow-xs transform scale-[1.01]'
+            : 'text-slate-600 hover:bg-[#f5f3ff] hover:text-[#7065f0]'
             }`}
         >
           <div className="flex items-center gap-3">
@@ -1973,12 +1997,12 @@ export const UnifiedAdminDashboard: React.FC = () => {
               <div className="flex items-center gap-3">
                 <div
                   className={`w-9 h-9 rounded-2xl flex items-center justify-center font-black text-white shadow-xs text-xs shrink-0 ${currentCadence === 'MOM'
-                      ? 'bg-purple-600'
-                      : currentCadence === 'WOM'
-                        ? 'bg-blue-600'
-                        : currentCadence === 'HOLIDAY'
-                          ? 'bg-gradient-to-br from-amber-400 to-orange-500'
-                          : 'bg-gradient-to-br from-[#7065f0] to-[#7f70f6]'
+                    ? 'bg-purple-600'
+                    : currentCadence === 'WOM'
+                      ? 'bg-blue-600'
+                      : currentCadence === 'HOLIDAY'
+                        ? 'bg-gradient-to-br from-amber-400 to-orange-500'
+                        : 'bg-gradient-to-br from-[#7065f0] to-[#7f70f6]'
                     }`}
                 >
                   {currentCadence === 'HOLIDAY' ? (
@@ -2043,12 +2067,12 @@ export const UnifiedAdminDashboard: React.FC = () => {
                   <div className="flex items-center gap-3">
                     <div
                       className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-white shadow-xs text-xs shrink-0 ${currentCadence === 'MOM'
-                          ? 'bg-[#8b5cf6]'
-                          : currentCadence === 'WOM'
-                            ? 'bg-[#3bb7b8]'
-                            : currentCadence === 'HOLIDAY' || currentMeeting.is_holiday_or_shifted
-                              ? 'bg-gradient-to-br from-amber-400 to-orange-500'
-                              : 'bg-gradient-to-br from-[#7065f0] to-[#7f70f6]'
+                        ? 'bg-[#8b5cf6]'
+                        : currentCadence === 'WOM'
+                          ? 'bg-[#3bb7b8]'
+                          : currentCadence === 'HOLIDAY' || currentMeeting.is_holiday_or_shifted
+                            ? 'bg-gradient-to-br from-amber-400 to-orange-500'
+                            : 'bg-gradient-to-br from-[#7065f0] to-[#7f70f6]'
                         }`}
                     >
                       {currentCadence === 'HOLIDAY' ? (
@@ -2214,9 +2238,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                           },
                         });
                       }}
-                      className={`h-9 px-3.5 bg-[#ecfdf5] hover:bg-[#d1fae5] text-[#059669] border border-emerald-200/80 rounded-2xl text-xs font-bold shadow-2xs flex items-center gap-1.5 active:scale-95 transition-all duration-150 shrink-0 ${
-                        isFutureDate ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-                      }`}
+                      className={`h-9 px-3.5 bg-[#ecfdf5] hover:bg-[#d1fae5] text-[#059669] border border-emerald-200/80 rounded-2xl text-xs font-bold shadow-2xs flex items-center gap-1.5 active:scale-95 transition-all duration-150 shrink-0 ${isFutureDate ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                        }`}
                       title={isFutureDate ? 'Meeting has not started yet' : 'Approve all leaders who have joined on this date'}
                     >
                       <CheckCircle2 className="w-3.5 h-3.5 text-[#059669]" />
@@ -2225,65 +2248,77 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
                     {/* Send to WhatsApp Group */}
                     <button
-                      onClick={() => setShowGroupDispatchModal(true)}
+                      onClick={() => {
+                        if (isFutureDate) {
+                          setToastAlert({
+                            type: 'info',
+                            text: `⚠️ Meeting has not started yet for ${formatToIndianDate(selectedDate)}! Future attendance reports cannot be dispatched. You can only send Pre-Meeting Announcements.`,
+                          });
+                          setTimeout(() => setToastAlert(null), 5000);
+                          return;
+                        }
+                        setShowGroupDispatchModal(true);
+                      }}
                       className="h-9 px-3.5 bg-gradient-to-r from-[#7065f0] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7065f0] text-white rounded-2xl text-xs font-bold shadow-sm shadow-indigo-200/50 flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150 shrink-0"
-                      title="Send Official PDF or Absentee Text Report to SBH WhatsApp Group"
+                      title={isFutureDate ? 'Meeting has not started yet (Reports locked)' : 'Send Official PDF or Absentee Text Report to SBH WhatsApp Group'}
                     >
                       <Send className="w-3.5 h-3.5 text-white" />
                       <span>Send to WhatsApp Group</span>
                     </button>
 
-                    {/* Quick Remove / Enable DOM Toggle */}
+                    {/* Quick Remove / Enable Cadence Toggle */}
                     {currentMeeting.cadence === 'HOLIDAY' || currentMeeting.is_holiday_or_shifted ? (
                       <button
-                        onClick={() =>
+                        onClick={() => {
+                          const restoreCadence = currentMeeting.frequency === 'MONTHLY' ? 'MOM' : currentMeeting.frequency === 'WEEKLY' ? 'WOM' : 'DOM';
+                          const restoreTitle = `${restoreCadence} — ${restoreCadence === 'MOM' ? 'Monthly Strategic Review' : restoreCadence === 'WOM' ? 'Weekly Operations Meeting (Weekly Review)' : 'Daily Operations Meeting'}`;
                           openConfirm({
-                            title: 'Re-instate / Enable DOM',
-                            message: `Re-instate Daily Operations Meeting (DOM) for ${selectedDate}?\n\n• Leaders will be scheduled for daily attendance standup.\n• Change is saved directly into Supabase SQL database.`,
+                            title: `Re-instate / Enable ${restoreCadence}`,
+                            message: `Re-instate ${restoreTitle} for ${selectedDate}?\n\n• Leaders will be scheduled for attendance standup.\n• Change is saved directly into Supabase SQL database.`,
                             type: 'success',
-                            confirmText: 'Enable DOM',
+                            confirmText: `Enable ${restoreCadence}`,
                             onConfirm: () => {
                               updateMeetingSchedule(selectedDate, {
-                                cadence: 'DOM',
-                                title: 'DOM — Daily Operations Meeting',
+                                cadence: restoreCadence,
+                                title: restoreTitle,
                                 is_holiday_or_shifted: false,
                               });
-                              setToastAlert({ type: 'success', text: `DOM Standup enabled for ${selectedDate} in Supabase SQL!` });
+                              setToastAlert({ type: 'success', text: `${restoreCadence} Standup enabled for ${selectedDate} in Supabase SQL!` });
                               setTimeout(() => setToastAlert(null), 4000);
                             },
-                          })
-                        }
+                          });
+                        }}
                         className="h-9 px-3.5 bg-gradient-to-r from-[#32b87f] to-[#59d49c] hover:from-[#2ba16f] hover:to-[#4ec48f] text-white rounded-2xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150 shrink-0"
-                        title="Re-instate DOM Standup"
+                        title={`Re-instate ${currentMeeting.frequency === 'MONTHLY' ? 'MOM' : currentMeeting.frequency === 'WEEKLY' ? 'WOM' : 'DOM'} Standup`}
                       >
                         <Check className="w-3.5 h-3.5 text-white" />
-                        <span>Enable DOM</span>
+                        <span>Enable {currentMeeting.frequency === 'MONTHLY' ? 'MOM' : currentMeeting.frequency === 'WEEKLY' ? 'WOM' : 'DOM'}</span>
                       </button>
                     ) : (
                       <button
                         onClick={() =>
                           openConfirm({
-                            title: 'Remove DOM for this Date',
-                            message: `Remove Daily Operations Meeting (DOM) for ${selectedDate}?\n\n• No leaders will be penalized or marked absent.\n• Absentees count will be 0.\n• Change is saved directly in Supabase SQL database.`,
+                            title: `Remove ${currentCadence} for this Date`,
+                            message: `Remove ${currentMeeting.title || currentCadence} for ${selectedDate}?\n\n• No leaders will be penalized or marked absent.\n• Absentees count will be 0.\n• Change is saved directly in Supabase SQL database.`,
                             type: 'danger',
-                            confirmText: 'Remove DOM',
+                            confirmText: `Remove ${currentCadence}`,
                             onConfirm: () => {
                               updateMeetingSchedule(selectedDate, {
                                 cadence: 'HOLIDAY',
-                                title: 'NO DOM — Standup Cancelled / Removed by Admin',
+                                title: `NO ${currentCadence} — Standup Cancelled / Removed by Admin`,
                                 is_holiday_or_shifted: true,
-                                shift_reason: 'DOM Removed by Admin',
+                                shift_reason: `${currentCadence} Removed by Admin`,
                               });
-                              setToastAlert({ type: 'info', text: `DOM removed for ${selectedDate} (Saved to Supabase SQL)!` });
+                              setToastAlert({ type: 'info', text: `${currentCadence} removed for ${selectedDate} (Saved to Supabase SQL)!` });
                               setTimeout(() => setToastAlert(null), 4000);
                             },
                           })
                         }
                         className="h-9 px-3.5 bg-[#fff1f2] hover:bg-[#ffe4e6] text-[#e11d48] border border-rose-200 rounded-2xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150 shrink-0"
-                        title="Remove DOM for this date (Zero absentees will be counted)"
+                        title={`Remove ${currentCadence} for this date (Zero absentees will be counted)`}
                       >
                         <X className="w-3.5 h-3.5 text-[#e11d48]" />
-                        <span>Remove DOM</span>
+                        <span>Remove {currentCadence}</span>
                       </button>
                     )}
 
@@ -2300,11 +2335,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
                         });
                         setTimeout(() => setToastAlert(null), 4000);
                       }}
-                      className={`h-9 px-3.5 rounded-2xl text-xs font-bold flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150 border shrink-0 ${
-                        autoCeoitboxDispatch
-                          ? 'bg-[#eff0fe] text-[#7065f0] border-purple-200'
-                          : 'bg-slate-100 text-slate-500 border-slate-200'
-                      }`}
+                      className={`h-9 px-3.5 rounded-2xl text-xs font-bold flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150 border shrink-0 ${autoCeoitboxDispatch
+                        ? 'bg-[#eff0fe] text-[#7065f0] border-purple-200'
+                        : 'bg-slate-100 text-slate-500 border-slate-200'
+                        }`}
                       title="Auto-Scheduler Toggle"
                     >
                       <Clock className={`w-3.5 h-3.5 ${autoCeoitboxDispatch ? 'text-[#7065f0]' : 'text-slate-400'}`} />
@@ -2371,8 +2405,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 <div
                   onClick={() => setStatusFilter('ALL')}
                   className={`p-3.5 rounded-2xl transition-all cursor-pointer group relative overflow-hidden text-white bg-gradient-to-br from-[#8a7ff5] to-[#a497fc] shadow-xs ${statusFilter === 'ALL'
-                      ? 'ring-3 ring-indigo-900/40 shadow-md scale-[1.02]'
-                      : 'hover:scale-[1.01] hover:shadow-md'
+                    ? 'ring-3 ring-indigo-900/40 shadow-md scale-[1.02]'
+                    : 'hover:scale-[1.01] hover:shadow-md'
                     }`}
                 >
                   <div className="flex items-center justify-between mb-1.5">
@@ -2392,8 +2426,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 <div
                   onClick={() => setStatusFilter(statusFilter === 'PRESENT' ? 'ALL' : 'PRESENT')}
                   className={`p-3.5 rounded-2xl transition-all cursor-pointer group relative overflow-hidden text-white bg-gradient-to-br from-[#5ec4c7] to-[#80e3e6] shadow-xs ${statusFilter === 'PRESENT'
-                      ? 'ring-3 ring-teal-900/40 shadow-md scale-[1.02]'
-                      : 'hover:scale-[1.01] hover:shadow-md'
+                    ? 'ring-3 ring-teal-900/40 shadow-md scale-[1.02]'
+                    : 'hover:scale-[1.01] hover:shadow-md'
                     }`}
                 >
                   <div className="flex items-center justify-between mb-1.5">
@@ -2413,8 +2447,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 <div
                   onClick={() => setStatusFilter(statusFilter === 'PHYSICAL' ? 'ALL' : 'PHYSICAL')}
                   className={`p-3.5 rounded-2xl transition-all cursor-pointer group relative overflow-hidden text-white bg-gradient-to-br from-[#7065f0] to-[#9286fa] shadow-xs ${statusFilter === 'PHYSICAL'
-                      ? 'ring-3 ring-indigo-900/40 shadow-md scale-[1.02]'
-                      : 'hover:scale-[1.01] hover:shadow-md'
+                    ? 'ring-3 ring-indigo-900/40 shadow-md scale-[1.02]'
+                    : 'hover:scale-[1.01] hover:shadow-md'
                     }`}
                 >
                   <div className="flex items-center justify-between mb-1.5">
@@ -2434,8 +2468,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 <div
                   onClick={() => setStatusFilter(statusFilter === 'VIRTUAL' ? 'ALL' : 'VIRTUAL')}
                   className={`p-3.5 rounded-2xl transition-all cursor-pointer group relative overflow-hidden text-white bg-gradient-to-br from-[#4facfe] to-[#00f2fe] shadow-xs ${statusFilter === 'VIRTUAL'
-                      ? 'ring-3 ring-sky-900/40 shadow-md scale-[1.02]'
-                      : 'hover:scale-[1.01] hover:shadow-md'
+                    ? 'ring-3 ring-sky-900/40 shadow-md scale-[1.02]'
+                    : 'hover:scale-[1.01] hover:shadow-md'
                     }`}
                 >
                   <div className="flex items-center justify-between mb-1.5">
@@ -2455,8 +2489,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 <div
                   onClick={() => setStatusFilter(statusFilter === 'INFORMED_LATE' ? 'ALL' : 'INFORMED_LATE')}
                   className={`p-3.5 rounded-2xl transition-all cursor-pointer group relative overflow-hidden text-white bg-gradient-to-br from-[#f9a69b] to-[#fcbeb1] shadow-xs ${statusFilter === 'INFORMED_LATE'
-                      ? 'ring-3 ring-orange-900/40 shadow-md scale-[1.02]'
-                      : 'hover:scale-[1.01] hover:shadow-md'
+                    ? 'ring-3 ring-orange-900/40 shadow-md scale-[1.02]'
+                    : 'hover:scale-[1.01] hover:shadow-md'
                     }`}
                 >
                   <div className="flex items-center justify-between mb-1.5">
@@ -2476,8 +2510,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 <div
                   onClick={() => setStatusFilter(statusFilter === 'LEAVE' ? 'ALL' : 'LEAVE')}
                   className={`p-3.5 rounded-2xl transition-all cursor-pointer group relative overflow-hidden text-white bg-gradient-to-br from-[#a78bfa] to-[#c4b5fd] shadow-xs ${statusFilter === 'LEAVE'
-                      ? 'ring-3 ring-purple-900/40 shadow-md scale-[1.02]'
-                      : 'hover:scale-[1.01] hover:shadow-md'
+                    ? 'ring-3 ring-purple-900/40 shadow-md scale-[1.02]'
+                    : 'hover:scale-[1.01] hover:shadow-md'
                     }`}
                 >
                   <div className="flex items-center justify-between mb-1.5">
@@ -2497,8 +2531,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 <div
                   onClick={() => setStatusFilter(statusFilter === 'ABSENT' ? 'ALL' : 'ABSENT')}
                   className={`p-3.5 rounded-2xl transition-all cursor-pointer group relative overflow-hidden text-white bg-gradient-to-br from-[#f43f5e] to-[#fb7185] shadow-xs ${statusFilter === 'ABSENT'
-                      ? 'ring-3 ring-rose-900/40 shadow-md scale-[1.02]'
-                      : 'hover:scale-[1.01] hover:shadow-md'
+                    ? 'ring-3 ring-rose-900/40 shadow-md scale-[1.02]'
+                    : 'hover:scale-[1.01] hover:shadow-md'
                     }`}
                 >
                   <div className="flex items-center justify-between mb-1.5">
@@ -2598,9 +2632,19 @@ export const UnifiedAdminDashboard: React.FC = () => {
                   </button>
 
                   <button
-                    onClick={() => setShowGroupDispatchModal(true)}
+                    onClick={() => {
+                      if (isFutureDate) {
+                        setToastAlert({
+                          type: 'info',
+                          text: `⚠️ Meeting has not started yet for ${formatToIndianDate(selectedDate)}! Future attendance reports cannot be dispatched. You can only send Pre-Meeting Announcements.`,
+                        });
+                        setTimeout(() => setToastAlert(null), 5000);
+                        return;
+                      }
+                      setShowGroupDispatchModal(true);
+                    }}
                     className="px-3 py-2 bg-gradient-to-r from-[#7065f0] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7065f0] text-white rounded-2xl text-xs font-bold shadow-md shadow-indigo-200/50 flex items-center gap-1.5 active:scale-95 transition-all duration-150 cursor-pointer"
-                    title="Send Official PDF or Absentee Text Report to SBH WhatsApp Group"
+                    title={isFutureDate ? 'Meeting has not started yet (Reports locked)' : 'Send Official PDF or Absentee Text Report to SBH WhatsApp Group'}
                   >
                     <Send className="w-3.5 h-3.5 text-white" />
                     <span>Send to WhatsApp Group</span>
@@ -2723,14 +2767,14 @@ export const UnifiedAdminDashboard: React.FC = () => {
                           const rowBgClass = isAbsentNoInfo
                             ? 'bg-rose-50/40 hover:bg-rose-50/70 border-rose-200/80'
                             : isLateNoInfo
-                            ? 'bg-orange-50/30 hover:bg-orange-50/60 border-orange-200/70'
-                            : isInformedLate
-                            ? 'bg-amber-50/30 hover:bg-amber-50/60 border-amber-200/70'
-                            : isPresent
-                            ? 'bg-emerald-50/20 hover:bg-emerald-50/50 border-emerald-100'
-                            : isLeave
-                            ? 'bg-purple-50/20 hover:bg-purple-50/50 border-purple-100'
-                            : 'hover:bg-slate-50/70 border-slate-100';
+                              ? 'bg-orange-50/30 hover:bg-orange-50/60 border-orange-200/70'
+                              : isInformedLate
+                                ? 'bg-amber-50/30 hover:bg-amber-50/60 border-amber-200/70'
+                                : isPresent
+                                  ? 'bg-emerald-50/20 hover:bg-emerald-50/50 border-emerald-100'
+                                  : isLeave
+                                    ? 'bg-purple-50/20 hover:bg-purple-50/50 border-purple-100'
+                                    : 'hover:bg-slate-50/70 border-slate-100';
 
                           return (
                             <tr key={rec.id} className={`transition-colors border-b ${rowBgClass}`}>
@@ -2748,428 +2792,428 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                   </div>
                                 </div>
                               </td>
-                            <td className="py-2.5 px-3 text-slate-600 font-semibold text-xs">
-                              {rec.leader?.department?.name || 'Department'}
-                            </td>
-                            <td className="py-2.5 px-3 text-center">
-                              <span className="text-[10px] font-mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-bold border border-slate-200">
-                                {rec.leader?.expected_mode || 'PHYSICAL'}
-                              </span>
-                            </td>
-                            <td className="py-2.5 px-3 text-center">
-                              {rec.evidence_source === 'ADMIN_MANUAL' ? (
-                                <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-300 inline-flex items-center gap-1 shadow-2xs">
-                                  <Shield className="w-3 h-3 text-emerald-700" /> Admin Manual
+                              <td className="py-2.5 px-3 text-slate-600 font-semibold text-xs">
+                                {rec.leader?.department?.name || 'Department'}
+                              </td>
+                              <td className="py-2.5 px-3 text-center">
+                                <span className="text-[10px] font-mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-bold border border-slate-200">
+                                  {rec.leader?.expected_mode || 'PHYSICAL'}
                                 </span>
-                              ) : rec.selected_mode === 'PHYSICAL' ? (
-                                <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-300 inline-flex items-center gap-1 shadow-2xs">
-                                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                  {rec.evidence_source === 'ROOM_STATIC_QR' || rec.evidence_source === 'VIRTUAL_QR_VERIFIED' || rec.qr_scanned_at
-                                    ? 'Physical (QR Verified)'
-                                    : 'Physical (5th Flr)'}
-                                </span>
-                              ) : rec.selected_mode === 'VIRTUAL' ? (
-                                <span className="text-[10px] font-bold text-sky-800 bg-sky-50 px-2 py-0.5 rounded-full border border-sky-200 inline-flex items-center gap-1">
-                                  <Video className="w-3 h-3 text-sky-600" /> Virtual (Meet)
-                                </span>
-                              ) : (
-                                <span className="text-xs text-slate-400 font-semibold">—</span>
-                              )}
-                            </td>
-                            <td className="py-2.5 px-3 text-center font-mono text-xs text-slate-800 font-bold">
-                              {rec.check_in_at ? (
-                                new Date(rec.check_in_at).toLocaleTimeString('en-IN', {
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                  second: '2-digit',
-                                  hour12: true,
-                                })
-                              ) : (
-                                <span className="text-slate-400 font-semibold">—</span>
-                              )}
-                            </td>
-                            <td className="py-2.5 px-3 text-center">
-                              {rec.status === 'EXCUSED' || rec.verification_note?.includes('Weekly Off') || rec.verification_note?.includes('Sunday') || (isOffDate && rec.status !== 'PRESENT') ? (
-                                <span className="text-[10px] bg-slate-100 text-slate-700 font-bold px-2 py-0.5 rounded-full border border-slate-300 inline-flex items-center gap-1 shadow-2xs">
-                                  <Calendar className="w-3 h-3 text-slate-500" />
-                                  <span>{rec.verification_note || (isSundayDate ? 'Sunday Weekly Off' : 'Holiday / No DOM')}</span>
-                                </span>
-                              ) : rec.verification_status === 'REJECTED' || rec.verification_note?.includes('Disapproved') || rec.verification_note?.includes('No Inform') ? (
-                                <span className="text-[10px] bg-rose-100 text-rose-800 font-bold px-2 py-0.5 rounded-full border border-rose-300 inline-flex items-center gap-1">
-                                  <XCircle className="w-3 h-3 text-rose-600" />
-                                  <span>ABSENT (No Inform)</span>
-                                </span>
-                              ) : rec.status === 'LEAVE' || (rec.status === 'INFORMED_ABSENT' && rec.informed_confirmed) ? (
-                                <span className="text-[10px] bg-purple-100 text-purple-900 font-bold px-2 py-0.5 rounded-full border border-purple-300 inline-flex items-center gap-1">
-                                  <CheckCircle2 className="w-3 h-3 text-purple-600" />
-                                  <span>APPROVED LEAVE {rec.informed_to_person ? `(${rec.informed_to_person})` : ''}</span>
-                                </span>
-                              ) : rec.status === 'INFORMED_ABSENT' && !rec.informed_confirmed ? (
-                                <div className="flex flex-col items-center gap-0.5">
+                              </td>
+                              <td className="py-2.5 px-3 text-center">
+                                {rec.evidence_source === 'ADMIN_MANUAL' ? (
+                                  <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-300 inline-flex items-center gap-1 shadow-2xs">
+                                    <Shield className="w-3 h-3 text-emerald-700" /> Admin Manual
+                                  </span>
+                                ) : rec.selected_mode === 'PHYSICAL' ? (
+                                  <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-300 inline-flex items-center gap-1 shadow-2xs">
+                                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                    {rec.evidence_source === 'ROOM_STATIC_QR' || rec.evidence_source === 'VIRTUAL_QR_VERIFIED' || rec.qr_scanned_at
+                                      ? 'Physical (QR Verified)'
+                                      : 'Physical (5th Flr)'}
+                                  </span>
+                                ) : rec.selected_mode === 'VIRTUAL' ? (
+                                  <span className="text-[10px] font-bold text-sky-800 bg-sky-50 px-2 py-0.5 rounded-full border border-sky-200 inline-flex items-center gap-1">
+                                    <Video className="w-3 h-3 text-sky-600" /> Virtual (Meet)
+                                  </span>
+                                ) : (
+                                  <span className="text-xs text-slate-400 font-semibold">—</span>
+                                )}
+                              </td>
+                              <td className="py-2.5 px-3 text-center font-mono text-xs text-slate-800 font-bold">
+                                {rec.check_in_at ? (
+                                  new Date(rec.check_in_at).toLocaleTimeString('en-IN', {
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    second: '2-digit',
+                                    hour12: true,
+                                  })
+                                ) : (
+                                  <span className="text-slate-400 font-semibold">—</span>
+                                )}
+                              </td>
+                              <td className="py-2.5 px-3 text-center">
+                                {rec.status === 'EXCUSED' || rec.verification_note?.includes('Weekly Off') || rec.verification_note?.includes('Sunday') || (isOffDate && rec.status !== 'PRESENT') ? (
+                                  <span className="text-[10px] bg-slate-100 text-slate-700 font-bold px-2 py-0.5 rounded-full border border-slate-300 inline-flex items-center gap-1 shadow-2xs">
+                                    <Calendar className="w-3 h-3 text-slate-500" />
+                                    <span>{rec.verification_note || (isSundayDate ? 'Sunday Weekly Off' : 'Holiday / No DOM')}</span>
+                                  </span>
+                                ) : rec.verification_status === 'REJECTED' || rec.verification_note?.includes('Disapproved') || rec.verification_note?.includes('No Inform') ? (
+                                  <span className="text-[10px] bg-rose-100 text-rose-800 font-bold px-2 py-0.5 rounded-full border border-rose-300 inline-flex items-center gap-1">
+                                    <XCircle className="w-3 h-3 text-rose-600" />
+                                    <span>ABSENT (No Inform)</span>
+                                  </span>
+                                ) : rec.status === 'LEAVE' || (rec.status === 'INFORMED_ABSENT' && rec.informed_confirmed) ? (
+                                  <span className="text-[10px] bg-purple-100 text-purple-900 font-bold px-2 py-0.5 rounded-full border border-purple-300 inline-flex items-center gap-1">
+                                    <CheckCircle2 className="w-3 h-3 text-purple-600" />
+                                    <span>APPROVED LEAVE {rec.informed_to_person ? `(${rec.informed_to_person})` : ''}</span>
+                                  </span>
+                                ) : rec.status === 'INFORMED_ABSENT' && !rec.informed_confirmed ? (
+                                  <div className="flex flex-col items-center gap-0.5">
+                                    <span className="text-[10px] bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded-full border border-amber-300 inline-flex items-center gap-1 shadow-2xs">
+                                      <Clock className="w-3 h-3 text-amber-600 animate-pulse" />
+                                      <span>Informed Awaiting Approval</span>
+                                    </span>
+                                    <span className="text-[9px] text-amber-800 font-medium">
+                                      To: {rec.informed_to_person || 'Authority'}
+                                    </span>
+                                  </div>
+                                ) : (rec.admin_verified_attendance || rec.verification_status === 'VERIFIED') && rec.evidence_source === 'ADMIN_MANUAL' ? (
+                                  <span className="text-[10px] bg-emerald-100 text-emerald-950 font-bold px-2 py-0.5 rounded-full border border-emerald-300 inline-flex items-center gap-1 shadow-2xs" title={rec.verification_note || 'Marked Present by Admin'}>
+                                    <ShieldCheck className="w-3 h-3 text-emerald-700" />
+                                    <span>PRESENT (Marked by Admin)</span>
+                                    {rec.late_minutes && rec.late_minutes > 0 ? (
+                                      <span className="text-[9px] bg-emerald-700 text-white px-1.5 py-0.2 rounded font-black tracking-wide ml-1">
+                                        {formatLateDuration(rec.late_minutes)}
+                                      </span>
+                                    ) : null}
+                                  </span>
+                                ) : rec.admin_verified_attendance || rec.verification_status === 'VERIFIED' ? (
+                                  <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-300 inline-flex items-center gap-1">
+                                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                    <span>PRESENT (Approved)</span>
+                                    {rec.late_minutes && rec.late_minutes > 0 ? (
+                                      <span className="text-[9px] bg-emerald-700 text-white px-1.5 py-0.2 rounded font-black tracking-wide ml-1">
+                                        {formatLateDuration(rec.late_minutes)}
+                                      </span>
+                                    ) : null}
+                                  </span>
+                                ) : !rec.admin_verified_attendance &&
+                                  (rec.status === 'PRESENT' || rec.status === 'INFORMED_LATE' || rec.selected_mode !== 'NONE') ? (
                                   <span className="text-[10px] bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded-full border border-amber-300 inline-flex items-center gap-1 shadow-2xs">
                                     <Clock className="w-3 h-3 text-amber-600 animate-pulse" />
-                                    <span>Informed Awaiting Approval</span>
-                                  </span>
-                                  <span className="text-[9px] text-amber-800 font-medium">
-                                    To: {rec.informed_to_person || 'Authority'}
-                                  </span>
-                                </div>
-                              ) : (rec.admin_verified_attendance || rec.verification_status === 'VERIFIED') && rec.evidence_source === 'ADMIN_MANUAL' ? (
-                                <span className="text-[10px] bg-emerald-100 text-emerald-950 font-bold px-2 py-0.5 rounded-full border border-emerald-300 inline-flex items-center gap-1 shadow-2xs" title={rec.verification_note || 'Marked Present by Admin'}>
-                                  <ShieldCheck className="w-3 h-3 text-emerald-700" />
-                                  <span>PRESENT (Marked by Admin)</span>
-                                  {rec.late_minutes && rec.late_minutes > 0 ? (
-                                    <span className="text-[9px] bg-emerald-700 text-white px-1.5 py-0.2 rounded font-black tracking-wide ml-1">
-                                      {formatLateDuration(rec.late_minutes)}
-                                    </span>
-                                  ) : null}
-                                </span>
-                              ) : rec.admin_verified_attendance || rec.verification_status === 'VERIFIED' ? (
-                                <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-300 inline-flex items-center gap-1">
-                                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                  <span>PRESENT (Approved)</span>
-                                  {rec.late_minutes && rec.late_minutes > 0 ? (
-                                    <span className="text-[9px] bg-emerald-700 text-white px-1.5 py-0.2 rounded font-black tracking-wide ml-1">
-                                      {formatLateDuration(rec.late_minutes)}
-                                    </span>
-                                  ) : null}
-                                </span>
-                              ) : !rec.admin_verified_attendance &&
-                                (rec.status === 'PRESENT' || rec.status === 'INFORMED_LATE' || rec.selected_mode !== 'NONE') ? (
-                                <span className="text-[10px] bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded-full border border-amber-300 inline-flex items-center gap-1 shadow-2xs">
-                                  <Clock className="w-3 h-3 text-amber-600 animate-pulse" />
-                                  <span>Approval Pending</span>
-                                  {rec.late_minutes && rec.late_minutes > 0 ? (
-                                    <span className="text-[9px] bg-amber-200 text-amber-950 px-1 py-0.2 rounded font-black tracking-wide ml-1">
-                                      {formatLateDuration(rec.late_minutes)}
-                                    </span>
-                                  ) : null}
-                                </span>
-                              ) : isFutureDate ? (
-                                <span className="text-[10px] bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded-full border border-indigo-200 inline-flex items-center gap-1">
-                                  <Clock className="w-3 h-3 text-indigo-500" />
-                                  <span>SCHEDULED (Upcoming)</span>
-                                </span>
-                              ) : (
-                                <span className="text-[10px] bg-rose-50 text-rose-700 font-bold px-2 py-0.5 rounded-full border border-rose-200 inline-flex items-center gap-1">
-                                  <span>ABSENT</span>
-                                </span>
-                              )}
-                            </td>
-                            <td className="py-2.5 px-3 text-right">
-                              <div className="flex items-center justify-end gap-1.5">
-                                {isOffDate ? (
-                                  <span className="px-2 py-0.5 bg-slate-100 text-slate-500 text-[10px] font-bold rounded-lg border border-slate-200 inline-flex items-center gap-1">
-                                    <Calendar className="w-3 h-3 text-slate-400" />
-                                    <span>Weekly Off</span>
+                                    <span>Approval Pending</span>
+                                    {rec.late_minutes && rec.late_minutes > 0 ? (
+                                      <span className="text-[9px] bg-amber-200 text-amber-950 px-1 py-0.2 rounded font-black tracking-wide ml-1">
+                                        {formatLateDuration(rec.late_minutes)}
+                                      </span>
+                                    ) : null}
                                   </span>
                                 ) : isFutureDate ? (
-                                  <span className="px-2.5 py-1 bg-slate-50 text-slate-400 text-[10px] font-semibold rounded-lg border border-slate-200 inline-flex items-center gap-1">
-                                    <Clock className="w-3 h-3 text-slate-400" />
-                                    <span>Meeting Not Started</span>
+                                  <span className="text-[10px] bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded-full border border-indigo-200 inline-flex items-center gap-1">
+                                    <Clock className="w-3 h-3 text-indigo-500" />
+                                    <span>SCHEDULED (Upcoming)</span>
                                   </span>
                                 ) : (
-                                  <>
-                                    {/* If Leader submitted Informed Notice awaiting Admin confirmation */}
-                                {rec.status === 'INFORMED_ABSENT' && !rec.informed_confirmed && (
-                                  <>
-                                    <button
-                                      onClick={() =>
-                                        openConfirm({
-                                          title: 'Approve Informed Leave',
-                                          message: `Confirm that ${rec.leader?.full_name} had informed ${rec.informed_to_person || 'Authority'}? Status will be marked as APPROVED LEAVE.`,
-                                          type: 'success',
-                                          confirmText: 'Approve Leave',
-                                          onConfirm: async () => {
-                                            await confirmInformedAbsence(rec.id, true);
-                                            setToastAlert({ type: 'success', text: `Leave approved for ${rec.leader?.full_name}!` });
-                                            setTimeout(() => setToastAlert(null), 3000);
-                                          },
-                                        })
-                                      }
-                                      className="px-2 py-1 bg-[#2e7d32] hover:bg-[#256628] text-white rounded-lg text-[10px] font-bold shadow-2xs cursor-pointer flex items-center gap-1 transition-all"
-                                      title="Confirm & Approve Leave"
-                                    >
-                                      <CheckCircle2 className="w-3 h-3" />
-                                      <span>Approve Leave</span>
-                                    </button>
-                                    <button
-                                      onClick={() =>
-                                        openConfirm({
-                                          title: 'Disapprove Inform (Mark Absent)',
-                                          message: `Reject ${rec.leader?.full_name}'s informed claim? (Admin confirms they did not inform). Status will be marked as ABSENT (No Inform).`,
-                                          type: 'danger',
-                                          confirmText: 'No Inform (Mark Absent)',
-                                          onConfirm: async () => {
-                                            await confirmInformedAbsence(rec.id, false);
-                                            setToastAlert({ type: 'error', text: `${rec.leader?.full_name} marked as ABSENT (No Inform)!` });
-                                            setTimeout(() => setToastAlert(null), 3000);
-                                          },
-                                        })
-                                      }
-                                      className="px-2 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-[10px] font-bold shadow-2xs cursor-pointer flex items-center gap-1 transition-all"
-                                      title="Admin Disapproves: Did not inform"
-                                    >
-                                      <XCircle className="w-3 h-3" />
-                                      <span>No Inform</span>
-                                    </button>
-                                  </>
+                                  <span className="text-[10px] bg-rose-50 text-rose-700 font-bold px-2 py-0.5 rounded-full border border-rose-200 inline-flex items-center gap-1">
+                                    <span>ABSENT</span>
+                                  </span>
                                 )}
-
-                                {/* Attendance locked once marked/verified: Cannot be marked again directly without Reset/Edit! */}
-                                {(rec.status === 'PRESENT' || rec.admin_verified_attendance || rec.verification_status === 'VERIFIED') ? (
-                                  <div className="flex items-center justify-end gap-1.5">
-                                    <span className="px-2.5 py-1 bg-emerald-50 text-emerald-800 text-[10px] font-bold rounded-lg border border-emerald-300 inline-flex items-center gap-1 shadow-2xs">
-                                      <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                      <span>{rec.evidence_source === 'ADMIN_MANUAL' ? 'Admin Marked' : 'Verified'}</span>
+                              </td>
+                              <td className="py-2.5 px-3 text-right">
+                                <div className="flex items-center justify-end gap-1.5">
+                                  {isOffDate ? (
+                                    <span className="px-2 py-0.5 bg-slate-100 text-slate-500 text-[10px] font-bold rounded-lg border border-slate-200 inline-flex items-center gap-1">
+                                      <Calendar className="w-3 h-3 text-slate-400" />
+                                      <span>Weekly Off</span>
                                     </span>
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        const existingTime = rec.check_in_at
-                                          ? new Date(rec.check_in_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })
-                                          : '10:00:00 AM';
-                                        setEditTimeModal({
-                                          isOpen: true,
-                                          record: rec,
-                                          timeStr: existingTime,
-                                          mode: rec.selected_mode === 'VIRTUAL' ? 'VIRTUAL' : 'PHYSICAL',
-                                          informType: rec.status === 'INFORMED_LATE' ? 'INFORMED_LATE' : rec.verification_note?.includes('No Inform') ? 'LATE_NO_INFO' : 'ON_TIME',
-                                          informedTo: rec.informed_to_person || 'Director Sir',
-                                          status: rec.status,
-                                        });
-                                      }}
-                                      className="px-2 py-1 bg-slate-100 hover:bg-purple-50 text-slate-700 hover:text-[#7065f0] border border-slate-200 rounded-lg text-[10px] font-bold shadow-2xs cursor-pointer flex items-center gap-1 transition-all"
-                                      title="Reset & Modify Check-in Time / Status"
-                                    >
-                                      <RotateCcw className="w-3 h-3" />
-                                      <span>Reset / Edit</span>
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <>
-                                    {/* Admin Direct Approval Button for pending attendance */}
-                                    {!rec.admin_verified_attendance &&
-                                      (rec.status === 'INFORMED_LATE' || (rec.selected_mode !== 'NONE' && rec.status !== 'LEAVE')) && (
+                                  ) : isFutureDate ? (
+                                    <span className="px-2.5 py-1 bg-slate-50 text-slate-400 text-[10px] font-semibold rounded-lg border border-slate-200 inline-flex items-center gap-1">
+                                      <Clock className="w-3 h-3 text-slate-400" />
+                                      <span>Meeting Not Started</span>
+                                    </span>
+                                  ) : (
+                                    <>
+                                      {/* If Leader submitted Informed Notice awaiting Admin confirmation */}
+                                      {rec.status === 'INFORMED_ABSENT' && !rec.informed_confirmed && (
+                                        <>
+                                          <button
+                                            onClick={() =>
+                                              openConfirm({
+                                                title: 'Approve Informed Leave',
+                                                message: `Confirm that ${rec.leader?.full_name} had informed ${rec.informed_to_person || 'Authority'}? Status will be marked as APPROVED LEAVE.`,
+                                                type: 'success',
+                                                confirmText: 'Approve Leave',
+                                                onConfirm: async () => {
+                                                  await confirmInformedAbsence(rec.id, true);
+                                                  setToastAlert({ type: 'success', text: `Leave approved for ${rec.leader?.full_name}!` });
+                                                  setTimeout(() => setToastAlert(null), 3000);
+                                                },
+                                              })
+                                            }
+                                            className="px-2 py-1 bg-[#2e7d32] hover:bg-[#256628] text-white rounded-lg text-[10px] font-bold shadow-2xs cursor-pointer flex items-center gap-1 transition-all"
+                                            title="Confirm & Approve Leave"
+                                          >
+                                            <CheckCircle2 className="w-3 h-3" />
+                                            <span>Approve Leave</span>
+                                          </button>
+                                          <button
+                                            onClick={() =>
+                                              openConfirm({
+                                                title: 'Disapprove Inform (Mark Absent)',
+                                                message: `Reject ${rec.leader?.full_name}'s informed claim? (Admin confirms they did not inform). Status will be marked as ABSENT (No Inform).`,
+                                                type: 'danger',
+                                                confirmText: 'No Inform (Mark Absent)',
+                                                onConfirm: async () => {
+                                                  await confirmInformedAbsence(rec.id, false);
+                                                  setToastAlert({ type: 'error', text: `${rec.leader?.full_name} marked as ABSENT (No Inform)!` });
+                                                  setTimeout(() => setToastAlert(null), 3000);
+                                                },
+                                              })
+                                            }
+                                            className="px-2 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-[10px] font-bold shadow-2xs cursor-pointer flex items-center gap-1 transition-all"
+                                            title="Admin Disapproves: Did not inform"
+                                          >
+                                            <XCircle className="w-3 h-3" />
+                                            <span>No Inform</span>
+                                          </button>
+                                        </>
+                                      )}
+
+                                      {/* Attendance locked once marked/verified: Cannot be marked again directly without Reset/Edit! */}
+                                      {(rec.status === 'PRESENT' || rec.admin_verified_attendance || rec.verification_status === 'VERIFIED') ? (
+                                        <div className="flex items-center justify-end gap-1.5">
+                                          <span className="px-2.5 py-1 bg-emerald-50 text-emerald-800 text-[10px] font-bold rounded-lg border border-emerald-300 inline-flex items-center gap-1 shadow-2xs">
+                                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                            <span>{rec.evidence_source === 'ADMIN_MANUAL' ? 'Admin Marked' : 'Verified'}</span>
+                                          </span>
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              const existingTime = rec.check_in_at
+                                                ? new Date(rec.check_in_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })
+                                                : '10:00:00 AM';
+                                              setEditTimeModal({
+                                                isOpen: true,
+                                                record: rec,
+                                                timeStr: existingTime,
+                                                mode: rec.selected_mode === 'VIRTUAL' ? 'VIRTUAL' : 'PHYSICAL',
+                                                informType: rec.status === 'INFORMED_LATE' ? 'INFORMED_LATE' : rec.verification_note?.includes('No Inform') ? 'LATE_NO_INFO' : 'ON_TIME',
+                                                informedTo: rec.informed_to_person || 'Director Sir',
+                                                status: rec.status,
+                                              });
+                                            }}
+                                            className="px-2 py-1 bg-slate-100 hover:bg-purple-50 text-slate-700 hover:text-[#7065f0] border border-slate-200 rounded-lg text-[10px] font-bold shadow-2xs cursor-pointer flex items-center gap-1 transition-all"
+                                            title="Reset & Modify Check-in Time / Status"
+                                          >
+                                            <RotateCcw className="w-3 h-3" />
+                                            <span>Reset / Edit</span>
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <>
+                                          {/* Admin Direct Approval Button for pending attendance */}
+                                          {!rec.admin_verified_attendance &&
+                                            (rec.status === 'INFORMED_LATE' || (rec.selected_mode !== 'NONE' && rec.status !== 'LEAVE')) && (
+                                              <button
+                                                onClick={() =>
+                                                  openConfirm({
+                                                    title: 'Approve Attendance',
+                                                    message: `Verify and confirm attendance for ${rec.leader?.full_name}?`,
+                                                    type: 'success',
+                                                    confirmText: 'Confirm Approve',
+                                                    onConfirm: async () => {
+                                                      const res = await approveAttendanceRecord(rec.id);
+                                                      setToastAlert({ type: 'success', text: res.message });
+                                                      setTimeout(() => setToastAlert(null), 4000);
+                                                    },
+                                                  })
+                                                }
+                                                className="px-2.5 py-1 bg-[#2e7d32] hover:bg-[#256628] text-white rounded-lg text-[10px] font-bold shadow-2xs cursor-pointer flex items-center gap-1 transition-all active:scale-95"
+                                                title="Approve Leader Attendance"
+                                              >
+                                                <CheckCircle2 className="w-3 h-3" />
+                                                <span>Approve</span>
+                                              </button>
+                                            )}
+
+                                          {/* Admin Manual Mark Present with 6 business rules enforced */}
+                                          {rec.status !== 'INFORMED_ABSENT' && (
+                                            canMarkPresent ? (
+                                              <button
+                                                onClick={() =>
+                                                  openConfirm({
+                                                    title: 'Mark Present (Admin Manual)',
+                                                    message: `Mark ${rec.leader?.full_name} as Present (Conference Room In-Person)? This will be recorded as Marked by Admin and locked.`,
+                                                    type: 'success',
+                                                    confirmText: 'Mark Present',
+                                                    onConfirm: async () => {
+                                                      const res = await adminVerifyStatus(rec.id, 'PRESENT', true, 'Marked Present by Admin (Manual Check)');
+                                                      if (res && res.success === false) {
+                                                        setToastAlert({ type: 'error', text: res.message });
+                                                      } else {
+                                                        setToastAlert({ type: 'success', text: `${rec.leader?.full_name} marked as Present by Admin!` });
+                                                      }
+                                                      setTimeout(() => setToastAlert(null), 3000);
+                                                    },
+                                                  })
+                                                }
+                                                className="px-2.5 py-1 bg-[#2e7d32] hover:bg-[#256628] text-white rounded-lg text-[10px] font-bold shadow-2xs cursor-pointer transition-all active:scale-95 flex items-center gap-1"
+                                                title="Mark Present & Verified by Admin"
+                                              >
+                                                <ShieldCheck className="w-3 h-3" />
+                                                <span>Mark Present</span>
+                                              </button>
+                                            ) : (
+                                              <button
+                                                disabled
+                                                className="px-2 py-0.5 bg-slate-100 text-slate-400 rounded-lg text-[10px] font-semibold border border-slate-200 cursor-not-allowed flex items-center gap-1 opacity-75"
+                                                title={
+                                                  !isSelectedDateToday
+                                                    ? `Mark Present is only allowed on today's date (${todayIST})`
+                                                    : isSunday
+                                                      ? 'Sunday is official weekly off. Standup attendance is disabled.'
+                                                      : isHolidayOrRemovedDom
+                                                        ? 'DOM meeting is not scheduled or has been removed for this date.'
+                                                        : 'Mark Present unlocks at 09:30 AM IST on DOM standup day.'
+                                                }
+                                              >
+                                                <Lock className="w-3 h-3 text-slate-400" />
+                                                <span>
+                                                  {!isSelectedDateToday
+                                                    ? 'Today Only'
+                                                    : isSunday
+                                                      ? 'Sunday Off'
+                                                      : isHolidayOrRemovedDom
+                                                        ? 'No DOM'
+                                                        : 'At 09:30 AM'}
+                                                </span>
+                                              </button>
+                                            )
+                                          )}
+
+                                          {rec.status !== 'INFORMED_LATE' && rec.status !== 'INFORMED_ABSENT' && (
+                                            <button
+                                              onClick={() => {
+                                                setInformedLateModal({
+                                                  isOpen: true,
+                                                  leaderId: rec.leader_id,
+                                                  leaderName: rec.leader?.full_name || 'Leader',
+                                                  departmentName: rec.leader?.department?.name || 'Hospital Staff',
+                                                  lateMinutes: 15,
+                                                  expectedTime: '10:15 AM',
+                                                  informedTo: rec.informed_to_person || 'Director Sir',
+                                                  reason: rec.late_reason || 'Ward Rounds / Patient Emergency',
+                                                  adminApproved: true,
+                                                });
+                                              }}
+                                              className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[10px] font-bold shadow-2xs cursor-pointer flex items-center gap-1 transition-all active:scale-95"
+                                              title="Document Late Arrival (Admin Approval Required)"
+                                            >
+                                              <Clock className="w-3 h-3" />
+                                              <span>Informed Late</span>
+                                            </button>
+                                          )}
+
+                                          {rec.status !== 'LEAVE' && rec.status !== 'INFORMED_ABSENT' && (
+                                            <button
+                                              onClick={() => {
+                                                setInformedLeaveModal({
+                                                  isOpen: true,
+                                                  leaderId: rec.leader_id,
+                                                  leaderName: rec.leader?.full_name || 'Leader',
+                                                  departmentName: rec.leader?.department?.name || 'Hospital Staff',
+                                                  informedTo: rec.informed_to_person || 'Director Sir',
+                                                  reason: rec.informed_reason || 'Emergency Hospital Duty',
+                                                });
+                                              }}
+                                              className="px-2.5 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-[10px] font-bold shadow-2xs cursor-pointer flex items-center gap-1 transition-all active:scale-95"
+                                              title="Mark Informed Leave (Admin Verified)"
+                                            >
+                                              Leave
+                                            </button>
+                                          )}
+                                        </>
+                                      )}
+
+                                      {rec.status !== 'ABSENT' && rec.status !== 'INFORMED_ABSENT' && (
                                         <button
                                           onClick={() =>
                                             openConfirm({
-                                              title: 'Approve Attendance',
-                                              message: `Verify and confirm attendance for ${rec.leader?.full_name}?`,
-                                              type: 'success',
-                                              confirmText: 'Confirm Approve',
+                                              title: 'Mark Absent',
+                                              message: `Mark ${rec.leader?.full_name} as Absent?`,
+                                              type: 'danger',
+                                              confirmText: 'Mark Absent',
                                               onConfirm: async () => {
-                                                const res = await approveAttendanceRecord(rec.id);
-                                                setToastAlert({ type: 'success', text: res.message });
+                                                const res = await rejectAttendanceRecord(rec.id, 'Unexcused / Rejected by Admin');
+                                                setToastAlert({ type: 'info', text: res.message });
                                                 setTimeout(() => setToastAlert(null), 4000);
                                               },
                                             })
                                           }
-                                          className="px-2.5 py-1 bg-[#2e7d32] hover:bg-[#256628] text-white rounded-lg text-[10px] font-bold shadow-2xs cursor-pointer flex items-center gap-1 transition-all active:scale-95"
-                                          title="Approve Leader Attendance"
+                                          className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-[10px] font-bold cursor-pointer transition-all"
+                                          title="Reject Attendance / Mark Absent"
                                         >
-                                          <CheckCircle2 className="w-3 h-3" />
-                                          <span>Approve</span>
+                                          Mark Absent
                                         </button>
                                       )}
 
-                                    {/* Admin Manual Mark Present with 6 business rules enforced */}
-                                    {rec.status !== 'INFORMED_ABSENT' && (
-                                      canMarkPresent ? (
-                                        <button
-                                          onClick={() =>
-                                            openConfirm({
-                                              title: 'Mark Present (Admin Manual)',
-                                              message: `Mark ${rec.leader?.full_name} as Present (Conference Room In-Person)? This will be recorded as Marked by Admin and locked.`,
-                                              type: 'success',
-                                              confirmText: 'Mark Present',
-                                              onConfirm: async () => {
-                                                const res = await adminVerifyStatus(rec.id, 'PRESENT', true, 'Marked Present by Admin (Manual Check)');
-                                                if (res && res.success === false) {
-                                                  setToastAlert({ type: 'error', text: res.message });
-                                                } else {
-                                                  setToastAlert({ type: 'success', text: `${rec.leader?.full_name} marked as Present by Admin!` });
-                                                }
-                                                setTimeout(() => setToastAlert(null), 3000);
-                                              },
+                                      {/* Admin Action: ⏱️ Override Time, 🔄 Reset Time, 🗑️ Delete Record */}
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const existingTime = rec.check_in_at
+                                            ? new Date(rec.check_in_at).toLocaleTimeString('en-IN', {
+                                              hour: '2-digit',
+                                              minute: '2-digit',
+                                              second: '2-digit',
+                                              hour12: true,
                                             })
-                                          }
-                                          className="px-2.5 py-1 bg-[#2e7d32] hover:bg-[#256628] text-white rounded-lg text-[10px] font-bold shadow-2xs cursor-pointer transition-all active:scale-95 flex items-center gap-1"
-                                          title="Mark Present & Verified by Admin"
-                                        >
-                                          <ShieldCheck className="w-3 h-3" />
-                                          <span>Mark Present</span>
-                                        </button>
-                                      ) : (
-                                        <button
-                                          disabled
-                                          className="px-2 py-0.5 bg-slate-100 text-slate-400 rounded-lg text-[10px] font-semibold border border-slate-200 cursor-not-allowed flex items-center gap-1 opacity-75"
-                                          title={
-                                            !isSelectedDateToday
-                                              ? `Mark Present is only allowed on today's date (${todayIST})`
-                                              : isSunday
-                                                ? 'Sunday is official weekly off. Standup attendance is disabled.'
-                                                : isHolidayOrRemovedDom
-                                                  ? 'DOM meeting is not scheduled or has been removed for this date.'
-                                                  : 'Mark Present unlocks at 09:30 AM IST on DOM standup day.'
-                                          }
-                                        >
-                                          <Lock className="w-3 h-3 text-slate-400" />
-                                          <span>
-                                            {!isSelectedDateToday
-                                              ? 'Today Only'
-                                              : isSunday
-                                                ? 'Sunday Off'
-                                                : isHolidayOrRemovedDom
-                                                  ? 'No DOM'
-                                                  : 'At 09:30 AM'}
-                                          </span>
-                                        </button>
-                                      )
-                                    )}
-
-                                    {rec.status !== 'INFORMED_LATE' && rec.status !== 'INFORMED_ABSENT' && (
-                                      <button
-                                        onClick={() => {
-                                          setInformedLateModal({
+                                            : '10:00:00 AM';
+                                          setEditTimeModal({
                                             isOpen: true,
-                                            leaderId: rec.leader_id,
-                                            leaderName: rec.leader?.full_name || 'Leader',
-                                            departmentName: rec.leader?.department?.name || 'Hospital Staff',
-                                            lateMinutes: 15,
-                                            expectedTime: '10:15 AM',
+                                            record: rec,
+                                            timeStr: existingTime,
+                                            mode: rec.selected_mode === 'VIRTUAL' ? 'VIRTUAL' : 'PHYSICAL',
+                                            informType: rec.status === 'INFORMED_LATE' ? 'INFORMED_LATE' : rec.verification_note?.includes('No Inform') ? 'LATE_NO_INFO' : 'ON_TIME',
                                             informedTo: rec.informed_to_person || 'Director Sir',
-                                            reason: rec.late_reason || 'Ward Rounds / Patient Emergency',
-                                            adminApproved: true,
+                                            status: rec.status === 'ABSENT' ? 'PRESENT' : rec.status,
                                           });
                                         }}
-                                        className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[10px] font-bold shadow-2xs cursor-pointer flex items-center gap-1 transition-all active:scale-95"
-                                        title="Document Late Arrival (Admin Approval Required)"
+                                        className="p-1 text-slate-500 hover:text-[#7065f0] hover:bg-[#eff0fe] rounded-lg transition-colors cursor-pointer border border-transparent hover:border-purple-200"
+                                        title="Edit / Override Check-in Time"
                                       >
-                                        <Clock className="w-3 h-3" />
-                                        <span>Informed Late</span>
+                                        <Clock size={13} />
                                       </button>
-                                    )}
 
-                                    {rec.status !== 'LEAVE' && rec.status !== 'INFORMED_ABSENT' && (
                                       <button
+                                        type="button"
                                         onClick={() => {
-                                          setInformedLeaveModal({
-                                            isOpen: true,
-                                            leaderId: rec.leader_id,
-                                            leaderName: rec.leader?.full_name || 'Leader',
-                                            departmentName: rec.leader?.department?.name || 'Hospital Staff',
-                                            informedTo: rec.informed_to_person || 'Director Sir',
-                                            reason: rec.informed_reason || 'Emergency Hospital Duty',
+                                          openConfirm({
+                                            title: 'Reset Attendance Time',
+                                            message: `Reset check-in time and attendance status for ${rec.leader?.full_name}? Status will return to unrecorded.`,
+                                            type: 'warning',
+                                            confirmText: 'Reset Time',
+                                            onConfirm: async () => {
+                                              await resetAttendanceTime(rec.id);
+                                              setToastAlert({ type: 'info', text: `Attendance reset for ${rec.leader?.full_name}!` });
+                                              setTimeout(() => setToastAlert(null), 3000);
+                                            },
                                           });
                                         }}
-                                        className="px-2.5 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-[10px] font-bold shadow-2xs cursor-pointer flex items-center gap-1 transition-all active:scale-95"
-                                        title="Mark Informed Leave (Admin Verified)"
+                                        className="p-1 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer border border-transparent hover:border-amber-200"
+                                        title="Reset Check-in Time"
                                       >
-                                        Leave
+                                        <RotateCcw size={13} />
                                       </button>
-                                    )}
-                                  </>
-                                )}
 
-                                {rec.status !== 'ABSENT' && rec.status !== 'INFORMED_ABSENT' && (
-                                  <button
-                                    onClick={() =>
-                                      openConfirm({
-                                        title: 'Mark Absent',
-                                        message: `Mark ${rec.leader?.full_name} as Absent?`,
-                                        type: 'danger',
-                                        confirmText: 'Mark Absent',
-                                        onConfirm: async () => {
-                                          const res = await rejectAttendanceRecord(rec.id, 'Unexcused / Rejected by Admin');
-                                          setToastAlert({ type: 'info', text: res.message });
-                                          setTimeout(() => setToastAlert(null), 4000);
-                                        },
-                                      })
-                                    }
-                                    className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-[10px] font-bold cursor-pointer transition-all"
-                                    title="Reject Attendance / Mark Absent"
-                                  >
-                                    Mark Absent
-                                  </button>
-                                )}
-
-                                {/* Admin Action: ⏱️ Override Time, 🔄 Reset Time, 🗑️ Delete Record */}
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const existingTime = rec.check_in_at
-                                      ? new Date(rec.check_in_at).toLocaleTimeString('en-IN', {
-                                          hour: '2-digit',
-                                          minute: '2-digit',
-                                          second: '2-digit',
-                                          hour12: true,
-                                        })
-                                      : '10:00:00 AM';
-                                    setEditTimeModal({
-                                      isOpen: true,
-                                      record: rec,
-                                      timeStr: existingTime,
-                                      mode: rec.selected_mode === 'VIRTUAL' ? 'VIRTUAL' : 'PHYSICAL',
-                                      informType: rec.status === 'INFORMED_LATE' ? 'INFORMED_LATE' : rec.verification_note?.includes('No Inform') ? 'LATE_NO_INFO' : 'ON_TIME',
-                                      informedTo: rec.informed_to_person || 'Director Sir',
-                                      status: rec.status === 'ABSENT' ? 'PRESENT' : rec.status,
-                                    });
-                                  }}
-                                  className="p-1 text-slate-500 hover:text-[#7065f0] hover:bg-[#eff0fe] rounded-lg transition-colors cursor-pointer border border-transparent hover:border-purple-200"
-                                  title="Edit / Override Check-in Time"
-                                >
-                                  <Clock size={13} />
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    openConfirm({
-                                      title: 'Reset Attendance Time',
-                                      message: `Reset check-in time and attendance status for ${rec.leader?.full_name}? Status will return to unrecorded.`,
-                                      type: 'warning',
-                                      confirmText: 'Reset Time',
-                                      onConfirm: async () => {
-                                        await resetAttendanceTime(rec.id);
-                                        setToastAlert({ type: 'info', text: `Attendance reset for ${rec.leader?.full_name}!` });
-                                        setTimeout(() => setToastAlert(null), 3000);
-                                      },
-                                    });
-                                  }}
-                                  className="p-1 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer border border-transparent hover:border-amber-200"
-                                  title="Reset Check-in Time"
-                                >
-                                  <RotateCcw size={13} />
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    openConfirm({
-                                      title: 'Delete Attendance Record',
-                                      message: `Permanently delete today's attendance record for ${rec.leader?.full_name}?`,
-                                      type: 'danger',
-                                      confirmText: 'Delete Record',
-                                      onConfirm: async () => {
-                                        await deleteAttendanceRecordById(rec.id);
-                                        setToastAlert({ type: 'info', text: `Attendance record deleted for ${rec.leader?.full_name}!` });
-                                        setTimeout(() => setToastAlert(null), 3000);
-                                      },
-                                    });
-                                  }}
-                                  className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer border border-transparent hover:border-rose-200"
-                                  title="Delete Attendance Record"
-                                >
-                                  <Trash2 size={13} />
-                                </button>
-                              </>
-                            )}
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          openConfirm({
+                                            title: 'Delete Attendance Record',
+                                            message: `Permanently delete today's attendance record for ${rec.leader?.full_name}?`,
+                                            type: 'danger',
+                                            confirmText: 'Delete Record',
+                                            onConfirm: async () => {
+                                              await deleteAttendanceRecordById(rec.id);
+                                              setToastAlert({ type: 'info', text: `Attendance record deleted for ${rec.leader?.full_name}!` });
+                                              setTimeout(() => setToastAlert(null), 3000);
+                                            },
+                                          });
+                                        }}
+                                        className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer border border-transparent hover:border-rose-200"
+                                        title="Delete Attendance Record"
+                                      >
+                                        <Trash2 size={13} />
+                                      </button>
+                                    </>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })
                       )}
                     </tbody>
                   </table>
@@ -3336,8 +3380,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                           type="button"
                           onClick={() => setRosterStatusFilter('ALL')}
                           className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${rosterStatusFilter === 'ALL'
-                              ? 'bg-white text-[#232d42] shadow-xs'
-                              : 'text-slate-500 hover:text-[#232d42]'
+                            ? 'bg-white text-[#232d42] shadow-xs'
+                            : 'text-slate-500 hover:text-[#232d42]'
                             }`}
                         >
                           All ({leaders.length})
@@ -3346,8 +3390,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                           type="button"
                           onClick={() => setRosterStatusFilter('ACTIVE')}
                           className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${rosterStatusFilter === 'ACTIVE'
-                              ? 'bg-[#7065f0] text-white shadow-xs'
-                              : 'text-slate-500 hover:text-[#7065f0]'
+                            ? 'bg-[#7065f0] text-white shadow-xs'
+                            : 'text-slate-500 hover:text-[#7065f0]'
                             }`}
                         >
                           Active ({leaders.filter((l) => l.is_active !== false).length})
@@ -3356,8 +3400,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                           type="button"
                           onClick={() => setRosterStatusFilter('DISABLED')}
                           className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${rosterStatusFilter === 'DISABLED'
-                              ? 'bg-slate-700 text-white shadow-xs'
-                              : 'text-slate-500 hover:text-slate-900'
+                            ? 'bg-slate-700 text-white shadow-xs'
+                            : 'text-slate-500 hover:text-slate-900'
                             }`}
                         >
                           Disabled ({leaders.filter((l) => l.is_active === false).length})
@@ -3370,8 +3414,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                           type="button"
                           onClick={() => setLeaderViewMode('list')}
                           className={`p-1.5 rounded-xl transition-all cursor-pointer ${leaderViewMode === 'list'
-                              ? 'bg-white text-[#7065f0] shadow-xs'
-                              : 'text-slate-400 hover:text-[#232d42]'
+                            ? 'bg-white text-[#7065f0] shadow-xs'
+                            : 'text-slate-400 hover:text-[#232d42]'
                             }`}
                           title="Detailed List / Table View"
                         >
@@ -3381,8 +3425,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                           type="button"
                           onClick={() => setLeaderViewMode('grid')}
                           className={`p-1.5 rounded-xl transition-all cursor-pointer ${leaderViewMode === 'grid'
-                              ? 'bg-white text-[#7065f0] shadow-xs'
-                              : 'text-slate-400 hover:text-[#232d42]'
+                            ? 'bg-white text-[#7065f0] shadow-xs'
+                            : 'text-slate-400 hover:text-[#232d42]'
                             }`}
                           title="Grid Cards View"
                         >
@@ -3578,8 +3622,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                               <td className="py-3.5 px-4">
                                 <span
                                   className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-lg border ${lead.expected_mode === 'VIRTUAL'
-                                      ? 'bg-blue-50 text-blue-700 border-blue-200'
-                                      : 'bg-orange-50 text-orange-800 border-orange-200'
+                                    ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                    : 'bg-orange-50 text-orange-800 border-orange-200'
                                     }`}
                                 >
                                   {lead.expected_mode === 'VIRTUAL' ? <Video size={13} /> : <Building size={13} />}
@@ -3613,8 +3657,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                   type="button"
                                   onClick={() => handleToggleLeaderStatus(lead)}
                                   className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border cursor-pointer transition-all hover:scale-105 ${lead.is_active !== false
-                                      ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                                      : 'bg-slate-200 text-slate-700 border-slate-300'
+                                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                    : 'bg-slate-200 text-slate-700 border-slate-300'
                                     }`}
                                   title={lead.is_active !== false ? 'Click to Disable' : 'Click to Activate'}
                                 >
@@ -3682,8 +3726,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                               </span>
                               <span
                                 className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${lead.is_active !== false
-                                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                                    : 'bg-slate-200 text-slate-700 border-slate-300'
+                                  ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                  : 'bg-slate-200 text-slate-700 border-slate-300'
                                   }`}
                               >
                                 {lead.is_active !== false ? 'Active' : 'Disabled'}
@@ -3760,8 +3804,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                             <button
                               onClick={() => handleToggleLeaderStatus(lead)}
                               className={`p-1.5 rounded-lg transition-colors cursor-pointer ${lead.is_active !== false
-                                  ? 'text-slate-400 hover:text-amber-600 hover:bg-amber-50'
-                                  : 'text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50'
+                                ? 'text-slate-400 hover:text-amber-600 hover:bg-amber-50'
+                                : 'text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50'
                                 }`}
                               title={lead.is_active !== false ? 'Disable Leader' : 'Activate Leader'}
                             >
@@ -3868,8 +3912,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                         <div className="mt-2 text-xs text-slate-600 flex items-center justify-between bg-slate-50 px-2.5 py-1.5 rounded-xl border border-slate-100">
                           <span className="text-[11px] font-bold text-slate-500">Assigned Leaders:</span>
                           <span className={`font-black px-2 py-0.5 rounded-md text-xs border ${deptLeaders.length > 0
-                              ? 'bg-[#cfead6] text-[#2e7d32] border-[#2e7d32]/20'
-                              : 'bg-white text-slate-400 border-slate-200'
+                            ? 'bg-[#cfead6] text-[#2e7d32] border-[#2e7d32]/20'
+                            : 'bg-white text-slate-400 border-slate-200'
                             }`}>
                             {deptLeaders.length}
                           </span>
@@ -5355,22 +5399,20 @@ export const UnifiedAdminDashboard: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setComplianceBaseline('TOMORROW')}
-                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                        complianceBaseline === 'TOMORROW'
-                          ? 'bg-[#7065f0] text-white shadow-xs'
-                          : 'text-slate-600 hover:text-[#7065f0]'
-                      }`}
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${complianceBaseline === 'TOMORROW'
+                        ? 'bg-[#7065f0] text-white shadow-xs'
+                        : 'text-slate-600 hover:text-[#7065f0]'
+                        }`}
                     >
                       Starting Tomorrow (23-11-2026)
                     </button>
                     <button
                       type="button"
                       onClick={() => setComplianceBaseline('ALL')}
-                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                        complianceBaseline === 'ALL'
-                          ? 'bg-[#7065f0] text-white shadow-xs'
-                          : 'text-slate-600 hover:text-[#7065f0]'
-                      }`}
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${complianceBaseline === 'ALL'
+                        ? 'bg-[#7065f0] text-white shadow-xs'
+                        : 'text-slate-600 hover:text-[#7065f0]'
+                        }`}
                     >
                       All-Time Historic Baseline
                     </button>
@@ -5516,9 +5558,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                               </span>
                             </td>
                             <td className="py-2.5 px-3 text-center">
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                item.unexcusedAbsences > 0 ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-slate-50 text-slate-500'
-                              }`}>
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${item.unexcusedAbsences > 0 ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-slate-50 text-slate-500'
+                                }`}>
                                 {item.unexcusedAbsences} unexcused
                               </span>
                             </td>
@@ -5526,9 +5567,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                               <div className="flex items-center justify-center gap-2">
                                 <div className="w-16 bg-slate-200 rounded-full h-2 overflow-hidden">
                                   <div
-                                    className={`h-2 rounded-full ${
-                                      item.score >= 90 ? 'bg-[#2e7d32]' : item.score >= 75 ? 'bg-amber-500' : 'bg-rose-500'
-                                    }`}
+                                    className={`h-2 rounded-full ${item.score >= 90 ? 'bg-[#2e7d32]' : item.score >= 75 ? 'bg-amber-500' : 'bg-rose-500'
+                                      }`}
                                     style={{ width: `${item.score}%` }}
                                   />
                                 </div>
@@ -5536,13 +5576,12 @@ export const UnifiedAdminDashboard: React.FC = () => {
                               </div>
                             </td>
                             <td className="py-2.5 px-3 text-right">
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
-                                item.score >= 90
-                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
-                                  : item.score >= 75
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${item.score >= 90
+                                ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                                : item.score >= 75
                                   ? 'bg-amber-50 text-amber-800 border-amber-300'
                                   : 'bg-rose-50 text-rose-800 border-rose-300'
-                              }`}>
+                                }`}>
                                 {item.score >= 90 ? 'Excellent' : item.score >= 75 ? 'Moderate' : 'High Risk'}
                               </span>
                             </td>
@@ -5867,8 +5906,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                     <span>Account Participation Status:</span>
                     <span
                       className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border ${leaderForm.is_active
-                          ? 'bg-[#cfead6] text-[#2e7d32] border-[#2e7d32]/20'
-                          : 'bg-slate-200 text-slate-700 border-slate-300'
+                        ? 'bg-[#cfead6] text-[#2e7d32] border-[#2e7d32]/20'
+                        : 'bg-slate-200 text-slate-700 border-slate-300'
                         }`}
                     >
                       {leaderForm.is_active ? 'Active' : 'Disabled (Inactive)'}
@@ -6799,12 +6838,12 @@ function doPost(e) {
             <div className="flex items-center gap-3 mb-4">
               <div
                 className={`w-10 h-10 rounded-2xl flex items-center justify-center ${confirmModal.type === 'danger'
-                    ? 'bg-rose-100 text-rose-600'
-                    : confirmModal.type === 'warning'
-                      ? 'bg-amber-100 text-amber-600'
-                      : confirmModal.type === 'success'
-                        ? 'bg-emerald-100 text-emerald-600'
-                        : 'bg-blue-100 text-blue-600'
+                  ? 'bg-rose-100 text-rose-600'
+                  : confirmModal.type === 'warning'
+                    ? 'bg-amber-100 text-amber-600'
+                    : confirmModal.type === 'success'
+                      ? 'bg-emerald-100 text-emerald-600'
+                      : 'bg-blue-100 text-blue-600'
                   }`}
               >
                 {confirmModal.type === 'danger' ? (
@@ -6848,12 +6887,12 @@ function doPost(e) {
                   }
                 }}
                 className={`px-5 py-2 text-white font-bold text-xs rounded-xl shadow-md flex items-center gap-1.5 transition-all cursor-pointer ${confirmModal.type === 'danger'
-                    ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/30'
-                    : confirmModal.type === 'success'
-                      ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/30'
-                      : confirmModal.type === 'warning'
-                        ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/30'
-                        : 'bg-[#2e7d32] hover:bg-[#256628] shadow-[#2e7d32]/30'
+                  ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/30'
+                  : confirmModal.type === 'success'
+                    ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/30'
+                    : confirmModal.type === 'warning'
+                      ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/30'
+                      : 'bg-[#2e7d32] hover:bg-[#256628] shadow-[#2e7d32]/30'
                   }`}
               >
                 {confirmModal.isExecuting ? (
@@ -6980,13 +7019,12 @@ function doPost(e) {
       {/* Floating Toast Notification Banner */}
       {toastAlert && (
         <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[10002] animate-in fade-in slide-in-from-top-4 duration-300 max-w-lg w-[90%]">
-          <div className={`p-4 rounded-2xl shadow-2xl flex items-center justify-between gap-3 text-sm font-bold border ${
-            toastAlert.type === 'success'
-              ? 'bg-emerald-700 text-white border-emerald-500 shadow-emerald-900/30'
-              : toastAlert.type === 'info'
+          <div className={`p-4 rounded-2xl shadow-2xl flex items-center justify-between gap-3 text-sm font-bold border ${toastAlert.type === 'success'
+            ? 'bg-emerald-700 text-white border-emerald-500 shadow-emerald-900/30'
+            : toastAlert.type === 'info'
               ? 'bg-blue-700 text-white border-blue-500 shadow-blue-900/30'
               : 'bg-rose-700 text-white border-rose-500 shadow-rose-900/30'
-          }`}>
+            }`}>
             <div className="flex items-center gap-2.5">
               {toastAlert.type === 'success' ? (
                 <CheckCircle2 className="w-5 h-5 text-emerald-200 shrink-0" />
@@ -7079,11 +7117,10 @@ function doPost(e) {
                 type="button"
                 disabled={isDispatchingGroup !== null || isFutureDate}
                 onClick={() => handleGroupDispatchAction('pdf')}
-                className={`w-full p-4 rounded-2xl border bg-white flex items-center justify-between transition-all text-left shadow-2xs ${
-                  isFutureDate
-                    ? 'border-slate-200 opacity-50 cursor-not-allowed bg-slate-50'
-                    : 'border-emerald-200 hover:border-emerald-500 hover:bg-emerald-50/50 group cursor-pointer hover:shadow-xs'
-                }`}
+                className={`w-full p-4 rounded-2xl border bg-white flex items-center justify-between transition-all text-left shadow-2xs ${isFutureDate
+                  ? 'border-slate-200 opacity-50 cursor-not-allowed bg-slate-50'
+                  : 'border-emerald-200 hover:border-emerald-500 hover:bg-emerald-50/50 group cursor-pointer hover:shadow-xs'
+                  }`}
               >
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
@@ -7102,9 +7139,8 @@ function doPost(e) {
                     </div>
                   </div>
                 </div>
-                <span className={`text-xs font-bold px-3 py-1 rounded-lg shrink-0 ${
-                  isFutureDate ? 'bg-slate-200 text-slate-500' : 'text-emerald-700 bg-emerald-100'
-                }`}>
+                <span className={`text-xs font-bold px-3 py-1 rounded-lg shrink-0 ${isFutureDate ? 'bg-slate-200 text-slate-500' : 'text-emerald-700 bg-emerald-100'
+                  }`}>
                   {isFutureDate ? 'Locked' : isDispatchingGroup === 'pdf' ? 'Sending...' : 'Send PDF'}
                 </span>
               </button>
@@ -7113,11 +7149,10 @@ function doPost(e) {
                 type="button"
                 disabled={isDispatchingGroup !== null || isFutureDate}
                 onClick={() => handleGroupDispatchAction('text')}
-                className={`w-full p-4 rounded-2xl border bg-white flex items-center justify-between transition-all text-left shadow-2xs ${
-                  isFutureDate
-                    ? 'border-slate-200 opacity-50 cursor-not-allowed bg-slate-50'
-                    : 'border-blue-200 hover:border-blue-500 hover:bg-blue-50/50 group cursor-pointer hover:shadow-xs'
-                }`}
+                className={`w-full p-4 rounded-2xl border bg-white flex items-center justify-between transition-all text-left shadow-2xs ${isFutureDate
+                  ? 'border-slate-200 opacity-50 cursor-not-allowed bg-slate-50'
+                  : 'border-blue-200 hover:border-blue-500 hover:bg-blue-50/50 group cursor-pointer hover:shadow-xs'
+                  }`}
               >
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
@@ -7136,9 +7171,8 @@ function doPost(e) {
                     </div>
                   </div>
                 </div>
-                <span className={`text-xs font-bold px-3 py-1 rounded-lg shrink-0 ${
-                  isFutureDate ? 'bg-slate-200 text-slate-500' : 'text-blue-700 bg-blue-100'
-                }`}>
+                <span className={`text-xs font-bold px-3 py-1 rounded-lg shrink-0 ${isFutureDate ? 'bg-slate-200 text-slate-500' : 'text-blue-700 bg-blue-100'
+                  }`}>
                   {isFutureDate ? 'Locked' : isDispatchingGroup === 'text' ? 'Sending...' : 'Send Text'}
                 </span>
               </button>
@@ -7147,11 +7181,10 @@ function doPost(e) {
                 type="button"
                 disabled={isDispatchingGroup !== null || isFutureDate}
                 onClick={() => handleGroupDispatchAction('both')}
-                className={`w-full p-4 rounded-2xl border bg-white flex items-center justify-between transition-all text-left shadow-2xs ${
-                  isFutureDate
-                    ? 'border-slate-200 opacity-50 cursor-not-allowed bg-slate-50'
-                    : 'border-purple-200 hover:border-purple-500 hover:bg-purple-50/50 group cursor-pointer hover:shadow-xs'
-                }`}
+                className={`w-full p-4 rounded-2xl border bg-white flex items-center justify-between transition-all text-left shadow-2xs ${isFutureDate
+                  ? 'border-slate-200 opacity-50 cursor-not-allowed bg-slate-50'
+                  : 'border-purple-200 hover:border-purple-500 hover:bg-purple-50/50 group cursor-pointer hover:shadow-xs'
+                  }`}
               >
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center shrink-0">
@@ -7170,12 +7203,54 @@ function doPost(e) {
                     </div>
                   </div>
                 </div>
-                <span className={`text-xs font-bold px-3 py-1 rounded-lg shrink-0 ${
-                  isFutureDate ? 'bg-slate-200 text-slate-500' : 'text-purple-700 bg-purple-100'
-                }`}>
+                <span className={`text-xs font-bold px-3 py-1 rounded-lg shrink-0 ${isFutureDate ? 'bg-slate-200 text-slate-500' : 'text-purple-700 bg-purple-100'
+                  }`}>
                   {isFutureDate ? 'Locked' : isDispatchingGroup === 'both' ? 'Sending...' : 'Send Both'}
                 </span>
               </button>
+
+              {isFutureDate && (
+                <button
+                  type="button"
+                  disabled={isBroadcasting0950}
+                  onClick={async () => {
+                    setShowGroupDispatchModal(false);
+                    setIsBroadcasting0950(true);
+                    try {
+                      await handleTriggerAutomatedTransmission();
+                      setToastAlert({
+                        type: 'success',
+                        text: `✅ Pre-Meeting Announcement notice & audio briefing successfully dispatched to WhatsApp Group for ${formatToIndianDate(selectedDate)}!`,
+                      });
+                      setTimeout(() => setToastAlert(null), 5000);
+                    } finally {
+                      setIsBroadcasting0950(false);
+                    }
+                  }}
+                  className="w-full p-4 rounded-2xl border border-amber-300 bg-amber-50 hover:bg-amber-100/70 flex items-center justify-between transition-all text-left shadow-2xs group cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-amber-200 text-amber-800 flex items-center justify-center shrink-0">
+                      {isBroadcasting0950 ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <Zap className="w-5 h-5 text-amber-800 fill-amber-700" />
+                      )}
+                    </div>
+                    <div>
+                      <div className="text-xs font-black text-amber-950">
+                        📢 Broadcast Advance {currentCadence} Meeting Notice
+                      </div>
+                      <div className="text-[11px] text-amber-800">
+                        Dispatches meeting schedule briefing & native voice audio attachment to WhatsApp Group
+                      </div>
+                    </div>
+                  </div>
+                  <span className="text-xs font-bold px-3 py-1 rounded-lg shrink-0 text-amber-900 bg-amber-200">
+                    {isBroadcasting0950 ? 'Broadcasting...' : 'Broadcast Notice'}
+                  </span>
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -7230,11 +7305,10 @@ function doPost(e) {
                   <button
                     type="button"
                     onClick={() => setEditTimeModal((prev) => ({ ...prev, mode: 'PHYSICAL' }))}
-                    className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
-                      editTimeModal.mode === 'PHYSICAL'
-                        ? 'bg-[#eff0fe] text-[#7065f0] border-purple-300 shadow-2xs'
-                        : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                    }`}
+                    className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${editTimeModal.mode === 'PHYSICAL'
+                      ? 'bg-[#eff0fe] text-[#7065f0] border-purple-300 shadow-2xs'
+                      : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                      }`}
                   >
                     <Building className="w-3.5 h-3.5 text-[#7065f0]" />
                     <span>Physical (Boardroom)</span>
@@ -7242,11 +7316,10 @@ function doPost(e) {
                   <button
                     type="button"
                     onClick={() => setEditTimeModal((prev) => ({ ...prev, mode: 'VIRTUAL' }))}
-                    className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
-                      editTimeModal.mode === 'VIRTUAL'
-                        ? 'bg-sky-50 text-sky-700 border-sky-300 shadow-2xs'
-                        : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                    }`}
+                    className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${editTimeModal.mode === 'VIRTUAL'
+                      ? 'bg-sky-50 text-sky-700 border-sky-300 shadow-2xs'
+                      : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                      }`}
                   >
                     <Video className="w-3.5 h-3.5 text-sky-600" />
                     <span>Virtual (Meet)</span>
