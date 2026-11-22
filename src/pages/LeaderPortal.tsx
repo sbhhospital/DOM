@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Hospital,
   QrCode,
@@ -122,10 +122,20 @@ export const LeaderPortal: React.FC = () => {
     }
   }, [leaders]);
 
-  // Absence modal
+  // Absence & Late notice modal
   const [showInformedModal, setShowInformedModal] = useState(false);
+  const [informedNoticeType, setInformedNoticeType] = useState<'LATE' | 'LEAVE'>('LATE');
+  const [informedLateMinutes, setInformedLateMinutes] = useState<number>(10);
   const [informedToPerson, setInformedToPerson] = useState('');
   const [informedReason, setInformedReason] = useState('');
+  const [showExpiredAccessModal, setShowExpiredAccessModal] = useState<boolean>(false);
+
+  // Live 1-second ticker for accurate countdowns
+  const [liveNow, setLiveNow] = useState<Date>(new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setLiveNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Password Modal for Leader self password change
   const [showUserPassModal, setShowUserPassModal] = useState(false);
@@ -187,16 +197,69 @@ export const LeaderPortal: React.FC = () => {
     todayRecord &&
       (todayRecord.check_in_at ||
         (todayRecord as any).join_time ||
-        todayRecord.status === 'PRESENT' ||
-        todayRecord.status === 'INFORMED_LATE')
+        todayRecord.status === 'PRESENT')
   );
 
   const hasInformedAbsence = Boolean(
     todayRecord &&
       (todayRecord.status === 'INFORMED_ABSENT' ||
         todayRecord.status === 'LEAVE' ||
-        todayRecord.informed_reason)
+        (todayRecord.informed_reason && todayRecord.status !== 'INFORMED_LATE'))
   );
+
+  const isInformedLatePending = Boolean(
+    todayRecord &&
+      todayRecord.status === 'INFORMED_LATE' &&
+      !todayRecord.check_in_at
+  );
+
+  // Calculates remaining seconds until the leader's committed late arrival deadline
+  const getLateGraceSecondsLeft = () => {
+    if (!todayRecord || todayRecord.status !== 'INFORMED_LATE' || todayRecord.check_in_at) return 0;
+    const clampedLate = Math.min(Math.max(todayRecord.late_minutes || 10, 5), 20);
+
+    let h = 10;
+    let m = 0;
+    try {
+      const match = (currentMeeting.scheduled_time || '10:00 AM').match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+      if (match) {
+        h = parseInt(match[1], 10);
+        m = parseInt(match[2], 10);
+        const meridian = match[3] || 'AM';
+        if (meridian === 'PM' && h < 12) h += 12;
+        if (meridian === 'AM' && h === 12) h = 0;
+      }
+    } catch {
+      h = 10;
+      m = 0;
+    }
+    const deadlineTotalSecs = (h * 60 + m + clampedLate) * 60;
+
+    let curH = 0;
+    let curM = 0;
+    let curS = 0;
+    try {
+      const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Kolkata',
+        hour: 'numeric',
+        minute: 'numeric',
+        second: 'numeric',
+        hour12: false,
+      }).formatToParts(liveNow);
+      curH = parseInt(parts.find((p) => p.type === 'hour')?.value || '0', 10);
+      curM = parseInt(parts.find((p) => p.type === 'minute')?.value || '0', 10);
+      curS = parseInt(parts.find((p) => p.type === 'second')?.value || '0', 10);
+    } catch {
+      curH = liveNow.getHours();
+      curM = liveNow.getMinutes();
+      curS = liveNow.getSeconds();
+    }
+    const curTotalSecs = curH * 3600 + curM * 60 + curS;
+    return deadlineTotalSecs - curTotalSecs;
+  };
+
+  const lateSecondsLeft = getLateGraceSecondsLeft();
+  const isLateGraceExpired = isInformedLatePending && lateSecondsLeft <= 0;
 
   const formattedCheckInTime = todayRecord?.check_in_at
     ? new Date(todayRecord.check_in_at).toLocaleTimeString('en-IN', {
@@ -209,6 +272,10 @@ export const LeaderPortal: React.FC = () => {
 
   const handleAttendPhysically = () => {
     if (!activeLeader) return;
+    if (isLateGraceExpired) {
+      setShowExpiredAccessModal(true);
+      return;
+    }
     const { isLate, lateMinutes } = checkIsBetween1005And1020();
     if (isLate && !lateReasonInput.trim()) {
       setCalculatedLateMinutes(lateMinutes);
@@ -278,6 +345,10 @@ export const LeaderPortal: React.FC = () => {
 
   const handleJoinVirtually = async () => {
     if (!activeLeader) return;
+    if (isLateGraceExpired) {
+      setShowExpiredAccessModal(true);
+      return;
+    }
     const { isLate, lateMinutes } = checkIsBetween1005And1020();
     if (isLate && !lateReasonInput.trim()) {
       setCalculatedLateMinutes(lateMinutes);
@@ -303,7 +374,13 @@ export const LeaderPortal: React.FC = () => {
     e.preventDefault();
     if (!activeLeader || !informedToPerson.trim() || !informedReason.trim()) return;
 
-    const res = await submitInformedAbsence(activeLeader.id, informedToPerson.trim(), informedReason.trim());
+    const res = await submitInformedAbsence(
+      activeLeader.id,
+      informedToPerson.trim(),
+      informedReason.trim(),
+      informedNoticeType,
+      informedNoticeType === 'LATE' ? informedLateMinutes : undefined
+    );
     setActionMessage({ success: res.success, text: res.message });
     setShowInformedModal(false);
     setInformedToPerson('');
@@ -590,6 +667,96 @@ export const LeaderPortal: React.FC = () => {
                   </p>
                 </div>
               </div>
+            ) : isInformedLatePending ? (
+              /* State D: Informed Late Notice Active -> Live Countdown & Grace Window Check-In */
+              <div className="space-y-4">
+                <div
+                  className={`p-5 rounded-2xl border-2 shadow-sm space-y-4 transition-all ${
+                    isLateGraceExpired
+                      ? 'bg-rose-50/70 border-rose-300'
+                      : 'bg-gradient-to-br from-amber-50/80 via-white to-white border-amber-300'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <span
+                        className={`text-[10px] uppercase font-mono tracking-wider px-3 py-1 rounded-full border font-bold inline-flex items-center gap-1.5 ${
+                          isLateGraceExpired
+                            ? 'bg-rose-100 text-rose-800 border-rose-300'
+                            : 'bg-amber-100 text-amber-800 border-amber-300'
+                        }`}
+                      >
+                        <Clock className={`w-3.5 h-3.5 ${isLateGraceExpired ? 'text-rose-600' : 'text-amber-600 animate-pulse'}`} />
+                        {isLateGraceExpired
+                          ? 'Committed Arrival Window Expired'
+                          : `Informed Late (+${todayRecord?.committed_late_minutes || todayRecord?.late_minutes || 10} Mins Grace)`}
+                      </span>
+                      <h4 className="text-base font-bold text-[#232d42] mt-2">
+                        {isLateGraceExpired
+                          ? 'Meeting Check-In Window Closed'
+                          : `Committed Arrival Deadline: ${(todayRecord as any)?.expected_arrival_time || 'Within Committed Window'}`}
+                      </h4>
+                      <p className="text-xs text-slate-500 mt-0.5 font-medium">
+                        {isLateGraceExpired
+                          ? 'You did not check in within your promised late arrival window. You are marked ABSENT for today.'
+                          : `You informed "${todayRecord?.informed_to_person || 'Hospital Authority'}" that you will join late. Please complete check-in before deadline.`}
+                      </p>
+                    </div>
+
+                    {/* Live Countdown Badge */}
+                    {!isLateGraceExpired ? (
+                      <div className="text-right shrink-0">
+                        <div className="text-[10px] text-amber-700 uppercase font-black">Time Remaining</div>
+                        <div className="text-sm font-mono font-black text-amber-900 bg-amber-100/90 px-3 py-1.5 rounded-xl border border-amber-300 mt-0.5 shadow-2xs">
+                          {Math.floor(Math.max(0, lateSecondsLeft) / 60)
+                            .toString()
+                            .padStart(2, '0')}
+                          :
+                          {(Math.max(0, lateSecondsLeft) % 60).toString().padStart(2, '0')}
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="text-[10px] uppercase font-black px-2.5 py-1 rounded-lg border bg-rose-100 text-rose-800 border-rose-300 shrink-0">
+                        ABSENT
+                      </span>
+                    )}
+                  </div>
+
+                  {/* If still within grace window: Allow physical scan or virtual join */}
+                  {!isLateGraceExpired ? (
+                    <div className="space-y-3 pt-1">
+                      <div className="text-xs font-bold text-slate-700">Check In Now Before Timer Expires:</div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <button
+                          onClick={handleAttendPhysically}
+                          className="p-4 rounded-xl bg-white border-2 border-slate-200 hover:border-[#7065f0] text-left transition-all cursor-pointer shadow-xs"
+                        >
+                          <div className="flex items-center gap-2 font-bold text-[#232d42] text-xs">
+                            <Camera className="w-4 h-4 text-[#7065f0]" />
+                            <span>Scan Boardroom QR</span>
+                          </div>
+                          <p className="text-[10px] text-slate-500 mt-0.5">Physical check-in at 5th Floor Hall</p>
+                        </button>
+                        <button
+                          onClick={handleJoinVirtually}
+                          className="p-4 rounded-xl bg-white border-2 border-slate-200 hover:border-[#3bb7b8] text-left transition-all cursor-pointer shadow-xs"
+                        >
+                          <div className="flex items-center gap-2 font-bold text-[#232d42] text-xs">
+                            <Video className="w-4 h-4 text-[#3bb7b8]" />
+                            <span>Join Online (Google Meet)</span>
+                          </div>
+                          <p className="text-[10px] text-slate-500 mt-0.5">Launch Meet and record presence</p>
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-3 bg-rose-100/80 rounded-xl border border-rose-200 text-xs text-rose-900 font-semibold flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                      <span>Access Denied: The late arrival cutoff has passed. Further check-ins are locked.</span>
+                    </div>
+                  )}
+                </div>
+              </div>
             ) : hasInformedAbsence ? (
               /* State B: Prior Informed Absence Notice Registered Today */
               <div className="space-y-4">
@@ -690,14 +857,14 @@ export const LeaderPortal: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Mode 3: Cannot Attend? Submit Informed Notice */}
+                {/* Mode 3: Cannot Attend / Running Late? Submit Informed Notice */}
                 <div className="pt-2">
                   <button
                     onClick={() => setShowInformedModal(true)}
                     className="w-full py-3 px-4 bg-[#fff7ed] hover:bg-[#ffedd5] border border-orange-200 text-orange-950 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
                   >
                     <HelpCircle className="w-4 h-4 text-orange-600" />
-                    <span>Cannot attend? Submit prior informed notice / leave</span>
+                    <span>Running late or cannot attend? Submit notice (5–20 mins grace / leave)</span>
                   </button>
                 </div>
               </div>
@@ -705,20 +872,76 @@ export const LeaderPortal: React.FC = () => {
           </div>
         )}
 
-        {/* Modal: Informed Absence Notice */}
+        {/* Modal: Informed Late / Absence Notice */}
         {showInformedModal && (
           <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
-              <h3 className="text-base font-black text-slate-900 mb-1">Record Prior Informed Absence</h3>
+            <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-in fade-in zoom-in duration-150">
+              <h3 className="text-base font-black text-slate-900 mb-1">
+                Hospital Standup Notice Submission
+              </h3>
               <p className="text-xs text-slate-500 mb-4">
-                Hospital compliance requires mentioning which authority or colleague you informed before missing the
-                meeting.
+                Inform hospital operations whether you are joining late with a committed arrival window or requesting full leave for today.
               </p>
 
-              <form onSubmit={handleInformedSubmit} className="space-y-3.5">
+              <form onSubmit={handleInformedSubmit} className="space-y-4">
+                {/* Notice Type Selector */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Select Notice Category <span className="text-rose-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setInformedNoticeType('LATE')}
+                      className={`p-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
+                        informedNoticeType === 'LATE'
+                          ? 'bg-[#eff0fe] text-[#7065f0] border-purple-300 shadow-xs'
+                          : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                      }`}
+                    >
+                      <Clock className="w-4 h-4" />
+                      <span>⏱️ Running Late</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setInformedNoticeType('LEAVE')}
+                      className={`p-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
+                        informedNoticeType === 'LEAVE'
+                          ? 'bg-amber-50 text-amber-900 border-amber-300 shadow-xs'
+                          : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                      }`}
+                    >
+                      <FileText className="w-4 h-4" />
+                      <span>🏖️ Full Leave</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Delay Dropdown if Running Late */}
+                {informedNoticeType === 'LATE' && (
+                  <div className="p-3.5 bg-purple-50/70 border border-purple-200 rounded-2xl space-y-2">
+                    <label className="block text-xs font-bold text-slate-900">
+                      Committed Late Arrival Time (Max 20 Mins):
+                    </label>
+                    <select
+                      value={informedLateMinutes}
+                      onChange={(e) => setInformedLateMinutes(parseInt(e.target.value, 10))}
+                      className="w-full px-3 py-2 bg-white border border-purple-300 rounded-xl text-xs text-slate-900 font-bold focus:outline-none focus:border-purple-600 cursor-pointer"
+                    >
+                      <option value={5}>5 Minutes Late (Expected Deadline: 10:05 AM IST)</option>
+                      <option value={10}>10 Minutes Late (Expected Deadline: 10:10 AM IST)</option>
+                      <option value={15}>15 Minutes Late (Expected Deadline: 10:15 AM IST)</option>
+                      <option value={20}>20 Minutes Late (Maximum Standup Cutoff: 10:20 AM IST)</option>
+                    </select>
+                    <div className="text-[10px] text-purple-900 font-semibold leading-relaxed">
+                      ⚠️ <strong>Strict Rule:</strong> You must check in before your committed time expires. If you fail to join within this window, the system will automatically record you as <strong>ABSENT</strong> and further entry will be blocked.
+                    </div>
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Whom did you inform? (Name / Title)
+                    Whom did you inform? (Name / Title) <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -726,19 +949,25 @@ export const LeaderPortal: React.FC = () => {
                     placeholder="e.g. Director Sir / Mr. Naman Mishra / Medical Superintendent"
                     value={informedToPerson}
                     onChange={(e) => setInformedToPerson(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-orange-500"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-purple-500 font-medium"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Reason for Absence</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Reason <span className="text-rose-500">*</span>
+                  </label>
                   <textarea
                     rows={3}
                     required
-                    placeholder="e.g. Emergency surgery in OT-2 / Clinical round in ICU / Approved Casual Leave"
+                    placeholder={
+                      informedNoticeType === 'LATE'
+                        ? 'e.g. Stuck in hospital traffic / Attending urgent ward emergency / Handover in progress'
+                        : 'e.g. Emergency surgery in OT-2 / Casual Leave sanctioned / Outstation hospital visit'
+                    }
                     value={informedReason}
                     onChange={(e) => setInformedReason(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-orange-500"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-purple-500 font-medium"
                   />
                 </div>
 
@@ -752,12 +981,40 @@ export const LeaderPortal: React.FC = () => {
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold rounded-xl shadow-md shadow-orange-600/25 cursor-pointer"
+                    className="px-5 py-2 bg-gradient-to-r from-[#7065f0] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7065f0] text-white text-xs font-bold rounded-xl shadow-md cursor-pointer"
                   >
-                    Submit Informed Absence
+                    {informedNoticeType === 'LATE' ? 'Confirm Late Arrival Commitment' : 'Submit Leave Notice'}
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Modal: Access Denied Expired Window */}
+        {showExpiredAccessModal && (
+          <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border-2 border-rose-300 animate-in fade-in zoom-in duration-150">
+              <div className="flex items-center gap-2 mb-2 text-rose-700">
+                <AlertCircle className="w-6 h-6 text-rose-600 shrink-0" />
+                <h3 className="text-base font-black text-slate-900">
+                  Access Denied: Meeting Check-In Closed
+                </h3>
+              </div>
+              <p className="text-xs text-slate-600 leading-relaxed mb-4">
+                You are marked <strong>ABSENT</strong> for today's session because you did not join within your committed late arrival window (or the maximum 20-minute standup window). Entry is no longer permitted.
+              </p>
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-[11px] text-slate-600 mb-4 font-medium">
+                📋 Your non-attendance has been recorded in the Hospital Director's 10:30 AM Daily Compliance Audit Report.
+              </div>
+              <div className="flex justify-end">
+                <button
+                  onClick={() => setShowExpiredAccessModal(false)}
+                  className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl cursor-pointer"
+                >
+                  Acknowledge & Close
+                </button>
+              </div>
             </div>
           </div>
         )}

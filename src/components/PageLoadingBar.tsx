@@ -52,7 +52,7 @@ export const PageLoadingBar: React.FC = () => {
 
       {/* Full-Featured Prominent 1-Second Page Transition Loader (Hope UI / Executive) */}
       {showSpinner && (
-        <div className="fixed inset-0 z-[99998] pointer-events-none flex items-center justify-center bg-slate-900/30 backdrop-blur-[4px] transition-all duration-300 animate-in fade-in">
+        <div className="fixed inset-0 z-[99998] pointer-events-none flex items-center justify-center bg-slate-900/30 backdrop-blur-[2px] transition-all duration-300 animate-in fade-in">
           <div className="flex flex-col items-center justify-center p-8 rounded-3xl bg-white shadow-2xl border-2 border-indigo-100 max-w-sm w-full mx-4 text-center transform scale-100 animate-in zoom-in-95 duration-200">
             {/* Hope UI Animated Loader Graphic */}
             <div className="relative w-24 h-24 mb-4 flex items-center justify-center">

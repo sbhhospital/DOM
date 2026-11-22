@@ -85,7 +85,13 @@ interface DomAppContextType {
   sendLeaderOnboardingCredentials: (leader: Leader) => Promise<{ success: boolean; message: string }>;
   sendBulkLeaderCredentials: (leaderIds: string[]) => Promise<{ success: boolean; successCount: number; message: string }>;
   logMeetingRejoin: (leaderId: string, meetUrl: string) => Promise<void>;
-  submitInformedAbsence: (leaderId: string, informedTo: string, reason: string) => Promise<{ success: boolean; message: string }>;
+  submitInformedAbsence: (
+    leaderId: string,
+    informedTo: string,
+    reason: string,
+    noticeType?: 'LATE' | 'LEAVE',
+    lateMinutes?: number
+  ) => Promise<{ success: boolean; message: string }>;
   markLeaderInformedLeave: (leaderId: string, date: string, informedTo: string, reason: string) => Promise<void>;
   markLeaderInformedLate: (
     leaderId: string,
@@ -1302,6 +1308,37 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     const nowIso = new Date().toISOString();
     const lateMinutes = calculateLateMinutes(targetDate, meeting.scheduled_time, new Date());
+
+    // Strict Late Grace Tracking Check (Max 20 mins from meeting start)
+    if (existingPrior?.status === 'INFORMED_LATE' && existingPrior.late_minutes && !existingPrior.check_in_at) {
+      const allowedLateLimit = Math.min(existingPrior.late_minutes, 20);
+      if (lateMinutes > allowedLateLimit) {
+        const expiredNote = `Absent: Promised to join within ${existingPrior.late_minutes}m (by ${existingPrior.expected_arrival_time || 'deadline'}), but failed to join in time`;
+        const updatedRec: AttendanceRecord = {
+          ...existingPrior,
+          status: 'ABSENT',
+          late_expired: true,
+          verification_note: expiredNote,
+          updated_at: nowIso,
+        };
+        setAttendanceRecords((prev) => prev.map((r) => (r.id === existingPrior.id ? updatedRec : r)));
+        syncAttendanceRecordToSupabase(updatedRec, expiredNote);
+        return {
+          success: false,
+          meetUrl: '',
+          clicksCount: existingPrior.virtual_clicks_count || 0,
+          message: `Access Denied: Meeting Check-In Closed. You committed to join within ${existingPrior.late_minutes} minutes (${existingPrior.expected_arrival_time}), but the deadline has expired. You are recorded as ABSENT for today's session. Entry is not permitted.`,
+        };
+      }
+    } else if (!existingPrior?.check_in_at && lateMinutes > 20) {
+      return {
+        success: false,
+        meetUrl: '',
+        clicksCount: existingPrior?.virtual_clicks_count || 0,
+        message: `Access Denied: Meeting check-in window closed at 10:20 AM IST (+20 minutes limit exceeded). You are recorded as ABSENT for today's session. Entry is not permitted.`,
+      };
+    }
+
     const isLate = lateMinutes > 0;
     const statusToSet: AttendanceStatus = isLate ? 'INFORMED_LATE' : 'PRESENT';
     const note = isLate
@@ -1536,6 +1573,33 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     const nowIso = new Date().toISOString();
     const lateMinutes = calculateLateMinutes(selectedDate, meeting.scheduled_time, new Date());
+
+    // Strict Late Grace Tracking Check (Max 20 mins from meeting start)
+    if (existingRec?.status === 'INFORMED_LATE' && existingRec.late_minutes && !existingRec.check_in_at) {
+      const allowedLateLimit = Math.min(existingRec.late_minutes, 20);
+      if (lateMinutes > allowedLateLimit) {
+        const expiredNote = `Absent: Promised to join within ${existingRec.late_minutes}m (by ${existingRec.expected_arrival_time || 'deadline'}), but failed to join in time`;
+        const updatedRec: AttendanceRecord = {
+          ...existingRec,
+          status: 'ABSENT',
+          late_expired: true,
+          verification_note: expiredNote,
+          updated_at: nowIso,
+        };
+        setAttendanceRecords((prev) => prev.map((r) => (r.id === existingRec.id ? updatedRec : r)));
+        syncAttendanceRecordToSupabase(updatedRec, expiredNote);
+        return {
+          success: false,
+          message: `Access Denied: Meeting Check-In Closed. You committed to join within ${existingRec.late_minutes} minutes (${existingRec.expected_arrival_time}), but the deadline has expired. You are recorded as ABSENT for today's session. Entry is not permitted.`,
+        };
+      }
+    } else if (!existingRec?.check_in_at && lateMinutes > 20) {
+      return {
+        success: false,
+        message: `Access Denied: Meeting check-in window closed at 10:20 AM IST (+20 minutes limit exceeded). You are recorded as ABSENT for today's session. Entry is not permitted.`,
+      };
+    }
+
     const isLate = lateMinutes > 0;
     const statusToSet: AttendanceStatus = isLate ? 'INFORMED_LATE' : 'PRESENT';
     const note = isLate
@@ -1877,21 +1941,58 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return { success: true, message: 'Attendance status marked as REJECTED / ABSENT.' };
   };
 
-  const submitInformedAbsence = async (leaderId: string, informedTo: string, reason: string) => {
+  const submitInformedAbsence = async (
+    leaderId: string,
+    informedTo: string,
+    reason: string,
+    noticeType: 'LATE' | 'LEAVE' = 'LEAVE',
+    lateMinutes: number = 10
+  ) => {
     const meeting = getMeetingForDate(selectedDate);
     const nowIso = new Date().toISOString();
     let recordToSave: AttendanceRecord | null = null;
+    const isLateNotice = noticeType === 'LATE';
+    const clampedLate = Math.min(Math.max(lateMinutes, 5), 20); // 5 to 20 minutes limit
+
+    // Calculate arrival deadline time based on scheduled meeting time (e.g. 10:00 AM + 15m = 10:15 AM)
+    let arrivalTimeStr = '10:10 AM';
+    try {
+      const match = (meeting.scheduled_time || '10:00 AM').match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+      if (match) {
+        let h = parseInt(match[1], 10);
+        let m = parseInt(match[2], 10) + clampedLate;
+        const meridian = match[3] || 'AM';
+        if (m >= 60) {
+          h += Math.floor(m / 60);
+          m = m % 60;
+        }
+        const mStr = m < 10 ? `0${m}` : `${m}`;
+        arrivalTimeStr = `${h}:${mStr} ${meridian}`;
+      }
+    } catch {
+      arrivalTimeStr = `10:${clampedLate < 10 ? '0' + clampedLate : clampedLate} AM`;
+    }
+
+    const note = isLateNotice
+      ? `Promised arrival by ${arrivalTimeStr} (+${clampedLate}m Late) • Reason: ${reason}`
+      : `Prior Informed Leave • Reason: ${reason}`;
 
     setAttendanceRecords((prev) => {
       const existing = prev.find((r) => r.leader_id === leaderId && r.meeting_date === selectedDate);
       if (existing) {
         const updated: AttendanceRecord = {
           ...existing,
-          status: 'INFORMED_ABSENT',
+          status: isLateNotice ? 'INFORMED_LATE' : 'INFORMED_ABSENT',
           verification_status: 'PENDING',
           informed_to_person: informedTo,
           informed_reason: reason,
           informed_confirmed: false,
+          late_minutes: isLateNotice ? clampedLate : undefined,
+          committed_late_minutes: isLateNotice ? clampedLate : undefined,
+          expected_arrival_time: isLateNotice ? arrivalTimeStr : undefined,
+          late_reason: isLateNotice ? reason : undefined,
+          late_expired: false,
+          verification_note: note,
           updated_at: nowIso,
         };
         recordToSave = updated;
@@ -1907,11 +2008,17 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         leader_id: leaderId,
         leader: leaders.find((l) => l.id === leaderId),
         selected_mode: 'NONE',
-        status: 'INFORMED_ABSENT',
+        status: isLateNotice ? 'INFORMED_LATE' : 'INFORMED_ABSENT',
         verification_status: 'PENDING',
         informed_to_person: informedTo,
         informed_reason: reason,
         informed_confirmed: false,
+        late_minutes: isLateNotice ? clampedLate : undefined,
+        committed_late_minutes: isLateNotice ? clampedLate : undefined,
+        expected_arrival_time: isLateNotice ? arrivalTimeStr : undefined,
+        late_reason: isLateNotice ? reason : undefined,
+        late_expired: false,
+        verification_note: note,
         created_at: nowIso,
         updated_at: nowIso,
       };
@@ -1920,10 +2027,18 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
 
     if (recordToSave) {
-      syncAttendanceRecordToSupabase(recordToSave, `Informed Absence submitted: ${informedTo} - ${reason}`);
+      syncAttendanceRecordToSupabase(
+        recordToSave,
+        isLateNotice ? `Informed Late submitted: +${clampedLate}m (ETA ${arrivalTimeStr})` : `Informed Leave: ${reason}`
+      );
     }
 
-    return { success: true, message: 'Informed Absence registered for Admin verification.' };
+    return {
+      success: true,
+      message: isLateNotice
+        ? `Informed Late (+${clampedLate}m) recorded! Please join before ${arrivalTimeStr} to avoid being marked absent.`
+        : 'Informed Leave registered for Management verification.',
+    };
   };
 
   const adminVerifyStatus = async (
@@ -2594,7 +2709,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     msg += `You have been officially marked *ABSENT (NO INFORMATION)*. Please submit your written explanation immediately to the Hospital Management & Operations Command stating the valid reason why you were unable to attend today's scheduled meeting.\n\n`;
 
     msg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
-    msg += `*Clinical Governance & Hospital Operations Command*\n`;
+    msg += `*Hospital Operations & Management Command*\n`;
     msg += `*Automated Reminder*`;
 
     const targetGroup = appSettings.admin_whatsapp_group || '120363432056023698@g.us';
@@ -2681,7 +2796,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     const subject = `🚨 URGENT: SBH DOM Attendance Absence Notice — Reason Required (${formattedDate})`;
 
-    let body = `HOSPITAL OPERATIONS & CLINICAL GOVERNANCE COMMAND\n`;
+    let body = `HOSPITAL OPERATIONS & MANAGEMENT COMMAND\n`;
     body += `SBH GROUP OF HOSPITALS, RAIPUR\n\n`;
     body += `📅 Date: ${formattedDate}\n`;
     body += `⏰ Scheduled Session: ${meeting.title} (10:00 AM IST)\n`;
@@ -2697,7 +2812,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
 
     body += `\n⚠️ MANDATORY ACTION REQUIRED:\n`;
-    body += `As per Hospital Clinical Governance SOP, participation in DOM is compulsory for all Department Heads.\n`;
+    body += `As per Hospital Management SOP, participation in DOM is compulsory for all Department Heads.\n`;
     body += `Please reply to this notice immediately explaining the official reason for your absence today.\n\n`;
     body += `DOM Operations Command\nSBH Group of Hospitals, Raipur`;
 
@@ -2912,7 +3027,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     reminderText += `All leaders are requested to assemble in the Conference Room (5th Floor) and complete check-in before 10:00 AM IST sharp. Physical check-in requires in-person QR code verification.\n`;
     reminderText += `━━━━━━━━━━━━━━━━━━━━━━\n`;
     reminderText += `*Automated Reminder*\n`;
-    reminderText += `Clinical Governance & Hospital Operations Command\n`;
+    reminderText += `Hospital Operations & Management Command\n`;
     reminderText += `SBH Group of Hospitals, Raipur`;
 
     await sendCeoitboxWhatsappMessage({
@@ -3196,7 +3311,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       msg += `${idx + 1}. *${p.leader?.full_name}* — ${p.leader?.department?.name || 'Department'}\n`;
     });
     msg += `\n━━━━━━━━━━━━━━━━━━━━━━\n`;
-    msg += `*Clinical Governance & Operations Command*\n`;
+    msg += `*Hospital Operations & Management Command*\n`;
     msg += `*Automated Operational Compliance Notice*`;
 
     const groupJid = appSettings.admin_whatsapp_group || '120363432056023698@g.us';
@@ -3459,19 +3574,18 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (assignedPassword) {
       msg += `🔑 *Password:* ${assignedPassword}\n`;
     }
-    msg += `🏢 *Department:* ${deptName}\n`;
-    msg += `🆔 *Leader Code:* ${leader.employee_code || 'SBH-LEADER'}\n\n`;
+    msg += `🏢 *Department:* ${deptName}\n\n`;
     msg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
     msg += `📌 *QUICK START LOGIN & CHECK-IN GUIDE:*\n`;
     msg += `1️⃣ Open the official portal link: https://sbhdom.vercel.app/login\n`;
     msg += `2️⃣ Sign in using your registered email and password provided above.\n`;
     msg += `3️⃣ *Daily Check-In Window:* Daily between *09:50 AM to 10:20 AM IST*.\n`;
     msg += `4️⃣ *Physical Attendance:* Scan the official QR code in the 5th Floor Conference Hall. (Live GPS verification inside hospital premises is mandatory).\n`;
-    msg += `5️⃣ *Virtual Attendance:* Click "Join Online" to launch Google Meet directly.\n`;
+    msg += `5️⃣ *Virtual Attendance:* Click "Join Online" to record your virtual attendance.\n`;
     msg += `6️⃣ *Unforeseen Absence / Late:* If delayed or on leave, submit prior notice via the portal before 10:00 AM IST to avoid being marked absent.\n\n`;
     msg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
     msg += `*Automated Reminder*\n`;
-    msg += `Clinical Governance & Hospital Operations Command\n`;
+    msg += `Hospital Operations & Management Command\n`;
     msg += `SBH Group of Hospitals, Raipur`;
 
     try {

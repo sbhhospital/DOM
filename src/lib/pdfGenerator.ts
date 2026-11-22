@@ -68,7 +68,7 @@ export function generateDirectorPdf(
   doc.setFontSize(7.2);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(100, 116, 139); // slate-500
-  doc.text('Clinical Governance & Hospital Operations Command', textStartX, 17.0);
+  doc.text('Hospital Operations & Management Command', textStartX, 17.0);
 
   // Right-aligned report badge (compact font to guarantee zero overlap with hospital title)
   const cadenceCode = meeting.cadence || (meeting.frequency === 'MONTHLY' ? 'MOM' : meeting.frequency === 'WEEKLY' ? 'WOM' : 'DOM');

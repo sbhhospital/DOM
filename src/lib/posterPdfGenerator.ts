@@ -43,7 +43,7 @@ export async function generateBoardroomPosterPdf(dateStr?: string): Promise<jsPD
     y += 8;
   }
 
-  // Clinical Governance Pill
+  // Hospital Operations & Management Command Pill
   doc.setFillColor(236, 253, 245);
   doc.setDrawColor(167, 243, 208);
   doc.setLineWidth(0.3);
@@ -52,7 +52,7 @@ export async function generateBoardroomPosterPdf(dateStr?: string): Promise<jsPD
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7);
   doc.setTextColor(22, 163, 74);
-  doc.text('CLINICAL GOVERNANCE & OPERATIONS COMMAND', pageWidth / 2, y + 3.8, { align: 'center' });
+  doc.text('HOSPITAL OPERATIONS & MANAGEMENT COMMAND', pageWidth / 2, y + 3.8, { align: 'center' });
 
   // Main Titles
   y += 9.5;
@@ -236,7 +236,7 @@ export async function generateBoardroomPosterPdf(dateStr?: string): Promise<jsPD
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
   doc.setTextColor(100, 116, 139);
-  doc.text('Authorized by Director Sir & Clinical Governance', pageWidth - margin - 4, y, { align: 'right' });
+  doc.text('Authorized by Director Sir & Hospital Management', pageWidth - margin - 4, y, { align: 'right' });
 
   return doc;
 }
@@ -286,7 +286,7 @@ export async function downloadBoardroomPosterPng(dateStr?: string): Promise<void
 
   ctx.fillStyle = '#64748b';
   ctx.font = '500 22px sans-serif';
-  ctx.fillText('Clinical Governance & Hospital Operations Command', width / 2, 175);
+  ctx.fillText('Hospital Operations & Management Command', width / 2, 175);
 
   ctx.fillStyle = '#0f172a';
   ctx.font = 'bold 40px sans-serif';
@@ -418,7 +418,7 @@ export async function downloadBoardroomPosterPng(dateStr?: string): Promise<void
   ctx.textAlign = 'right';
   ctx.fillStyle = '#64748b';
   ctx.font = '500 18px sans-serif';
-  ctx.fillText('Authorized by Director Sir & Clinical Governance', width - 80, footY + 30);
+  ctx.fillText('Authorized by Director Sir & Hospital Management', width - 80, footY + 30);
 
   // Download Image
   const dataUrl = canvas.toDataURL('image/png');

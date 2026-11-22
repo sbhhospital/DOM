@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 @utility backdrop-blur-xs {
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
 }
 
 .modal-backdrop {
@@ -10,9 +10,9 @@
   inset: 0 !important;
   width: 100vw !important;
   height: 100vh !important;
-  background-color: rgba(35, 45, 66, 0.6) !important;
-  backdrop-filter: blur(10px) saturate(140%) !important;
-  -webkit-backdrop-filter: blur(10px) saturate(140%) !important;
+  background-color: rgba(35, 45, 66, 0.45) !important;
+  backdrop-filter: blur(2px) !important;
+  -webkit-backdrop-filter: blur(2px) !important;
   z-index: 9999 !important;
 }
 

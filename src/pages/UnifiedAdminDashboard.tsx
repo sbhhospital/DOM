@@ -1738,7 +1738,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-[10050] lg:hidden flex">
           <div
-            className="fixed inset-0 bg-slate-900/60 transition-opacity z-10"
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] transition-opacity z-10"
             onClick={() => setIsMobileMenuOpen(false)}
           />
           <aside className="relative z-20 w-72 max-w-[85vw] h-full bg-white flex flex-col border-r border-[#f0f1f8] shadow-2xl overflow-hidden animate-in slide-in-from-left duration-200">
@@ -1775,8 +1775,19 @@ export const UnifiedAdminDashboard: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="text-[10px] font-bold text-[#7065f0] bg-[#eff0fe] px-2 py-1 rounded-xl border border-purple-200/60 font-mono">
-              {formatToIndianDate(selectedDate)}
+            <div
+              className="relative text-[10px] font-bold text-[#7065f0] bg-[#eff0fe] hover:bg-[#e0e3fc] px-2.5 py-1 rounded-xl border border-purple-200/80 font-mono flex items-center gap-1 cursor-pointer transition-colors"
+              title="Click to select date"
+            >
+              <Calendar className="w-3 h-3 text-[#7065f0]" />
+              <span>{formatToIndianDate(selectedDate)}</span>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                title="Select date"
+              />
             </div>
             <a
               href={currentMeeting.google_meet_url}
@@ -1822,7 +1833,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
         {/* 10:00 AM Standup Meeting Big Center Countdown Modal Window */}
         {standupAnnouncement.active && (
-          <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+          <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-900/45 backdrop-blur-[2px]">
             <div className="bg-white rounded-3xl p-8 max-w-lg w-full text-center shadow-2xl border-2 border-purple-200/80 relative overflow-hidden page-transition">
               <div className="h-2 w-full bg-gradient-to-r from-[#7065f0] via-[#8577ff] to-[#45b7b8] absolute top-0 left-0" />
 
@@ -1864,7 +1875,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
         )}
 
         {/* Top Header Bar Attached to Dashboard with Hope UI Executive Banner */}
-        <header className="sticky top-0 z-[100] w-full bg-white/95 backdrop-blur-md border-b border-[#f0f1f8]/60 shadow-2xs relative overflow-hidden">
+        <header className="sticky top-0 z-[100] w-full bg-white/95 backdrop-blur-[2px] border-b border-[#f0f1f8]/60 shadow-2xs relative overflow-hidden">
           {/* Hope UI Style Subtle Background Pattern */}
           <div className="absolute right-0 top-0 bottom-0 w-80 pointer-events-none opacity-20 overflow-hidden hidden md:block">
             <img
@@ -1955,8 +1966,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
               </div>
             </div>
 
-            {/* Right Header: Date Selector and Google Meet button */}
-            <div className="flex items-center gap-3">
+            {/* Right Header: Date Selector and Google Meet button (Desktop, hidden on mobile to avoid duplication) */}
+            <div className="flex items-center gap-2 sm:gap-3">
               <div
                 onClick={() => {
                   try {
@@ -1965,7 +1976,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                     datePickerInputRef.current?.focus();
                   }
                 }}
-                className="relative flex items-center gap-2 bg-white hover:bg-[#eff0fe]/50 px-3.5 py-2 rounded-xl border border-slate-200 shadow-xs transition-all cursor-pointer group"
+                className="relative hidden lg:flex items-center gap-2 bg-white hover:bg-[#eff0fe]/50 px-3.5 py-2 rounded-xl border border-slate-200 shadow-xs transition-all cursor-pointer group"
                 title="Click to change date"
               >
                 <Calendar className="w-4 h-4 text-[#7065f0] group-hover:scale-110 transition-transform shrink-0" />
@@ -1996,11 +2007,11 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 href={currentMeeting.google_meet_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-4 py-2 bg-[#7065f0] hover:bg-[#5e52e4] text-white rounded-xl text-xs font-bold shadow-xs shadow-indigo-500/20 transition-all active:scale-[0.98] flex items-center justify-center gap-1.5 cursor-pointer"
+                className="hidden lg:flex px-4 py-2 bg-[#7065f0] hover:bg-[#5e52e4] text-white rounded-xl text-xs font-bold shadow-xs shadow-indigo-500/20 transition-all active:scale-[0.98] items-center justify-center gap-1.5 cursor-pointer"
                 title="Open Google Meet"
               >
                 <Video className="w-4 h-4 text-white" />
-                <span className="hidden sm:inline font-bold">Google Meet</span>
+                <span className="font-bold">Google Meet</span>
               </a>
             </div>
           </div>
@@ -2137,7 +2148,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 flex-wrap w-full lg:w-auto justify-end">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full lg:w-auto">
                     <button
                       onClick={() => {
                         setSchedForm({
@@ -2151,7 +2162,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                         });
                         setShowScheduleEditModal(true);
                       }}
-                      className="px-3.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-2xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150"
+                      className="w-full justify-center px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-2xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150"
                     >
                       <Settings2 className="w-3.5 h-3.5 text-slate-600" />
                       <span>Modify Date / Cadence</span>
@@ -2160,7 +2171,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                     <button
                       onClick={handleSendReminderNotice}
                       disabled={isSendingNotice}
-                      className="px-3.5 py-1.5 bg-gradient-to-r from-[#7065f0] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7065f0] text-white rounded-2xl text-xs font-bold shadow-sm shadow-indigo-200/50 flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150 disabled:opacity-60"
+                      className="w-full justify-center px-3.5 py-2 bg-gradient-to-r from-[#7065f0] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7065f0] text-white rounded-2xl text-xs font-bold shadow-sm shadow-indigo-200/50 flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150 disabled:opacity-60"
                     >
                       {isSendingNotice ? <Loader2 className="w-3.5 h-3.5 animate-spin text-white" /> : <Send className="w-3.5 h-3.5" />}
                       <span>Send {currentCadence} WhatsApp Notice</span>
@@ -2181,7 +2192,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                         }
                       }}
                       disabled={isEscalating}
-                      className="px-3.5 py-1.5 bg-[#fff1f2] hover:bg-[#ffe4e6] text-[#e11d48] border border-rose-200 rounded-2xl text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150"
+                      className="w-full justify-center px-3.5 py-2 bg-[#fff1f2] hover:bg-[#ffe4e6] text-[#e11d48] border border-rose-200 rounded-2xl text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150"
                     >
                       {isEscalating ? <Loader2 className="w-3.5 h-3.5 animate-spin text-[#e11d48]" /> : <AlertCircle className="w-3.5 h-3.5 text-[#e11d48]" />}
                       <span>Escalate Non-Attendees</span>
@@ -2196,8 +2207,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                     <LiveIndiaClockAndCountdown currentCadence={currentCadence} />
                   </div>
 
-                  {/* Right: Unified Executive Action Toolbar (Clean h-9 pills, no jagged wrapping) */}
-                  <div className="flex flex-wrap items-center justify-start xl:justify-end gap-2 pt-2 xl:pt-0 border-t xl:border-t-0 border-[#f0f1f8]">
+                  {/* Right: Unified Executive Action Toolbar (Balanced Responsive Grid) */}
+                  <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center justify-start xl:justify-end gap-2 pt-2 xl:pt-0 border-t xl:border-t-0 border-[#f0f1f8] w-full xl:w-auto">
                     {/* 09:50 AM Broadcast Button */}
                     <button
                       onClick={() =>
@@ -2223,7 +2234,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                         })
                       }
                       disabled={isBroadcasting0950}
-                      className="h-9 px-3.5 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white rounded-2xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150 shrink-0"
+                      className="h-9 px-3.5 w-full sm:w-auto justify-center bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white rounded-2xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150 shrink-0"
                       title="Broadcast 09:50 AM Notice to Official WhatsApp Group"
                     >
                       {isBroadcasting0950 ? (
@@ -2258,7 +2269,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                           },
                         });
                       }}
-                      className={`h-9 px-3.5 bg-[#ecfdf5] hover:bg-[#d1fae5] text-[#059669] border border-emerald-200/80 rounded-2xl text-xs font-bold shadow-2xs flex items-center gap-1.5 active:scale-95 transition-all duration-150 shrink-0 ${isFutureDate ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                      className={`h-9 px-3.5 w-full sm:w-auto justify-center bg-[#ecfdf5] hover:bg-[#d1fae5] text-[#059669] border border-emerald-200/80 rounded-2xl text-xs font-bold shadow-2xs flex items-center gap-1.5 active:scale-95 transition-all duration-150 shrink-0 ${isFutureDate ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
                         }`}
                       title={isFutureDate ? 'Meeting has not started yet' : 'Approve all leaders who have joined on this date'}
                     >
@@ -2279,7 +2290,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                         }
                         setShowGroupDispatchModal(true);
                       }}
-                      className="h-9 px-3.5 bg-gradient-to-r from-[#7065f0] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7065f0] text-white rounded-2xl text-xs font-bold shadow-sm shadow-indigo-200/50 flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150 shrink-0"
+                      className="h-9 px-3.5 w-full sm:w-auto justify-center bg-gradient-to-r from-[#7065f0] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7065f0] text-white rounded-2xl text-xs font-bold shadow-sm shadow-indigo-200/50 flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150 shrink-0"
                       title={isFutureDate ? 'Meeting has not started yet (Reports locked)' : 'Send Official PDF or Absentee Text Report to SBH WhatsApp Group'}
                     >
                       <Send className="w-3.5 h-3.5 text-white" />
@@ -2308,7 +2319,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                             },
                           });
                         }}
-                        className="h-9 px-3.5 bg-gradient-to-r from-[#32b87f] to-[#59d49c] hover:from-[#2ba16f] hover:to-[#4ec48f] text-white rounded-2xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150 shrink-0"
+                        className="h-9 px-3.5 w-full sm:w-auto justify-center bg-gradient-to-r from-[#32b87f] to-[#59d49c] hover:from-[#2ba16f] hover:to-[#4ec48f] text-white rounded-2xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150 shrink-0"
                         title={`Re-instate ${currentMeeting.frequency === 'MONTHLY' ? 'MOM' : currentMeeting.frequency === 'WEEKLY' ? 'WOM' : 'DOM'} Standup`}
                       >
                         <Check className="w-3.5 h-3.5 text-white" />
@@ -2334,7 +2345,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                             },
                           })
                         }
-                        className="h-9 px-3.5 bg-[#fff1f2] hover:bg-[#ffe4e6] text-[#e11d48] border border-rose-200 rounded-2xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150 shrink-0"
+                        className="h-9 px-3.5 w-full sm:w-auto justify-center bg-[#fff1f2] hover:bg-[#ffe4e6] text-[#e11d48] border border-rose-200 rounded-2xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150 shrink-0"
                         title={`Remove ${currentCadence} for this date (Zero absentees will be counted)`}
                       >
                         <X className="w-3.5 h-3.5 text-[#e11d48]" />
@@ -2355,7 +2366,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                         });
                         setTimeout(() => setToastAlert(null), 4000);
                       }}
-                      className={`h-9 px-3.5 rounded-2xl text-xs font-bold flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150 border shrink-0 ${autoCeoitboxDispatch
+                      className={`h-9 px-3.5 rounded-2xl text-xs font-bold flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150 border shrink-0 col-span-2 sm:col-span-1 w-full sm:w-auto justify-center ${autoCeoitboxDispatch
                         ? 'bg-[#eff0fe] text-[#7065f0] border-purple-200'
                         : 'bg-slate-100 text-slate-500 border-slate-200'
                         }`}
@@ -2806,7 +2817,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                     className="w-8 h-8 rounded-full object-cover border border-purple-200/80 shadow-2xs shrink-0"
                                   />
                                   <div className="min-w-0">
-                                    <div className={`font-black text-sm leading-snug truncate ${isAbsentNoInfo ? 'text-rose-700' : 'text-slate-900'}`}>
+                                    <div className={`font-bold text-[13px] leading-snug truncate ${isAbsentNoInfo ? 'text-rose-700' : 'text-slate-900'}`}>
                                       {rec.leader?.full_name}
                                     </div>
                                   </div>
@@ -2876,6 +2887,21 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                     </span>
                                     <span className="text-[9px] text-amber-800 font-medium">
                                       To: {rec.informed_to_person || 'Authority'}
+                                    </span>
+                                  </div>
+                                ) : (rec.late_expired || (rec.status === 'INFORMED_LATE' && !rec.check_in_at && !isFutureDate && rec.late_minutes && rec.late_minutes > 0)) ? (
+                                  <span className="text-[10px] bg-rose-100 text-rose-800 font-bold px-2 py-0.5 rounded-full border border-rose-300 inline-flex items-center gap-1">
+                                    <XCircle className="w-3 h-3 text-rose-600" />
+                                    <span>ABSENT (Promised +{rec.committed_late_minutes || rec.late_minutes || 10}m, Failed to Join)</span>
+                                  </span>
+                                ) : (rec.status === 'INFORMED_LATE' && !rec.check_in_at) ? (
+                                  <div className="flex flex-col items-center gap-0.5">
+                                    <span className="text-[10px] bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded-full border border-amber-300 inline-flex items-center gap-1 shadow-2xs">
+                                      <Clock className="w-3 h-3 text-amber-600 animate-pulse" />
+                                      <span>Informed Late (+{rec.committed_late_minutes || rec.late_minutes || 10}m)</span>
+                                    </span>
+                                    <span className="text-[9px] text-amber-800 font-medium">
+                                      Awaiting Check-in
                                     </span>
                                   </div>
                                 ) : (rec.admin_verified_attendance || rec.verification_status === 'VERIFIED') && rec.evidence_source === 'ADMIN_MANUAL' ? (
@@ -3955,8 +3981,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                       className="w-6 h-6 rounded-full object-cover shrink-0 border border-purple-200/80 shadow-2xs"
                                     />
                                     <div className="min-w-0">
-                                      <div className="font-bold text-[#1f2d2a] truncate text-xs">{lead.full_name}</div>
-                                      <div className="text-[10px] text-slate-400 font-mono truncate">{lead.employee_code} • {lead.expected_mode}</div>
+                                      <div className="font-bold text-[#1f2d2a] truncate text-[13px]">{lead.full_name}</div>
+                                      <div className="text-[10px] text-slate-400 font-medium truncate">{lead.expected_mode}</div>
                                     </div>
                                   </div>
                                   <div className="flex items-center gap-1 shrink-0">
@@ -4979,11 +5005,11 @@ export const UnifiedAdminDashboard: React.FC = () => {
                             return (
                               <tr key={rec.id} className="hover:bg-slate-50/80 transition-colors">
                                 <td className="py-3 px-4">
-                                  <div className="font-bold text-slate-900 text-xs">
+                                  <div className="font-bold text-slate-900 text-[13px]">
                                     {leader?.full_name || 'Leader ' + rec.leader_id.slice(0, 8)}
                                   </div>
-                                  <div className="text-[11px] text-slate-500 font-mono">
-                                    {leader?.employee_code || 'ID: ' + rec.leader_id.slice(0, 8)} • {leader?.phone || '—'}
+                                  <div className="text-[11px] text-slate-500 font-medium">
+                                    {leader?.phone || '—'}
                                   </div>
                                 </td>
 
@@ -5534,8 +5560,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                         {filteredCompliance.map((item) => (
                           <tr key={item.leader.id} className="hover:bg-slate-50/70 transition-colors">
                             <td className="py-2.5 px-3">
-                              <div className="font-bold text-slate-900 text-xs sm:text-sm">{item.leader.full_name}</div>
-                              <div className="text-[10px] text-slate-400 font-mono">{item.leader.employee_code}</div>
+                              <div className="font-bold text-slate-900 text-[13px]">{item.leader.full_name}</div>
+                              <div className="text-[10px] text-slate-500 font-medium">{item.leader.phone || ''}</div>
                             </td>
                             <td className="py-2.5 px-3 text-slate-600 font-semibold text-xs">
                               {item.leader.department?.name || 'Department'}
@@ -5858,38 +5884,27 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Department Master</label>
-                  <select
-                    value={leaderForm.department_id}
-                    onChange={(e) => setLeaderForm({ ...leaderForm, department_id: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-[#1f2d2a] focus:outline-none focus:border-[#2e7d32] font-bold cursor-pointer"
-                  >
-                    <option value="">Select Department</option>
-                    {departments.map((d) => (
-                      <option key={d.id} value={d.id}>
-                        {d.name} ({d.code})
-                      </option>
-                    ))}
-                    {leaderForm.department_id && !departments.some((d) => d.id === leaderForm.department_id) && (
-                      <option value={leaderForm.department_id}>
-                        {editingLeader?.department?.name || 'Assigned Department'} ({editingLeader?.department?.code || 'DEPT'})
-                      </option>
-                    )}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Employee / Leader ID</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. SBH-LEAD-101"
-                    value={leaderForm.employee_code}
-                    onChange={(e) => setLeaderForm({ ...leaderForm, employee_code: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-[#1f2d2a] focus:outline-none focus:border-[#2e7d32] font-mono"
-                  />
-                </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Department Master <span className="text-[#d9381e]">*</span>
+                </label>
+                <select
+                  value={leaderForm.department_id}
+                  onChange={(e) => setLeaderForm({ ...leaderForm, department_id: e.target.value })}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-[#1f2d2a] focus:outline-none focus:border-[#2e7d32] font-bold cursor-pointer"
+                >
+                  <option value="">Select Department</option>
+                  {departments.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name} ({d.code})
+                    </option>
+                  ))}
+                  {leaderForm.department_id && !departments.some((d) => d.id === leaderForm.department_id) && (
+                    <option value={leaderForm.department_id}>
+                      {editingLeader?.department?.name || 'Assigned Department'} ({editingLeader?.department?.code || 'DEPT'})
+                    </option>
+                  )}
+                </select>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -5911,7 +5926,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    placeholder={editingLeader ? 'Leave empty to keep current' : '123456'}
+                    placeholder={editingLeader ? 'Leave empty to keep current' : 'Enter password'}
                     value={leaderForm.initialPassword}
                     onChange={(e) => setLeaderForm({ ...leaderForm, initialPassword: e.target.value })}
                     className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-[#1f2d2a] focus:outline-none focus:border-[#2e7d32] font-mono"

@@ -250,7 +250,7 @@ export const BoardroomQrPosterModal: React.FC<BoardroomQrPosterModalProps> = ({
                 className="h-12 sm:h-14 w-auto object-contain mb-2 drop-shadow-xs mx-auto"
               />
               <span className="text-[11px] font-bold text-[#7065f0] bg-[#eff0fe] border border-indigo-200/50 uppercase tracking-widest px-3 py-1 rounded-full mb-1">
-                Official Clinical Governance Protocol
+                Official Operations Management Protocol
               </span>
               <h1 className="text-xl sm:text-2xl font-black text-[#232d42] tracking-tight uppercase">
                 DAILY OPERATIONS STANDUP (DOM)

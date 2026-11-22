@@ -85,6 +85,9 @@ export interface AttendanceRecord {
   expected_arrival_time?: string; // e.g. "10:10 AM", "10:30 AM"
   late_reason?: string;
   late_approved_by_admin?: boolean; // Admin approval required
+  late_expired?: boolean; // True if promised late time expired without joining
+  committed_late_minutes?: number; // 5, 10, 15, 20
+  informed_type?: 'LEAVE' | 'LATE';
   verification_note?: string;
   virtual_clicks_count?: number; // Tracks link clicks user-wise & date-wise
   last_click_at?: string;
