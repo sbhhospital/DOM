@@ -155,16 +155,16 @@ export const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
   return (
     <div className="space-y-6">
       {/* Calendar Header with Month Selector & Cadence Legend */}
-      <div className="fluent-card p-5 rounded-3xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="fluent-card p-5 rounded-3xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border border-purple-100/80 shadow-xs">
         <div>
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-orange-600 via-amber-500 to-emerald-600 flex items-center justify-center text-white shadow-md shadow-orange-500/20">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#5f4de6] to-[#7f70f6] flex items-center justify-center text-white shadow-md shadow-indigo-300/30">
               <CalendarIcon className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
+              <h2 className="text-base font-black text-[#1e1b4b] flex items-center gap-2">
                 <span>Hospital Meeting Cadence Calendar</span>
-                <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-orange-100 text-orange-800 font-bold border border-orange-300">
+                <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-[#ede9fe] text-[#5b4eed] font-bold border border-purple-200/60">
                   DOM • WOM • MOM
                 </span>
               </h2>
@@ -179,25 +179,25 @@ export const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
         <div className="flex items-center gap-2">
           <button
             onClick={handleTodayClick}
-            className="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold border border-slate-300 rounded-xl shadow-xs transition-colors cursor-pointer"
+            className="px-3.5 py-1.5 bg-white hover:bg-[#ede9fe]/30 text-[#1e1b4b] text-xs font-bold border border-purple-100 rounded-2xl shadow-xs transition-colors cursor-pointer"
           >
             Today
           </button>
 
-          <div className="flex items-center bg-white border border-slate-300 rounded-xl p-1 shadow-xs">
+          <div className="flex items-center bg-white border border-purple-100 rounded-2xl p-1 shadow-xs">
             <button
               onClick={handlePrevMonth}
-              className="p-1.5 hover:bg-slate-100 text-slate-600 rounded-xl transition-colors cursor-pointer"
+              className="p-1.5 hover:bg-[#ede9fe]/50 text-slate-600 hover:text-[#6351e8] rounded-xl transition-colors cursor-pointer"
               title="Previous Month"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <span className="px-3 text-xs font-bold text-slate-800 min-w-[130px] text-center">
+            <span className="px-3 text-xs font-bold text-[#1e1b4b] min-w-[130px] text-center">
               {monthNames[currentMonth]} {currentYear}
             </span>
             <button
               onClick={handleNextMonth}
-              className="p-1.5 hover:bg-slate-100 text-slate-600 rounded-xl transition-colors cursor-pointer"
+              className="p-1.5 hover:bg-[#ede9fe]/50 text-slate-600 hover:text-[#6351e8] rounded-xl transition-colors cursor-pointer"
               title="Next Month"
             >
               <ChevronRight className="w-4 h-4" />
@@ -207,25 +207,25 @@ export const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
       </div>
 
       {/* 3 Meeting Options Legend */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 shadow-xs flex flex-wrap items-center justify-between gap-3 text-xs">
-        <span className="font-bold text-slate-700 flex items-center gap-1.5">
-          <Sparkles className="w-3.5 h-3.5 text-orange-500" />
+      <div className="bg-white border border-purple-100/80 rounded-2xl p-3.5 shadow-xs flex flex-wrap items-center justify-between gap-3 text-xs">
+        <span className="font-bold text-[#1e1b4b] flex items-center gap-1.5">
+          <Sparkles className="w-3.5 h-3.5 text-[#6351e8]" />
           Official Meeting Cadence:
         </span>
         <div className="flex flex-wrap items-center gap-3">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-100 text-orange-900 font-black border border-orange-300 text-[11px]">
-            <span className="w-2 h-2 rounded-full bg-orange-600" />
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#ede9fe] text-[#5b4eed] font-black border border-purple-200/60 text-[11px]">
+            <span className="w-2 h-2 rounded-full bg-[#6351e8]" />
             DOM — Daily Operations Meeting
           </span>
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-100 text-blue-900 font-black border border-blue-300 text-[11px]">
-            <span className="w-2 h-2 rounded-full bg-blue-600" />
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-50 text-teal-800 font-black border border-teal-200 text-[11px]">
+            <span className="w-2 h-2 rounded-full bg-[#3bb7b8]" />
             WOM — Weekly Operations Meeting (Every Monday)
           </span>
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-100 text-purple-900 font-black border border-purple-300 text-[11px]">
-            <span className="w-2 h-2 rounded-full bg-purple-600" />
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-50 text-purple-900 font-black border border-purple-200 text-[11px]">
+            <span className="w-2 h-2 rounded-full bg-[#8b5cf6]" />
             MOM — Monthly Operations Meeting (1st Monday)
           </span>
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-900 font-bold border border-amber-300 text-[11px]">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-900 font-bold border border-amber-200 text-[11px]">
             <span className="w-2 h-2 rounded-full bg-amber-500" />
             HOLIDAY / Off-Day
           </span>
@@ -233,11 +233,11 @@ export const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
       </div>
 
       {/* Main Calendar Grid */}
-      <div className="fluent-card rounded-3xl p-4 sm:p-6 shadow-sm overflow-hidden">
+      <div className="fluent-card rounded-3xl p-4 sm:p-6 shadow-sm overflow-hidden border border-purple-100/80">
         {/* Day Name Headers */}
         <div className="grid grid-cols-7 gap-1.5 sm:gap-2 mb-2 text-center text-xs font-black text-slate-600 uppercase tracking-wider">
           {dayNames.map((d, i) => (
-            <div key={d} className={`py-2 rounded-xl ${i === 6 ? 'text-rose-500 bg-rose-50/50' : 'bg-slate-50'}`}>
+            <div key={d} className={`py-2 rounded-2xl ${i === 6 ? 'text-rose-500 bg-rose-50/50' : 'bg-slate-50'}`}>
               {d}
             </div>
           ))}
@@ -275,22 +275,22 @@ export const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
                 onClick={() => onSelectDate(dateStr)}
                 className={`min-h-[95px] sm:min-h-[120px] rounded-2xl p-2 sm:p-2.5 transition-all cursor-pointer flex flex-col justify-between relative group active:scale-95 duration-150 ${
                   isSelected
-                    ? 'bg-gradient-to-br from-orange-50 via-white to-amber-50 border-2 border-orange-500 shadow-md ring-2 ring-orange-400/20 z-10'
+                    ? 'bg-gradient-to-br from-[#ede9fe] via-white to-[#ede9fe]/40 border-2 border-[#6351e8] shadow-md ring-2 ring-[#6351e8]/25 z-10'
                     : isToday
-                    ? 'bg-emerald-50/40 border border-emerald-400 hover:border-emerald-500 shadow-xs'
+                    ? 'bg-[#ede9fe]/30 border border-purple-300 hover:border-[#6351e8] shadow-xs'
                     : isSunday
                     ? 'bg-rose-50/30 border border-rose-200/80 hover:bg-rose-100/50'
-                    : 'bg-white border border-slate-200/90 hover:border-orange-300 hover:shadow-xs'
+                    : 'bg-white border border-slate-200/90 hover:border-purple-300 hover:shadow-xs'
                 }`}
               >
                 {/* Header: Date Number + Badges */}
                 <div className="flex items-center justify-between">
                   <span
                     className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black ${
-                      isToday
-                        ? 'bg-emerald-600 text-white shadow-xs'
-                        : isSelected
-                        ? 'bg-orange-600 text-white shadow-xs'
+                      isSelected
+                        ? 'bg-[#6351e8] text-white shadow-xs'
+                        : isToday
+                        ? 'bg-[#ede9fe] text-[#6351e8] font-bold border border-purple-200'
                         : isSunday
                         ? 'text-rose-500 font-bold'
                         : 'text-slate-800'
@@ -300,7 +300,7 @@ export const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
                   </span>
 
                   {isToday && (
-                    <span className="text-[9px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-100 px-1.5 py-0.2 rounded-md">
+                    <span className="text-[9px] font-black uppercase tracking-wider text-[#6351e8] bg-[#ede9fe] px-1.5 py-0.2 rounded-md">
                       Today
                     </span>
                   )}
@@ -346,14 +346,14 @@ export const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
       </div>
 
       {/* Selected Day Details & Quick Cadence Switcher Panel */}
-      <div className="fluent-card p-6 rounded-3xl border-l-4 border-l-orange-500 space-y-4">
+      <div className="fluent-card p-6 rounded-3xl border-l-4 border-l-[#6351e8] border border-purple-100/80 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <div className="text-xs text-slate-500 font-bold uppercase tracking-wider flex items-center gap-1.5">
-              <CalendarIcon className="w-3.5 h-3.5 text-orange-600" />
+              <CalendarIcon className="w-3.5 h-3.5 text-[#6351e8]" />
               Selected Meeting Date:
             </div>
-            <h3 className="text-lg font-black text-slate-900 mt-0.5 flex items-center gap-2">
+            <h3 className="text-lg font-black text-[#1e1b4b] mt-0.5 flex items-center gap-2">
               <span>
                 {new Date(selectedDate).toLocaleDateString('en-IN', {
                   weekday: 'long',
@@ -363,7 +363,7 @@ export const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
                 })}
               </span>
               {todayStr === selectedDate && (
-                <span className="text-xs bg-emerald-100 text-emerald-800 font-bold px-2.5 py-0.5 rounded-full border border-emerald-300">
+                <span className="text-xs bg-[#ede9fe] text-[#5b4eed] font-bold px-2.5 py-0.5 rounded-full border border-purple-200/60">
                   Today's Active Session
                 </span>
               )}
@@ -374,15 +374,15 @@ export const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
           <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={onOpenReschedule}
-              className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold border border-slate-300 rounded-xl shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+              className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold border border-slate-200 rounded-2xl shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
             >
-              <Settings2 className="w-3.5 h-3.5 text-orange-600" />
+              <Settings2 className="w-3.5 h-3.5 text-slate-600" />
               <span>Full Schedule Editor</span>
             </button>
 
             <button
               onClick={() => sendMeetingReminderNotice(selectedDate)}
-              className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-600/20 flex items-center gap-1.5 transition-all cursor-pointer"
+              className="px-3.5 py-2 bg-gradient-to-r from-[#5f4de6] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7060f0] text-white text-xs font-bold rounded-2xl shadow-sm shadow-indigo-200/50 flex items-center gap-1.5 transition-all cursor-pointer"
             >
               <Send className="w-3.5 h-3.5" />
               <span>Send {selectedMeeting.cadence || 'DOM'} WhatsApp Notice</span>
@@ -390,7 +390,7 @@ export const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
 
             <button
               onClick={() => sendNonAttendeesEscalationNotice(selectedDate)}
-              className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-md shadow-rose-600/20 flex items-center gap-1.5 transition-all cursor-pointer"
+              className="px-3.5 py-2 bg-[#fff1f2] hover:bg-[#ffe4e6] text-[#e11d48] border border-rose-200 text-xs font-bold rounded-2xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
             >
               <AlertCircle className="w-3.5 h-3.5" />
               <span>Escalate Non-Attendees</span>
@@ -399,14 +399,14 @@ export const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
         </div>
 
         {/* 1-Click Meeting Cadence Selector (DOM, WOM, MOM, HOLIDAY) */}
-        <div className="p-4 bg-orange-50/50 rounded-2xl border border-orange-200 space-y-2">
-          <div className="text-xs font-black text-slate-800 flex items-center justify-between">
+        <div className="p-4 bg-[#ede9fe]/30 rounded-2xl border border-purple-100 space-y-2">
+          <div className="text-xs font-black text-[#1e1b4b] flex items-center justify-between">
             <span className="flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-orange-600" />
+              <Sparkles className="w-3.5 h-3.5 text-[#6351e8]" />
               Select Meeting Cadence for {selectedDate}:
             </span>
             <span className="text-[11px] font-bold text-slate-500">
-              Active: <b className="text-orange-700 uppercase">{selectedMeeting.cadence || 'DOM'}</b>
+              Active: <b className="text-[#5b4eed] uppercase">{selectedMeeting.cadence || 'DOM'}</b>
             </span>
           </div>
 
@@ -414,10 +414,10 @@ export const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
             <button
               type="button"
               onClick={() => handleQuickCadenceChange('DOM')}
-              className={`p-2.5 rounded-xl border text-xs font-black transition-all flex items-center justify-between cursor-pointer ${
+              className={`p-2.5 rounded-2xl border text-xs font-black transition-all flex items-center justify-between cursor-pointer ${
                 (selectedMeeting.cadence === 'DOM' || !selectedMeeting.cadence) && !selectedMeeting.is_holiday_or_shifted
-                  ? 'bg-orange-600 text-white border-orange-600 shadow-md shadow-orange-600/20'
-                  : 'bg-white hover:bg-orange-50 text-slate-700 border-slate-300'
+                  ? 'bg-gradient-to-r from-[#5f4de6] to-[#7f70f6] text-white border-transparent shadow-sm shadow-indigo-200/50'
+                  : 'bg-white hover:bg-[#ede9fe]/30 text-slate-700 border-slate-200'
               }`}
             >
               <div>

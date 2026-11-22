@@ -164,19 +164,19 @@ const LiveIndiaClockAndCountdown: React.FC<{ currentCadence: string }> = React.m
   return (
     <>
       {/* Card 1: Live India Time (IST) */}
-      <div className="bg-white p-3 sm:p-3.5 rounded-2xl border border-slate-200/90 shadow-xs flex items-center gap-3">
-        <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-200/70 flex items-center justify-center shrink-0">
-          <Clock className="w-5 h-5 text-emerald-600" />
+      <div className="bg-white p-3 sm:p-3.5 rounded-2xl border border-purple-100/80 shadow-xs flex items-center gap-3">
+        <div className="w-10 h-10 rounded-2xl bg-[#ede9fe] border border-purple-200/50 flex items-center justify-center shrink-0">
+          <Clock className="w-5 h-5 text-[#6351e8]" />
         </div>
         <div className="min-w-0">
           <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
             <span>Live India Time (IST)</span>
             <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#8c7ff8] opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#6351e8]"></span>
             </span>
           </div>
-          <div className="text-base sm:text-lg font-black font-mono text-slate-900 leading-tight mt-0.5">
+          <div className="text-base sm:text-lg font-black font-mono text-[#1e1b4b] leading-tight mt-0.5">
             {countdown.liveIndiaTime}
           </div>
           <div className="text-[11px] text-slate-500 font-semibold truncate">
@@ -186,30 +186,30 @@ const LiveIndiaClockAndCountdown: React.FC<{ currentCadence: string }> = React.m
       </div>
 
       {/* Card 2: Next Standup Countdown */}
-      <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 p-3 sm:p-3.5 rounded-2xl border border-indigo-900/40 shadow-sm text-white flex flex-col justify-between">
+      <div className="bg-gradient-to-r from-[#5f4de6] via-[#7060f0] to-[#8778f8] p-3 sm:p-3.5 rounded-2xl shadow-md shadow-indigo-300/40 text-white flex flex-col justify-between">
         <div className="flex items-center justify-between gap-2 mb-1.5">
-          <div className="text-[10px] font-black text-indigo-300 uppercase tracking-wider truncate flex items-center gap-1">
+          <div className="text-[10px] font-black text-indigo-100 uppercase tracking-wider truncate flex items-center gap-1">
             <Sparkles className="w-3 h-3 text-amber-300 shrink-0" />
             <span>{countdown.stageTitle}</span>
           </div>
-          <span className="text-[9px] font-bold uppercase px-2 py-0.5 rounded-full bg-white/10 text-indigo-200 border border-white/10 shrink-0">
+          <span className="text-[9px] font-bold uppercase px-2 py-0.5 rounded-full bg-white/20 text-white border border-white/20 shrink-0">
             {countdown.targetMilestone}
           </span>
         </div>
         <div className="flex items-center gap-1 sm:gap-1.5">
-          <div className="flex items-baseline gap-1 bg-white/10 px-2 py-0.5 rounded-lg border border-white/10">
+          <div className="flex items-baseline gap-1 bg-white/20 px-2 py-0.5 rounded-lg border border-white/20">
             <span className="text-base font-black font-mono text-white">{countdown.hoursStr}</span>
-            <span className="text-[9px] font-black text-indigo-300">HRS</span>
+            <span className="text-[9px] font-black text-indigo-100">HRS</span>
           </div>
-          <span className="text-indigo-400 font-black text-sm">:</span>
-          <div className="flex items-baseline gap-1 bg-white/10 px-2 py-0.5 rounded-lg border border-white/10">
+          <span className="text-indigo-200 font-black text-sm">:</span>
+          <div className="flex items-baseline gap-1 bg-white/20 px-2 py-0.5 rounded-lg border border-white/20">
             <span className="text-base font-black font-mono text-white">{countdown.minsStr}</span>
-            <span className="text-[9px] font-black text-indigo-300">MIN</span>
+            <span className="text-[9px] font-black text-indigo-100">MIN</span>
           </div>
-          <span className="text-indigo-400 font-black text-sm">:</span>
-          <div className="flex items-baseline gap-1 bg-emerald-500/20 px-2 py-0.5 rounded-lg border border-emerald-400/30">
-            <span className="text-base font-black font-mono text-emerald-300">{countdown.secsStr}</span>
-            <span className="text-[9px] font-black text-emerald-300">SEC</span>
+          <span className="text-indigo-200 font-black text-sm">:</span>
+          <div className="flex items-baseline gap-1 bg-white/25 px-2 py-0.5 rounded-lg border border-white/30 text-amber-200">
+            <span className="text-base font-black font-mono text-amber-200">{countdown.secsStr}</span>
+            <span className="text-[9px] font-black text-amber-200">SEC</span>
           </div>
         </div>
       </div>
@@ -1180,14 +1180,14 @@ export const UnifiedAdminDashboard: React.FC = () => {
   const renderSidebarNav = (isMobile: boolean = false) => (
     <>
       {/* Sidebar Header: Hospital Emblem & Title */}
-      <div className="h-20 flex items-center justify-between px-5 border-b border-slate-200 bg-white/50 shrink-0">
+      <div className="h-20 flex items-center justify-between px-5 border-b border-purple-100/60 bg-white shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center p-1.5 border border-[#dcdcdc] shadow-xs">
+          <div className="w-10 h-10 bg-[#ede9fe] rounded-2xl flex items-center justify-center p-1.5 border border-purple-200/60 shadow-xs">
             <img src={sbhLogo} alt="Logo" className="w-full h-full object-contain" />
           </div>
           <div className="flex flex-col">
-            <span className="font-bold text-base text-[#1f2d2a] tracking-tight uppercase leading-none">
-              SBH <span className="text-[#2e7d32]">DOM PORTAL</span>
+            <span className="font-bold text-base text-[#1e1b4b] tracking-tight uppercase leading-none">
+              SBH <span className="text-[#6351e8]">DOM PORTAL</span>
             </span>
             <span className="text-[9px] font-bold text-slate-400 tracking-wider uppercase mt-1">
               Daily Operations Meeting
@@ -1197,7 +1197,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
         {isMobile && (
           <button
             onClick={() => setIsMobileMenuOpen(false)}
-            className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg cursor-pointer"
+            className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl cursor-pointer"
           >
             <X size={20} />
           </button>
@@ -1205,13 +1205,13 @@ export const UnifiedAdminDashboard: React.FC = () => {
       </div>
 
       {/* Live Clock Pill inside Sidebar */}
-      <div className="p-3 mx-2 my-2 rounded-2xl bg-white border border-[#dcdcdc] shadow-xs">
+      <div className="p-3 mx-2 my-2 rounded-2xl bg-[#ede9fe]/50 border border-purple-200/50 shadow-xs">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
-            <div className="p-1 rounded-md bg-[#2e7d32] text-white">
+            <div className="p-1 rounded-lg bg-[#6351e8] text-white">
               <Clock size={11} strokeWidth={3} />
             </div>
-            <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">System Clock</span>
+            <span className="text-[9px] font-black uppercase tracking-widest text-[#6351e8]">System Clock</span>
           </div>
           <SidebarSystemClock />
         </div>
@@ -1231,16 +1231,16 @@ export const UnifiedAdminDashboard: React.FC = () => {
             setActiveTab('attendance');
             if (isMobile) setIsMobileMenuOpen(false);
           }}
-          className={`relative flex items-center justify-between w-full transition-[background-color,color,transform] duration-200 font-semibold tracking-wide text-[13px] px-4 py-3 rounded-xl cursor-pointer ${activeTab === 'attendance'
-              ? 'bg-[#2e7d32] text-white shadow-md shadow-emerald-700/20 transform scale-[1.01]'
-              : 'text-[#1f2d2a] hover:bg-[#cfead6]/40 hover:text-[#2e7d32]'
+          className={`relative flex items-center justify-between w-full transition-all duration-200 font-semibold tracking-wide text-[13px] px-3.5 py-2.5 rounded-2xl cursor-pointer ${activeTab === 'attendance'
+              ? 'bg-[#ede9fe] text-[#5b4eed] font-bold shadow-xs transform scale-[1.01]'
+              : 'text-slate-600 hover:bg-[#f5f3ff] hover:text-[#5b4eed]'
             }`}
         >
           <div className="flex items-center gap-3">
-            <Home size={18} strokeWidth={activeTab === 'attendance' ? 2.5 : 2} className={activeTab === 'attendance' ? 'text-white' : 'text-[#2e7d32] flex-shrink-0'} />
+            <Home size={18} strokeWidth={activeTab === 'attendance' ? 2.5 : 2} className={activeTab === 'attendance' ? 'text-[#5b4eed]' : 'text-slate-400 flex-shrink-0'} />
             <span className="truncate">Live Attendance Register</span>
           </div>
-          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${activeTab === 'attendance' ? 'bg-white/20 text-white' : 'bg-[#cfead6] text-[#2e7d32] border border-[#2e7d32]/20'}`}>
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${activeTab === 'attendance' ? 'bg-[#5b4eed] text-white' : 'bg-slate-200/60 text-slate-700'}`}>
             Live
           </span>
         </button>
@@ -1251,16 +1251,16 @@ export const UnifiedAdminDashboard: React.FC = () => {
             setActiveTab('links');
             if (isMobile) setIsMobileMenuOpen(false);
           }}
-          className={`relative flex items-center justify-between w-full transition-[background-color,color,transform] duration-200 font-semibold tracking-wide text-[13px] px-4 py-3 rounded-xl cursor-pointer ${activeTab === 'links'
-              ? 'bg-[#2e7d32] text-white shadow-md shadow-emerald-700/20 transform scale-[1.01]'
-              : 'text-[#1f2d2a] hover:bg-[#cfead6]/40 hover:text-[#2e7d32]'
+          className={`relative flex items-center justify-between w-full transition-all duration-200 font-semibold tracking-wide text-[13px] px-3.5 py-2.5 rounded-2xl cursor-pointer ${activeTab === 'links'
+              ? 'bg-[#ede9fe] text-[#5b4eed] font-bold shadow-xs transform scale-[1.01]'
+              : 'text-slate-600 hover:bg-[#f5f3ff] hover:text-[#5b4eed]'
             }`}
         >
           <div className="flex items-center gap-3">
-            <Video size={18} strokeWidth={activeTab === 'links' ? 2.5 : 2} className={activeTab === 'links' ? 'text-white' : 'text-teal-600 flex-shrink-0'} />
+            <Video size={18} strokeWidth={activeTab === 'links' ? 2.5 : 2} className={activeTab === 'links' ? 'text-[#5b4eed]' : 'text-slate-400 flex-shrink-0'} />
             <span className="truncate">Daily Meeting Links</span>
           </div>
-          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${activeTab === 'links' ? 'bg-white/20 text-white' : 'bg-slate-200/60 text-slate-700'}`}>
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${activeTab === 'links' ? 'bg-[#5b4eed] text-white' : 'bg-slate-200/60 text-slate-700'}`}>
             Meet
           </span>
         </button>
@@ -1271,16 +1271,16 @@ export const UnifiedAdminDashboard: React.FC = () => {
             setActiveTab('geo-history');
             if (isMobile) setIsMobileMenuOpen(false);
           }}
-          className={`relative flex items-center justify-between w-full transition-[background-color,color,transform] duration-200 font-semibold tracking-wide text-[13px] px-4 py-3 rounded-xl cursor-pointer ${activeTab === 'geo-history'
-              ? 'bg-[#2e7d32] text-white shadow-md shadow-emerald-700/20 transform scale-[1.01]'
-              : 'text-[#1f2d2a] hover:bg-[#cfead6]/40 hover:text-[#2e7d32]'
+          className={`relative flex items-center justify-between w-full transition-all duration-200 font-semibold tracking-wide text-[13px] px-3.5 py-2.5 rounded-2xl cursor-pointer ${activeTab === 'geo-history'
+              ? 'bg-[#ede9fe] text-[#5b4eed] font-bold shadow-xs transform scale-[1.01]'
+              : 'text-slate-600 hover:bg-[#f5f3ff] hover:text-[#5b4eed]'
             }`}
         >
           <div className="flex items-center gap-3">
-            <MapPin size={18} strokeWidth={activeTab === 'geo-history' ? 2.5 : 2} className={activeTab === 'geo-history' ? 'text-white' : 'text-rose-600 flex-shrink-0'} />
+            <MapPin size={18} strokeWidth={activeTab === 'geo-history' ? 2.5 : 2} className={activeTab === 'geo-history' ? 'text-[#5b4eed]' : 'text-slate-400 flex-shrink-0'} />
             <span className="truncate">Attendance Geo-History</span>
           </div>
-          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${activeTab === 'geo-history' ? 'bg-white/20 text-white' : 'bg-slate-200/60 text-slate-700'}`}>
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${activeTab === 'geo-history' ? 'bg-[#5b4eed] text-white' : 'bg-slate-200/60 text-slate-700'}`}>
             Geo Log
           </span>
         </button>
@@ -1291,16 +1291,16 @@ export const UnifiedAdminDashboard: React.FC = () => {
             setActiveTab('leaders');
             if (isMobile) setIsMobileMenuOpen(false);
           }}
-          className={`relative flex items-center justify-between w-full transition-[background-color,color,transform] duration-200 font-semibold tracking-wide text-[13px] px-4 py-3 rounded-xl cursor-pointer ${activeTab === 'leaders'
-              ? 'bg-[#2e7d32] text-white shadow-md shadow-emerald-700/20 transform scale-[1.01]'
-              : 'text-[#1f2d2a] hover:bg-[#cfead6]/40 hover:text-[#2e7d32]'
+          className={`relative flex items-center justify-between w-full transition-all duration-200 font-semibold tracking-wide text-[13px] px-3.5 py-2.5 rounded-2xl cursor-pointer ${activeTab === 'leaders'
+              ? 'bg-[#ede9fe] text-[#5b4eed] font-bold shadow-xs transform scale-[1.01]'
+              : 'text-slate-600 hover:bg-[#f5f3ff] hover:text-[#5b4eed]'
             }`}
         >
           <div className="flex items-center gap-3">
-            <Users size={18} strokeWidth={activeTab === 'leaders' ? 2.5 : 2} className={activeTab === 'leaders' ? 'text-white' : 'text-[#2e7d32] flex-shrink-0'} />
+            <Users size={18} strokeWidth={activeTab === 'leaders' ? 2.5 : 2} className={activeTab === 'leaders' ? 'text-[#5b4eed]' : 'text-slate-400 flex-shrink-0'} />
             <span className="truncate">Hospital Leaders Roster</span>
           </div>
-          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${activeTab === 'leaders' ? 'bg-white/20 text-white' : 'bg-slate-200/60 text-slate-700'}`}>
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${activeTab === 'leaders' ? 'bg-[#5b4eed] text-white' : 'bg-slate-200/60 text-slate-700'}`}>
             {leaders.length}
           </span>
         </button>
@@ -1311,16 +1311,16 @@ export const UnifiedAdminDashboard: React.FC = () => {
             setActiveTab('departments');
             if (isMobile) setIsMobileMenuOpen(false);
           }}
-          className={`relative flex items-center justify-between w-full transition-[background-color,color,transform] duration-200 font-semibold tracking-wide text-[13px] px-4 py-3 rounded-xl cursor-pointer ${activeTab === 'departments'
-              ? 'bg-[#2e7d32] text-white shadow-md shadow-emerald-700/20 transform scale-[1.01]'
-              : 'text-[#1f2d2a] hover:bg-[#cfead6]/40 hover:text-[#2e7d32]'
+          className={`relative flex items-center justify-between w-full transition-all duration-200 font-semibold tracking-wide text-[13px] px-3.5 py-2.5 rounded-2xl cursor-pointer ${activeTab === 'departments'
+              ? 'bg-[#ede9fe] text-[#5b4eed] font-bold shadow-xs transform scale-[1.01]'
+              : 'text-slate-600 hover:bg-[#f5f3ff] hover:text-[#5b4eed]'
             }`}
         >
           <div className="flex items-center gap-3">
-            <Building size={18} strokeWidth={activeTab === 'departments' ? 2.5 : 2} className={activeTab === 'departments' ? 'text-white' : 'text-blue-600 flex-shrink-0'} />
+            <Building size={18} strokeWidth={activeTab === 'departments' ? 2.5 : 2} className={activeTab === 'departments' ? 'text-[#5b4eed]' : 'text-slate-400 flex-shrink-0'} />
             <span className="truncate">Departments Master</span>
           </div>
-          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${activeTab === 'departments' ? 'bg-white/20 text-white' : 'bg-slate-200/60 text-slate-700'}`}>
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${activeTab === 'departments' ? 'bg-[#5b4eed] text-white' : 'bg-slate-200/60 text-slate-700'}`}>
             {departments.length}
           </span>
         </button>
@@ -1331,16 +1331,16 @@ export const UnifiedAdminDashboard: React.FC = () => {
             setActiveTab('calendar');
             if (isMobile) setIsMobileMenuOpen(false);
           }}
-          className={`relative flex items-center justify-between w-full transition-[background-color,color,transform] duration-200 font-semibold tracking-wide text-[13px] px-4 py-3 rounded-xl cursor-pointer ${activeTab === 'calendar'
-              ? 'bg-[#2e7d32] text-white shadow-md shadow-emerald-700/20 transform scale-[1.01]'
-              : 'text-[#1f2d2a] hover:bg-[#cfead6]/40 hover:text-[#2e7d32]'
+          className={`relative flex items-center justify-between w-full transition-all duration-200 font-semibold tracking-wide text-[13px] px-3.5 py-2.5 rounded-2xl cursor-pointer ${activeTab === 'calendar'
+              ? 'bg-[#ede9fe] text-[#5b4eed] font-bold shadow-xs transform scale-[1.01]'
+              : 'text-slate-600 hover:bg-[#f5f3ff] hover:text-[#5b4eed]'
             }`}
         >
           <div className="flex items-center gap-3">
-            <Calendar size={18} strokeWidth={activeTab === 'calendar' ? 2.5 : 2} className={activeTab === 'calendar' ? 'text-white' : 'text-orange-500 flex-shrink-0'} />
+            <Calendar size={18} strokeWidth={activeTab === 'calendar' ? 2.5 : 2} className={activeTab === 'calendar' ? 'text-[#5b4eed]' : 'text-slate-400 flex-shrink-0'} />
             <span className="truncate">Cadence Calendar</span>
           </div>
-          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${activeTab === 'calendar' ? 'bg-white/20 text-white' : 'bg-slate-200/60 text-slate-700'}`}>
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${activeTab === 'calendar' ? 'bg-[#5b4eed] text-white' : 'bg-slate-200/60 text-slate-700'}`}>
             {currentCadence}
           </span>
         </button>
@@ -1351,21 +1351,19 @@ export const UnifiedAdminDashboard: React.FC = () => {
             setActiveTab('reports');
             if (isMobile) setIsMobileMenuOpen(false);
           }}
-          className={`relative flex items-center justify-between w-full transition-[background-color,color,transform] duration-200 font-semibold tracking-wide text-[13px] px-4 py-3 rounded-xl cursor-pointer ${activeTab === 'reports'
-              ? 'bg-[#2e7d32] text-white shadow-md shadow-emerald-700/20 transform scale-[1.01]'
-              : 'text-[#1f2d2a] hover:bg-[#cfead6]/40 hover:text-[#2e7d32]'
+          className={`relative flex items-center justify-between w-full transition-all duration-200 font-semibold tracking-wide text-[13px] px-3.5 py-2.5 rounded-2xl cursor-pointer ${activeTab === 'reports'
+              ? 'bg-[#ede9fe] text-[#5b4eed] font-bold shadow-xs transform scale-[1.01]'
+              : 'text-slate-600 hover:bg-[#f5f3ff] hover:text-[#5b4eed]'
             }`}
         >
           <div className="flex items-center gap-3">
-            <BarChart3 size={18} strokeWidth={activeTab === 'reports' ? 2.5 : 2} className={activeTab === 'reports' ? 'text-white' : 'text-purple-600 flex-shrink-0'} />
+            <BarChart3 size={18} strokeWidth={activeTab === 'reports' ? 2.5 : 2} className={activeTab === 'reports' ? 'text-[#5b4eed]' : 'text-slate-400 flex-shrink-0'} />
             <span className="truncate">Graphical Analytics</span>
           </div>
-          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${activeTab === 'reports' ? 'bg-white/20 text-white' : 'bg-slate-200/60 text-slate-700'}`}>
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${activeTab === 'reports' ? 'bg-[#5b4eed] text-white' : 'bg-slate-200/60 text-slate-700'}`}>
             Graphs
           </span>
         </button>
-
-
 
         {/* PDF Reports Section */}
         <div className="pt-3 pb-1 px-3">
@@ -1376,39 +1374,39 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
         <button
           onClick={() => downloadPdfReport(selectedDate)}
-          className="w-full px-4 py-2.5 rounded-xl text-[13px] font-semibold text-[#1f2d2a] hover:bg-slate-100 flex items-center gap-3 cursor-pointer transition-all hover:translate-x-1"
+          className="w-full px-3.5 py-2 rounded-2xl text-[13px] font-semibold text-slate-600 hover:bg-[#ede9fe]/50 hover:text-[#5b4eed] flex items-center gap-3 cursor-pointer transition-all hover:translate-x-1"
         >
-          <Download size={16} className="text-[#2e7d32] shrink-0" />
+          <Download size={16} className="text-[#6351e8] shrink-0" />
           <span className="truncate">Daily Attendance PDF</span>
         </button>
         <button
           onClick={() => downloadMonthlyPdfReport('October 2026')}
-          className="w-full px-4 py-2.5 rounded-xl text-[13px] font-semibold text-[#1f2d2a] hover:bg-slate-100 flex items-center gap-3 cursor-pointer transition-all hover:translate-x-1"
+          className="w-full px-3.5 py-2 rounded-2xl text-[13px] font-semibold text-slate-600 hover:bg-[#ede9fe]/50 hover:text-[#5b4eed] flex items-center gap-3 cursor-pointer transition-all hover:translate-x-1"
         >
-          <Download size={16} className="text-[#2e7d32] shrink-0" />
+          <Download size={16} className="text-[#6351e8] shrink-0" />
           <span className="truncate">Monthly MOM Audit PDF</span>
         </button>
         <button
           onClick={() => downloadYearlyPdfReport(2026)}
-          className="w-full px-4 py-2.5 rounded-xl text-[13px] font-semibold text-[#1f2d2a] hover:bg-slate-100 flex items-center gap-3 cursor-pointer transition-all hover:translate-x-1"
+          className="w-full px-3.5 py-2 rounded-2xl text-[13px] font-semibold text-slate-600 hover:bg-[#ede9fe]/50 hover:text-[#5b4eed] flex items-center gap-3 cursor-pointer transition-all hover:translate-x-1"
         >
-          <Download size={16} className="text-[#2e7d32] shrink-0" />
+          <Download size={16} className="text-[#6351e8] shrink-0" />
           <span className="truncate">Annual Hospital Audit PDF</span>
         </button>
       </div>
 
       {/* Sidebar Footer with Admin Controls & Clean Logout */}
-      <div className="p-3 border-t border-slate-200 bg-white/50 space-y-2 shrink-0">
-        <div className="flex items-center gap-2.5 px-3 py-2 bg-white rounded-xl border border-slate-200 shadow-xs">
-          <div className="w-8 h-8 rounded-xl bg-[#cfead6] text-[#2e7d32] flex items-center justify-center font-black text-xs border border-[#2e7d32]/20">
-            <Shield size={16} className="text-[#2e7d32]" />
+      <div className="p-3 border-t border-purple-100/60 bg-white space-y-2 shrink-0">
+        <div className="flex items-center gap-2.5 px-3 py-2 bg-[#ede9fe]/40 rounded-2xl border border-purple-100 shadow-2xs">
+          <div className="w-8 h-8 rounded-xl bg-[#ede9fe] text-[#6351e8] flex items-center justify-center font-black text-xs border border-purple-200/50">
+            <Shield size={16} className="text-[#6351e8]" />
           </div>
           <div className="overflow-hidden flex-1">
-            <div className="truncate font-black text-[#1f2d2a] text-xs leading-tight">
+            <div className="truncate font-black text-[#1e1b4b] text-xs leading-tight">
               {adminProfile?.full_name || 'Administrator'}
             </div>
-            <div className="text-[9px] text-[#2e7d32] font-bold flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping inline-block" />
+            <div className="text-[9px] text-[#6351e8] font-bold flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#6351e8] animate-ping inline-block" />
               <span className="truncate">Operations Command • SBH Raipur</span>
             </div>
           </div>
@@ -1419,10 +1417,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
               setShowQrDisplayModal(true);
               if (isMobile) setIsMobileMenuOpen(false);
             }}
-            className="px-2.5 py-2 rounded-xl text-[11px] font-bold bg-white hover:bg-slate-100 text-[#1f2d2a] border border-[#dcdcdc] flex items-center justify-center gap-1.5 cursor-pointer transition-all shadow-xs hover:border-[#2e7d32]"
+            className="px-2.5 py-2 rounded-2xl text-[11px] font-bold bg-white hover:bg-[#ede9fe]/40 text-[#1e1b4b] border border-purple-100 flex items-center justify-center gap-1.5 cursor-pointer transition-all shadow-xs hover:border-[#6351e8]"
             title="Boardroom Static QR"
           >
-            <QrCode className="w-3.5 h-3.5 text-emerald-600" />
+            <QrCode className="w-3.5 h-3.5 text-[#6351e8]" />
             <span>Room QR</span>
           </button>
           <button
@@ -1430,7 +1428,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
               setShowPasswordModal(true);
               if (isMobile) setIsMobileMenuOpen(false);
             }}
-            className="px-2.5 py-2 rounded-xl text-[11px] font-bold bg-white hover:bg-slate-100 text-[#1f2d2a] border border-[#dcdcdc] flex items-center justify-center gap-1.5 cursor-pointer transition-all shadow-xs hover:border-[#2e7d32]"
+            className="px-2.5 py-2 rounded-2xl text-[11px] font-bold bg-white hover:bg-[#ede9fe]/40 text-[#1e1b4b] border border-purple-100 flex items-center justify-center gap-1.5 cursor-pointer transition-all shadow-xs hover:border-[#6351e8]"
             title="Change Password"
           >
             <KeyRound className="w-3.5 h-3.5 text-amber-500" />
@@ -1442,7 +1440,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
             logoutAdmin();
             navigate('/login');
           }}
-          className="w-full flex items-center justify-center gap-2.5 p-3 bg-white text-rose-600 font-bold text-[12px] tracking-wider rounded-2xl border border-rose-100 hover:bg-rose-50 transition-all duration-200 active:scale-95 shadow-sm cursor-pointer"
+          className="w-full flex items-center justify-center gap-2.5 p-2.5 bg-white text-rose-600 font-bold text-[12px] tracking-wider rounded-2xl border border-rose-100 hover:bg-rose-50 transition-all duration-200 active:scale-95 shadow-sm cursor-pointer"
         >
           <LogOut size={16} />
           <span>Sign Out / Logout</span>
@@ -1484,12 +1482,12 @@ export const UnifiedAdminDashboard: React.FC = () => {
               <Menu size={20} />
             </button>
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-white rounded-lg p-1 border border-slate-200 shadow-2xs">
+              <div className="w-8 h-8 bg-[#ede9fe] rounded-lg p-1 border border-purple-200/50 shadow-2xs">
                 <img src={sbhLogo} alt="Logo" className="w-full h-full object-contain" />
               </div>
               <div>
-                <div className="text-xs font-black uppercase text-[#1f2d2a] leading-none">
-                  SBH <span className="text-[#2e7d32]">DOM PORTAL</span>
+                <div className="text-xs font-black uppercase text-[#1e1b4b] leading-none">
+                  SBH <span className="text-[#6351e8]">DOM PORTAL</span>
                 </div>
                 <div className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
                   Live Sync v2.1
@@ -1499,14 +1497,14 @@ export const UnifiedAdminDashboard: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded-lg border border-slate-200 font-mono">
+            <div className="text-[10px] font-bold text-[#6351e8] bg-[#ede9fe] px-2 py-1 rounded-xl border border-purple-200/60 font-mono">
               {formatToIndianDate(selectedDate)}
             </div>
             <a
               href={currentMeeting.google_meet_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-2.5 py-1.5 bg-[#2e7d32] text-white rounded-xl text-xs font-bold flex items-center gap-1 shadow-xs"
+              className="px-2.5 py-1.5 bg-gradient-to-r from-[#5f4de6] to-[#7f70f6] text-white rounded-xl text-xs font-bold flex items-center gap-1 shadow-xs"
               title="Google Meet"
             >
               <Video size={14} />
@@ -1518,10 +1516,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
         {/* Toast Alert Banner */}
         {toastAlert && (
           <div className={`p-3 text-xs font-bold text-center flex items-center justify-center gap-2 sticky top-0 z-40 transition-all ${toastAlert.type === 'success'
-            ? 'bg-[#2e7d32] text-white shadow-md'
+            ? 'bg-gradient-to-r from-[#5f4de6] to-[#7f70f6] text-white shadow-md'
             : toastAlert.type === 'info'
-              ? 'bg-blue-600 text-white shadow-md'
-              : 'bg-rose-600 text-white shadow-md'
+              ? 'bg-[#3bb7b8] text-white shadow-md'
+              : 'bg-[#e11d48] text-white shadow-md'
             }`}>
             <Zap className="w-4 h-4 animate-bounce" />
             <span>{toastAlert.text}</span>
@@ -1545,64 +1543,64 @@ export const UnifiedAdminDashboard: React.FC = () => {
         )}
 
         {/* Top Header Bar Attached to Dashboard */}
-        <header className="sticky top-0 z-[100] w-full bg-white border-b border-slate-200/90 shadow-2xs">
+        <header className="sticky top-0 z-[100] w-full bg-white/95 backdrop-blur-md border-b border-purple-100/60 shadow-2xs">
           <div className="px-4 sm:px-6 py-3.5 flex justify-between items-center gap-4">
             <div className="flex items-center gap-3">
               <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-[#1f2d2a] tracking-tight flex items-center gap-3 uppercase">
+                <h1 className="text-xl sm:text-2xl font-bold text-[#1e1b4b] tracking-tight flex items-center gap-3 uppercase">
                   {activeTab === 'attendance' && (
                     <>
-                      Daily Attendance <span className="text-[#2e7d32]">Register ({currentCadence})</span>
-                      <span className="px-3 py-1 rounded-xl bg-[#cfead6] border border-[#2e7d32]/10 text-[10px] font-bold text-[#2e7d32] tracking-wider whitespace-nowrap uppercase">
+                      Daily Attendance <span className="text-[#6351e8]">Register ({currentCadence})</span>
+                      <span className="px-3 py-1 rounded-2xl bg-[#ede9fe] border border-purple-200/60 text-[10px] font-bold text-[#6351e8] tracking-wider whitespace-nowrap uppercase">
                         Live Sync v2.1
                       </span>
                     </>
                   )}
                   {activeTab === 'links' && (
                     <>
-                      Daily Meeting <span className="text-[#2e7d32]">Links & Tracker</span>
-                      <span className="px-3 py-1 rounded-xl bg-[#cfead6] border border-[#2e7d32]/10 text-[10px] font-bold text-[#2e7d32] tracking-wider whitespace-nowrap uppercase font-mono">
+                      Daily Meeting <span className="text-[#6351e8]">Links & Tracker</span>
+                      <span className="px-3 py-1 rounded-2xl bg-[#ede9fe] border border-purple-200/60 text-[10px] font-bold text-[#6351e8] tracking-wider whitespace-nowrap uppercase font-mono">
                         {formatToIndianDate(selectedDate)}
                       </span>
                     </>
                   )}
                   {activeTab === 'geo-history' && (
                     <>
-                      Attendance <span className="text-[#2e7d32]">Geo-History & Location Logs</span>
-                      <span className="px-3 py-1 rounded-xl bg-[#cfead6] border border-[#2e7d32]/10 text-[10px] font-bold text-[#2e7d32] tracking-wider whitespace-nowrap uppercase">
+                      Attendance <span className="text-[#6351e8]">Geo-History & Location Logs</span>
+                      <span className="px-3 py-1 rounded-2xl bg-[#ede9fe] border border-purple-200/60 text-[10px] font-bold text-[#6351e8] tracking-wider whitespace-nowrap uppercase">
                         Live GPS Verification
                       </span>
                     </>
                   )}
                   {activeTab === 'calendar' && (
                     <>
-                      Cadence <span className="text-[#2e7d32]">Calendar (DOM / WOM / MOM)</span>
+                      Cadence <span className="text-[#6351e8]">Calendar (DOM / WOM / MOM)</span>
                     </>
                   )}
                   {activeTab === 'reports' && (
                     <>
-                      Graphical <span className="text-[#2e7d32]">Analytics & Absenteeism</span>
+                      Graphical <span className="text-[#6351e8]">Analytics & Absenteeism</span>
                     </>
                   )}
                   {activeTab === 'leaders' && (
                     <>
-                      Hospital Leaders <span className="text-[#2e7d32]">Roster</span>
-                      <span className="px-3 py-1 rounded-xl bg-[#cfead6] border border-[#2e7d32]/10 text-[10px] font-bold text-[#2e7d32] tracking-wider whitespace-nowrap uppercase">
+                      Hospital Leaders <span className="text-[#6351e8]">Roster</span>
+                      <span className="px-3 py-1 rounded-2xl bg-[#ede9fe] border border-purple-200/60 text-[10px] font-bold text-[#6351e8] tracking-wider whitespace-nowrap uppercase">
                         {leaders.length} Leaders
                       </span>
                     </>
                   )}
                   {activeTab === 'departments' && (
                     <>
-                      Hospital <span className="text-[#2e7d32]">Departments Master</span>
-                      <span className="px-3 py-1 rounded-xl bg-[#cfead6] border border-[#2e7d32]/10 text-[10px] font-bold text-[#2e7d32] tracking-wider whitespace-nowrap uppercase">
+                      Hospital <span className="text-[#6351e8]">Departments Master</span>
+                      <span className="px-3 py-1 rounded-2xl bg-[#ede9fe] border border-purple-200/60 text-[10px] font-bold text-[#6351e8] tracking-wider whitespace-nowrap uppercase">
                         {departments.length} Depts
                       </span>
                     </>
                   )}
                   {activeTab === 'settings' && (
                     <>
-                      WhatsApp Gateway <span className="text-[#2e7d32]">& Settings</span>
+                      WhatsApp Gateway <span className="text-[#6351e8]">& Settings</span>
                     </>
                   )}
                 </h1>
@@ -1614,8 +1612,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
             {/* Right Header: Date Selector and Google Meet button */}
             <div className="flex items-center gap-3">
-              <div className="relative flex items-center gap-2 bg-white hover:bg-slate-50 px-3.5 py-2 rounded-2xl border border-slate-200 shadow-xs transition-all cursor-pointer group">
-                <Calendar className="w-4 h-4 text-emerald-600 group-hover:scale-110 transition-transform shrink-0" />
+              <div className="relative flex items-center gap-2 bg-white hover:bg-[#ede9fe]/30 px-3.5 py-2 rounded-2xl border border-purple-100 shadow-xs transition-all cursor-pointer group">
+                <Calendar className="w-4 h-4 text-[#6351e8] group-hover:scale-110 transition-transform shrink-0" />
                 <span className="text-xs font-black text-slate-800 font-mono tracking-tight">
                   {formatToIndianDate(selectedDate)}
                 </span>
@@ -1632,7 +1630,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 href={currentMeeting.google_meet_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-bold shadow-sm transition-all active:scale-[0.98] flex items-center justify-center gap-1.5 cursor-pointer"
+                className="px-4 py-2 bg-gradient-to-r from-[#5f4de6] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7060f0] text-white rounded-2xl text-xs font-bold shadow-sm shadow-indigo-200/60 transition-all active:scale-[0.98] flex items-center justify-center gap-1.5 cursor-pointer"
                 title="Open Google Meet"
               >
                 <Video className="w-4 h-4" />
@@ -1706,27 +1704,27 @@ export const UnifiedAdminDashboard: React.FC = () => {
           {activeTab === 'attendance' && (
             <div className="space-y-4">
               {/* Executive Command Center */}
-              <div className="bg-white rounded-3xl border border-slate-200/90 shadow-xs relative overflow-hidden">
-                <div className="h-1.5 w-full bg-gradient-to-r from-emerald-500 via-teal-500 to-indigo-600 absolute top-0 left-0" />
+              <div className="bg-white rounded-3xl border border-purple-100/80 shadow-xs relative overflow-hidden">
+                <div className="h-1.5 w-full bg-gradient-to-r from-[#5f4de6] via-[#8576f7] to-[#45b7b8] absolute top-0 left-0" />
 
                 {/* Row 1: Meeting Cadence, Title, Time, Meet Link & Header Actions */}
-                <div className="p-3.5 sm:p-4 border-b border-slate-100 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3">
+                <div className="p-3.5 sm:p-4 border-b border-purple-50 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <div
                       className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-white shadow-xs text-xs shrink-0 ${currentCadence === 'MOM'
-                          ? 'bg-purple-600'
+                          ? 'bg-[#8b5cf6]'
                           : currentCadence === 'WOM'
-                            ? 'bg-blue-600'
+                            ? 'bg-[#3bb7b8]'
                             : currentMeeting.is_holiday_or_shifted
-                              ? 'bg-amber-600'
-                              : 'bg-gradient-to-br from-[#2e7d32] to-teal-700'
+                              ? 'bg-amber-500'
+                              : 'bg-gradient-to-br from-[#5f4de6] to-[#7f70f6]'
                         }`}
                     >
                       {currentCadence}
                     </div>
                     <div>
                       <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                        <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 bg-[#cfead6] border border-[#2e7d32]/25 px-2.5 py-0.5 rounded-full">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-[#5b4eed] bg-[#ede9fe] border border-purple-200/60 px-2.5 py-0.5 rounded-full">
                           {currentCadence === 'MOM' && 'MOM Strategic'}
                           {currentCadence === 'WOM' && 'WOM Review'}
                           {currentCadence === 'DOM' && 'DOM — Daily Operations Standup'}
@@ -1738,10 +1736,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
                           </span>
                         )}
                       </div>
-                      <h2 className="text-base sm:text-lg font-black text-slate-800 tracking-tight">{currentMeeting.title}</h2>
+                      <h2 className="text-base sm:text-lg font-black text-[#1e1b4b] tracking-tight">{currentMeeting.title}</h2>
                       <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-500 flex-wrap">
                         <span className="inline-flex items-center gap-1 font-bold text-slate-700 font-mono text-xs">
-                          <Clock className="w-3.5 h-3.5 text-[#2e7d32]" />
+                          <Clock className="w-3.5 h-3.5 text-[#6351e8]" />
                           Scheduled: {currentMeeting.scheduled_time}
                         </span>
                         <span className="text-slate-300">•</span>
@@ -1749,9 +1747,9 @@ export const UnifiedAdminDashboard: React.FC = () => {
                           href={currentMeeting.google_meet_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-700 hover:text-blue-800 font-bold flex items-center gap-1 transition-colors text-xs"
+                          className="text-[#5b4eed] hover:underline font-bold flex items-center gap-1 transition-colors text-xs"
                         >
-                          <Video className="w-3.5 h-3.5 text-blue-600" />
+                          <Video className="w-3.5 h-3.5 text-[#6351e8]" />
                           <span>Meet Link</span>
                         </a>
                         <span className="text-slate-300">•</span>
@@ -1774,7 +1772,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                         });
                         setShowScheduleEditModal(true);
                       }}
-                      className="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150"
+                      className="px-3.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-2xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150"
                     >
                       <Settings2 className="w-3.5 h-3.5 text-slate-600" />
                       <span>Modify Date / Cadence</span>
@@ -1783,7 +1781,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                     <button
                       onClick={handleSendReminderNotice}
                       disabled={isSendingNotice}
-                      className="px-3 py-1.5 bg-[#2e7d32] hover:bg-[#256628] text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150 disabled:opacity-60"
+                      className="px-3.5 py-1.5 bg-gradient-to-r from-[#5f4de6] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7060f0] text-white rounded-2xl text-xs font-bold shadow-sm shadow-indigo-200/50 flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150 disabled:opacity-60"
                     >
                       {isSendingNotice ? <Loader2 className="w-3.5 h-3.5 animate-spin text-white" /> : <Send className="w-3.5 h-3.5" />}
                       <span>Send {currentCadence} WhatsApp Notice</span>
@@ -1804,16 +1802,16 @@ export const UnifiedAdminDashboard: React.FC = () => {
                         }
                       }}
                       disabled={isEscalating}
-                      className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150"
+                      className="px-3.5 py-1.5 bg-[#fff1f2] hover:bg-[#ffe4e6] text-[#e11d48] border border-rose-200 rounded-2xl text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150"
                     >
-                      {isEscalating ? <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-600" /> : <AlertCircle className="w-3.5 h-3.5 text-rose-600" />}
+                      {isEscalating ? <Loader2 className="w-3.5 h-3.5 animate-spin text-[#e11d48]" /> : <AlertCircle className="w-3.5 h-3.5 text-[#e11d48]" />}
                       <span>Escalate Non-Attendees</span>
                     </button>
                   </div>
                 </div>
 
                 {/* Row 2: Live India Time (IST), Countdown, and Daily Operations Action Bar */}
-                <div className="p-3 sm:p-3.5 bg-slate-50/60 border-t border-slate-100 grid grid-cols-1 md:grid-cols-3 gap-2.5 items-center">
+                <div className="p-3 sm:p-3.5 bg-slate-50/50 border-t border-purple-50 grid grid-cols-1 md:grid-cols-3 gap-2.5 items-center">
                   {/* Isolated Live India Time & Standup Countdown (Zero re-renders on parent dashboard) */}
                   <LiveIndiaClockAndCountdown currentCadence={currentCadence} />
 
@@ -1843,7 +1841,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                         })
                       }
                       disabled={isBroadcasting0950}
-                      className="px-2.5 py-1.5 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white rounded-xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150"
+                      className="px-3 py-1.5 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white rounded-2xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150"
                       title="Broadcast 09:50 AM Notice to Official WhatsApp Group"
                     >
                       {isBroadcasting0950 ? (
@@ -1868,19 +1866,19 @@ export const UnifiedAdminDashboard: React.FC = () => {
                           },
                         })
                       }
-                      className="px-2.5 py-1.5 bg-[#cfead6] hover:bg-[#b8e4c3] text-[#2e7d32] border border-[#2e7d32]/25 rounded-xl text-xs font-bold shadow-2xs flex items-center gap-1 cursor-pointer active:scale-95 transition-all duration-150"
+                      className="px-3 py-1.5 bg-[#ecfdf5] hover:bg-[#d1fae5] text-[#059669] border border-emerald-200/80 rounded-2xl text-xs font-bold shadow-2xs flex items-center gap-1 cursor-pointer active:scale-95 transition-all duration-150"
                       title="Approve all leaders who have joined on this date"
                     >
-                      <CheckCircle2 className="w-3.5 h-3.5 text-[#2e7d32]" />
+                      <CheckCircle2 className="w-3.5 h-3.5 text-[#059669]" />
                       <span>Approve Joined</span>
                     </button>
 
                     <button
                       onClick={() => setShowGroupDispatchModal(true)}
-                      className="px-2.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150"
+                      className="px-3 py-1.5 bg-gradient-to-r from-[#5f4de6] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7060f0] text-white rounded-2xl text-xs font-bold shadow-sm shadow-indigo-200/50 flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150"
                       title="Send Official PDF or Absentee Text Report to SBH WhatsApp Group"
                     >
-                      <Send className="w-3.5 h-3.5 text-emerald-200" />
+                      <Send className="w-3.5 h-3.5 text-white" />
                       <span>Send to WhatsApp Group</span>
                     </button>
 
@@ -1904,7 +1902,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                             },
                           })
                         }
-                        className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150"
+                        className="px-3 py-1.5 bg-gradient-to-r from-[#32b87f] to-[#59d49c] hover:from-[#2ba16f] hover:to-[#4ec48f] text-white rounded-2xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150"
                         title="Re-instate DOM Standup"
                       >
                         <Check className="w-3.5 h-3.5 text-white" />
@@ -1930,10 +1928,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
                             },
                           })
                         }
-                        className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150"
+                        className="px-3 py-1.5 bg-[#fff1f2] hover:bg-[#ffe4e6] text-[#e11d48] border border-rose-200 rounded-2xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150"
                         title="Remove DOM for this date (Zero absentees will be counted)"
                       >
-                        <X className="w-3.5 h-3.5 text-rose-600" />
+                        <X className="w-3.5 h-3.5 text-[#e11d48]" />
                         <span>Remove DOM</span>
                       </button>
                     )}
@@ -1951,13 +1949,13 @@ export const UnifiedAdminDashboard: React.FC = () => {
                         });
                         setTimeout(() => setToastAlert(null), 4000);
                       }}
-                      className={`px-2 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer active:scale-95 transition-all duration-150 border shrink-0 ${autoCeoitboxDispatch
-                          ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                          : 'bg-slate-200 text-slate-600 border-slate-300'
+                      className={`px-3 py-1.5 rounded-2xl text-xs font-bold flex items-center gap-1 cursor-pointer active:scale-95 transition-all duration-150 border shrink-0 ${autoCeoitboxDispatch
+                          ? 'bg-[#ede9fe] text-[#5b4eed] border-purple-200'
+                          : 'bg-slate-100 text-slate-500 border-slate-200'
                         }`}
                       title="Auto-Scheduler Toggle"
                     >
-                      <Clock className={`w-3.5 h-3.5 ${autoCeoitboxDispatch ? 'text-[#2e7d32]' : 'text-slate-400'}`} />
+                      <Clock className={`w-3.5 h-3.5 ${autoCeoitboxDispatch ? 'text-[#5b4eed]' : 'text-slate-400'}`} />
                       <span>Auto: {autoCeoitboxDispatch ? 'ON' : 'OFF'}</span>
                     </button>
                   </div>
@@ -1993,157 +1991,157 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 {/* 1. Scheduled Today */}
                 <div
                   onClick={() => setStatusFilter('ALL')}
-                  className={`p-2.5 sm:p-3 rounded-2xl border transition-all cursor-pointer group relative overflow-hidden shadow-2xs ${statusFilter === 'ALL'
-                      ? 'bg-gradient-to-br from-indigo-50 to-white border-indigo-500 ring-2 ring-indigo-500/25 shadow-sm scale-[1.01]'
-                      : 'bg-gradient-to-br from-indigo-50/60 via-white to-indigo-50/20 border-indigo-200/80 hover:border-indigo-400 hover:shadow-xs'
+                  className={`p-3 rounded-2xl transition-all cursor-pointer group relative overflow-hidden text-white bg-gradient-to-r from-[#6e5ce6] to-[#8c7cf0] shadow-md shadow-indigo-200/50 ${statusFilter === 'ALL'
+                      ? 'ring-3 ring-slate-900/60 shadow-lg scale-[1.03]'
+                      : 'hover:scale-[1.02] hover:shadow-lg'
                     }`}
                 >
                   <div className="flex items-center justify-between mb-1">
-                    <div className={`p-1.5 rounded-xl transition-transform group-hover:scale-105 duration-200 ${statusFilter === 'ALL' ? 'bg-indigo-600 text-white' : 'bg-indigo-100 text-indigo-700'}`}>
-                      <Users className="w-3.5 h-3.5" />
+                    <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white backdrop-blur-xs">
+                      <Users className="w-4 h-4" />
                     </div>
-                    <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 uppercase tracking-wider font-mono">
+                    <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-white/20 text-white uppercase tracking-wider font-mono">
                       Roster
                     </span>
                   </div>
-                  <div className="text-xl sm:text-2xl font-black text-slate-900 leading-tight tracking-tight">{totalLeaders}</div>
-                  <div className="text-[10px] font-bold text-indigo-900 tracking-wider uppercase mt-0.5">Scheduled</div>
-                  <div className="text-[9px] text-slate-400 font-medium truncate">Total Registered</div>
+                  <div className="text-xl sm:text-2xl font-black text-white leading-tight tracking-tight mt-1">{totalLeaders}</div>
+                  <div className="text-[10px] font-bold text-white uppercase tracking-wider mt-0.5">Scheduled</div>
+                  <div className="text-[9px] text-white/80 font-medium truncate">Total Registered</div>
                 </div>
 
                 {/* 2. Total Joined (Turnout Recorded) */}
                 <div
                   onClick={() => setStatusFilter(statusFilter === 'PRESENT' ? 'ALL' : 'PRESENT')}
-                  className={`p-2.5 sm:p-3 rounded-2xl border transition-all cursor-pointer group relative overflow-hidden shadow-2xs ${statusFilter === 'PRESENT'
-                      ? 'bg-gradient-to-br from-emerald-50 to-white border-emerald-600 ring-2 ring-emerald-600/25 shadow-sm scale-[1.01]'
-                      : 'bg-gradient-to-br from-emerald-50/60 via-white to-emerald-50/20 border-emerald-200/80 hover:border-emerald-400 hover:shadow-xs'
+                  className={`p-3 rounded-2xl transition-all cursor-pointer group relative overflow-hidden text-white bg-gradient-to-r from-[#32b87f] to-[#59d49c] shadow-md shadow-emerald-200/50 ${statusFilter === 'PRESENT'
+                      ? 'ring-3 ring-slate-900/60 shadow-lg scale-[1.03]'
+                      : 'hover:scale-[1.02] hover:shadow-lg'
                     }`}
                 >
                   <div className="flex items-center justify-between mb-1">
-                    <div className={`p-1.5 rounded-xl transition-transform group-hover:scale-105 duration-200 ${statusFilter === 'PRESENT' ? 'bg-[#2e7d32] text-white' : 'bg-[#cfead6] text-[#2e7d32]'}`}>
-                      <CheckCircle2 className="w-3.5 h-3.5" />
+                    <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white backdrop-blur-xs">
+                      <CheckCircle2 className="w-4 h-4" />
                     </div>
-                    <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 uppercase tracking-wider font-mono">
+                    <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-white/20 text-white uppercase tracking-wider font-mono">
                       {turnoutPercent}%
                     </span>
                   </div>
-                  <div className="text-xl sm:text-2xl font-black text-emerald-700 leading-tight tracking-tight">{countPresent}</div>
-                  <div className="text-[10px] font-bold text-emerald-800 tracking-wider uppercase mt-0.5">Total Joined</div>
-                  <div className="text-[9px] text-emerald-600 font-semibold truncate">Turnout Recorded</div>
+                  <div className="text-xl sm:text-2xl font-black text-white leading-tight tracking-tight mt-1">{countPresent}</div>
+                  <div className="text-[10px] font-bold text-white uppercase tracking-wider mt-0.5">Total Joined</div>
+                  <div className="text-[9px] text-white/80 font-medium truncate">Turnout Recorded</div>
                 </div>
 
                 {/* 3. In-Person (Physical Room) */}
                 <div
                   onClick={() => setStatusFilter(statusFilter === 'PHYSICAL' ? 'ALL' : 'PHYSICAL')}
-                  className={`p-2.5 sm:p-3 rounded-2xl border transition-all cursor-pointer group relative overflow-hidden shadow-2xs ${statusFilter === 'PHYSICAL'
-                      ? 'bg-gradient-to-br from-amber-50 to-white border-amber-600 ring-2 ring-amber-500/25 shadow-sm scale-[1.01]'
-                      : 'bg-gradient-to-br from-amber-50/60 via-white to-amber-50/20 border-amber-200/80 hover:border-amber-400 hover:shadow-xs'
+                  className={`p-3 rounded-2xl transition-all cursor-pointer group relative overflow-hidden text-white bg-gradient-to-r from-[#f88f7b] to-[#f7aa97] shadow-md shadow-rose-200/50 ${statusFilter === 'PHYSICAL'
+                      ? 'ring-3 ring-slate-900/60 shadow-lg scale-[1.03]'
+                      : 'hover:scale-[1.02] hover:shadow-lg'
                     }`}
                 >
                   <div className="flex items-center justify-between mb-1">
-                    <div className={`p-1.5 rounded-xl transition-transform group-hover:scale-105 duration-200 ${statusFilter === 'PHYSICAL' ? 'bg-amber-600 text-white' : 'bg-amber-100 text-amber-800'}`}>
-                      <Building className="w-3.5 h-3.5" />
+                    <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white backdrop-blur-xs">
+                      <Building className="w-4 h-4" />
                     </div>
-                    <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 uppercase tracking-wider font-mono">
+                    <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-white/20 text-white uppercase tracking-wider font-mono">
                       5th Flr
                     </span>
                   </div>
-                  <div className="text-xl sm:text-2xl font-black text-amber-700 leading-tight tracking-tight">{countPhysical}</div>
-                  <div className="text-[10px] font-bold text-amber-800 tracking-wider uppercase mt-0.5">In-Person</div>
-                  <div className="text-[9px] text-slate-400 font-medium truncate">Conference Room</div>
+                  <div className="text-xl sm:text-2xl font-black text-white leading-tight tracking-tight mt-1">{countPhysical}</div>
+                  <div className="text-[10px] font-bold text-white uppercase tracking-wider mt-0.5">In-Person</div>
+                  <div className="text-[9px] text-white/80 font-medium truncate">Conference Room</div>
                 </div>
 
                 {/* 4. Virtual (Meet) */}
                 <div
                   onClick={() => setStatusFilter(statusFilter === 'VIRTUAL' ? 'ALL' : 'VIRTUAL')}
-                  className={`p-2.5 sm:p-3 rounded-2xl border transition-all cursor-pointer group relative overflow-hidden shadow-2xs ${statusFilter === 'VIRTUAL'
-                      ? 'bg-gradient-to-br from-sky-50 to-white border-sky-600 ring-2 ring-sky-500/25 shadow-sm scale-[1.01]'
-                      : 'bg-gradient-to-br from-sky-50/60 via-white to-sky-50/20 border-sky-200/80 hover:border-sky-400 hover:shadow-xs'
+                  className={`p-3 rounded-2xl transition-all cursor-pointer group relative overflow-hidden text-white bg-gradient-to-r from-[#3bb7b8] to-[#5fd3d4] shadow-md shadow-teal-200/50 ${statusFilter === 'VIRTUAL'
+                      ? 'ring-3 ring-slate-900/60 shadow-lg scale-[1.03]'
+                      : 'hover:scale-[1.02] hover:shadow-lg'
                     }`}
                 >
                   <div className="flex items-center justify-between mb-1">
-                    <div className={`p-1.5 rounded-xl transition-transform group-hover:scale-105 duration-200 ${statusFilter === 'VIRTUAL' ? 'bg-sky-600 text-white' : 'bg-sky-100 text-sky-800'}`}>
-                      <Video className="w-3.5 h-3.5" />
+                    <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white backdrop-blur-xs">
+                      <Video className="w-4 h-4" />
                     </div>
-                    <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 uppercase tracking-wider font-mono">
+                    <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-white/20 text-white uppercase tracking-wider font-mono">
                       Online
                     </span>
                   </div>
-                  <div className="text-xl sm:text-2xl font-black text-sky-700 leading-tight tracking-tight">{countVirtual}</div>
-                  <div className="text-[10px] font-bold text-sky-800 tracking-wider uppercase mt-0.5">Virtual</div>
-                  <div className="text-[9px] text-slate-400 font-medium truncate">Google Meet</div>
+                  <div className="text-xl sm:text-2xl font-black text-white leading-tight tracking-tight mt-1">{countVirtual}</div>
+                  <div className="text-[10px] font-bold text-white uppercase tracking-wider mt-0.5">Virtual</div>
+                  <div className="text-[9px] text-white/80 font-medium truncate">Google Meet</div>
                 </div>
 
                 {/* 5. Late (Approved) */}
                 <div
                   onClick={() => setStatusFilter(statusFilter === 'INFORMED_LATE' ? 'ALL' : 'INFORMED_LATE')}
-                  className={`p-2.5 sm:p-3 rounded-2xl border transition-all cursor-pointer group relative overflow-hidden shadow-2xs ${statusFilter === 'INFORMED_LATE'
-                      ? 'bg-gradient-to-br from-yellow-50 to-white border-yellow-600 ring-2 ring-yellow-500/25 shadow-sm scale-[1.01]'
-                      : 'bg-gradient-to-br from-yellow-50/60 via-white to-yellow-50/20 border-yellow-200/80 hover:border-yellow-400 hover:shadow-xs'
+                  className={`p-3 rounded-2xl transition-all cursor-pointer group relative overflow-hidden text-white bg-gradient-to-r from-[#f59e0b] to-[#fbbf24] shadow-md shadow-amber-200/50 ${statusFilter === 'INFORMED_LATE'
+                      ? 'ring-3 ring-slate-900/60 shadow-lg scale-[1.03]'
+                      : 'hover:scale-[1.02] hover:shadow-lg'
                     }`}
                 >
                   <div className="flex items-center justify-between mb-1">
-                    <div className={`p-1.5 rounded-xl transition-transform group-hover:scale-105 duration-200 ${statusFilter === 'INFORMED_LATE' ? 'bg-yellow-600 text-white' : 'bg-yellow-100 text-yellow-800'}`}>
-                      <Clock className="w-3.5 h-3.5" />
+                    <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white backdrop-blur-xs">
+                      <Clock className="w-4 h-4" />
                     </div>
-                    <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 uppercase tracking-wider font-mono">
+                    <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-white/20 text-white uppercase tracking-wider font-mono">
                       Delay
                     </span>
                   </div>
-                  <div className="text-xl sm:text-2xl font-black text-yellow-700 leading-tight tracking-tight">{countLate}</div>
-                  <div className="text-[10px] font-bold text-yellow-800 tracking-wider uppercase mt-0.5">Informed Late</div>
-                  <div className="text-[9px] text-slate-400 font-medium truncate">Admin Approved</div>
+                  <div className="text-xl sm:text-2xl font-black text-white leading-tight tracking-tight mt-1">{countLate}</div>
+                  <div className="text-[10px] font-bold text-white uppercase tracking-wider mt-0.5">Informed Late</div>
+                  <div className="text-[9px] text-white/80 font-medium truncate">Admin Approved</div>
                 </div>
 
                 {/* 6. Approved Leave */}
                 <div
                   onClick={() => setStatusFilter(statusFilter === 'LEAVE' ? 'ALL' : 'LEAVE')}
-                  className={`p-2.5 sm:p-3 rounded-2xl border transition-all cursor-pointer group relative overflow-hidden shadow-2xs ${statusFilter === 'LEAVE'
-                      ? 'bg-gradient-to-br from-purple-50 to-white border-purple-600 ring-2 ring-purple-500/25 shadow-sm scale-[1.01]'
-                      : 'bg-gradient-to-br from-purple-50/60 via-white to-purple-50/20 border-purple-200/80 hover:border-purple-400 hover:shadow-xs'
+                  className={`p-3 rounded-2xl transition-all cursor-pointer group relative overflow-hidden text-white bg-gradient-to-r from-[#8b5cf6] to-[#a78bfa] shadow-md shadow-purple-200/50 ${statusFilter === 'LEAVE'
+                      ? 'ring-3 ring-slate-900/60 shadow-lg scale-[1.03]'
+                      : 'hover:scale-[1.02] hover:shadow-lg'
                     }`}
                 >
                   <div className="flex items-center justify-between mb-1">
-                    <div className={`p-1.5 rounded-xl transition-transform group-hover:scale-105 duration-200 ${statusFilter === 'LEAVE' ? 'bg-purple-600 text-white' : 'bg-purple-100 text-purple-800'}`}>
-                      <HelpCircle className="w-3.5 h-3.5" />
+                    <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white backdrop-blur-xs">
+                      <HelpCircle className="w-4 h-4" />
                     </div>
-                    <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 uppercase tracking-wider font-mono">
+                    <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-white/20 text-white uppercase tracking-wider font-mono">
                       Leave
                     </span>
                   </div>
-                  <div className="text-xl sm:text-2xl font-black text-purple-700 leading-tight tracking-tight">{countInformed}</div>
-                  <div className="text-[10px] font-bold text-purple-800 tracking-wider uppercase mt-0.5">On Leave</div>
-                  <div className="text-[9px] text-slate-400 font-medium truncate">Official Sanction</div>
+                  <div className="text-xl sm:text-2xl font-black text-white leading-tight tracking-tight mt-1">{countInformed}</div>
+                  <div className="text-[10px] font-bold text-white uppercase tracking-wider mt-0.5">On Leave</div>
+                  <div className="text-[9px] text-white/80 font-medium truncate">Official Sanction</div>
                 </div>
 
                 {/* 7. Absent */}
                 <div
                   onClick={() => setStatusFilter(statusFilter === 'ABSENT' ? 'ALL' : 'ABSENT')}
-                  className={`p-2.5 sm:p-3 rounded-2xl border transition-all cursor-pointer group relative overflow-hidden shadow-2xs ${statusFilter === 'ABSENT'
-                      ? 'bg-gradient-to-br from-rose-50 to-white border-rose-600 ring-2 ring-rose-500/25 shadow-sm scale-[1.01]'
-                      : 'bg-gradient-to-br from-rose-50/60 via-white to-rose-50/20 border-rose-200/80 hover:border-rose-400 hover:shadow-xs'
+                  className={`p-3 rounded-2xl transition-all cursor-pointer group relative overflow-hidden text-white bg-gradient-to-r from-[#e11d48] to-[#f43f5e] shadow-md shadow-rose-300/50 ${statusFilter === 'ABSENT'
+                      ? 'ring-3 ring-slate-900/60 shadow-lg scale-[1.03]'
+                      : 'hover:scale-[1.02] hover:shadow-lg'
                     }`}
                 >
                   <div className="flex items-center justify-between mb-1">
-                    <div className={`p-1.5 rounded-xl transition-transform group-hover:scale-105 duration-200 ${statusFilter === 'ABSENT' ? 'bg-rose-600 text-white' : 'bg-rose-100 text-rose-700'}`}>
-                      <XCircle className="w-3.5 h-3.5" />
+                    <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white backdrop-blur-xs">
+                      <XCircle className="w-4 h-4" />
                     </div>
-                    <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 uppercase tracking-wider font-mono">
+                    <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-white/20 text-white uppercase tracking-wider font-mono">
                       {countAbsent > 0 ? 'Action' : 'Zero'}
                     </span>
                   </div>
-                  <div className="text-xl sm:text-2xl font-black text-rose-600 leading-tight tracking-tight">{countAbsent}</div>
-                  <div className="text-[10px] font-bold text-rose-700 tracking-wider uppercase mt-0.5">Absent</div>
-                  <div className="text-[9px] text-rose-500 font-semibold truncate">{countAbsent > 0 ? 'Unexcused' : 'Full Attendance'}</div>
+                  <div className="text-xl sm:text-2xl font-black text-white leading-tight tracking-tight mt-1">{countAbsent}</div>
+                  <div className="text-[10px] font-bold text-white uppercase tracking-wider mt-0.5">Absent</div>
+                  <div className="text-[9px] text-white/80 font-medium truncate">{countAbsent > 0 ? 'Unexcused' : 'Full Attendance'}</div>
                 </div>
               </div>
 
               {/* Active Matrix Filter Indicator Pill */}
               {statusFilter !== 'ALL' && (
-                <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 px-3.5 py-1.5 rounded-xl text-xs">
+                <div className="flex items-center justify-between bg-[#ede9fe]/70 border border-purple-200/80 px-4 py-2 rounded-2xl text-xs shadow-2xs">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-bold text-emerald-900 text-xs">Active Matrix Filter:</span>
-                    <span className="font-mono font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs">
+                    <span className="font-bold text-[#5b4eed] text-xs">Active Matrix Filter:</span>
+                    <span className="font-mono font-bold px-2.5 py-0.5 rounded-xl bg-white text-[#5b4eed] border border-purple-200 text-xs shadow-2xs">
                       {statusFilter === 'PRESENT' && `Total Joined (${countPresent} Leaders)`}
                       {statusFilter === 'PHYSICAL' && `In-Person Room (${countPhysical} Leaders)`}
                       {statusFilter === 'VIRTUAL' && `Virtual Meet (${countVirtual} Leaders)`}
@@ -2155,16 +2153,16 @@ export const UnifiedAdminDashboard: React.FC = () => {
                   </div>
                   <button
                     onClick={() => setStatusFilter('ALL')}
-                    className="flex items-center gap-1 font-bold text-emerald-800 hover:text-emerald-950 px-2 py-0.5 rounded-lg bg-white border border-emerald-300 text-xs shadow-2xs cursor-pointer transition-colors"
+                    className="flex items-center gap-1 font-bold text-[#5b4eed] hover:text-[#4338ca] px-2.5 py-1 rounded-xl bg-white border border-purple-200 text-xs shadow-2xs cursor-pointer transition-colors"
                   >
-                    <X className="w-3.5 h-3.5 text-emerald-700" />
+                    <X className="w-3.5 h-3.5 text-[#5b4eed]" />
                     <span>Clear Filter</span>
                   </button>
                 </div>
               )}
 
               {/* Filter & Dispatch Action Bar */}
-              <div className="bg-white p-3 sm:p-3.5 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
+              <div className="bg-white p-3 sm:p-3.5 rounded-2xl border border-purple-100/80 shadow-xs flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
                 <div className="flex items-center gap-2 flex-1">
                   <div className="relative flex-1 max-w-sm">
                     <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
@@ -2173,13 +2171,13 @@ export const UnifiedAdminDashboard: React.FC = () => {
                       placeholder="Search leader by name, department, or code..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-[#1f2d2a] placeholder-slate-400 font-semibold focus:outline-none focus:border-[#2e7d32] focus:ring-1 focus:ring-[#2e7d32]"
+                      className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-[#1e1b4b] placeholder-slate-400 font-semibold focus:outline-none focus:border-[#6351e8] focus:ring-1 focus:ring-[#6351e8]"
                     />
                   </div>
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
-                    className="bg-slate-50 border border-slate-200 text-[#1f2d2a] text-xs px-3 py-2 rounded-xl focus:outline-none focus:border-[#2e7d32] font-bold cursor-pointer"
+                    className="bg-slate-50 border border-slate-200 text-[#1e1b4b] text-xs px-3 py-2 rounded-2xl focus:outline-none focus:border-[#6351e8] font-bold cursor-pointer"
                   >
                     <option value="ALL">All Leaders ({totalLeaders})</option>
                     <option value="PRESENT">Total Joined / Present ({countPresent})</option>
@@ -2205,7 +2203,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                       })
                     }
                     disabled={isSyncingDrive}
-                    className="px-2.5 py-1.5 bg-gradient-to-r from-teal-700 to-emerald-700 hover:from-teal-800 hover:to-emerald-800 text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 active:scale-95 transition-all duration-150 cursor-pointer"
+                    className="px-3 py-2 bg-[#ede9fe] hover:bg-[#dfd7fd] text-[#5b4eed] rounded-2xl text-xs font-bold shadow-xs flex items-center gap-1.5 active:scale-95 transition-all duration-150 cursor-pointer"
                     title="Archive report directly to Supabase SQL Database & dispatch to WhatsApp Group"
                   >
                     {isSyncingDrive ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Share2 className="w-3.5 h-3.5" />}
@@ -2214,7 +2212,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
                   <button
                     onClick={() => setShowGroupDispatchModal(true)}
-                    className="px-2.5 py-1.5 bg-gradient-to-r from-emerald-600 to-green-700 hover:from-emerald-700 hover:to-green-800 text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 active:scale-95 transition-all duration-150 cursor-pointer"
+                    className="px-3 py-2 bg-gradient-to-r from-[#5f4de6] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7060f0] text-white rounded-2xl text-xs font-bold shadow-md shadow-indigo-200/50 flex items-center gap-1.5 active:scale-95 transition-all duration-150 cursor-pointer"
                     title="Send Official PDF or Absentee Text Report to SBH WhatsApp Group"
                   >
                     <Send className="w-3.5 h-3.5 text-white" />
@@ -2236,16 +2234,16 @@ export const UnifiedAdminDashboard: React.FC = () => {
                       }
                     }}
                     disabled={isDownloadingPdf}
-                    className="px-2.5 py-1.5 bg-[#2e7d32] hover:bg-[#256628] text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 active:scale-95 transition-all duration-150 cursor-pointer"
+                    className="px-3 py-2 bg-[#ecfdf5] hover:bg-[#d1fae5] text-[#059669] border border-emerald-200 rounded-2xl text-xs font-bold shadow-xs flex items-center gap-1.5 active:scale-95 transition-all duration-150 cursor-pointer"
                     title="Download Official PDF Report for Director Sir"
                   >
-                    {isDownloadingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin text-white" /> : <Download className="w-3.5 h-3.5" />}
+                    {isDownloadingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-700" /> : <Download className="w-3.5 h-3.5" />}
                     <span>Download Director PDF</span>
                   </button>
 
                   <button
                     onClick={() => openPdfReport(selectedDate)}
-                    className="px-2.5 py-1.5 bg-white hover:bg-slate-50 text-[#1f2d2a] border border-[#dcdcdc] rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 active:scale-95 transition-all duration-150 cursor-pointer"
+                    className="px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-2xl text-xs font-bold shadow-xs flex items-center gap-1.5 active:scale-95 transition-all duration-150 cursor-pointer"
                     title="Print official PDF report"
                   >
                     <Printer className="w-3.5 h-3.5 text-orange-600" />
@@ -2258,18 +2256,18 @@ export const UnifiedAdminDashboard: React.FC = () => {
                       setEscalationData(esc);
                       setShowEscalationModal(true);
                     }}
-                    className="px-2.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 active:scale-95 transition-all duration-150 cursor-pointer"
+                    className="px-3 py-2 bg-[#fff1f2] hover:bg-[#ffe4e6] text-[#e11d48] border border-rose-200 rounded-2xl text-xs font-bold shadow-xs flex items-center gap-1.5 active:scale-95 transition-all duration-150 cursor-pointer"
                     title="Send official absence explanation notice to all unreported leaders"
                   >
-                    <AlertTriangle className="w-3.5 h-3.5 text-white" />
+                    <AlertTriangle className="w-3.5 h-3.5 text-[#e11d48]" />
                     <span>Email Non-Attendees ({countAbsent})</span>
                   </button>
 
                   <button
                     onClick={() => setShowEmailModal(true)}
-                    className="px-2.5 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 active:scale-95 transition-all duration-150 cursor-pointer"
+                    className="px-3 py-2 bg-[#fff7ed] hover:bg-[#ffedd5] text-[#ea580c] border border-orange-200 rounded-2xl text-xs font-bold shadow-xs flex items-center gap-1.5 active:scale-95 transition-all duration-150 cursor-pointer"
                   >
-                    <Mail className="w-3.5 h-3.5" />
+                    <Mail className="w-3.5 h-3.5 text-[#ea580c]" />
                     <span>Email Report Draft</span>
                   </button>
                 </div>
@@ -2692,13 +2690,13 @@ export const UnifiedAdminDashboard: React.FC = () => {
             return (
               <div className="space-y-5">
                 {/* Header & Controls Bar */}
-                <div className="bg-white rounded-2xl p-5 border border-[#dcdcdc] shadow-sm flex flex-col gap-4">
+                <div className="bg-white rounded-3xl p-5 border border-purple-100/80 shadow-xs flex flex-col gap-4">
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-slate-100">
                     <div>
-                      <h3 className="text-lg font-bold text-[#1f2d2a] flex items-center gap-2 uppercase tracking-tight">
-                        <Users className="w-5 h-5 text-[#2e7d32]" />
-                        <span>Hospital Leaders <span className="text-[#2e7d32]">Roster</span></span>
-                        <span className="text-[10px] bg-[#cfead6] text-[#2e7d32] font-bold px-2.5 py-0.5 rounded-full border border-[#2e7d32]/20">
+                      <h3 className="text-lg font-bold text-[#1e1b4b] flex items-center gap-2 uppercase tracking-tight">
+                        <Users className="w-5 h-5 text-[#6351e8]" />
+                        <span>Hospital Leaders <span className="text-[#6351e8]">Roster</span></span>
+                        <span className="text-[10px] bg-[#ede9fe] text-[#5b4eed] font-bold px-2.5 py-0.5 rounded-full border border-purple-200/60">
                           {leaders.length} Registered
                         </span>
                         <span className="text-[10px] bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded-full border border-emerald-200">
@@ -2733,7 +2731,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                         setFormSuccess('');
                         setShowAddLeaderModal(true);
                       }}
-                      className="px-5 py-2.5 bg-[#2e7d32] hover:bg-[#256628] text-white rounded-2xl text-[10px] font-black tracking-[0.2em] shadow-sm transition-all active:scale-[0.98] flex items-center justify-center gap-2 uppercase cursor-pointer shrink-0"
+                      className="px-5 py-2.5 bg-gradient-to-r from-[#5f4de6] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7060f0] text-white rounded-2xl text-[10px] font-black tracking-[0.2em] shadow-sm shadow-indigo-200/50 transition-all active:scale-[0.98] flex items-center justify-center gap-2 uppercase cursor-pointer shrink-0"
                     >
                       <UserPlus className="w-4 h-4" />
                       <span>Add New Leader</span>
@@ -2751,7 +2749,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                           placeholder="Search leader by name, code, email, phone, or department..."
                           value={leaderSearchTerm}
                           onChange={(e) => setLeaderSearchTerm(e.target.value)}
-                          className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-[#dcdcdc] rounded-xl text-xs text-[#1f2d2a] placeholder-slate-400 focus:outline-none focus:border-[#2e7d32] font-semibold"
+                          className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-[#1e1b4b] placeholder-slate-400 focus:outline-none focus:border-[#6351e8] font-semibold"
                         />
                         {leaderSearchTerm && (
                           <button
@@ -2768,7 +2766,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                         <select
                           value={leaderDeptFilter}
                           onChange={(e) => setLeaderDeptFilter(e.target.value)}
-                          className="w-full px-3 py-2 bg-slate-50 border border-[#dcdcdc] rounded-xl text-xs text-[#1f2d2a] font-bold focus:outline-none focus:border-[#2e7d32] cursor-pointer"
+                          className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-[#1e1b4b] font-bold focus:outline-none focus:border-[#6351e8] cursor-pointer"
                         >
                           <option value="ALL">All Departments ({departments.length})</option>
                           {departments.map((d) => (
@@ -2782,13 +2780,13 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
                     <div className="flex items-center justify-between sm:justify-end gap-2.5 shrink-0">
                       {/* Status Filter Tabs */}
-                      <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+                      <div className="flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-200">
                         <button
                           type="button"
                           onClick={() => setRosterStatusFilter('ALL')}
-                          className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${rosterStatusFilter === 'ALL'
-                              ? 'bg-white text-[#1f2d2a] shadow-xs'
-                              : 'text-slate-500 hover:text-[#1f2d2a]'
+                          className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${rosterStatusFilter === 'ALL'
+                              ? 'bg-white text-[#1e1b4b] shadow-xs'
+                              : 'text-slate-500 hover:text-[#1e1b4b]'
                             }`}
                         >
                           All ({leaders.length})
@@ -2796,9 +2794,9 @@ export const UnifiedAdminDashboard: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => setRosterStatusFilter('ACTIVE')}
-                          className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${rosterStatusFilter === 'ACTIVE'
-                              ? 'bg-[#2e7d32] text-white shadow-xs'
-                              : 'text-slate-500 hover:text-[#2e7d32]'
+                          className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${rosterStatusFilter === 'ACTIVE'
+                              ? 'bg-[#6351e8] text-white shadow-xs'
+                              : 'text-slate-500 hover:text-[#6351e8]'
                             }`}
                         >
                           Active ({leaders.filter((l) => l.is_active !== false).length})
@@ -2806,7 +2804,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => setRosterStatusFilter('DISABLED')}
-                          className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${rosterStatusFilter === 'DISABLED'
+                          className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${rosterStatusFilter === 'DISABLED'
                               ? 'bg-slate-700 text-white shadow-xs'
                               : 'text-slate-500 hover:text-slate-900'
                             }`}
@@ -2816,13 +2814,13 @@ export const UnifiedAdminDashboard: React.FC = () => {
                       </div>
 
                       {/* View Mode Toggle (List vs Grid) */}
-                      <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+                      <div className="flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-200">
                         <button
                           type="button"
                           onClick={() => setLeaderViewMode('list')}
-                          className={`p-1.5 rounded-lg transition-all cursor-pointer ${leaderViewMode === 'list'
-                              ? 'bg-white text-[#2e7d32] shadow-xs'
-                              : 'text-slate-400 hover:text-[#1f2d2a]'
+                          className={`p-1.5 rounded-xl transition-all cursor-pointer ${leaderViewMode === 'list'
+                              ? 'bg-white text-[#6351e8] shadow-xs'
+                              : 'text-slate-400 hover:text-[#1e1b4b]'
                             }`}
                           title="Detailed List / Table View"
                         >
@@ -2831,9 +2829,9 @@ export const UnifiedAdminDashboard: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => setLeaderViewMode('grid')}
-                          className={`p-1.5 rounded-lg transition-all cursor-pointer ${leaderViewMode === 'grid'
-                              ? 'bg-white text-[#2e7d32] shadow-xs'
-                              : 'text-slate-400 hover:text-[#1f2d2a]'
+                          className={`p-1.5 rounded-xl transition-all cursor-pointer ${leaderViewMode === 'grid'
+                              ? 'bg-white text-[#6351e8] shadow-xs'
+                              : 'text-slate-400 hover:text-[#1e1b4b]'
                             }`}
                           title="Grid Cards View"
                         >
@@ -2891,18 +2889,18 @@ export const UnifiedAdminDashboard: React.FC = () => {
                               {/* Leader Name, Role, Employee ID */}
                               <td className="py-3.5 px-4">
                                 <div className="flex items-center gap-3">
-                                  <div className="w-9 h-9 rounded-xl bg-[#cfead6] text-[#2e7d32] font-black text-xs flex items-center justify-center shrink-0 border border-[#2e7d32]/20 shadow-2xs">
+                                  <div className="w-9 h-9 rounded-2xl bg-[#ede9fe] text-[#6351e8] font-black text-xs flex items-center justify-center shrink-0 border border-purple-200/60 shadow-2xs">
                                     {lead.full_name.slice(0, 2).toUpperCase()}
                                   </div>
                                   <div>
-                                    <div className="font-bold text-[#1f2d2a] text-sm leading-snug">
+                                    <div className="font-bold text-[#1e1b4b] text-sm leading-snug">
                                       {lead.full_name}
                                     </div>
                                     <div className="flex items-center gap-1.5 mt-0.5">
                                       <span className="text-[10px] font-mono font-bold text-slate-500 bg-slate-100 px-1.5 py-0.2 rounded border border-slate-200">
                                         {lead.employee_code || 'ID-N/A'}
                                       </span>
-                                      <span className="text-[9px] font-bold uppercase px-1.5 py-0.2 rounded bg-orange-50 text-orange-700 border border-orange-200">
+                                      <span className="text-[9px] font-bold uppercase px-1.5 py-0.2 rounded bg-purple-50 text-[#6351e8] border border-purple-200">
                                         {lead.role || 'LEADER'}
                                       </span>
                                     </div>
@@ -2912,8 +2910,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
                               {/* Department */}
                               <td className="py-3.5 px-4">
-                                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-900 bg-[#cfead6]/70 border border-[#2e7d32]/20 px-2.5 py-1 rounded-lg">
-                                  <Building size={13} className="text-[#2e7d32]" />
+                                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#5b4eed] bg-[#ede9fe]/80 border border-purple-200/60 px-2.5 py-1 rounded-xl">
+                                  <Building size={13} className="text-[#6351e8]" />
                                   <span>{lead.department?.name || 'Department'}</span>
                                   <span className="text-[10px] font-mono text-slate-500 font-semibold">
                                     ({lead.department?.code || 'DEPT'})
@@ -2926,10 +2924,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                 <div className="space-y-1 text-xs font-mono">
                                   <a
                                     href={`mailto:${lead.email}`}
-                                    className="flex items-center gap-1.5 text-slate-600 hover:text-orange-600 truncate max-w-[220px]"
+                                    className="flex items-center gap-1.5 text-slate-600 hover:text-[#6351e8] truncate max-w-[220px]"
                                     title={lead.email}
                                   >
-                                    <Mail size={13} className="text-orange-500 shrink-0" />
+                                    <Mail size={13} className="text-[#6351e8] shrink-0" />
                                     <span className="truncate">{lead.email}</span>
                                   </a>
                                   <a
@@ -3048,13 +3046,13 @@ export const UnifiedAdminDashboard: React.FC = () => {
                           </div>
 
                           <div className="flex items-center gap-3 mt-3">
-                            <div className="w-10 h-10 rounded-xl bg-[#cfead6] text-[#2e7d32] font-black text-sm flex items-center justify-center shrink-0 border border-[#2e7d32]/20">
+                            <div className="w-10 h-10 rounded-2xl bg-[#ede9fe] text-[#6351e8] font-black text-sm flex items-center justify-center shrink-0 border border-purple-200/60 shadow-2xs">
                               {lead.full_name.slice(0, 2).toUpperCase()}
                             </div>
                             <div className="min-w-0">
-                              <h4 className="text-base font-bold text-[#1f2d2a] truncate">{lead.full_name}</h4>
+                              <h4 className="text-base font-bold text-[#1e1b4b] truncate">{lead.full_name}</h4>
                               <p className="text-xs text-slate-600 font-semibold flex items-center gap-1 mt-0.5 truncate">
-                                <Building className="w-3.5 h-3.5 text-[#2e7d32] shrink-0" />
+                                <Building className="w-3.5 h-3.5 text-[#6351e8] shrink-0" />
                                 <span className="truncate">{lead.department?.name || 'Department'}</span>
                               </p>
                             </div>
@@ -3062,11 +3060,11 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
                           <div className="mt-4 space-y-1.5 text-xs text-slate-600 font-mono">
                             <div className="flex items-center gap-2 text-slate-500">
-                              <Mail className="w-3.5 h-3.5 text-orange-600 shrink-0" />
+                              <Mail className="w-3.5 h-3.5 text-[#6351e8] shrink-0" />
                               <span className="truncate">{lead.email}</span>
                             </div>
                             <div className="flex items-center gap-2 text-slate-500">
-                              <Phone className="w-3.5 h-3.5 text-[#2e7d32] shrink-0" />
+                              <Phone className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                               <span>{lead.phone || 'No Phone'}</span>
                             </div>
                             <div className="flex items-center justify-between p-2 mt-2 bg-amber-50/80 border border-amber-200 text-amber-950 rounded-xl text-xs font-mono">
@@ -3133,12 +3131,12 @@ export const UnifiedAdminDashboard: React.FC = () => {
           {/* ================= TAB 5: DEPARTMENTS MASTER (24 OFFICIAL DEPARTMENTS) ================= */}
           {activeTab === 'departments' && (
             <div className="space-y-6">
-              <div className="bg-white p-5 rounded-2xl border border-[#dcdcdc] shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="bg-white p-5 rounded-3xl border border-purple-100/80 shadow-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                  <h3 className="text-lg font-bold text-[#1f2d2a] flex items-center gap-2 uppercase tracking-tight">
-                    <Building className="w-5 h-5 text-[#2e7d32]" />
-                    <span>Hospital Departments <span className="text-[#2e7d32]">Master</span> ({departments.length})</span>
-                    <span className="text-[10px] bg-[#cfead6] text-[#2e7d32] font-bold px-2.5 py-0.5 rounded-full border border-[#2e7d32]/20">
+                  <h3 className="text-lg font-bold text-[#1e1b4b] flex items-center gap-2 uppercase tracking-tight">
+                    <Building className="w-5 h-5 text-[#6351e8]" />
+                    <span>Hospital Departments <span className="text-[#6351e8]">Master</span> ({departments.length})</span>
+                    <span className="text-[10px] bg-[#ede9fe] text-[#5b4eed] font-bold px-2.5 py-0.5 rounded-full border border-purple-200/60">
                       Official 24 Departments Active
                     </span>
                   </h3>
@@ -3155,7 +3153,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                       placeholder="Search departments..."
                       value={deptSearchTerm}
                       onChange={(e) => setDeptSearchTerm(e.target.value)}
-                      className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-[#dcdcdc] rounded-xl text-xs text-[#1f2d2a] placeholder-slate-400 focus:outline-none focus:border-[#2e7d32] font-semibold"
+                      className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-[#1e1b4b] placeholder-slate-400 focus:outline-none focus:border-[#6351e8] font-semibold"
                     />
                   </div>
 
@@ -3167,7 +3165,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                       setDeptFormSuccess('');
                       setShowAddDeptModal(true);
                     }}
-                    className="flex items-center gap-1.5 px-4 py-2 bg-[#2e7d32] hover:bg-[#256628] text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer shrink-0"
+                    className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-[#5f4de6] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7060f0] text-white rounded-2xl text-xs font-bold shadow-sm shadow-indigo-200/50 transition-all cursor-pointer shrink-0"
                   >
                     <Plus className="w-4 h-4" />
                     <span>Add Department</span>
