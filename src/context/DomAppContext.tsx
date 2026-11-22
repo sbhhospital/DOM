@@ -109,7 +109,7 @@ interface DomAppContextType {
     scheduledTime: string,
     reason?: string
   ) => Promise<{ success: boolean; message: string }>;
-  sendNonAttendeesEscalationNotice: (date: string) => { count: number; message: string; payload: string };
+  sendNonAttendeesEscalationNotice: (date: string) => Promise<{ count: number; message: string; payload: string }>;
   generateEmailReportDraft: (date: string) => { subject: string; body: string; mailtoUrl: string };
   generateNonAttendeesEscalationEmail: (date: string) => {
     subject: string;
@@ -2505,7 +2505,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       year: 'numeric',
     });
 
-    let msg = `🏥 *SBH GROUP OF HOSPITAL, RAIPUR*\n`;
+    let msg = `*SBH GROUP OF HOSPITALS, RAIPUR*\n`;
     msg += `📊 *FINAL 10:30 AM ${cadenceCode} ATTENDANCE AUDIT REPORT*\n`;
     msg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
     msg += `📅 *Date:* ${formattedDate} | *Meeting:* ${cadenceCode} (${meeting.frequency})\n`;
@@ -2592,7 +2592,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     if (isSunday || isHoliday) {
       noticeType = isSunday ? 'SUNDAY_OFF_NOTICE' : 'HOLIDAY_NOTICE';
-      reminderMsg = `🏥 *SBH GROUP OF HOSPITALS, RAIPUR*\n`;
+      reminderMsg = `*SBH GROUP OF HOSPITALS, RAIPUR*\n`;
       reminderMsg += `🏖️ *OFFICIAL NOTICE: ${isSunday ? 'WEEKLY OFF (SUNDAY)' : 'HOSPITAL HOLIDAY / STAND-DOWN'}*\n`;
       reminderMsg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
       reminderMsg += `📅 *Date:* ${formatToIndianDate(date)} (${isSunday ? 'Sunday Weekly Off' : meeting.title})\n`;
@@ -2601,7 +2601,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       reminderMsg += `Next DOM Standup will resume on Monday at 10:00 AM IST.\n`;
       reminderMsg += `━━━━━━━━━━━━━━━━━━━━━━\n*Automated Reminder*`;
     } else {
-      reminderMsg = `🏥 *SBH GROUP OF HOSPITALS, RAIPUR*\n`;
+      reminderMsg = `*SBH GROUP OF HOSPITALS, RAIPUR*\n`;
       reminderMsg += `🔔 *09:50 AM NOTICE: ${cadenceCode} — ${meeting.title.toUpperCase()}*\n`;
       reminderMsg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
       reminderMsg += `📅 *Date:* ${formatToIndianDate(date)}\n`;
@@ -2609,7 +2609,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       reminderMsg += `📍 *Venue:* ${appSettings.conference_room_name || 'Conference Room, 5th Floor'}\n`;
       reminderMsg += `💻 *Google Meet:* ${meeting.google_meet_url || 'https://meet.google.com/jrz-jfku-gir'}\n\n`;
       reminderMsg += `📌 *MANDATORY CHECK-IN INSTRUCTION:*\n`;
-      reminderMsg += `Physical attendance ke liye 5th Floor Conference Room me QR Code Scan karna MANDATORY hai. Bina QR code scan kiye physical attendance submit nahi maani jayegi.\n\n`;
+      reminderMsg += `QR Code scanning at the 5th Floor Conference Room is MANDATORY for physical attendance. Physical attendance will not be counted without scanning the room QR code.\n\n`;
       reminderMsg += `✅ *Direct Attendance Link:* https://sbhdom.vercel.app/boardroom-checkin\n`;
       reminderMsg += `━━━━━━━━━━━━━━━━━━━━━━\n*Automated Reminder*`;
     }
@@ -2678,7 +2678,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     reason?: string
   ): Promise<{ success: boolean; message: string }> => {
     const targetGroup = appSettings.admin_whatsapp_group || '120363432056023698@g.us';
-    let msg = `🏥 *SBH GROUP OF HOSPITALS, RAIPUR*\n`;
+    let msg = `*SBH GROUP OF HOSPITALS, RAIPUR*\n`;
     msg += `📢 *OFFICIAL SCHEDULE UPDATE / CADENCE NOTICE*\n`;
     msg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
     msg += `📅 *Target Date:* ${formatToIndianDate(date)}\n`;
@@ -2723,8 +2723,10 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
   };
 
-  // Stage 2: 10:10 AM Live Attendance Status (❌ Red Cross for absentees, 🏢 physical, 💻 virtual, ⚠️ verified leave)
-  const sendNonAttendeesEscalationNotice = (date: string) => {
+  // Escalation notice strictly for leaders absent without information
+  const sendNonAttendeesEscalationNotice = async (
+    date: string
+  ): Promise<{ count: number; message: string; payload: string }> => {
     const meeting = getMeetingForDate(date);
     const forDate = attendanceRecords.filter((r) => r.meeting_date === date);
     const cadenceCode = meeting.cadence || 'DOM';
@@ -2735,77 +2737,69 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       year: 'numeric',
     });
 
-    const presentPhysical = forDate.filter(
-      (r) => r.selected_mode === 'PHYSICAL' && (r.status === 'PRESENT' || r.admin_verified_attendance)
-    );
-    const presentVirtual = forDate.filter((r) => r.selected_mode === 'VIRTUAL' && r.status === 'PRESENT');
-    const informedLeave = forDate.filter(
-      (r) => r.status === 'LEAVE' || (r.status === 'INFORMED_ABSENT' && (r.informed_confirmed || r.admin_verified_attendance))
-    );
-    const absent = forDate.filter(
-      (r) => r.status === 'ABSENT' || (r.status === 'PENDING' && r.selected_mode === 'NONE')
-    );
+    // Filter strictly leaders who are absent WITHOUT prior information / approved leave:
+    const uninformedAbsentees = forDate.filter((r) => {
+      // Exclude present leaders
+      if (r.status === 'PRESENT' || r.status === 'CHECKED_IN' || r.admin_verified_attendance) return false;
+      // Exclude approved leave or excused
+      if (r.status === 'LEAVE' || r.status === 'EXCUSED') return false;
+      // Exclude admin-approved informed late
+      if (r.status === 'INFORMED_LATE' || r.late_approved_by_admin) return false;
+      // Exclude confirmed informed absence
+      if (r.status === 'INFORMED_ABSENT' && (r.informed_confirmed || r.admin_verified_attendance)) return false;
+      // Exclude if any reason/person was provided
+      if (r.informed_reason || r.late_reason || r.informed_to_person) return false;
+      if (r.verification_note?.toLowerCase().includes('leave') || r.verification_note?.toLowerCase().includes('approved')) return false;
 
-    let msg = `🏥 *SBH GROUP OF HOSPITAL, RAIPUR*\n`;
-    msg += `🚨 *10:10 AM LIVE ATTENDANCE STATUS (${cadenceCode})*\n`;
-    msg += `📅 Date: ${formattedDate} | ⏰ Checked at: 10:10 AM\n`;
+      // Candidate must be officially ABSENT or pending with no mode selected
+      return r.status === 'ABSENT' || (r.status === 'PENDING' && r.selected_mode === 'NONE');
+    });
+
+    if (uninformedAbsentees.length === 0) {
+      return {
+        count: 0,
+        message: 'All leaders have joined or provided prior information. No uninformed absentees to escalate!',
+        payload: '',
+      };
+    }
+
+    let msg = `*SBH GROUP OF HOSPITALS, RAIPUR*\n`;
+    msg += `🚨 *MANDATORY ATTENDANCE NON-COMPLIANCE ESCALATION*\n`;
+    msg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
+    msg += `📅 *Date:* ${formattedDate} | *Meeting:* ${cadenceCode} (${meeting.title})\n`;
+    msg += `⏰ *Session Time:* ${meeting.scheduled_time || '10:00 AM'} IST\n`;
+    msg += `📍 *Venue:* ${appSettings.conference_room_name || 'Conference Room, 5th Floor'}\n`;
     msg += `━━━━━━━━━━━━━━━━━━━━━━\n\n`;
 
-    // 1. ABSENT / NOT JOINED (Red Cross ❌)
-    if (absent.length > 0) {
-      msg += `❌ *NOT JOINED / ABSENT (${absent.length}):*\n`;
-      absent.forEach((p, idx) => {
-        msg += `❌ ${idx + 1}. *${p.leader?.full_name}* (${p.leader?.department?.name || 'Dept'}) — NOT JOINED\n`;
-      });
-      msg += `\n`;
-    } else {
-      msg += `🎉 *Zero Absentees! Everyone has joined or informed.*\n\n`;
-    }
+    msg += `📢 *DEAR MANAGEMENT TEAM,*\n`;
+    msg += `The following department leaders have *NOT ATTENDED* today's mandatory meeting and have provided *NO PRIOR INFORMATION* or valid explanation for their absence.\n\n`;
+    msg += `Kindly review and initiate necessary administrative action as per hospital policy.\n\n`;
 
-    // 2. PHYSICALLY JOINED (Boardroom)
-    if (presentPhysical.length > 0) {
-      msg += `🏢 *PHYSICALLY JOINED IN BOARDROOM (${presentPhysical.length}):*\n`;
-      presentPhysical.forEach((p, idx) => {
-        const timeStr = p.check_in_at
-          ? new Date(p.check_in_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
-          : 'In-Person';
-        msg += `🏢 ${idx + 1}. ${p.leader?.full_name} (${p.leader?.department?.name || 'Dept'}) — ${timeStr}\n`;
-      });
-      msg += `\n`;
-    }
+    msg += `❌ *ABSENT LEADERS (NO INFORMATION SUBMITTED):*\n`;
+    uninformedAbsentees.forEach((p, idx) => {
+      msg += `❌ ${idx + 1}. *${p.leader?.full_name}* (${p.leader?.department?.name || 'Department'})\n`;
+    });
+    msg += `\n`;
 
-    // 3. VIRTUALLY JOINED (Google Meet)
-    if (presentVirtual.length > 0) {
-      msg += `💻 *VIRTUALLY JOINED VIA GOOGLE MEET (${presentVirtual.length}):*\n`;
-      presentVirtual.forEach((p, idx) => {
-        const timeStr = p.check_in_at
-          ? new Date(p.check_in_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
-          : 'Meet Virtual';
-        msg += `💻 ${idx + 1}. ${p.leader?.full_name} (${p.leader?.department?.name || 'Dept'}) — ${timeStr}\n`;
-      });
-      msg += `\n`;
-    }
+    msg += `⚠️ *OFFICIAL EXPLANATION REQUIRED (FOR ABSENT LEADERS):*\n`;
+    msg += `To all leaders listed above:\n`;
+    msg += `You have been officially marked *ABSENT (NO INFORMATION)*. Please submit your written explanation immediately to the Hospital Management & Operations Command stating the valid reason why you were unable to attend today's scheduled meeting.\n\n`;
 
-    // 4. INFORMED / LEAVE (VERIFIED BY ADMIN)
-    if (informedLeave.length > 0) {
-      msg += `⚠️ *INFORMED / APPROVED LEAVE (${informedLeave.length}) [Verified by Admin ✅]:*\n`;
-      informedLeave.forEach((p, idx) => {
-        const info = p.informed_to_person ? `Informed to: ${p.informed_to_person}` : 'Informed Admin';
-        const rsn = p.informed_reason ? ` | ${p.informed_reason}` : '';
-        msg += `⚠️ ${idx + 1}. ${p.leader?.full_name} (${p.leader?.department?.name || 'Dept'}) — ${info}${rsn}\n`;
-      });
-      msg += `\n`;
-    }
+    msg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
+    msg += `*Clinical Governance & Hospital Operations Command*\n`;
+    msg += `*Automated Reminder*`;
 
-    if (absent.length > 0) {
-      msg += `🔴 *KINDLY JOIN IMMEDIATELY:*\n`;
-      msg += `💻 Google Meet: ${meeting.google_meet_url}\n`;
-      msg += `*Attendance window will freeze for final 10:30 AM report.*\n`;
-    }
+    const targetGroup = appSettings.admin_whatsapp_group || '120363432056023698@g.us';
 
-    msg += `━━━━━━━━━━━━━━━━━━━━━━\nDOM Operations Command | SBH Raipur`;
+    // 1. Direct WhatsApp Dispatch via CEOITBOX API to official WhatsApp group
+    await sendCeoitboxWhatsappMessage({
+      mobileNo: targetGroup,
+      name: 'SBH DOM Official Group',
+      message: msg,
+      settings: appSettings,
+    });
 
-    // Direct background dispatch to Google Sheet Webhook without redirecting browser
+    // 2. Direct background dispatch to Google Sheet Webhook without redirecting browser
     if (appSettings.google_sheet_webhook_url) {
       try {
         fetch(appSettings.google_sheet_webhook_url, {
@@ -2813,21 +2807,26 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify({
             action: 'SEND_WHATSAPP_BROADCAST',
-            stage: '1010',
+            stage: 'ABSENT_ESCALATION',
             date,
             message: msg,
-            targetGroup: appSettings.admin_whatsapp_group || '120363432056023698@g.us',
+            targetGroup,
           }),
         }).catch(() => {});
       } catch (e) {
         // silent
       }
     }
+
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
       navigator.clipboard.writeText(msg).catch(() => {});
     }
 
-    return { count: absent.length, message: `10:10 AM live status automatically dispatched to WhatsApp Group & Google Sheet!`, payload: msg };
+    return {
+      count: uninformedAbsentees.length,
+      message: `Escalation notice for ${uninformedAbsentees.length} absent leader(s) successfully dispatched to WhatsApp Group!`,
+      payload: msg,
+    };
   };
 
   const generateEmailReportDraft = (date: string) => {
@@ -2886,8 +2885,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     absentRecords.forEach((r, idx) => {
       const leaderName = r.leader?.full_name || 'Leader';
       const dept = r.leader?.department?.name || 'Department';
-      const code = r.leader?.employee_code || '';
-      body += `${idx + 1}. ${leaderName} — ${dept} ${code ? `(${code})` : ''}\n`;
+      body += `${idx + 1}. ${leaderName} — ${dept}\n`;
     });
 
     body += `\n⚠️ MANDATORY ACTION REQUIRED:\n`;
@@ -2995,7 +2993,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       (r) => r.status === 'ABSENT' || (r.status === 'PENDING' && r.selected_mode === 'NONE')
     );
 
-    let msg = `🏥 *SBH GROUP OF HOSPITAL, RAIPUR*\n`;
+    let msg = `*SBH GROUP OF HOSPITALS, RAIPUR*\n`;
     msg += `📊 *OFFICIAL ${cadenceCode} ATTENDANCE REPORT*\n`;
     msg += `📅 Date: ${formatToIndianDate(date)} (${cadenceCode} SESSION)\n`;
     msg += `⏰ Scheduled Time: ${meeting.scheduled_time}\n`;
@@ -3051,7 +3049,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       (r) => r.status === 'ABSENT' || (r.status === 'PENDING' && r.selected_mode === 'NONE')
     );
 
-    let summaryMsg = `🏥 *SBH GROUP OF HOSPITALS, RAIPUR*\n`;
+    let summaryMsg = `*SBH GROUP OF HOSPITALS, RAIPUR*\n`;
     summaryMsg += `📄 *OFFICIAL ${cadenceCode} ATTENDANCE PDF REPORT*\n`;
     summaryMsg += `📅 Date: ${formatToIndianDate(date)} (${cadenceCode})\n`;
     summaryMsg += `⏰ Time: ${meeting.scheduled_time} IST\n`;
@@ -3095,7 +3093,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     const targetGroup = appSettings.admin_whatsapp_group || '120363432056023698@g.us';
 
-    let reminderText = `🏥 *SBH GROUP OF HOSPITALS, RAIPUR*\n`;
+    let reminderText = `*SBH GROUP OF HOSPITALS, RAIPUR*\n`;
     reminderText += `🔔 *OFFICIAL 09:50 AM ${cadenceCode} NOTICE — ${meeting.title.toUpperCase()}*\n`;
     reminderText += `━━━━━━━━━━━━━━━━━━━━━━\n`;
     reminderText += `📅 *Date:* ${formattedDate}\n`;
@@ -3142,10 +3140,10 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const lead = rec.leader;
       if (!lead?.phone || lead.phone.replace(/\D/g, '').includes('9977881452')) continue;
 
-      let alertText = `🏥 *SBH GROUP OF HOSPITAL, RAIPUR*\n`;
+      let alertText = `*SBH GROUP OF HOSPITALS, RAIPUR*\n`;
       alertText += `🚨 *URGENT: ${cadenceCode} SESSION IN PROGRESS — KINDLY JOIN*\n`;
       alertText += `Dear ${lead.full_name},\n`;
-      alertText += `Today's ${cadenceCode} (${meeting.title}) has commenced. Your attendance is required immediately.\n\n`;
+      alertText += `Today's ${cadenceCode} (${meeting.title}) has started. Your attendance is required immediately.\n\n`;
       alertText += `🔴 *CHECK-IN NOW:*\n`;
       alertText += `👉 https://sbhdom.vercel.app/boardroom-checkin\n`;
       alertText += `📍 In-Person: ${appSettings.conference_room_name || 'Conference Room, 5th Floor'}\n`;
@@ -3208,7 +3206,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     let msg = '';
 
     if (stage === '0950') {
-      msg = `🏥 *SBH GROUP OF HOSPITALS, RAIPUR*\n`;
+      msg = `*SBH GROUP OF HOSPITALS, RAIPUR*\n`;
       msg += `🔔 *09:50 AM NOTICE: ${cadenceCode} — ${meeting.title.toUpperCase()}*\n`;
       msg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
       msg += `📅 *Date:* ${formattedDate}\n`;
@@ -3222,7 +3220,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       msg += `━━━━━━━━━━━━━━━━━━━━━━\n*Automated Reminder*`;
     } else {
       // 10:30 AM
-      msg = `🏥 *SBH GROUP OF HOSPITALS, RAIPUR*\n`;
+      msg = `*SBH GROUP OF HOSPITALS, RAIPUR*\n`;
       msg += `📊 *FINAL 10:30 AM ${cadenceCode} ATTENDANCE AUDIT REPORT*\n`;
       msg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
       msg += `📅 *Date:* ${formattedDate} | *Meeting:* ${cadenceCode} (${meeting.frequency})\n`;
@@ -3538,7 +3536,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const assignedPassword = leader.password || localStorage.getItem(`sbh_user_pass_${leader.id}`) || '123456';
     const deptName = leader.department?.name || 'Hospital Operations';
 
-    let msg = `🏥 *SBH GROUP OF HOSPITALS, RAIPUR*\n`;
+    let msg = `*SBH GROUP OF HOSPITALS, RAIPUR*\n`;
     msg += `🔐 *OFFICIAL LEADER PORTAL CREDENTIALS & LOGIN GUIDE*\n`;
     msg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
     msg += `Dear *${leader.full_name}*,\n\n`;

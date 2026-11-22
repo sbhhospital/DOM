@@ -1204,7 +1204,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
       const pdfFile = new File([pdfBlob], filename, { type: 'application/pdf' });
 
       // Structured WhatsApp Caption
-      const captionText = `🏥 *SBH GROUP OF HOSPITALS, RAIPUR*\n📊 *OFFICIAL ${cadence} LEADERSHIP ATTENDANCE REPORT (${formatToIndianDate(date)})*\n━━━━━━━━━━━━━━━━━━━━━━\n• Total Expected: ${forDate.length}\n• Attended: ${forDate.filter((r) => isPresentRecord(r)).length}\n• Approved Late: ${forDate.filter((r) => isLateRecord(r)).length}\n• Approved Leave: ${forDate.filter((r) => isLeaveRecord(r)).length}\n• Absent / Unreported: ${forDate.filter((r) => isAbsentRecord(r)).length}\n\n📄 *Official Signed Director Attendance PDF Report Attached*\n━━━━━━━━━━━━━━━━━━━━━━\n*Automated Reminder*`;
+      const captionText = `*SBH GROUP OF HOSPITALS, RAIPUR*\n📊 *OFFICIAL ${cadence} LEADERSHIP ATTENDANCE REPORT (${formatToIndianDate(date)})*\n━━━━━━━━━━━━━━━━━━━━━━\n• Total Expected: ${forDate.length}\n• Attended: ${forDate.filter((r) => isPresentRecord(r)).length}\n• Approved Late: ${forDate.filter((r) => isLateRecord(r)).length}\n• Approved Leave: ${forDate.filter((r) => isLeaveRecord(r)).length}\n• Absent / Unreported: ${forDate.filter((r) => isAbsentRecord(r)).length}\n\n📄 *Official Signed Director Attendance PDF Report Attached*\n━━━━━━━━━━━━━━━━━━━━━━\n*Automated Reminder*`;
 
       // 1. Direct Ceoitbox PDF Dispatch to WhatsApp Group (120363432056023698@g.us) via /api/v1/message/create
       const dispatchPromise = sendDirectorPdfToWhatsappGroup(date);
@@ -1270,7 +1270,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
       year: 'numeric',
     });
 
-    let textMsg = `🏥 *SBH GROUP OF HOSPITALS, RAIPUR*\n`;
+    let textMsg = `*SBH GROUP OF HOSPITALS, RAIPUR*\n`;
     textMsg += `📊 *OFFICIAL ${cadenceCode} ATTENDANCE REPORT (${formattedDate})*\n`;
     textMsg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
     textMsg += `⏰ Time: ${meeting.scheduled_time} IST | Venue: ${appSettings.conference_room_name || 'Conference Room, 5th Floor'}\n`;
@@ -2117,10 +2117,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
                       onClick={async () => {
                         setIsEscalating(true);
                         try {
-                          await sendNonAttendeesEscalationNotice(selectedDate);
+                          const res = await sendNonAttendeesEscalationNotice(selectedDate);
                           setToastAlert({
-                            type: 'success',
-                            text: '✅ Non-Attendees Escalation Notice dispatched successfully!',
+                            type: res.count === 0 ? 'info' : 'success',
+                            text: res.message,
                           });
                           setTimeout(() => setToastAlert(null), 5000);
                         } finally {
@@ -4092,7 +4092,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
                           const clicks = record?.virtual_clicks_count || (isVirtualClicked ? 1 : 0);
 
-                          const waMsg = `🏥 *SBH GROUP OF HOSPITAL, RAIPUR*\n🔔 *DAILY OPERATIONS MEETING (DOM) — ${selectedDate}*\n\nDear ${lead.full_name},\nYour personal meeting tracking link for today is ready:\n👉 ${personalMeetUrl}\n\nTap above to enter Google Meet and auto-record your virtual attendance.\n\nDOM Operations Command | SBH Raipur`;
+                          const waMsg = `*SBH GROUP OF HOSPITALS, RAIPUR*\n🔔 *DAILY OPERATIONS MEETING (DOM) — ${selectedDate}*\n\nDear ${lead.full_name},\nYour personal meeting tracking link for today is ready:\n👉 ${personalMeetUrl}\n\nTap above to enter Google Meet and auto-record your virtual attendance.\n\nDOM Operations Command | SBH Raipur`;
                           const waUrl = `https://api.whatsapp.com/send?phone=91${lead.phone?.replace(/\D/g, '')}&text=${encodeURIComponent(
                             waMsg
                           )}`;
@@ -6564,7 +6564,7 @@ function doPost(e) {
  */
 function sendDaily0950Notice() {
   const todayStr = Utilities.formatDate(new Date(), "Asia/Kolkata", "dd-MMM-yyyy");
-  const msg = "🏥 *SBH GROUP OF HOSPITALS, RAIPUR*\\n" +
+  const msg = "*SBH GROUP OF HOSPITALS, RAIPUR*\\n" +
               "🔔 *09:50 AM NOTICE: DAILY OPERATIONS MEETING (DOM)*\\n" +
               "━━━━━━━━━━━━━━━━━━━━━━\\n" +
               "📅 *Date:* " + todayStr + "\\n" +
@@ -6827,6 +6827,26 @@ function doPost(e) {
               >
                 <Copy className="w-3.5 h-3.5" />
                 <span>Copy Notice Text</span>
+              </button>
+              <button
+                onClick={async () => {
+                  setIsEscalating(true);
+                  try {
+                    const res = await sendNonAttendeesEscalationNotice(selectedDate);
+                    setToastAlert({
+                      type: res.count === 0 ? 'info' : 'success',
+                      text: res.message,
+                    });
+                    setTimeout(() => setToastAlert(null), 5000);
+                  } finally {
+                    setIsEscalating(false);
+                  }
+                }}
+                disabled={isEscalating}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
+              >
+                {isEscalating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                <span>Send WhatsApp Notice to Group</span>
               </button>
               <button
                 onClick={() => {
