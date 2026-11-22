@@ -833,6 +833,33 @@ export const LeaderPortal: React.FC = () => {
                       </div>
                     </div>
                   </div>
+                ) : currentMeeting.cadence === 'HOLIDAY' || currentMeeting.is_holiday_or_shifted ? (
+                  <div className="p-5 rounded-3xl bg-amber-50/90 border-2 border-amber-300 text-amber-950 shadow-xs space-y-3">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+                        <Sparkles className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-black text-amber-950">
+                          Official Weekly Off (Sunday) — Standup Standing Off
+                        </h4>
+                        <p className="text-xs text-amber-800 mt-1 leading-relaxed">
+                          Today is an official hospital off day. Daily Operations Standup (DOM) attendance is not required today and zero absentees are counted. Next standup is Monday 10:00 AM IST (WOM).
+                        </p>
+                      </div>
+                    </div>
+                    <div className="pt-2 border-t border-amber-200">
+                      <a
+                        href={currentMeeting.google_meet_url || 'https://meet.google.com/jrz-jfku-gir'}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full py-3 px-4 bg-gradient-to-r from-[#7065f0] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7065f0] text-white rounded-2xl text-xs font-bold flex items-center justify-center gap-2 shadow-sm cursor-pointer no-underline transition-all active:scale-98"
+                      >
+                        <Video className="w-4 h-4 text-white" />
+                        <span>Join Open Google Meet Room (Ad-hoc / Testing) &rarr;</span>
+                      </a>
+                    </div>
+                  </div>
                 ) : (
                   <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-2.5 text-rose-950 shadow-2xs">
                     <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />

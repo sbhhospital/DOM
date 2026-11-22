@@ -1,7 +1,6 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
 import https from 'node:https';
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req, res) {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -45,11 +44,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const pass = password || '123456789';
     const authHeader = 'Basic ' + Buffer.from(`${user}:${pass}`).toString('base64');
 
-    const results: Record<string, any> = {};
+    const results = {};
 
     // 1. If PDF or direct Audio attachment is provided, dispatch via POST /api/v1/message/create with base64File
-    let filePayload: { name: string; body: string } | null = null;
-    const cleanB64 = (raw?: string) => (raw ? (raw.includes('base64,') ? raw.split('base64,')[1] : raw) : '');
+    let filePayload = null;
+    const cleanB64 = (raw) => (raw ? (raw.includes('base64,') ? raw.split('base64,')[1] : raw) : '');
 
     if (pdfBase64) {
       filePayload = {
@@ -66,7 +65,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const effectiveFilePathUrl = filePathUrl || (audioFilename ? `https://sbhdom.vercel.app/audio/${audioFilename}` : undefined);
 
     if (filePayload || effectiveFilePathUrl) {
-      await new Promise<void>((resolve) => {
+      await new Promise((resolve) => {
         const postPayload = JSON.stringify({
           recipientIds: isGroup ? [cleanPhone] : undefined,
           receiverMobileNo: cleanPhone,
@@ -109,7 +108,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // 2. If text message is provided, dispatch via GET /api/v1/message/create
     if (message) {
-      await new Promise<void>((resolve) => {
+      await new Promise((resolve) => {
         // Provide both receiverMobileNo and recipientIds so Ceoitbox accepts regardless of field preference
         const queryParams = new URLSearchParams();
         queryParams.set('api_key', 'test');
@@ -160,7 +159,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       isGroup,
       results,
     });
-  } catch (error: any) {
+  } catch (error) {
     return res.status(500).json({
       success: false,
       error: error.message || 'Internal dispatch error',
