@@ -8,10 +8,10 @@ export const PageLoadingBar: React.FC = () => {
   useEffect(() => {
     setVisible(true);
 
-    // Fast, responsive 360ms presentation so there is zero frustrating delay
+    // Premium 750ms presentation so the smooth loader is enjoyed without frustrating delays
     const timer = setTimeout(() => {
       setVisible(false);
-    }, 360);
+    }, 750);
 
     return () => {
       clearTimeout(timer);
@@ -27,7 +27,7 @@ export const PageLoadingBar: React.FC = () => {
         <img
           src="/images/loader.webp"
           alt="SBH Hospital Standup Loading"
-          className="w-36 h-36 sm:w-48 sm:h-48 object-contain drop-shadow-2xl animate-pulse"
+          className="w-52 h-52 sm:w-64 sm:h-64 object-contain drop-shadow-2xl animate-pulse"
           onError={(e) => {
             (e.currentTarget as HTMLImageElement).src = '/images/loader.gif';
           }}

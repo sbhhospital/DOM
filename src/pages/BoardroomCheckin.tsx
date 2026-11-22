@@ -11,6 +11,8 @@ import {
   LogOut,
   ArrowRight,
   Sparkles,
+  Camera,
+  RefreshCw,
 } from 'lucide-react';
 import { useDomApp } from '../context/DomAppContext';
 import { useAuthSession } from '../context/AuthSessionContext';
@@ -25,6 +27,7 @@ export const BoardroomCheckin: React.FC = () => {
     attendanceRecords,
     markRoomQrCheckIn,
     markVirtualJoin,
+    resetAttendanceTime,
     getMeetingForDate,
     appSettings,
   } = useDomApp();
@@ -45,6 +48,9 @@ export const BoardroomCheckin: React.FC = () => {
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [showHolidayModal, setShowHolidayModal] = useState(false);
   const [showVirtualConfirmModal, setShowVirtualConfirmModal] = useState(false);
+
+  // Testing & Sunday Override Simulator State
+  const [isTestMode, setIsTestMode] = useState(false);
 
   // GPS Telemetry State
   const [geoDistance, setGeoDistance] = useState<number | null>(null);
@@ -119,7 +125,12 @@ export const BoardroomCheckin: React.FC = () => {
   const isCutoffLocked = !hasJoinedToday && !windowStatus.allowed && windowStatus.code === 'AFTER_WINDOW';
   const allowedCampusRadius = appSettings.hospital_radius_meters || 200;
   const isGeoRejected = geoDistance !== null && geoDistance > allowedCampusRadius;
-  const isCheckInDisabled = isSundayOrHoliday || isOnLeave || isCutoffLocked || currentMeeting.is_completed || isGeoRejected;
+  const isCheckInDisabled =
+    (!isTestMode && isSundayOrHoliday) ||
+    isOnLeave ||
+    (!isTestMode && isCutoffLocked) ||
+    currentMeeting.is_completed ||
+    (!isTestMode && isGeoRejected);
 
   const resolvedDepartmentName = useMemo(() => {
     if (currentUser?.department?.name && currentUser.department.name.toUpperCase() !== 'DEPARTMENT') {
@@ -136,9 +147,7 @@ export const BoardroomCheckin: React.FC = () => {
   }, [currentUser, departments]);
 
   // Proactive GPS Telemetry acquisition on load
-  useEffect(() => {
-    if (hasJoinedToday || isSundayOrHoliday || isOnLeave || isCutoffLocked) return;
-
+  const requestLocation = () => {
     if (typeof navigator !== 'undefined' && 'geolocation' in navigator) {
       setIsLocating(true);
       navigator.geolocation.getCurrentPosition(
@@ -169,14 +178,18 @@ export const BoardroomCheckin: React.FC = () => {
         { enableHighAccuracy: true, timeout: 6000, maximumAge: 10000 }
       );
     }
-  }, [hasJoinedToday, isSundayOrHoliday, isOnLeave, isCutoffLocked, appSettings]);
+  };
+
+  useEffect(() => {
+    requestLocation();
+  }, []);
 
   // Confirm Physical Boardroom Presence
   const handleConfirmPhysicalAttendance = async () => {
     if (!currentUser) return;
     setErrorMessage('');
 
-    if (isSundayOrHoliday) {
+    if (isSundayOrHoliday && !isTestMode) {
       setShowHolidayModal(true);
       return;
     }
@@ -191,7 +204,7 @@ export const BoardroomCheckin: React.FC = () => {
       return;
     }
 
-    if (isCutoffLocked) {
+    if (isCutoffLocked && !isTestMode) {
       setErrorMessage(windowStatus.message || `Access Denied: Standup check-in window closed at ${windowStatus.windowCloseStr} (10:20 AM Cutoff). Attendance is now locked.`);
       return;
     }
@@ -216,7 +229,20 @@ export const BoardroomCheckin: React.FC = () => {
         } catch {}
       }
 
-      const res = await markRoomQrCheckIn(currentUser.id, currentLoc || undefined);
+      // If test mode and outside campus, simulate in-campus 5th floor coords for verification test
+      if (isTestMode && (!currentLoc || (geoDistance !== null && geoDistance > allowedCampusRadius))) {
+        currentLoc = {
+          latitude: appSettings.hospital_latitude || 21.22528,
+          longitude: appSettings.hospital_longitude || 81.65921,
+          accuracy: 5,
+          device: 'Admin Standup Verification Test (5th Floor Simulated)',
+        };
+      }
+
+      const res = await markRoomQrCheckIn(currentUser.id, {
+        ...currentLoc,
+        isTestMode,
+      });
 
       if (res.success) {
         setAttendanceSuccessModal({
@@ -242,7 +268,7 @@ export const BoardroomCheckin: React.FC = () => {
     if (!currentUser) return;
     setIsSubmitting(true);
 
-    let geoCoords: { latitude?: number; longitude?: number; accuracy?: number } | undefined;
+    let geoCoords: { latitude?: number; longitude?: number; accuracy?: number; isTestMode?: boolean } | undefined;
     if (typeof navigator !== 'undefined' && 'geolocation' in navigator) {
       try {
         const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
@@ -252,10 +278,15 @@ export const BoardroomCheckin: React.FC = () => {
           latitude: pos.coords.latitude,
           longitude: pos.coords.longitude,
           accuracy: Math.round(pos.coords.accuracy),
+          isTestMode,
         };
       } catch (e) {
         console.warn('Geolocation not permitted for virtual join:', e);
       }
+    }
+
+    if (!geoCoords && isTestMode) {
+      geoCoords = { isTestMode: true };
     }
 
     const res = await markVirtualJoin(currentUser.id, selectedDate, geoCoords);
@@ -342,23 +373,47 @@ export const BoardroomCheckin: React.FC = () => {
                 </span>
               </div>
             </div>
-          ) : isSundayOrHoliday ? (
-            <div className="my-3 p-3.5 bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl text-xs font-bold flex items-center gap-2 shadow-2xs">
-              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-              <span>🏖️ Sunday Weekly Off: Hospital Daily Operations Standup is excused today. Attendance submission is closed.</span>
+          ) : isSundayOrHoliday && !isTestMode ? (
+            <div className="my-3 p-3.5 bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl text-xs font-bold flex flex-col sm:flex-row items-center justify-between gap-2 shadow-2xs">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>🏖️ Sunday Weekly Off: Standup is excused today.</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsTestMode(true)}
+                className="px-3 py-1 bg-[#7065f0] hover:bg-[#584bd8] text-white rounded-xl font-bold text-[11px] shrink-0 cursor-pointer shadow-xs transition-transform active:scale-95 flex items-center gap-1"
+              >
+                <Sparkles className="w-3 h-3 text-white" />
+                <span>Enable Test Mode</span>
+              </button>
+            </div>
+          ) : isTestMode ? (
+            <div className="my-3 p-3 bg-indigo-50 border border-indigo-200 text-indigo-900 rounded-2xl text-xs font-bold flex items-center justify-between shadow-2xs">
+              <div className="flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-[#7065f0]" />
+                <span>🧪 Verification Test Active (Sunday Lock Bypassed)</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsTestMode(false)}
+                className="text-xs text-rose-600 font-bold hover:underline cursor-pointer"
+              >
+                Exit Test
+              </button>
             </div>
           ) : isOnLeave ? (
             <div className="my-3 p-3.5 bg-emerald-50 border border-emerald-300 text-emerald-950 rounded-2xl text-xs font-bold flex items-center gap-2 shadow-2xs">
               <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>🏖️ Official Sanctioned Leave: You are marked on official leave for today. Standup check-in is excused.</span>
+              <span>🏖️ Official Sanctioned Leave: Standup check-in is excused for today.</span>
             </div>
-          ) : isCutoffLocked ? (
+          ) : isCutoffLocked && !isTestMode ? (
             <div className="my-3 p-3.5 bg-rose-50 border-2 border-rose-300 text-rose-950 rounded-2xl text-xs font-bold flex items-start gap-2.5 shadow-2xs">
               <Lock className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
               <div className="text-xs">
                 <strong className="block font-black text-rose-950">Check-In Window Locked ({windowStatus.windowCloseStr})</strong>
                 <span className="text-rose-800 font-medium leading-relaxed block mt-0.5">
-                  Standup check-in closed at {windowStatus.windowCloseStr} (10:20 AM Cutoff). Attendance is now locked. You are finalized as <strong>ABSENT</strong> on the Director's Register.
+                  Standup check-in closed at {windowStatus.windowCloseStr} (10:20 AM Cutoff). Attendance is now locked.
                 </span>
               </div>
             </div>
@@ -389,29 +444,6 @@ export const BoardroomCheckin: React.FC = () => {
             <div className="mb-4 p-3.5 bg-rose-50 border-2 border-rose-200 text-rose-950 rounded-2xl text-xs font-bold flex items-start gap-2.5 shadow-xs">
               <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
               <span className="leading-relaxed">{errorMessage}</span>
-            </div>
-          )}
-
-          {/* Geofence Breach Banner with Instant Virtual Switch Option */}
-          {isGeoRejected && (
-            <div className="mb-4 p-4 bg-rose-50 border-2 border-rose-200 text-rose-950 rounded-2xl text-xs font-bold space-y-3 shadow-xs">
-              <div className="flex items-start gap-2.5">
-                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-                <span className="leading-relaxed">
-                  🚫 Physical Attendance Rejected: You are approximately <strong>{Math.round(geoDistance || 0)}m</strong> away from SBH Hospital. Physical attendance can ONLY be verified inside SBH Hospital Campus (Allowed radius: {allowedCampusRadius}m).
-                </span>
-              </div>
-              <div className="pt-2 border-t border-rose-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
-                <span className="text-slate-700 text-xs font-semibold">Attending from remote location or off-campus?</span>
-                <button
-                  type="button"
-                  onClick={() => setShowVirtualConfirmModal(true)}
-                  className="px-3.5 py-2 bg-gradient-to-r from-teal-500 to-[#3bb7b8] hover:from-teal-600 hover:to-[#2fa3a4] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-xs transition-all active:scale-95 shrink-0"
-                >
-                  <Video className="w-3.5 h-3.5 text-white" />
-                  <span>Switch to Virtual Standup (Google Meet)</span>
-                </button>
-              </div>
             </div>
           )}
 
@@ -453,7 +485,7 @@ export const BoardroomCheckin: React.FC = () => {
                   </span>
                 </div>
                 <p className="text-xs text-slate-600 leading-relaxed">
-                  Your attendance for today's DOM standup has been officially recorded as{' '}
+                  Your attendance has been recorded as{' '}
                   <strong>
                     {(todayRecord as any)?.check_in_mode === 'PHYSICAL' || (todayRecord as any)?.mode === 'PHYSICAL'
                       ? 'In-Person (5th Floor Conference Room)'
@@ -469,19 +501,24 @@ export const BoardroomCheckin: React.FC = () => {
                   >
                     <span>Open Leader Portal &rarr;</span>
                   </button>
-                  <a
-                    href={currentMeeting.google_meet_url || 'https://meet.google.com/jrz-jfku-gir'}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 py-2.5 px-3 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-800 font-bold border border-teal-200 flex items-center justify-center gap-1.5 text-xs transition-colors cursor-pointer"
-                  >
-                    <Video className="w-3.5 h-3.5 text-teal-700" />
-                    <span>Rejoin Meet</span>
-                  </a>
+                  {isTestMode && todayRecord?.id && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await resetAttendanceTime(todayRecord.id);
+                        setErrorMessage('');
+                      }}
+                      className="py-2.5 px-3 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold border border-amber-200 flex items-center justify-center gap-1 text-xs transition-colors cursor-pointer"
+                      title="Reset attendance for testing again"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5 text-amber-700" />
+                      <span>Reset Test</span>
+                    </button>
+                  )}
                 </div>
               </div>
             ) : (
-              /* State B: QR Scanned Physical Attendance Confirmation Button */
+              /* State B: Physical & Virtual Action Buttons (Side-by-Side Matching Leader Portal) */
               <div className="space-y-3 pt-1">
                 {/* Geofence / Location Status Indicator */}
                 <div className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs">
@@ -491,77 +528,131 @@ export const BoardroomCheckin: React.FC = () => {
                   </span>
                   <span className="font-bold text-xs">
                     {isLocating ? (
-                      <span className="text-amber-600 animate-pulse">Acquiring live GPS...</span>
+                      <span className="text-amber-600 animate-pulse flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping inline-block" />
+                        Acquiring live GPS...
+                      </span>
+                    ) : isTestMode ? (
+                      <span className="text-emerald-700 font-black flex items-center gap-1">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        Test Mode (Simulated 5th Flr)
+                      </span>
                     ) : isGeoRejected ? (
-                      <span className="text-rose-600 font-black">Outside Campus (~{Math.round(geoDistance || 0)}m)</span>
+                      <span className="text-rose-600 font-black flex items-center gap-1">
+                        <AlertCircle className="w-3.5 h-3.5 text-rose-600" />
+                        Outside Campus (~{Math.round(geoDistance || 0)}m)
+                      </span>
                     ) : locData ? (
-                      <span className="text-emerald-700 font-black">GPS Verified (Inside Campus)</span>
+                      <span className="text-emerald-700 font-black flex items-center gap-1">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        GPS Verified (±{locData.accuracy || 30}m)
+                      </span>
                     ) : (
-                      <span className="text-slate-500">Awaiting GPS verification</span>
+                      <button
+                        type="button"
+                        onClick={requestLocation}
+                        className="text-[#7065f0] hover:underline font-bold text-[11px] flex items-center gap-1 cursor-pointer"
+                      >
+                        <span>Awaiting GPS • Tap to Enable</span>
+                      </button>
                     )}
                   </span>
                 </div>
 
-                {/* Primary Physical Presence Confirmation Button */}
-                <button
-                  type="button"
-                  onClick={handleConfirmPhysicalAttendance}
-                  disabled={isSubmitting || isCheckInDisabled}
-                  className={`w-full py-3.5 px-4 rounded-2xl font-black text-sm shadow-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98] ${
-                    isCheckInDisabled
-                      ? 'bg-slate-400 text-white cursor-not-allowed shadow-none opacity-60'
-                      : 'bg-gradient-to-r from-[#7065f0] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7065f0] text-white shadow-indigo-300/40 cursor-pointer disabled:opacity-50'
-                  }`}
-                >
-                  {currentMeeting.is_completed ? (
-                    <>
-                      <Lock className="w-4 h-4 text-white" />
-                      <span>Meeting Concluded: Check-In Closed</span>
-                    </>
-                  ) : isSundayOrHoliday ? (
-                    <>
-                      <Lock className="w-4 h-4 text-white" />
-                      <span>Standup Excused (Sunday Off)</span>
-                    </>
-                  ) : isOnLeave ? (
-                    <>
-                      <CheckCircle2 className="w-4 h-4 text-white" />
-                      <span>Official Leave Sanctioned (Excused)</span>
-                    </>
-                  ) : isCutoffLocked ? (
-                    <>
-                      <Lock className="w-4 h-4 text-white" />
-                      <span>Check-In Locked ({windowStatus.windowCloseStr} Cutoff)</span>
-                    </>
-                  ) : isGeoRejected ? (
-                    <>
-                      <AlertCircle className="w-4 h-4 text-white" />
-                      <span>Physical Check-In Denied (Outside Campus)</span>
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="w-4 h-4 text-white" />
-                      <span>{isSubmitting ? 'Verifying Boardroom Attendance...' : 'Confirm My Physical Presence in Boardroom'}</span>
-                    </>
-                  )}
-                </button>
+                <div className="space-y-2">
+                  <h4 className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    Confirm Today's DOM Presence
+                  </h4>
 
-                {/* Remote / Virtual Join Fallback Option */}
+                  {/* Two Buttons: In-Person & Virtual Side-by-Side Layout */}
+                  <div className="grid grid-cols-2 gap-2.5 sm:gap-3.5">
+                    {/* Mode 1: Physical Check-In */}
+                    <button
+                      type="button"
+                      onClick={handleConfirmPhysicalAttendance}
+                      disabled={isSubmitting || isCheckInDisabled}
+                      className={`p-3.5 sm:p-4 rounded-2xl border-2 text-left transition-all relative overflow-hidden group shadow-2xs ${
+                        isCheckInDisabled
+                          ? 'bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed opacity-60'
+                          : 'bg-gradient-to-br from-[#eff0fe]/80 via-white to-white border-purple-200 hover:border-[#7065f0] text-slate-900 hover:shadow-md cursor-pointer active:scale-[0.98]'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div
+                          className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shadow-2xs ${
+                            isCheckInDisabled ? 'bg-slate-200 text-slate-500' : 'bg-[#eff0fe] text-[#7065f0]'
+                          }`}
+                        >
+                          {isCheckInDisabled ? <Lock className="w-4 h-4 sm:w-5 sm:h-5" /> : <Camera className="w-4 h-4 sm:w-5 sm:h-5" />}
+                        </div>
+                        <span className="text-[9px] uppercase font-mono font-bold px-1.5 py-0.5 rounded bg-purple-100/80 text-[#7065f0] border border-purple-200/80">
+                          In-Person
+                        </span>
+                      </div>
+                      <div className={`font-bold text-xs sm:text-sm leading-tight ${isCheckInDisabled ? 'text-slate-500' : 'text-[#232d42] group-hover:text-[#7065f0]'}`}>
+                        Attending In-Person
+                      </div>
+                      <p className="text-[10px] text-slate-500 mt-1 font-medium leading-snug line-clamp-2">
+                        {isSundayOrHoliday && !isTestMode
+                          ? 'Sunday Off (Excused)'
+                          : isCutoffLocked && !isTestMode
+                            ? `Locked at ${windowStatus.windowCloseStr}`
+                            : '5th Floor Conference Hall'}
+                      </p>
+                    </button>
+
+                    {/* Mode 2: Virtual Join */}
+                    <button
+                      type="button"
+                      onClick={() => setShowVirtualConfirmModal(true)}
+                      disabled={isSubmitting || isCheckInDisabled}
+                      className={`p-3.5 sm:p-4 rounded-2xl border-2 text-left transition-all relative overflow-hidden group shadow-2xs ${
+                        isCheckInDisabled
+                          ? 'bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed opacity-60'
+                          : 'bg-gradient-to-br from-teal-50/80 via-white to-white border-teal-200 hover:border-[#3bb7b8] text-slate-900 hover:shadow-md cursor-pointer active:scale-[0.98]'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div
+                          className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shadow-2xs ${
+                            isCheckInDisabled ? 'bg-slate-200 text-slate-500' : 'bg-teal-50 text-[#3bb7b8]'
+                          }`}
+                        >
+                          {isCheckInDisabled ? <Lock className="w-4 h-4 sm:w-5 sm:h-5" /> : <Video className="w-4 h-4 sm:w-5 sm:h-5" />}
+                        </div>
+                        <span className="text-[9px] uppercase font-mono font-bold px-1.5 py-0.5 rounded bg-teal-100/80 text-[#3bb7b8] border border-teal-200/80">
+                          Virtual
+                        </span>
+                      </div>
+                      <div className={`font-bold text-xs sm:text-sm leading-tight ${isCheckInDisabled ? 'text-slate-500' : 'text-[#232d42] group-hover:text-[#3bb7b8]'}`}>
+                        Join Online
+                      </div>
+                      <p className="text-[10px] text-slate-500 mt-1 font-medium leading-snug line-clamp-2">
+                        {isSundayOrHoliday && !isTestMode
+                          ? 'Sunday Off (Excused)'
+                          : isCutoffLocked && !isTestMode
+                            ? `Locked at ${windowStatus.windowCloseStr}`
+                            : 'Official Google Meet'}
+                      </p>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Leader Portal Redirection Note */}
                 <div className="text-center pt-2">
                   <button
                     type="button"
-                    onClick={() => setShowVirtualConfirmModal(true)}
+                    onClick={() => navigate('/portal')}
                     className="text-xs text-[#7065f0] hover:text-[#513ed8] font-bold inline-flex items-center gap-1 cursor-pointer hover:underline"
                   >
-                    <Video className="w-3.5 h-3.5" />
-                    <span>Attending remotely? Join Virtual DOM Standup (Google Meet) &rarr;</span>
+                    <span>Need to submit leave or view schedule? Open Leader Portal &rarr;</span>
                   </button>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Quick Notice */}
+          {/* Quick Security Footer */}
           <div className="mt-5 pt-4 border-t border-[#f0f1f8] text-[11px] text-slate-500 text-center">
             🔒 Single Daily Count Enforced • Verified for Hospital Director's 10:30 AM Audit
           </div>
@@ -576,9 +667,9 @@ export const BoardroomCheckin: React.FC = () => {
               <Video className="w-7 h-7 text-[#3bb7b8]" />
             </div>
             <div>
-              <h3 className="text-base font-black text-[#232d42]">Join DOM Virtually</h3>
-              <p className="text-xs text-slate-500 mt-1 font-medium leading-relaxed">
-                Confirm your attendance as <strong>{currentUser.full_name}</strong>. Your virtual presence will be verified and recorded in the SQL database, and you will be redirected to the official Google Meet.
+              <h3 className="text-base font-black text-[#232d42]">Join DOM Online</h3>
+              <p className="text-xs text-slate-600 mt-1 font-medium leading-relaxed">
+                Confirm virtual attendance for <strong>{currentUser.full_name}</strong> and redirect to Google Meet.
               </p>
             </div>
             <div className="flex gap-2">
@@ -690,11 +781,22 @@ export const BoardroomCheckin: React.FC = () => {
             <p className="text-xs text-slate-600 mt-3 max-w-xs mx-auto leading-relaxed">
               Today is an official hospital non-standup day. Daily Operations Standup (DOM) is not held on Sundays or scheduled holidays, and no absentees are recorded.
             </p>
-            <div className="mt-5">
+            <div className="mt-5 space-y-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowHolidayModal(false);
+                  setIsTestMode(true);
+                }}
+                className="w-full py-3 bg-[#7065f0] hover:bg-[#584bd8] text-white rounded-2xl font-bold text-xs shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Enable Test Mode (Verify Check-In Flow)</span>
+              </button>
               <button
                 type="button"
                 onClick={() => setShowHolidayModal(false)}
-                className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-bold text-xs shadow-md transition-all cursor-pointer"
+                className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl font-bold text-xs transition-colors cursor-pointer"
               >
                 Acknowledge & Close
               </button>

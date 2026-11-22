@@ -673,6 +673,21 @@ export const UnifiedAdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<
     'attendance' | 'calendar' | 'reports' | 'leaders' | 'departments' | 'settings' | 'links' | 'geo-history' | 'late-audit' | 'compliance-audit'
   >('attendance');
+  const [isTabTransitioning, setIsTabTransitioning] = useState<boolean>(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const handleSelectTab = (tab: typeof activeTab) => {
+    setIsMobileMenuOpen(false);
+    if (tab === activeTab) {
+      return;
+    }
+    setIsTabTransitioning(true);
+    setActiveTab(tab);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setTimeout(() => {
+      setIsTabTransitioning(false);
+    }, 650);
+  };
   const datePickerInputRef = useRef<HTMLInputElement | null>(null);
 
   // Attendance Geo-History Filter States
@@ -706,7 +721,6 @@ export const UnifiedAdminDashboard: React.FC = () => {
   const [leaderSearchTerm, setLeaderSearchTerm] = useState('');
   const [leaderDeptFilter, setLeaderDeptFilter] = useState('ALL');
   const [leaderViewMode, setLeaderViewMode] = useState<'list' | 'grid'>('list');
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [copiedEmail, setCopiedEmail] = useState(false);
   const [toastAlert, setToastAlert] = useState<{ type: 'success' | 'error' | 'info'; text: string; url?: string } | null>(null);
@@ -1575,10 +1589,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
         {/* 🏠 Homepage Button: Live Attendance Register */}
         <button
-          onClick={() => {
-            setActiveTab('attendance');
-            if (isMobile) setIsMobileMenuOpen(false);
-          }}
+          onClick={() => handleSelectTab('attendance')}
           className={`relative flex items-center justify-between w-full transition-all duration-200 font-semibold tracking-wide text-[13px] px-3.5 py-2.5 rounded-2xl cursor-pointer ${activeTab === 'attendance'
             ? 'bg-[#eff0fe] text-[#7065f0] font-bold shadow-xs transform scale-[1.01]'
             : 'text-slate-600 hover:bg-[#f5f3ff] hover:text-[#7065f0]'
@@ -1595,10 +1606,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
         {/* 🔗 Daily Meeting Links Button */}
         <button
-          onClick={() => {
-            setActiveTab('links');
-            if (isMobile) setIsMobileMenuOpen(false);
-          }}
+          onClick={() => handleSelectTab('links')}
           className={`relative flex items-center justify-between w-full transition-all duration-200 font-semibold tracking-wide text-[13px] px-3.5 py-2.5 rounded-2xl cursor-pointer ${activeTab === 'links'
             ? 'bg-[#eff0fe] text-[#7065f0] font-bold shadow-xs transform scale-[1.01]'
             : 'text-slate-600 hover:bg-[#f5f3ff] hover:text-[#7065f0]'
@@ -1615,10 +1623,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
         {/* 📍 Attendance Geo-History Button */}
         <button
-          onClick={() => {
-            setActiveTab('geo-history');
-            if (isMobile) setIsMobileMenuOpen(false);
-          }}
+          onClick={() => handleSelectTab('geo-history')}
           className={`relative flex items-center justify-between w-full transition-all duration-200 font-semibold tracking-wide text-[13px] px-3.5 py-2.5 rounded-2xl cursor-pointer ${activeTab === 'geo-history'
             ? 'bg-[#eff0fe] text-[#7065f0] font-bold shadow-xs transform scale-[1.01]'
             : 'text-slate-600 hover:bg-[#f5f3ff] hover:text-[#7065f0]'
@@ -1635,10 +1640,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
         {/* 👥 Leaders Roster Button */}
         <button
-          onClick={() => {
-            setActiveTab('leaders');
-            if (isMobile) setIsMobileMenuOpen(false);
-          }}
+          onClick={() => handleSelectTab('leaders')}
           className={`relative flex items-center justify-between w-full transition-all duration-200 font-semibold tracking-wide text-[13px] px-3.5 py-2.5 rounded-2xl cursor-pointer ${activeTab === 'leaders'
             ? 'bg-[#eff0fe] text-[#7065f0] font-bold shadow-xs transform scale-[1.01]'
             : 'text-slate-600 hover:bg-[#f5f3ff] hover:text-[#7065f0]'
@@ -1655,10 +1657,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
         {/* 🏢 Departments Master Button */}
         <button
-          onClick={() => {
-            setActiveTab('departments');
-            if (isMobile) setIsMobileMenuOpen(false);
-          }}
+          onClick={() => handleSelectTab('departments')}
           className={`relative flex items-center justify-between w-full transition-all duration-200 font-semibold tracking-wide text-[13px] px-3.5 py-2.5 rounded-2xl cursor-pointer ${activeTab === 'departments'
             ? 'bg-[#eff0fe] text-[#7065f0] font-bold shadow-xs transform scale-[1.01]'
             : 'text-slate-600 hover:bg-[#f5f3ff] hover:text-[#7065f0]'
@@ -1675,10 +1674,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
         {/* 📅 DOM / WOM / MOM Calendar Button */}
         <button
-          onClick={() => {
-            setActiveTab('calendar');
-            if (isMobile) setIsMobileMenuOpen(false);
-          }}
+          onClick={() => handleSelectTab('calendar')}
           className={`relative flex items-center justify-between w-full transition-all duration-200 font-semibold tracking-wide text-[13px] px-3.5 py-2.5 rounded-2xl cursor-pointer ${activeTab === 'calendar'
             ? 'bg-[#eff0fe] text-[#7065f0] font-bold shadow-xs transform scale-[1.01]'
             : 'text-slate-600 hover:bg-[#f5f3ff] hover:text-[#7065f0]'
@@ -1695,10 +1691,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
         {/* 📊 Graphical Analytics Button */}
         <button
-          onClick={() => {
-            setActiveTab('reports');
-            if (isMobile) setIsMobileMenuOpen(false);
-          }}
+          onClick={() => handleSelectTab('reports')}
           className={`relative flex items-center justify-between w-full transition-all duration-200 font-semibold tracking-wide text-[13px] px-3.5 py-2.5 rounded-2xl cursor-pointer ${activeTab === 'reports'
             ? 'bg-[#eff0fe] text-[#7065f0] font-bold shadow-xs transform scale-[1.01]'
             : 'text-slate-600 hover:bg-[#f5f3ff] hover:text-[#7065f0]'
@@ -1715,10 +1708,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
         {/* ⏱️ Late Arrival Audit Button */}
         <button
-          onClick={() => {
-            setActiveTab('late-audit');
-            if (isMobile) setIsMobileMenuOpen(false);
-          }}
+          onClick={() => handleSelectTab('late-audit')}
           className={`relative flex items-center justify-between w-full transition-all duration-200 font-semibold tracking-wide text-[13px] px-3.5 py-2.5 rounded-2xl cursor-pointer ${activeTab === 'late-audit'
             ? 'bg-[#eff0fe] text-[#7065f0] font-bold shadow-xs transform scale-[1.01]'
             : 'text-slate-600 hover:bg-[#f5f3ff] hover:text-[#7065f0]'
@@ -1735,10 +1725,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
         {/* 🏆 Cadence Compliance Audit Button */}
         <button
-          onClick={() => {
-            setActiveTab('compliance-audit');
-            if (isMobile) setIsMobileMenuOpen(false);
-          }}
+          onClick={() => handleSelectTab('compliance-audit')}
           className={`relative flex items-center justify-between w-full transition-all duration-200 font-semibold tracking-wide text-[13px] px-3.5 py-2.5 rounded-2xl cursor-pointer ${activeTab === 'compliance-audit'
             ? 'bg-[#eff0fe] text-[#7065f0] font-bold shadow-xs transform scale-[1.01]'
             : 'text-slate-600 hover:bg-[#f5f3ff] hover:text-[#7065f0]'
@@ -6944,7 +6931,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
 const DRIVE_FOLDER_ID = "1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD";
 const WHATSAPP_GROUP_ID = "120363432056023698@g.us";
-const CHECKIN_PORTAL_URL = "https://sbhdom.vercel.app/boardroom-checkin";
+const CHECKIN_PORTAL_URL = "https://sbhdom.vercel.app/";
 
 /**
  * 1. Webhook Endpoint: Receives PDF & Attendance from DOM Portal
@@ -7046,7 +7033,7 @@ function sendDaily0950Notice() {
                 onClick={() => {
                   const codeToCopy = `const DRIVE_FOLDER_ID = "1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD";
 const WHATSAPP_GROUP_ID = "120363432056023698@g.us";
-const CHECKIN_PORTAL_URL = "https://sbhdom.vercel.app/boardroom-checkin";
+const CHECKIN_PORTAL_URL = "https://sbhdom.vercel.app/";
 
 function doPost(e) {
   try {
@@ -8138,7 +8125,23 @@ function doPost(e) {
           </div>
         </div>
       )}
-      {/* Floating Scroll-Down Helper Button (Hope UI / User Icon) */}
+      {/* Tab Switch Smooth Page Loader */}
+      {isTabTransitioning && (
+        <div className="fixed inset-0 z-[99999] pointer-events-none flex flex-col items-center justify-center bg-white/80 backdrop-blur-[3px] transition-all duration-200 animate-in fade-in">
+          <div className="flex flex-col items-center justify-center p-4">
+            <img
+              src="/images/loader.webp"
+              alt="Loading Section"
+              className="w-52 h-52 sm:w-64 sm:h-64 object-contain drop-shadow-2xl animate-pulse"
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).src = '/images/loader.gif';
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Floating Scroll-Down Helper Button */}
       <button
         type="button"
         onClick={() => {
@@ -8149,17 +8152,10 @@ function doPost(e) {
             window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
           }
         }}
-        className="fixed bottom-14 right-5 z-40 p-2.5 bg-white/95 hover:bg-white text-slate-700 hover:text-[#7065f0] rounded-full shadow-lg border border-purple-200/80 transition-all hover:scale-110 active:scale-95 cursor-pointer flex items-center justify-center group"
+        className="fixed bottom-14 right-5 z-40 w-11 h-11 bg-white hover:bg-[#eff0fe] text-[#7065f0] hover:text-[#584bd8] rounded-full shadow-xl border-2 border-purple-200/90 transition-all hover:scale-110 active:scale-95 cursor-pointer flex items-center justify-center group"
         title="Scroll Down to Attendance Table"
       >
-        <img
-          src="/images/icons/scroll-down.png"
-          alt="Scroll Down"
-          className="w-5 h-5 object-contain group-hover:translate-y-0.5 transition-transform"
-          onError={(e) => {
-            (e.currentTarget as HTMLImageElement).src = '/images/down-aerrow.gif';
-          }}
-        />
+        <ChevronDown className="w-5 h-5 stroke-[2.5] group-hover:translate-y-0.5 transition-transform animate-bounce" />
       </button>
     </div>
   );

@@ -79,7 +79,7 @@ interface DomAppContextType {
   ) => Promise<{ success: boolean; message: string }>;
   markRoomQrCheckIn: (
     leaderId: string,
-    locationData?: { latitude?: number; longitude?: number; accuracy?: number; device?: string; lateReason?: string }
+    locationData?: { latitude?: number; longitude?: number; accuracy?: number; device?: string; lateReason?: string; isTestMode?: boolean }
   ) => Promise<{ success: boolean; message: string; alreadyRecorded?: boolean; timeStr?: string }>;
   // Manual Override, Time Reset & Record Deletion
   overrideAttendanceTime: (
@@ -1644,7 +1644,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const markVirtualJoin = async (
     leaderId: string,
     customDate?: string,
-    locationData?: { latitude?: number; longitude?: number; accuracy?: number; device?: string }
+    locationData?: { latitude?: number; longitude?: number; accuracy?: number; device?: string; isTestMode?: boolean; lateReason?: string }
   ): Promise<{ success: boolean; meetUrl: string; clicksCount: number; message?: string }> => {
     const targetDate = customDate || selectedDate;
     const meeting = getMeetingForDate(targetDate);
@@ -1665,7 +1665,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     // Standup window & holiday check
     const windowStatus = checkStandupWindowStatus(targetDate, isAlreadyCheckedIn, meeting.cadence);
-    if (!windowStatus.allowed) {
+    if (!windowStatus.allowed && !locationData?.isTestMode) {
       return {
         success: false,
         meetUrl: meeting.google_meet_url || 'https://meet.google.com/jrz-jfku-gir',
@@ -1937,7 +1937,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const markRoomQrCheckIn = async (
     leaderId: string,
-    locationData?: { latitude?: number; longitude?: number; accuracy?: number; device?: string }
+    locationData?: { latitude?: number; longitude?: number; accuracy?: number; device?: string; lateReason?: string; isTestMode?: boolean }
   ): Promise<{ success: boolean; message: string; alreadyRecorded?: boolean; timeStr?: string }> => {
     const meeting = getMeetingForDate(selectedDate);
     const existingRec = attendanceRecords.find((r) => r.leader_id === leaderId && r.meeting_date === selectedDate);
@@ -1956,7 +1956,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     // 1. Standup Window Status & Holiday Check
     const windowStatus = checkStandupWindowStatus(selectedDate, isAlreadyRecordedPrior, meeting.cadence);
-    if (!windowStatus.allowed) {
+    if (!windowStatus.allowed && !locationData?.isTestMode) {
       return {
         success: false,
         message: windowStatus.message,
@@ -1965,7 +1965,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
 
     // 2. Strict Hospital Geofence Check (SBH Hospital Campus & 5th Floor Conference Hall)
-    if (appSettings.hospital_geofence_enabled !== false) {
+    if (appSettings.hospital_geofence_enabled !== false && !locationData?.isTestMode) {
       if (locationData?.latitude == null || locationData?.longitude == null) {
         return {
           success: false,
