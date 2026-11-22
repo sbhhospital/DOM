@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Hospital,
@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   Camera,
   FileText,
+  RefreshCw,
 } from 'lucide-react';
 import { useDomApp } from '../context/DomAppContext';
 import { useAuthSession } from '../context/AuthSessionContext';
@@ -177,6 +178,18 @@ export const LeaderPortal: React.FC = () => {
   const [calculatedLateMinutes, setCalculatedLateMinutes] = useState<number>(0);
   const [showScannerModal, setShowScannerModal] = useState(false);
 
+  // Modals for Virtual Join Confirmation & Success Feedback
+  const [showVirtualConfirmModal, setShowVirtualConfirmModal] = useState(false);
+  const [isVirtualSubmitting, setIsVirtualSubmitting] = useState(false);
+  const [attendanceSuccessModal, setAttendanceSuccessModal] = useState<{
+    isOpen: boolean;
+    mode: 'PHYSICAL' | 'VIRTUAL';
+    leaderName: string;
+    departmentName: string;
+    joinTime: string;
+    meetUrl?: string;
+  } | null>(null);
+
   // Lock body scroll and keep view centered whenever any modal is opened
   useEffect(() => {
     const isAnyModalOpen =
@@ -185,7 +198,9 @@ export const LeaderPortal: React.FC = () => {
       showUserPassModal ||
       showExpiredAccessModal ||
       showMeetingClosedModal ||
-      showScannerModal;
+      showScannerModal ||
+      showVirtualConfirmModal ||
+      Boolean(attendanceSuccessModal?.isOpen);
 
     if (isAnyModalOpen) {
       document.body.style.overflow = 'hidden';
@@ -202,6 +217,8 @@ export const LeaderPortal: React.FC = () => {
     showExpiredAccessModal,
     showMeetingClosedModal,
     showScannerModal,
+    showVirtualConfirmModal,
+    attendanceSuccessModal,
   ]);
 
   const checkIsBetween1005And1020 = () => {
@@ -263,6 +280,26 @@ export const LeaderPortal: React.FC = () => {
   );
 
   const isCutoffLocked = !hasJoinedToday && !windowStatus.allowed && windowStatus.code === 'AFTER_WINDOW';
+
+  const isSundayOrHoliday = useMemo(() => {
+    // If admin explicitly scheduled a live meeting cadence (DOM/WOM/MOM) and not holiday, standup is ACTIVE
+    if (
+      (currentMeeting.cadence === 'DOM' || currentMeeting.cadence === 'WOM' || currentMeeting.cadence === 'MOM') &&
+      !currentMeeting.is_holiday_or_shifted
+    ) {
+      return false;
+    }
+    const isSun = new Date(selectedDate + 'T00:00:00').getDay() === 0;
+    return isSun || currentMeeting.cadence === 'HOLIDAY' || Boolean(currentMeeting.is_holiday_or_shifted);
+  }, [currentMeeting, selectedDate]);
+
+  const isOnLeave = Boolean(
+    todayRecord &&
+      (todayRecord.status === 'LEAVE' ||
+        (todayRecord.status === 'INFORMED_ABSENT' && todayRecord.informed_confirmed))
+  );
+
+  const isCheckInDisabled = isCutoffLocked || isSundayOrHoliday || isOnLeave;
 
   const hasInformedAbsence = Boolean(
     todayRecord &&
@@ -336,6 +373,20 @@ export const LeaderPortal: React.FC = () => {
 
   const handleAttendPhysically = () => {
     if (!activeLeader) return;
+    if (isSundayOrHoliday) {
+      setActionMessage({
+        success: false,
+        text: '🏖️ Official Hospital Weekly Off (Sunday). Standup attendance is excused and check-in is closed.',
+      });
+      return;
+    }
+    if (isOnLeave) {
+      setActionMessage({
+        success: false,
+        text: '🏖️ You are currently marked on Official Leave for today. Attendance check-in is excused.',
+      });
+      return;
+    }
     if (currentMeeting.is_completed) {
       setShowMeetingClosedModal(true);
       return;
@@ -371,14 +422,29 @@ export const LeaderPortal: React.FC = () => {
       lateReason: lateReasonInput.trim() || undefined,
     });
 
-    setActionMessage({
-      success: res.success,
-      text: res.message || 'Boardroom physical attendance confirmed via live camera scan!',
-    });
+    if (res.success) {
+      setAttendanceSuccessModal({
+        isOpen: true,
+        mode: 'PHYSICAL',
+        leaderName: activeLeader.full_name,
+        departmentName: activeLeader.department?.name || 'Leadership',
+        joinTime: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }),
+      });
+      setActionMessage({
+        success: true,
+        text: '✅ Boardroom physical attendance confirmed via live camera scan!',
+      });
+    } else {
+      setActionMessage({
+        success: false,
+        text: res.message || 'Physical verification failed. Please try again.',
+      });
+    }
   };
 
   const executeVirtualJoin = async (reason?: string) => {
     if (!activeLeader) return;
+    setIsVirtualSubmitting(true);
 
     // Acquire GPS location telemetry if permission granted
     let geoCoords: { latitude?: number; longitude?: number; accuracy?: number; lateReason?: string } | undefined;
@@ -402,17 +468,48 @@ export const LeaderPortal: React.FC = () => {
     }
 
     const res = await markVirtualJoin(activeLeader.id, selectedDate, geoCoords);
-    setActionMessage({
-      success: res.success,
-      text: res.message || `Virtual attendance recorded! Launching official Google Meet: ${res.meetUrl}`,
-    });
-    if (res.meetUrl) {
-      window.open(res.meetUrl, '_blank');
+    setIsVirtualSubmitting(false);
+    setShowVirtualConfirmModal(false);
+
+    if (res.success) {
+      const meetUrl = res.meetUrl || currentMeeting.google_meet_url || 'https://meet.google.com/jrz-jfku-gir';
+      setAttendanceSuccessModal({
+        isOpen: true,
+        mode: 'VIRTUAL',
+        leaderName: activeLeader.full_name,
+        departmentName: activeLeader.department?.name || 'Leadership',
+        joinTime: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }),
+        meetUrl,
+      });
+
+      // Smoothly launch official Google Meet
+      setTimeout(() => {
+        window.open(meetUrl, '_blank');
+      }, 700);
+    } else {
+      setActionMessage({
+        success: false,
+        text: res.message || 'Unable to record virtual attendance. Please try again.',
+      });
     }
   };
 
   const handleJoinVirtually = async () => {
     if (!activeLeader) return;
+    if (isSundayOrHoliday) {
+      setActionMessage({
+        success: false,
+        text: '🏖️ Official Hospital Weekly Off (Sunday). Standup attendance is excused and check-in is closed.',
+      });
+      return;
+    }
+    if (isOnLeave) {
+      setActionMessage({
+        success: false,
+        text: '🏖️ You are currently marked on Official Leave for today. Attendance check-in is excused.',
+      });
+      return;
+    }
     if (currentMeeting.is_completed) {
       setShowMeetingClosedModal(true);
       return;
@@ -428,7 +525,8 @@ export const LeaderPortal: React.FC = () => {
       setShowLateReasonModal(true);
       return;
     }
-    await executeVirtualJoin(lateReasonInput.trim() || undefined);
+    // Present Confirmation Dialog before recording virtual presence & launching meet
+    setShowVirtualConfirmModal(true);
   };
 
   const handleRejoinMeeting = async () => {
@@ -644,7 +742,7 @@ export const LeaderPortal: React.FC = () => {
             <div className="space-y-1.5 max-h-80 overflow-y-auto pr-1">
               {filteredLeaders.length === 0 ? (
                 <div className="text-xs text-slate-500 text-center py-6">
-                  No leaders found. Please contact DOM Administrator.
+                  No leaders found. Please contact Web Administrator (Mr. Naman Mishra).
                 </div>
               ) : (
                 filteredLeaders.map((l) => (
@@ -920,7 +1018,7 @@ export const LeaderPortal: React.FC = () => {
                     </div>
                   </div>
                 ) : (currentMeeting.cadence === 'HOLIDAY' || currentMeeting.is_holiday_or_shifted) && currentMeeting.cadence !== 'DOM' && currentMeeting.cadence !== 'WOM' && currentMeeting.cadence !== 'MOM' ? (
-                  <div className="p-5 rounded-3xl bg-amber-50/90 border-2 border-amber-300 text-amber-950 shadow-xs space-y-3">
+                  <div className="p-5 rounded-3xl bg-amber-50/90 border-2 border-amber-300 text-amber-950 shadow-xs space-y-2">
                     <div className="flex items-start gap-3">
                       <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
                         <Sparkles className="w-5 h-5" />
@@ -933,17 +1031,6 @@ export const LeaderPortal: React.FC = () => {
                           Today is an official hospital off day. Daily Operations Standup (DOM) attendance is not required today and zero absentees are counted. Next standup is Monday 10:00 AM IST (WOM).
                         </p>
                       </div>
-                    </div>
-                    <div className="pt-2 border-t border-amber-200">
-                      <a
-                        href={currentMeeting.google_meet_url || 'https://meet.google.com/jrz-jfku-gir'}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-full py-3 px-4 bg-gradient-to-r from-[#7065f0] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7065f0] text-white rounded-2xl text-xs font-bold flex items-center justify-center gap-2 shadow-sm cursor-pointer no-underline transition-all active:scale-98"
-                      >
-                        <Video className="w-4 h-4 text-white" />
-                        <span>Join Open Google Meet Room (Ad-hoc / Testing) &rarr;</span>
-                      </a>
                     </div>
                   </div>
                 ) : isCutoffLocked ? (
@@ -959,7 +1046,7 @@ export const LeaderPortal: React.FC = () => {
                         Today's daily standup check-in window closed at <strong>{windowStatus.windowCloseStr}</strong> (Meeting Start + 20 minutes). Since no attendance was recorded and no prior late notice was approved before cutoff, self check-in is now locked. You are finalized as <strong className="text-rose-950">ABSENT</strong> on the Director's Register.
                       </p>
                       <div className="mt-2 text-[11px] font-bold text-rose-900 bg-rose-100/80 px-2.5 py-1 rounded-xl inline-block">
-                        🔒 Please contact Hospital Administrator for manual review.
+                        🔒 Please contact Web Administrator (Mr. Naman Mishra) for manual review.
                       </div>
                     </div>
                   </div>
@@ -984,50 +1071,58 @@ export const LeaderPortal: React.FC = () => {
                     {/* Mode 1: Physical Check-In (In-Room Camera Scanner) */}
                     <button
                       onClick={handleAttendPhysically}
-                      disabled={isCutoffLocked}
+                      disabled={isCheckInDisabled}
                       className={`p-5 rounded-2xl border-2 text-left transition-all group shadow-xs ${
-                        isCutoffLocked
+                        isCheckInDisabled
                           ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed opacity-60'
                           : 'bg-white border-[#f0f1f8] hover:border-[#7065f0] text-slate-900 hover:shadow-md cursor-pointer'
                       }`}
                     >
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 shadow-xs ${
-                        isCutoffLocked ? 'bg-slate-200 text-slate-500' : 'bg-[#eff0fe] text-[#7065f0]'
+                        isCheckInDisabled ? 'bg-slate-200 text-slate-500' : 'bg-[#eff0fe] text-[#7065f0]'
                       }`}>
-                        {isCutoffLocked ? <Lock className="w-5 h-5" /> : <Camera className="w-5 h-5" />}
+                        {isCheckInDisabled ? <Lock className="w-5 h-5" /> : <Camera className="w-5 h-5" />}
                       </div>
-                      <div className={`font-bold text-sm ${isCutoffLocked ? 'text-slate-500' : 'text-[#232d42] group-hover:text-[#7065f0]'}`}>
+                      <div className={`font-bold text-sm ${isCheckInDisabled ? 'text-slate-500' : 'text-[#232d42] group-hover:text-[#7065f0]'}`}>
                         Attending In-Person
                       </div>
                       <p className="text-[11px] text-slate-500 mt-1 font-medium">
-                        {isCutoffLocked
-                          ? `Self check-in closed at ${windowStatus.windowCloseStr}.`
-                          : 'Opens live camera to scan Boardroom QR code in 5th Floor Conference Hall (GPS Verified).'}
+                        {isSundayOrHoliday
+                          ? 'Standup attendance is excused today (Sunday Weekly Off).'
+                          : isOnLeave
+                            ? 'You are marked on Official Leave for today.'
+                            : isCutoffLocked
+                              ? `Self check-in closed at ${windowStatus.windowCloseStr}.`
+                              : 'Opens live camera to scan Boardroom QR code in 5th Floor Conference Hall (GPS Verified).'}
                       </p>
                     </button>
 
                     {/* Mode 2: Virtual Join (Google Meet) */}
                     <button
                       onClick={handleJoinVirtually}
-                      disabled={isCutoffLocked}
+                      disabled={isCheckInDisabled}
                       className={`p-5 rounded-2xl border-2 text-left transition-all group shadow-xs ${
-                        isCutoffLocked
+                        isCheckInDisabled
                           ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed opacity-60'
                           : 'bg-white border-[#f0f1f8] hover:border-[#3bb7b8] text-slate-900 hover:shadow-md cursor-pointer'
                       }`}
                     >
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 shadow-xs ${
-                        isCutoffLocked ? 'bg-slate-200 text-slate-500' : 'bg-teal-50 text-[#3bb7b8]'
+                        isCheckInDisabled ? 'bg-slate-200 text-slate-500' : 'bg-teal-50 text-[#3bb7b8]'
                       }`}>
-                        {isCutoffLocked ? <Lock className="w-5 h-5" /> : <Video className="w-5 h-5" />}
+                        {isCheckInDisabled ? <Lock className="w-5 h-5" /> : <Video className="w-5 h-5" />}
                       </div>
-                      <div className={`font-bold text-sm ${isCutoffLocked ? 'text-slate-500' : 'text-[#232d42] group-hover:text-[#3bb7b8]'}`}>
+                      <div className={`font-bold text-sm ${isCheckInDisabled ? 'text-slate-500' : 'text-[#232d42] group-hover:text-[#3bb7b8]'}`}>
                         Join Online (Google Meet)
                       </div>
                       <p className="text-[11px] text-slate-500 mt-1 font-medium">
-                        {isCutoffLocked
-                          ? `Self check-in closed at ${windowStatus.windowCloseStr}.`
-                          : 'Opens official Google Meet. Records your login automatically as virtual attendee.'}
+                        {isSundayOrHoliday
+                          ? 'Standup attendance is excused today (Sunday Weekly Off).'
+                          : isOnLeave
+                            ? 'You are marked on Official Leave for today.'
+                            : isCutoffLocked
+                              ? `Self check-in closed at ${windowStatus.windowCloseStr}.`
+                              : 'Opens official Google Meet. Records your login automatically as virtual attendee.'}
                       </p>
                     </button>
                   </div>
@@ -1036,8 +1131,23 @@ export const LeaderPortal: React.FC = () => {
                 {/* Mode 3: Cannot Attend / Running Late? Submit Informed Notice */}
                 <div className="pt-2">
                   <button
-                    onClick={() => setShowInformedModal(true)}
-                    className="w-full py-3 px-4 bg-[#fff7ed] hover:bg-[#ffedd5] border border-orange-200 text-orange-950 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
+                    onClick={() => {
+                      if (isSundayOrHoliday) {
+                        setActionMessage({ success: false, text: '🏖️ Official Hospital Weekly Off. Notice submission is not required today.' });
+                        return;
+                      }
+                      if (isOnLeave) {
+                        setActionMessage({ success: false, text: '🏖️ You are already marked on Official Leave for today.' });
+                        return;
+                      }
+                      setShowInformedModal(true);
+                    }}
+                    disabled={isSundayOrHoliday || isOnLeave}
+                    className={`w-full py-3 px-4 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 transition-all ${
+                      isSundayOrHoliday || isOnLeave
+                        ? 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed opacity-60'
+                        : 'bg-[#fff7ed] hover:bg-[#ffedd5] border border-orange-200 text-orange-950 cursor-pointer'
+                    }`}
                   >
                     <HelpCircle className="w-4 h-4 text-orange-600" />
                     <span>Running late or cannot attend? Submit notice (5–20 mins grace / leave)</span>
@@ -1359,6 +1469,129 @@ export const LeaderPortal: React.FC = () => {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Modal: Confirm Virtual Attendance & Google Meet Redirect */}
+        {showVirtualConfirmModal && activeLeader && (
+          <div className="fixed inset-0 modal-backdrop flex items-start sm:items-center justify-center z-[30000] p-3 sm:p-4 overflow-y-auto">
+            <div className="bg-white rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl border border-slate-200 my-auto max-h-[92vh] overflow-y-auto animate-in fade-in zoom-in duration-150">
+              <div className="flex items-center gap-2.5 mb-3">
+                <div className="w-10 h-10 rounded-2xl bg-teal-50 text-[#3bb7b8] border border-teal-200 flex items-center justify-center shrink-0">
+                  <Video className="w-5 h-5 text-[#3bb7b8]" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900">
+                    Confirm Virtual Attendance
+                  </h3>
+                  <p className="text-[11px] text-slate-500">Official Daily Operations Meeting (Google Meet)</p>
+                </div>
+              </div>
+
+              <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 mb-4 space-y-1.5 text-left">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-500 font-medium">Leader Name:</span>
+                  <span className="font-bold text-slate-900">{activeLeader.full_name}</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-500 font-medium">Department:</span>
+                  <span className="font-bold text-slate-800">{activeLeader.department?.name || 'Leadership'}</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-500 font-medium">Attendance Mode:</span>
+                  <span className="font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-200">
+                    Virtual (Google Meet)
+                  </span>
+                </div>
+              </div>
+
+              <p className="text-xs text-slate-600 leading-relaxed mb-4">
+                Confirming will record your attendance as <strong>PRESENT (Virtual)</strong> in the Hospital Director's register and immediately redirect you to the live Google Meet room.
+              </p>
+
+              <div className="flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowVirtualConfirmModal(false)}
+                  disabled={isVirtualSubmitting}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => executeVirtualJoin(lateReasonInput.trim() || undefined)}
+                  disabled={isVirtualSubmitting}
+                  className="px-5 py-2 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white text-xs font-bold rounded-xl shadow-md flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {isVirtualSubmitting ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Recording Presence...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Video className="w-3.5 h-3.5" />
+                      <span>Confirm & Join Google Meet 🚀</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal: Attendance Successfully Recorded (Physical QR or Virtual Meet) */}
+        {attendanceSuccessModal?.isOpen && (
+          <div className="fixed inset-0 modal-backdrop flex items-start sm:items-center justify-center z-[30000] p-3 sm:p-4 overflow-y-auto">
+            <div className="bg-white rounded-3xl max-w-md w-full p-6 text-center shadow-2xl border-2 border-emerald-300 my-auto max-h-[92vh] overflow-y-auto animate-in fade-in zoom-in duration-150">
+              <div className="w-14 h-14 mx-auto rounded-3xl bg-emerald-100 text-emerald-600 border border-emerald-200 flex items-center justify-center shadow-sm mb-3">
+                <CheckCircle2 className="w-8 h-8 text-emerald-600" />
+              </div>
+              <h3 className="text-lg font-black text-slate-900 mb-1">
+                {attendanceSuccessModal.mode === 'PHYSICAL'
+                  ? 'Boardroom Presence Confirmed! 🎉'
+                  : 'Virtual Attendance Recorded! 🚀'}
+              </h3>
+              <p className="text-xs text-slate-600 mb-4">
+                Your attendance for today's {currentMeeting.cadence || 'DOM'} standup has been recorded and synchronized with the Hospital Operations Database.
+              </p>
+
+              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-left space-y-1.5 mb-4 text-xs">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500 font-medium">Leader:</span>
+                  <span className="font-bold text-slate-900">{attendanceSuccessModal.leaderName}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500 font-medium">Department:</span>
+                  <span className="font-bold text-slate-800">{attendanceSuccessModal.departmentName}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500 font-medium">Verified Mode:</span>
+                  <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                    {attendanceSuccessModal.mode === 'PHYSICAL' ? 'In-Person (Conference Room)' : 'Online (Google Meet)'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500 font-medium">Timestamp:</span>
+                  <span className="font-mono font-bold text-slate-800">{attendanceSuccessModal.joinTime}</span>
+                </div>
+              </div>
+
+              {attendanceSuccessModal.meetUrl && (
+                <div className="mb-4 p-2.5 bg-teal-50 border border-teal-200 rounded-xl text-[11px] text-teal-800 font-medium">
+                  🌐 Redirecting to live Google Meet room...
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setAttendanceSuccessModal(null)}
+                className="w-full py-2.5 bg-[#7065f0] hover:bg-[#513ed8] text-white text-xs font-bold rounded-xl shadow-md cursor-pointer transition-all"
+              >
+                Acknowledge & Continue
+              </button>
             </div>
           </div>
         )}

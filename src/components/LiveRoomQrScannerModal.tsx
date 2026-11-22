@@ -193,17 +193,17 @@ export const LiveRoomQrScannerModal: React.FC<LiveRoomQrScannerModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[25000] modal-backdrop flex items-center justify-center p-3 sm:p-4">
-      <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden border border-[#f0f1f8] relative flex flex-col max-h-[95vh] animate-in fade-in zoom-in-95">
+    <div className="fixed inset-0 z-[30000] modal-backdrop flex items-start sm:items-center justify-center p-2 sm:p-4 overflow-y-auto">
+      <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden border border-[#f0f1f8] relative flex flex-col my-auto max-h-[92vh] animate-in fade-in zoom-in-95">
         {/* Top Header matching Hope UI */}
-        <div className="p-4 bg-white border-b border-[#f0f1f8] flex items-center justify-between shrink-0">
+        <div className="p-3.5 sm:p-4 bg-white border-b border-[#f0f1f8] flex items-center justify-between shrink-0 sticky top-0 z-10">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-2xl bg-[#eff0fe] text-[#7065f0] border border-indigo-200/50 flex items-center justify-center font-bold">
-              <Camera className="w-5 h-5 text-[#7065f0]" />
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-2xl bg-[#eff0fe] text-[#7065f0] border border-indigo-200/50 flex items-center justify-center font-bold">
+              <Camera className="w-4 h-4 sm:w-5 sm:h-5 text-[#7065f0]" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-[#232d42] tracking-tight">Boardroom Scanner</h3>
-              <p className="text-[11px] text-[#8a92a6]">5th Floor Conference Hall QR</p>
+              <h3 className="text-xs sm:text-sm font-bold text-[#232d42] tracking-tight">Boardroom Scanner</h3>
+              <p className="text-[10px] sm:text-[11px] text-[#8a92a6]">5th Floor Conference Hall QR</p>
             </div>
           </div>
           <button
@@ -218,20 +218,20 @@ export const LiveRoomQrScannerModal: React.FC<LiveRoomQrScannerModalProps> = ({
         </div>
 
         {/* Live Camera Viewfinder Body */}
-        <div className="p-5 flex-1 overflow-y-auto space-y-4 text-center">
+        <div className="p-3 sm:p-4 flex-1 overflow-y-auto space-y-2.5 sm:space-y-3 text-center">
           {/* Logo & Leader Name */}
-          <div className="flex items-center justify-between bg-[#f4f5fa] p-3 rounded-2xl border border-slate-200/60 text-xs">
+          <div className="flex items-center justify-between bg-[#f4f5fa] px-3 py-2 rounded-2xl border border-slate-200/60 text-xs">
             <div className="flex items-center gap-2 min-w-0">
-              <img src={sbhLogo} alt="SBH Logo" className="h-6 w-auto object-contain shrink-0" />
-              <span className="font-bold text-[#232d42] truncate">{leaderName}</span>
+              <img src={sbhLogo} alt="SBH Logo" className="h-5 sm:h-6 w-auto object-contain shrink-0" />
+              <span className="font-bold text-[#232d42] truncate text-xs">{leaderName}</span>
             </div>
-            <span className="text-[10px] font-bold text-[#7065f0] bg-[#eff0fe] px-2.5 py-1 rounded-full border border-indigo-200/60 shrink-0">
+            <span className="text-[10px] font-bold text-[#7065f0] bg-[#eff0fe] px-2 py-0.5 rounded-full border border-indigo-200/60 shrink-0">
               In-Room Verification
             </span>
           </div>
 
           {/* Camera View Area */}
-          <div className="relative w-full aspect-square bg-[#0f172a] rounded-3xl overflow-hidden border-2 border-[#7065f0] shadow-inner flex items-center justify-center">
+          <div className="relative w-full h-[200px] sm:h-[260px] bg-[#0f172a] rounded-2xl sm:rounded-3xl overflow-hidden border-2 border-[#7065f0] shadow-inner flex items-center justify-center">
             {/* Live Video Stream */}
             <video
               ref={videoRef}
@@ -246,17 +246,17 @@ export const LiveRoomQrScannerModal: React.FC<LiveRoomQrScannerModalProps> = ({
 
             {/* Viewfinder Target Overlay (Laser Scan Effect) */}
             {hasCameraPermission && !cameraError && (
-              <div className="absolute inset-0 pointer-events-none flex items-center justify-center p-8">
+              <div className="absolute inset-0 pointer-events-none flex items-center justify-center p-4">
                 {/* Outer Target Box with Corner Accents */}
-                <div className="relative w-52 h-52 sm:w-60 sm:h-60 border-2 border-[#7065f0]/80 rounded-2xl">
+                <div className="relative w-36 h-36 sm:w-48 sm:h-48 border-2 border-[#7065f0]/80 rounded-2xl">
                   {/* Top-Left Corner */}
-                  <div className="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-[#7065f0] rounded-tl-lg" />
+                  <div className="absolute -top-1 -left-1 w-5 h-5 border-t-4 border-l-4 border-[#7065f0] rounded-tl-lg" />
                   {/* Top-Right Corner */}
-                  <div className="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-[#7065f0] rounded-tr-lg" />
+                  <div className="absolute -top-1 -right-1 w-5 h-5 border-t-4 border-r-4 border-[#7065f0] rounded-tr-lg" />
                   {/* Bottom-Left Corner */}
-                  <div className="absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-[#7065f0] rounded-bl-lg" />
+                  <div className="absolute -bottom-1 -left-1 w-5 h-5 border-b-4 border-l-4 border-[#7065f0] rounded-bl-lg" />
                   {/* Bottom-Right Corner */}
-                  <div className="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-[#7065f0] rounded-br-lg" />
+                  <div className="absolute -bottom-1 -right-1 w-5 h-5 border-b-4 border-r-4 border-[#7065f0] rounded-br-lg" />
 
                   {/* Animated Glowing Laser Beam */}
                   <div className="absolute inset-x-2 h-0.5 bg-gradient-to-r from-transparent via-[#7065f0] to-transparent shadow-[0_0_12px_#7065f0] animate-bounce" />
@@ -267,20 +267,20 @@ export const LiveRoomQrScannerModal: React.FC<LiveRoomQrScannerModalProps> = ({
             {/* Error or Loading Overlay */}
             {hasCameraPermission === null && !cameraError && (
               <div className="absolute inset-0 bg-[#0f172a]/90 text-white flex flex-col items-center justify-center p-4">
-                <RefreshCw className="w-8 h-8 text-[#7065f0] animate-spin mb-2" />
+                <RefreshCw className="w-7 h-7 text-[#7065f0] animate-spin mb-2" />
                 <span className="text-xs font-bold">Initializing Rear Camera Feed...</span>
                 <span className="text-[10px] text-slate-400 mt-1">Please grant camera permissions when prompted</span>
               </div>
             )}
 
             {cameraError && (
-              <div className="absolute inset-0 bg-[#0f172a]/95 text-white flex flex-col items-center justify-center p-6 text-center">
-                <AlertCircle className="w-10 h-10 text-rose-500 mb-2" />
+              <div className="absolute inset-0 bg-[#0f172a]/95 text-white flex flex-col items-center justify-center p-4 sm:p-6 text-center">
+                <AlertCircle className="w-8 h-8 text-rose-500 mb-2" />
                 <span className="text-xs font-bold text-rose-300">Camera Access Blocked</span>
-                <p className="text-[11px] text-slate-300 mt-1.5 leading-relaxed">{cameraError}</p>
+                <p className="text-[10px] sm:text-[11px] text-slate-300 mt-1 leading-relaxed">{cameraError}</p>
                 <button
                   onClick={() => window.location.reload()}
-                  className="mt-4 px-4 py-2 bg-[#7065f0] hover:bg-[#5e52e4] text-white rounded-xl text-xs font-bold cursor-pointer transition-all"
+                  className="mt-3 px-3 py-1.5 bg-[#7065f0] hover:bg-[#5e52e4] text-white rounded-xl text-xs font-bold cursor-pointer transition-all"
                 >
                   Reload Page & Retry
                 </button>
@@ -289,7 +289,7 @@ export const LiveRoomQrScannerModal: React.FC<LiveRoomQrScannerModalProps> = ({
           </div>
 
           {/* GPS Telemetry Pill */}
-          <div className="flex items-center justify-between bg-[#f4f5fa] px-3.5 py-2.5 rounded-2xl border border-slate-200/60 text-[11px]">
+          <div className="flex items-center justify-between bg-[#f4f5fa] px-3 py-2 rounded-xl sm:rounded-2xl border border-slate-200/60 text-[10px] sm:text-[11px]">
             <div className="flex items-center gap-1.5 font-bold text-[#232d42]">
               <MapPin className="w-3.5 h-3.5 text-[#7065f0]" />
               <span>Location Telemetry:</span>
@@ -312,12 +312,12 @@ export const LiveRoomQrScannerModal: React.FC<LiveRoomQrScannerModalProps> = ({
           </div>
 
           {/* Instructions */}
-          <div className="text-left bg-[#eff0fe]/50 border border-indigo-200/60 p-3.5 rounded-2xl text-[11px] text-[#232d42] space-y-1">
+          <div className="text-left bg-[#eff0fe]/50 border border-indigo-200/60 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl text-[10px] sm:text-[11px] text-[#232d42] space-y-0.5">
             <div className="font-bold text-[#7065f0] flex items-center gap-1">
-              <ShieldCheck className="w-4 h-4 text-[#7065f0]" /> Physical Check-In Guideline:
+              <ShieldCheck className="w-3.5 h-3.5 text-[#7065f0]" /> Physical Check-In Guideline:
             </div>
-            <p className="text-slate-600 leading-relaxed">
-              Align your camera viewfinder with the official printed Boardroom QR poster placed inside the 5th Floor Conference Room. Attendance will be verified automatically upon scan.
+            <p className="text-slate-600 leading-relaxed text-[10px] sm:text-[11px]">
+              Align viewfinder with official Boardroom QR poster in 5th Floor Conference Hall. Attendance verifies automatically upon scan.
             </p>
           </div>
         </div>
