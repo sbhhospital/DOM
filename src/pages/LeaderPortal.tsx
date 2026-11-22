@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import {
   Hospital,
   QrCode,
@@ -708,56 +708,9 @@ export const LeaderPortal: React.FC = () => {
           </div>
         )}
 
-        {/* If no leader is selected/authenticated, show search list */}
+        {/* If no leader is selected/authenticated, redirect directly to login without exposing leader roster */}
         {!activeLeader ? (
-          <div className="fluent-card rounded-3xl p-6 space-y-4">
-            <div>
-              <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider">
-                Select Your Name from Hospital Roster
-              </h2>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Scan result from Boardroom QR or WhatsApp link. Search your name:
-              </p>
-            </div>
-
-            <div className="relative">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-              <input
-                type="text"
-                placeholder="Type your name or department..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-orange-500 font-semibold"
-              />
-            </div>
-
-            <div className="space-y-1.5 max-h-80 overflow-y-auto pr-1">
-              {filteredLeaders.length === 0 ? (
-                <div className="text-xs text-slate-500 text-center py-6">
-                  No leaders found. Please contact Web Administrator (Mr. Naman Mishra).
-                </div>
-              ) : (
-                filteredLeaders.map((l) => (
-                  <button
-                    key={l.id}
-                    onClick={() => setSelectedLeader(l)}
-                    className="w-full text-left p-3 rounded-xl bg-slate-50 hover:bg-orange-50 border border-slate-200 hover:border-orange-200 flex items-center justify-between transition-colors cursor-pointer"
-                  >
-                    <div>
-                      <div className="font-bold text-sm text-slate-900">{l.full_name}</div>
-                      <div className="text-[11px] text-slate-500 mt-0.5">
-                        {l.department?.name || 'Department'} •{' '}
-                        <span className="font-mono text-orange-600 font-semibold">{l.email}</span>
-                      </div>
-                    </div>
-                    <span className="text-xs bg-orange-100 text-orange-800 px-3 py-1 rounded-lg font-bold border border-orange-200">
-                      Select
-                    </span>
-                  </button>
-                ))
-              )}
-            </div>
-          </div>
+          <Navigate to="/login" replace />
         ) : (
           /* Step 2: Selected / Logged-in Leader - Choose Mode */
           <div className="rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 space-y-3 sm:space-y-4 bg-white border border-[#f0f1f8] shadow-xl shadow-purple-900/5">

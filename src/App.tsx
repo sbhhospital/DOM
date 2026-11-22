@@ -12,6 +12,18 @@ import { HospitalFooter } from './components/HospitalFooter';
 import { PageLoadingBar } from './components/PageLoadingBar';
 
 
+// Canonical Domain Enforcer (Ensures any OAuth redirects to sbhdom-dmes-projects-*.vercel.app immediately redirect to official sbhdom.vercel.app)
+if (typeof window !== 'undefined') {
+  const host = window.location.hostname;
+  if (
+    host.includes('dmes-projects') ||
+    (host.startsWith('sbhdom-') && host.endsWith('.vercel.app') && host !== 'sbhdom.vercel.app')
+  ) {
+    const targetUrl = `https://sbhdom.vercel.app${window.location.pathname}${window.location.search}${window.location.hash}`;
+    window.location.replace(targetUrl);
+  }
+}
+
 // Admin Protected Route Guard
 const AdminProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAdminAuthenticated } = useAuthSession();
