@@ -387,7 +387,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
             : cadenceType === 'MOM'
             ? 'Monthly Operations Meeting'
             : 'Daily Operations Meeting';
-        const text = `Welcome dear leaders. Today's ${meetingName} has now commenced. Kindly mark your attendance.`;
+        const text = `Good morning leaders. Today's ${meetingName} has now started in the conference room. Please scan the QR code to check in and mark your attendance.`;
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.rate = 0.90;
         utterance.pitch = 1.0;
