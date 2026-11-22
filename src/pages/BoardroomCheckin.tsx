@@ -82,7 +82,9 @@ export const BoardroomCheckin: React.FC = () => {
   }, [selectedDate, todayRecord, currentMeeting]);
 
   const isCutoffLocked = !windowStatus.allowed;
-  const isCheckInDisabled = isSundayOrHoliday || isOnLeave || isCutoffLocked || currentMeeting.is_completed;
+  const allowedCampusRadius = appSettings.hospital_radius_meters || 200;
+  const isGeoRejected = checkinMode === 'PHYSICAL' && geoDistance !== null && geoDistance > allowedCampusRadius;
+  const isCheckInDisabled = isSundayOrHoliday || isOnLeave || isCutoffLocked || currentMeeting.is_completed || isGeoRejected;
 
   const resolvedDepartmentName = useMemo(() => {
     const targetUser = currentUser || selectedLeader;
@@ -565,6 +567,11 @@ export const BoardroomCheckin: React.FC = () => {
                 <>
                   <Lock className="w-4 h-4 text-white" />
                   <span>Check-In Locked ({windowStatus.windowCloseStr} Cutoff)</span>
+                </>
+              ) : isGeoRejected ? (
+                <>
+                  <AlertCircle className="w-4 h-4 text-white" />
+                  <span>Physical Check-In Denied (Outside Campus — Switch to Virtual Above)</span>
                 </>
               ) : (
                 <>

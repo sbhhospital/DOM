@@ -193,8 +193,8 @@ export const LiveRoomQrScannerModal: React.FC<LiveRoomQrScannerModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[30000] modal-backdrop flex items-start sm:items-center justify-center p-2 sm:p-4 overflow-y-auto">
-      <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden border border-[#f0f1f8] relative flex flex-col my-auto max-h-[92vh] animate-in fade-in zoom-in-95">
+    <div className="fixed inset-0 z-[30000] modal-backdrop flex items-center justify-center p-2.5 sm:p-4 overflow-y-auto">
+      <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden border border-[#f0f1f8] relative flex flex-col my-auto max-h-[90vh] animate-in fade-in zoom-in-95">
         {/* Top Header matching Hope UI */}
         <div className="p-3.5 sm:p-4 bg-white border-b border-[#f0f1f8] flex items-center justify-between shrink-0 sticky top-0 z-10">
           <div className="flex items-center gap-2.5">
