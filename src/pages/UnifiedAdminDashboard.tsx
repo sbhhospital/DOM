@@ -54,6 +54,7 @@ import {
   Volume2,
   RotateCcw,
   Award,
+  User,
 } from 'lucide-react';
 import { useDomApp } from '../context/DomAppContext';
 import { useAuthSession } from '../context/AuthSessionContext';
@@ -189,30 +190,30 @@ const LiveIndiaClockAndCountdown: React.FC<{ currentCadence: string }> = React.m
       </div>
 
       {/* Card 2: Next Standup Countdown - Hope UI Styling */}
-      <div className="bg-gradient-to-r from-[#7065f0] via-[#8577ff] to-[#a497fc] p-3 rounded-2xl shadow-xs text-white flex flex-col justify-between">
-        <div className="flex items-center justify-between gap-2 mb-1.5">
-          <div className="text-[10px] font-bold text-white/90 uppercase tracking-wider truncate flex items-center gap-1">
+      <div className="bg-gradient-to-r from-[#7065f0] via-[#7d6ff5] to-[#8c7ff8] p-3 rounded-2xl shadow-xs text-white flex flex-col justify-between overflow-hidden">
+        <div className="flex items-center justify-between gap-1.5 mb-1.5 min-w-0">
+          <div className="text-[10px] font-black text-amber-200 uppercase tracking-wider truncate flex items-center gap-1 min-w-0">
             <Sparkles className="w-3 h-3 text-amber-200 shrink-0" />
-            <span>{countdown.stageTitle}</span>
+            <span className="truncate">{countdown.stageTitle}</span>
           </div>
-          <span className="text-[9px] font-bold uppercase px-2 py-0.5 rounded-full bg-white/20 text-white shrink-0">
+          <span className="text-[8px] font-bold uppercase px-2 py-0.5 rounded-full bg-white/20 text-white shrink-0 whitespace-nowrap">
             {countdown.targetMilestone}
           </span>
         </div>
-        <div className="flex items-center gap-1">
-          <div className="flex items-baseline gap-1 bg-white/20 px-2 py-0.5 rounded-lg border border-white/20">
-            <span className="text-sm font-black font-mono text-white">{countdown.hoursStr}</span>
-            <span className="text-[8px] font-bold text-white/90">HRS</span>
+        <div className="flex items-center gap-1.5 flex-nowrap">
+          <div className="flex items-baseline gap-0.5 bg-black/15 px-2.5 py-0.5 rounded-xl border border-white/20 shrink-0">
+            <span className="text-sm sm:text-base font-black font-mono text-white leading-none">{countdown.hoursStr}</span>
+            <span className="text-[8px] font-bold text-white/80">h</span>
           </div>
-          <span className="text-white/80 font-black text-xs">:</span>
-          <div className="flex items-baseline gap-1 bg-white/20 px-2 py-0.5 rounded-lg border border-white/20">
-            <span className="text-sm font-black font-mono text-white">{countdown.minsStr}</span>
-            <span className="text-[8px] font-bold text-white/90">MIN</span>
+          <span className="text-white/70 font-black text-xs shrink-0">:</span>
+          <div className="flex items-baseline gap-0.5 bg-black/15 px-2.5 py-0.5 rounded-xl border border-white/20 shrink-0">
+            <span className="text-sm sm:text-base font-black font-mono text-white leading-none">{countdown.minsStr}</span>
+            <span className="text-[8px] font-bold text-white/80">m</span>
           </div>
-          <span className="text-white/80 font-black text-xs">:</span>
-          <div className="flex items-baseline gap-1 bg-white/25 px-2 py-0.5 rounded-lg border border-white/30 text-amber-200">
-            <span className="text-sm font-black font-mono text-amber-200">{countdown.secsStr}</span>
-            <span className="text-[8px] font-bold text-amber-200">SEC</span>
+          <span className="text-white/70 font-black text-xs shrink-0">:</span>
+          <div className="flex items-baseline gap-0.5 bg-amber-400/25 px-2.5 py-0.5 rounded-xl border border-amber-300/40 text-amber-200 shrink-0">
+            <span className="text-sm sm:text-base font-black font-mono text-amber-200 leading-none">{countdown.secsStr}</span>
+            <span className="text-[8px] font-bold text-amber-200">s</span>
           </div>
         </div>
       </div>
@@ -1163,7 +1164,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
       // Structured WhatsApp Caption
       const captionText = `🏥 *SBH GROUP OF HOSPITALS, RAIPUR*\n📊 *OFFICIAL ${cadence} LEADERSHIP ATTENDANCE REPORT (${formatToIndianDate(date)})*\n━━━━━━━━━━━━━━━━━━━━━━\n• Total Expected: ${forDate.length}\n• Attended: ${forDate.filter((r) => isPresentRecord(r)).length}\n• Approved Late: ${forDate.filter((r) => isLateRecord(r)).length}\n• Approved Leave: ${forDate.filter((r) => isLeaveRecord(r)).length}\n• Absent / Unreported: ${forDate.filter((r) => isAbsentRecord(r)).length}\n\n📄 *Official Signed Director Attendance PDF Report Attached*\n━━━━━━━━━━━━━━━━━━━━━━\n*Automated Reminder*`;
 
-      // 1. Direct Ceoitbox PDF Dispatch to WhatsApp Group (919977881452-1431506963@g.us) via /api/v1/message/create
+      // 1. Direct Ceoitbox PDF Dispatch to WhatsApp Group (120363432056023698@g.us) via /api/v1/message/create
       const dispatchPromise = sendDirectorPdfToWhatsappGroup(date);
       uploadReportToGoogleDriveAndSheet(date).catch((e) => console.warn('Background sync note:', e));
 
@@ -1186,7 +1187,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
       if (res.success) {
         setToastAlert({
           type: 'success',
-          text: `🎉 Official PDF Report directly dispatched to WhatsApp Group (${appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us'}) via Ceoitbox API!`,
+          text: `🎉 Official PDF Report directly dispatched to WhatsApp Group (${appSettings.admin_whatsapp_group || '120363432056023698@g.us'}) via Ceoitbox API!`,
         });
       } else {
         setToastAlert({
@@ -1251,7 +1252,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
     textMsg += `━━━━━━━━━━━━━━━━━━━━━━\n*Automated Reminder*`;
 
-    const groupJid = appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us';
+    const groupJid = appSettings.admin_whatsapp_group || '120363432056023698@g.us';
     const res = await sendCeoitboxWhatsappMessage({
       mobileNo: groupJid,
       name: 'SBH DOM Official Group',
@@ -1886,6 +1887,16 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 />
               </div>
 
+              {/* Discreet Voice Announcement Test Icon Button */}
+              <button
+                type="button"
+                onClick={triggerTestAnnouncement}
+                className="p-2 bg-[#eff0fe] hover:bg-[#e0e3fc] text-[#7065f0] border border-purple-200/80 rounded-xl text-xs font-bold shadow-2xs flex items-center justify-center cursor-pointer transition-all active:scale-95"
+                title="Test 10:00 AM Indian Voice Announcement & Standup Window"
+              >
+                <Volume2 className="w-4 h-4 text-[#7065f0]" />
+              </button>
+
               <a
                 href={currentMeeting.google_meet_url}
                 target="_blank"
@@ -1911,10 +1922,16 @@ export const UnifiedAdminDashboard: React.FC = () => {
                       ? 'bg-purple-600'
                       : currentCadence === 'WOM'
                         ? 'bg-blue-600'
-                        : 'bg-gradient-to-br from-[#7065f0] to-[#7f70f6]'
+                        : currentCadence === 'HOLIDAY'
+                          ? 'bg-gradient-to-br from-amber-400 to-orange-500'
+                          : 'bg-gradient-to-br from-[#7065f0] to-[#7f70f6]'
                     }`}
                 >
-                  {currentCadence}
+                  {currentCadence === 'HOLIDAY' ? (
+                    <span className="text-base" role="img" aria-label="Holiday">🏖️</span>
+                  ) : (
+                    currentCadence
+                  )}
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
@@ -1975,12 +1992,16 @@ export const UnifiedAdminDashboard: React.FC = () => {
                           ? 'bg-[#8b5cf6]'
                           : currentCadence === 'WOM'
                             ? 'bg-[#3bb7b8]'
-                            : currentMeeting.is_holiday_or_shifted
-                              ? 'bg-amber-500'
+                            : currentCadence === 'HOLIDAY' || currentMeeting.is_holiday_or_shifted
+                              ? 'bg-gradient-to-br from-amber-400 to-orange-500'
                               : 'bg-gradient-to-br from-[#7065f0] to-[#7f70f6]'
                         }`}
                     >
-                      {currentCadence}
+                      {currentCadence === 'HOLIDAY' ? (
+                        <span className="text-xl" role="img" aria-label="Holiday">🏖️</span>
+                      ) : (
+                        currentCadence
+                      )}
                     </div>
                     <div>
                       <div className="flex items-center gap-2 flex-wrap mb-0.5">
@@ -2079,16 +2100,6 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
                   {/* Right: Unified Executive Action Toolbar (Clean h-9 pills, no jagged wrapping) */}
                   <div className="flex flex-wrap items-center justify-start xl:justify-end gap-2 pt-2 xl:pt-0 border-t xl:border-t-0 border-[#f0f1f8]">
-                    {/* 🧪 Test 10:00 AM Announcement Button */}
-                    <button
-                      onClick={triggerTestAnnouncement}
-                      className="h-9 px-3.5 bg-[#eff0fe] hover:bg-[#e0e3fc] text-[#7065f0] border border-purple-200/80 rounded-2xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150 shrink-0"
-                      title="Test 10:00 AM Countdown, Dropdown Top Bar & Audio Voice Announcement"
-                    >
-                      <Volume2 className="w-3.5 h-3.5 text-[#7065f0]" />
-                      <span>🧪 Test 10:00 AM Announcement</span>
-                    </button>
-
                     {/* 09:50 AM Broadcast Button */}
                     <button
                       onClick={() =>
@@ -2472,7 +2483,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                       openConfirm({
                         title: 'Save & Archive Report',
                         message:
-                          `Archive official DOM attendance report for ${selectedDate} directly to Supabase SQL database, download signed PDF, and dispatch audit summary to Official WhatsApp Group (${appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us'})?`,
+                          `Archive official DOM attendance report for ${selectedDate} directly to Supabase SQL database, download signed PDF, and dispatch audit summary to Official WhatsApp Group (${appSettings.admin_whatsapp_group || '120363432056023698@g.us'})?`,
                         type: 'primary',
                         confirmText: 'Save & Archive',
                         onConfirm: handleUploadToDriveAndSheet,
@@ -2575,8 +2586,29 @@ export const UnifiedAdminDashboard: React.FC = () => {
                         filteredRecords.map((rec) => (
                           <tr key={rec.id} className="hover:bg-slate-50/70 transition-colors border-b border-slate-100">
                             <td className="py-2.5 px-3">
-                              <div className="font-bold text-slate-900 text-xs sm:text-sm">{rec.leader?.full_name}</div>
-                              <div className="text-[10px] text-slate-400 font-mono font-medium">{rec.leader?.employee_code}</div>
+                              <div className="flex items-center gap-2.5">
+                                <div className="w-8 h-8 rounded-xl bg-[#eff0fe] text-[#7065f0] font-black text-xs flex items-center justify-center shrink-0 border border-purple-200/60 shadow-2xs">
+                                  {rec.leader?.full_name ? (
+                                    rec.leader.full_name
+                                      .split(' ')
+                                      .map((n: string) => n[0])
+                                      .slice(0, 2)
+                                      .join('')
+                                      .toUpperCase()
+                                  ) : (
+                                    <User className="w-4 h-4 text-[#7065f0]" />
+                                  )}
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="font-bold text-slate-900 text-xs sm:text-sm leading-snug truncate">
+                                    {rec.leader?.full_name}
+                                  </div>
+                                  <div className="text-[10px] text-slate-400 font-mono font-medium flex items-center gap-1 mt-0.5">
+                                    <User className="w-3 h-3 text-slate-400 shrink-0" />
+                                    <span>{rec.leader?.employee_code || 'SBH-STAFF'}</span>
+                                  </div>
+                                </div>
+                              </div>
                             </td>
                             <td className="py-2.5 px-3 text-slate-600 font-semibold text-xs">
                               {rec.leader?.department?.name || 'Department'}
@@ -4183,13 +4215,13 @@ export const UnifiedAdminDashboard: React.FC = () => {
                         type="text"
                         value={appSettings.admin_whatsapp_group}
                         onChange={(e) => updateAppSettings({ admin_whatsapp_group: e.target.value })}
-                        placeholder="919977881452-1431506963@g.us"
+                        placeholder="120363432056023698@g.us"
                         className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-emerald-500 font-mono font-bold"
                       />
                       <div className="flex items-center justify-between mt-1 text-[11px] text-slate-500">
-                        <span>Target Group: Official DOM Operations ({appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us'})</span>
+                        <span>Target Group: Official DOM Operations ({appSettings.admin_whatsapp_group || '120363432056023698@g.us'})</span>
                         <a
-                          href={`https://app.ceoitbox.com/customer/channel/23642/group/${appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us'}`}
+                          href={`https://app.ceoitbox.com/customer/channel/23642/group/${appSettings.admin_whatsapp_group || '120363432056023698@g.us'}`}
                           target="_blank"
                           rel="noreferrer"
                           className="text-emerald-700 font-bold underline"
@@ -4294,7 +4326,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                       </span>
                     </div>
                     <div className="text-[11px] font-mono text-slate-700 truncate bg-slate-50 p-2 rounded-lg border border-slate-200 font-bold">
-                      {appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us'}
+                      {appSettings.admin_whatsapp_group || '120363432056023698@g.us'}
                     </div>
                     <p className="text-[11px] text-slate-500">09:50 AM notice & 10:30 AM final PDF report are dispatched to this group.</p>
                   </div>
@@ -4966,8 +4998,29 @@ export const UnifiedAdminDashboard: React.FC = () => {
                           lateRecords.map((rec) => (
                             <tr key={rec.id} className="hover:bg-amber-50/20 transition-colors">
                               <td className="py-2.5 px-3">
-                                <div className="font-bold text-slate-900 text-xs sm:text-sm">{rec.leader?.full_name}</div>
-                                <div className="text-[10px] text-slate-400 font-mono">{rec.leader?.employee_code}</div>
+                                <div className="flex items-center gap-2.5">
+                                  <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 font-black text-xs flex items-center justify-center shrink-0 border border-amber-200/80 shadow-2xs">
+                                    {rec.leader?.full_name ? (
+                                      rec.leader.full_name
+                                        .split(' ')
+                                        .map((n: string) => n[0])
+                                        .slice(0, 2)
+                                        .join('')
+                                        .toUpperCase()
+                                    ) : (
+                                      <User className="w-4 h-4 text-amber-700" />
+                                    )}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <div className="font-bold text-slate-900 text-xs sm:text-sm leading-snug truncate">
+                                      {rec.leader?.full_name}
+                                    </div>
+                                    <div className="text-[10px] text-slate-400 font-mono font-medium flex items-center gap-1 mt-0.5">
+                                      <User className="w-3 h-3 text-slate-400 shrink-0" />
+                                      <span>{rec.leader?.employee_code || 'SBH-STAFF'}</span>
+                                    </div>
+                                  </div>
+                                </div>
                               </td>
                               <td className="py-2.5 px-3 text-slate-600 font-semibold text-xs">
                                 {rec.leader?.department?.name || 'Department'}
@@ -5457,7 +5510,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                     onChange={(e) => setNotifyGroupOnScheduleChange(e.target.checked)}
                     className="rounded text-[#7065f0] focus:ring-[#7065f0] w-4 h-4 cursor-pointer"
                   />
-                  <span>Immediately Notify WhatsApp Group ({appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us'}) of this Schedule Update</span>
+                  <span>Immediately Notify WhatsApp Group ({appSettings.admin_whatsapp_group || '120363432056023698@g.us'}) of this Schedule Update</span>
                 </label>
               </div>
 
@@ -6353,12 +6406,12 @@ export const UnifiedAdminDashboard: React.FC = () => {
  * =======================================================================
  * SBH GROUP OF HOSPITALS, RAIPUR — DOM AUTOMATION PIPELINE (APPS SCRIPT)
  * Target Drive Folder: https://drive.google.com/drive/folders/1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD?usp=sharing
- * Target WhatsApp Group ID: 919977881452-1431506963@g.us
+ * Target WhatsApp Group ID: 120363432056023698@g.us
  * =======================================================================
  */
 
 const DRIVE_FOLDER_ID = "1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD";
-const WHATSAPP_GROUP_ID = "919977881452-1431506963@g.us";
+const WHATSAPP_GROUP_ID = "120363432056023698@g.us";
 const GOOGLE_MEET_URL = "https://meet.google.com/jrz-jfku-gir";
 
 /**
@@ -6460,7 +6513,7 @@ function sendDaily0950Notice() {
               <button
                 onClick={() => {
                   const codeToCopy = `const DRIVE_FOLDER_ID = "1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD";
-const WHATSAPP_GROUP_ID = "919977881452-1431506963@g.us";
+const WHATSAPP_GROUP_ID = "120363432056023698@g.us";
 const GOOGLE_MEET_URL = "https://meet.google.com/jrz-jfku-gir";
 
 function doPost(e) {
@@ -6763,7 +6816,7 @@ function doPost(e) {
                     Send to WhatsApp Group
                   </h3>
                   <p className="text-xs text-slate-500 font-medium">
-                    SBH Express Group ({appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us'})
+                    SBH Express Group ({appSettings.admin_whatsapp_group || '120363432056023698@g.us'})
                   </p>
                 </div>
               </div>

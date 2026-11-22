@@ -142,7 +142,7 @@ const DomAppContext = createContext<DomAppContextType | undefined>(undefined);
 const DEFAULT_SETTINGS: AppSettings = {
   director_whatsapp: '9644404741',
   director_name: 'Director Sir',
-  admin_whatsapp_group: '919977881452-1431506963@g.us',
+  admin_whatsapp_group: '120363432056023698@g.us',
   google_meet_url: 'https://meet.google.com/jrz-jfku-gir',
   allowed_domain: 'sbhhospital.com',
   conference_room_name: 'Conference Room, 5th Floor',
@@ -545,10 +545,10 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
       if (
         !parsed.admin_whatsapp_group ||
-        parsed.admin_whatsapp_group === '919977881452-1431506963@g.us' ||
+        parsed.admin_whatsapp_group === '120363432056023698@g.us' ||
         parsed.admin_whatsapp_group === 'SBH DOM Executive Group'
       ) {
-        parsed.admin_whatsapp_group = '919977881452-1431506963@g.us';
+        parsed.admin_whatsapp_group = '120363432056023698@g.us';
       }
       if (!parsed.google_drive_folder_url) {
         parsed.google_drive_folder_url = 'https://drive.google.com/drive/folders/1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD?usp=sharing';
@@ -2557,7 +2557,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             stage: '1030',
             date,
             message: msg,
-            targetGroup: appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us',
+            targetGroup: appSettings.admin_whatsapp_group || '120363432056023698@g.us',
           }),
         }).catch(() => {});
       } catch (e) {
@@ -2579,7 +2579,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const cadenceCode = meeting.cadence || 'DOM';
     const isSunday = new Date(date).getDay() === 0;
     const isHoliday = cadenceCode === 'HOLIDAY' || Boolean(meeting.is_holiday_or_shifted);
-    const targetGroup = appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us';
+    const targetGroup = appSettings.admin_whatsapp_group || '120363432056023698@g.us';
 
     let reminderMsg = '';
     let noticeType = 'DOM_0950_NOTICE';
@@ -2671,7 +2671,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     scheduledTime: string,
     reason?: string
   ): Promise<{ success: boolean; message: string }> => {
-    const targetGroup = appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us';
+    const targetGroup = appSettings.admin_whatsapp_group || '120363432056023698@g.us';
     let msg = `🏥 *SBH GROUP OF HOSPITALS, RAIPUR*\n`;
     msg += `📢 *OFFICIAL SCHEDULE UPDATE / CADENCE NOTICE*\n`;
     msg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
@@ -2810,7 +2810,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             stage: '1010',
             date,
             message: msg,
-            targetGroup: appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us',
+            targetGroup: appSettings.admin_whatsapp_group || '120363432056023698@g.us',
           }),
         }).catch(() => {});
       } catch (e) {
@@ -3053,7 +3053,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     summaryMsg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
     summaryMsg += `Official signed attendance document attached below.\n*Automated Reminder*`;
 
-    const targetGroup = appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us';
+    const targetGroup = appSettings.admin_whatsapp_group || '120363432056023698@g.us';
 
     const res = await sendCeoitboxPdfAttachment({
       mobileNo: targetGroup,
@@ -3086,47 +3086,36 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       month: 'short',
       year: 'numeric',
     });
-    let sent = 0;
 
-    for (const lead of leaders) {
-      if (!lead.phone) continue;
-      // Protection: Ex-employee phone number must never be targeted
-      if (lead.phone.includes('9977881452')) continue;
+    const targetGroup = appSettings.admin_whatsapp_group || '120363432056023698@g.us';
 
-      const { url: magicUrl } = generateLeaderMagicLink(lead);
-      const { url: dailyMeetUrl } = generateDailyMeetingLink(
-        lead,
-        date,
-        undefined,
-        meeting.google_meet_url || appSettings.google_meet_url
-      );
+    let reminderText = `🏥 *SBH GROUP OF HOSPITALS, RAIPUR*\n`;
+    reminderText += `🔔 *OFFICIAL 09:50 AM ${cadenceCode} NOTICE — ${meeting.title.toUpperCase()}*\n`;
+    reminderText += `━━━━━━━━━━━━━━━━━━━━━━\n`;
+    reminderText += `📅 *Date:* ${formattedDate}\n`;
+    reminderText += `⏰ *Start Time:* 10:00 AM IST (Sharp)\n`;
+    reminderText += `📍 *Venue:* ${appSettings.conference_room_name || 'Conference Room, 5th Floor'}\n`;
+    reminderText += `🔗 *Google Meet URL:* ${meeting.google_meet_url || appSettings.google_meet_url || 'https://meet.google.com/jrz-jfku-gir'}\n\n`;
+    reminderText += `✅ *ATTENDANCE & CHECK-IN LINK:*\n`;
+    reminderText += `👉 https://sbhdom.vercel.app/boardroom-checkin\n\n`;
+    reminderText += `⚠️ *MANDATORY INSTRUCTION:*\n`;
+    reminderText += `All leaders are requested to assemble in the Conference Room (5th Floor) or join Google Meet before 10:00 AM IST sharp. Physical check-in requires in-person QR code verification.\n`;
+    reminderText += `━━━━━━━━━━━━━━━━━━━━━━\n`;
+    reminderText += `*Automated Reminder*\n`;
+    reminderText += `Clinical Governance & Hospital Operations Command\n`;
+    reminderText += `SBH Group of Hospitals, Raipur`;
 
-      let reminderText = `🏥 *SBH GROUP OF HOSPITALS, RAIPUR*\n`;
-      reminderText += `🔔 *09:50 AM NOTICE: ${cadenceCode} — ${meeting.title.toUpperCase()}*\n`;
-      reminderText += `━━━━━━━━━━━━━━━━━━━━━━\n`;
-      reminderText += `👤 *Hello ${lead.full_name}* (${lead.department?.name || 'Dept'})\n`;
-      reminderText += `📅 *Date:* ${formattedDate}\n`;
-      reminderText += `⏰ *Start Time:* 10:00 AM IST (Sharp)\n`;
-      reminderText += `📍 *Venue:* ${appSettings.conference_room_name || 'Conference Room, 5th Floor'}\n\n`;
-      reminderText += `✅ *ATTENDANCE & CHECK-IN LINK:*\n`;
-      reminderText += `👉 https://sbhdom.vercel.app/boardroom-checkin\n\n`;
-      reminderText += `⚠️ *INSTRUCTION:*\n`;
-      reminderText += `Kindly assemble in the Conference Room (5th Floor) and check in using the link above before 10:00 AM sharp.\n`;
-      reminderText += `━━━━━━━━━━━━━━━━━━━━━━\nDOM Operations Command | SBH Raipur`;
-
-      await sendCeoitboxWhatsappMessage({
-        mobileNo: lead.phone,
-        name: lead.full_name,
-        message: reminderText,
-        settings: appSettings,
-      });
-      sent++;
-    }
+    await sendCeoitboxWhatsappMessage({
+      mobileNo: targetGroup,
+      name: 'SBH DOM Testing Group',
+      message: reminderText,
+      settings: appSettings,
+    });
 
     return {
       success: true,
-      count: sent,
-      message: `09:50 AM notice & secure login links broadcast to ${sent} department leaders!`,
+      count: 1,
+      message: `09:50 AM notice broadcast directly to WhatsApp Group (${targetGroup})!`,
     };
   };
 
@@ -3145,7 +3134,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     let sent = 0;
     for (const rec of nonAttendees) {
       const lead = rec.leader;
-      if (!lead?.phone) continue;
+      if (!lead?.phone || lead.phone.replace(/\D/g, '').includes('9977881452')) continue;
 
       let alertText = `🏥 *SBH GROUP OF HOSPITAL, RAIPUR*\n`;
       alertText += `🚨 *URGENT: ${cadenceCode} SESSION IN PROGRESS — KINDLY JOIN*\n`;
@@ -3171,7 +3160,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
   };
 
-  // Automated 2-Stage Broadcast directly into official WhatsApp Group (919977881452-1431506963@g.us) via CEOITBOX API (Mon-Sat, Sunday Paused)
+  // Automated 2-Stage Broadcast directly into official WhatsApp Group (120363432056023698@g.us) via CEOITBOX API (Mon-Sat, Sunday Paused)
   const sendCeoitboxGroupBroadcast = async (
     stage: '0950' | '1030',
     date: string
@@ -3208,7 +3197,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const totalCount = forDate.length || leaders.length;
     const totalPresent = presentPhysical.length + presentVirtual.length;
     const complianceRate = totalCount > 0 ? Math.round(((totalPresent + informedLate.length + informedLeave.length) / totalCount) * 100) : 0;
-    const groupJid = appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us';
+    const groupJid = appSettings.admin_whatsapp_group || '120363432056023698@g.us';
 
     let msg = '';
 
@@ -3358,7 +3347,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         complianceRate,
         pdfBase64: base64,
         pdfFileName: filename,
-        whatsappGroupId: appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us',
+        whatsappGroupId: appSettings.admin_whatsapp_group || '120363432056023698@g.us',
         driveFolderId: appSettings.google_drive_folder_id || '1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD',
       };
 
@@ -3382,7 +3371,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
               leaveCount: informedLeave.length,
               complianceRate,
               pdfFileName: filename,
-              whatsappGroupId: appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us',
+              whatsappGroupId: appSettings.admin_whatsapp_group || '120363432056023698@g.us',
               driveFolderUrl: appSettings.google_drive_folder_url || 'https://drive.google.com/drive/folders/1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD?usp=sharing',
               createdAt: new Date().toISOString(),
             },
@@ -3415,7 +3404,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       return {
         success: true,
-        message: `Official DOM Report successfully archived to Supabase database & dispatched to WhatsApp Group (${appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us'}) via CEOITBOX API!`,
+        message: `Official DOM Report successfully archived to Supabase database & dispatched to WhatsApp Group (${appSettings.admin_whatsapp_group || '120363432056023698@g.us'}) via CEOITBOX API!`,
         driveUrl: cloudDriveUrl,
       };
     } catch (err: any) {
@@ -3437,7 +3426,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return {
       success: true,
       leadersCount: 1,
-      message: `09:50 AM Morning Notice successfully dispatched to Official WhatsApp Group (${appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us'})!`,
+      message: `09:50 AM Morning Notice successfully dispatched to Official WhatsApp Group (${appSettings.admin_whatsapp_group || '120363432056023698@g.us'})!`,
     };
   };
 
@@ -3530,6 +3519,10 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const sendLeaderOnboardingCredentials = async (leader: Leader): Promise<{ success: boolean; message: string }> => {
     if (!leader.phone || leader.phone.trim().length < 10) {
       return { success: false, message: `Leader ${leader.full_name} does not have a valid registered WhatsApp number.` };
+    }
+
+    if (leader.phone.replace(/\D/g, '').includes('9977881452')) {
+      return { success: false, message: 'Dispatch to 9977881452 is strictly blocked during testing phase.' };
     }
 
     const assignedPassword = leader.password || localStorage.getItem(`sbh_user_pass_${leader.id}`) || '123456';

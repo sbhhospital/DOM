@@ -18,10 +18,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const { mobileNo, message, username, password, pdfBase64, pdfFilename } = req.body || {};
 
-    const cleanPhone = (mobileNo || '919977881452-1431506963@g.us').trim();
-    const user = username || 'SBH HOSPITAL';
-    const pass = password || '123456789';
+    let cleanPhone = (mobileNo || '120363432056023698@g.us').trim();
     const isGroup = cleanPhone.includes('@g.us');
+
+    // Strict safety protection: NEVER message single contact 9977881452
+    if (!isGroup && cleanPhone.replace(/\D/g, '').includes('9977881452')) {
+      return res.status(200).json({ success: false, message: 'Blocked individual dispatch to 9977881452 in testing mode.' });
+    }
+
+    // Testing phase protection: Do NOT message official group (919977881452-1431506963@g.us)
+    if (cleanPhone === '919977881452-1431506963@g.us' || !cleanPhone) {
+      cleanPhone = '120363432056023698@g.us';
+    }
     const authHeader = 'Basic ' + Buffer.from(`${user}:${pass}`).toString('base64');
 
     const results: Record<string, any> = {};

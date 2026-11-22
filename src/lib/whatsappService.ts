@@ -40,17 +40,24 @@ export async function sendCeoitboxWhatsappMessage({
   message,
   settings,
 }: CeoitboxDispatchParams): Promise<{ success: boolean; status: string; url: string }> {
-  const cleanPhone = cleanMobileNumber(mobileNo);
+  const rawClean = cleanMobileNumber(mobileNo);
+  const isGroup = rawClean.includes('@g.us');
 
-  const isGroup = cleanPhone.includes('@g.us');
-
-  // Safety filter: never message former contact 9977881452 on personal chat (allow official groups)
-  if (!isGroup && (cleanPhone === '9977881452' || cleanPhone === '919977881452')) {
+  // Safety filter: NEVER message single contact 9977881452 or +919977881452 on personal chat
+  if (!isGroup && (rawClean.replace(/\D/g, '').includes('9977881452') || rawClean === '9977881452' || rawClean === '919977881452')) {
+    console.warn('[WhatsApp Safety] Blocked single number dispatch to 9977881452 during testing phase.');
     return {
       success: false,
-      status: 'Blocked former contact number.',
+      status: 'Blocked individual contact number 9977881452 during testing.',
       url: '',
     };
+  }
+
+  // Testing phase protection: Do NOT message official group (919977881452-1431506963@g.us).
+  // All testing notices and reminders MUST go exclusively to testing group: 120363432056023698@g.us!
+  let cleanPhone = rawClean;
+  if (cleanPhone === '919977881452-1431506963@g.us' || !cleanPhone) {
+    cleanPhone = '120363432056023698@g.us';
   }
 
   if (!isGroup && (!cleanPhone || cleanPhone.length < 10)) {
