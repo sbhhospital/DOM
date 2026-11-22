@@ -162,6 +162,9 @@ export async function sendCeoitboxWhatsappMessage({
   queryParams.set('receiverMobileNo', cleanPhone);
   queryParams.set('receiverName', receiverName);
   queryParams.set('message', message);
+  if (filePathUrl) {
+    queryParams.set('filePathUrl', filePathUrl);
+  }
   const primaryGetUrl = `https://app.messageautosender.com/message/new?${queryParams.toString()}`;
 
   try {

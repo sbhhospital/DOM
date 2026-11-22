@@ -761,7 +761,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
     expected_mode: 'PHYSICAL',
     role: 'LEADER',
     is_active: true,
-    initialPassword: '123456',
+    initialPassword: '',
   });
   const [formError, setFormError] = useState('');
   const [formSuccess, setFormSuccess] = useState('');
@@ -910,7 +910,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
             sendLeaderOnboardingCredentials({
               ...editingLeader,
               ...leaderForm,
-              password: editingLeader.password || leaderForm.initialPassword || '123456',
+              password: leaderForm.initialPassword?.trim() || editingLeader.password || '',
               department: departments.find((d) => d.id === leaderForm.department_id) || editingLeader.department,
             });
           }
@@ -934,7 +934,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
               phone: leaderForm.phone,
               employee_code: leaderForm.employee_code,
               department: departments.find((d) => d.id === leaderForm.department_id),
-              password: leaderForm.initialPassword || '123456',
+              password: leaderForm.initialPassword?.trim() || '',
               expected_mode: leaderForm.expected_mode,
               role: leaderForm.role,
               is_active: leaderForm.is_active,
@@ -953,7 +953,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
               expected_mode: 'PHYSICAL',
               role: 'LEADER',
               is_active: true,
-              initialPassword: '123456',
+              initialPassword: '',
             });
           }, 1000);
         } else {
@@ -1011,7 +1011,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
       expected_mode: leader.expected_mode === 'VIRTUAL' ? 'VIRTUAL' : 'PHYSICAL',
       role: leader.role,
       is_active: leader.is_active ?? true,
-      initialPassword: leader.password || '123456',
+      initialPassword: leader.password || '',
     });
     setFormError('');
     setFormSuccess('');
@@ -1737,7 +1737,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
       )}
 
       {/* ================= RIGHT DASHBOARD CONTENT AREA ================= */}
-      <div className="flex-1 min-w-0 flex flex-col min-h-screen bg-[#f6effb] pb-16">
+      <div className="flex-1 min-w-0 flex flex-col min-h-screen bg-[#f8fafc] pb-16">
         {/* Mobile Top Navbar (lg:hidden) */}
         <div className="lg:hidden sticky top-0 z-40 w-full bg-white border-b border-[#f0f1f8]/70 px-3.5 py-2.5 flex items-center justify-between shadow-xs">
           <div className="flex items-center gap-2.5">
@@ -2750,14 +2750,14 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs border-collapse min-w-[850px]">
                     <thead>
-                      <tr className="bg-slate-50/80 text-slate-500 font-bold border-b border-slate-200">
-                        <th className="py-2.5 px-3 font-black text-[10px] uppercase tracking-wider">Leader Name</th>
-                        <th className="py-2.5 px-3 font-black text-[10px] uppercase tracking-wider">Department</th>
-                        <th className="py-2.5 px-3 text-center font-black text-[10px] uppercase tracking-wider">Expected Mode</th>
-                        <th className="py-2.5 px-3 text-center font-black text-[10px] uppercase tracking-wider">Actual Join Mode</th>
-                        <th className="py-2.5 px-3 text-center font-black text-[10px] uppercase tracking-wider">Accurate Join Time</th>
-                        <th className="py-2.5 px-3 text-center font-black text-[10px] uppercase tracking-wider">Status</th>
-                        <th className="py-2.5 px-3 text-right font-black text-[10px] uppercase tracking-wider">Verification Action</th>
+                      <tr className="bg-slate-100 text-slate-900 font-black border-b-2 border-slate-300">
+                        <th className="py-3 px-3.5 font-black text-xs uppercase tracking-wider text-slate-900">Leader Name</th>
+                        <th className="py-3 px-3.5 font-black text-xs uppercase tracking-wider text-slate-900">Department</th>
+                        <th className="py-3 px-3.5 text-center font-black text-xs uppercase tracking-wider text-slate-900">Expected Mode</th>
+                        <th className="py-3 px-3.5 text-center font-black text-xs uppercase tracking-wider text-slate-900">Actual Join Mode</th>
+                        <th className="py-3 px-3.5 text-center font-black text-xs uppercase tracking-wider text-slate-900">Accurate Join Time</th>
+                        <th className="py-3 px-3.5 text-center font-black text-xs uppercase tracking-wider text-slate-900">Status</th>
+                        <th className="py-3 px-3.5 text-right font-black text-xs uppercase tracking-wider text-slate-900">Verification Action</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -2797,17 +2797,17 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                     className="w-8 h-8 rounded-full object-cover border border-purple-200/80 shadow-2xs shrink-0"
                                   />
                                   <div className="min-w-0">
-                                    <div className={`font-bold text-xs sm:text-sm leading-snug truncate ${isAbsentNoInfo ? 'text-rose-700 font-black' : 'text-slate-900'}`}>
+                                    <div className={`font-black text-sm leading-snug truncate ${isAbsentNoInfo ? 'text-rose-700' : 'text-slate-900'}`}>
                                       {rec.leader?.full_name}
                                     </div>
                                   </div>
                                 </div>
                               </td>
-                              <td className="py-2.5 px-3 text-slate-600 font-semibold text-xs">
+                              <td className="py-2.5 px-3 text-slate-900 font-bold text-xs">
                                 {rec.leader?.department?.name || 'Department'}
                               </td>
                               <td className="py-2.5 px-3 text-center">
-                                <span className="text-[10px] font-mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-bold border border-slate-200">
+                                <span className="text-xs font-mono bg-slate-200/80 text-slate-900 px-2.5 py-0.5 rounded font-black border border-slate-300">
                                   {rec.leader?.expected_mode || 'PHYSICAL'}
                                 </span>
                               </td>
@@ -3331,7 +3331,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                           expected_mode: 'PHYSICAL',
                           role: 'LEADER',
                           is_active: true,
-                          initialPassword: '123456',
+                          initialPassword: '',
                         });
                         setFormError('');
                         setFormSuccess('');
@@ -3981,7 +3981,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                     expected_mode: 'PHYSICAL',
                                     role: 'LEADER',
                                     is_active: true,
-                                    initialPassword: '123456',
+                                    initialPassword: '',
                                   });
                                   setFormError('');
                                   setFormSuccess('');
@@ -4009,7 +4009,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                               expected_mode: 'PHYSICAL',
                               role: 'LEADER',
                               is_active: true,
-                              initialPassword: '123456',
+                              initialPassword: '',
                             });
                             setFormError('');
                             setFormSuccess('');

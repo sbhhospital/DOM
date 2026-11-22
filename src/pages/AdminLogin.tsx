@@ -182,6 +182,21 @@ export const AdminLogin: React.FC = () => {
 
     const checkRealGoogleAuthSession = async () => {
       try {
+        // Detect OAuth error returned in URL query or hash
+        const params = new URLSearchParams(window.location.search);
+        const hash = window.location.hash;
+        if (params.get('error') || params.get('error_code') || hash.includes('error=')) {
+          setIsGoogleLoading(false);
+          sessionStorage.removeItem('sbh_google_auth_in_progress');
+          if (params.get('error_code') === 'unsupported_provider' || hash.includes('unsupported_provider')) {
+            setShowGoogleProviderSetupModal(true);
+          } else {
+            showToast('Google Sign-In note: Provider verification required in database settings.');
+          }
+          window.history.replaceState({}, document.title, window.location.pathname);
+          return;
+        }
+
         const {
           data: { session },
         } = await supabase.auth.getSession();

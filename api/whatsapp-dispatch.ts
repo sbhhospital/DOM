@@ -49,15 +49,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // 1. If PDF or direct Audio attachment is provided, dispatch via POST /api/v1/message/create with base64File
     let filePayload: { name: string; body: string } | null = null;
+    const cleanB64 = (raw?: string) => (raw ? (raw.includes('base64,') ? raw.split('base64,')[1] : raw) : '');
+
     if (pdfBase64) {
       filePayload = {
         name: pdfFilename || `SBH_DOM_Report_${new Date().toISOString().split('T')[0]}.pdf`,
-        body: pdfBase64,
+        body: cleanB64(pdfBase64),
       };
     } else if (audioBase64) {
       filePayload = {
         name: audioFilename || 'announcement-dom.mp3',
-        body: audioBase64,
+        body: cleanB64(audioBase64),
       };
     }
 
@@ -116,6 +118,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           queryParams.set('recipientIds', cleanPhone);
         }
         queryParams.set('message', message);
+        if (effectiveFilePathUrl) {
+          queryParams.set('filePathUrl', effectiveFilePathUrl);
+        }
 
         const getPath = `/api/v1/message/create?${queryParams.toString()}`;
 

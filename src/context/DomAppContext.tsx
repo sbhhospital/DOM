@@ -2962,11 +2962,6 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     stage: '0950' | '1030',
     date: string
   ): Promise<{ success: boolean; message: string; url: string; payload: string }> => {
-    // Sunday Rule: Automated group broadcasts paused on Sunday
-    if (new Date(date).getDay() === 0) {
-      return { success: true, message: 'Sunday is an official weekly off. Group broadcast skipped.', url: '', payload: '' };
-    }
-
     // Future Date Protection: 10:30 AM attendance audit cannot be dispatched for future dates
     if (stage === '1030' && date > getLiveIndiaDateStr()) {
       return {
@@ -3348,7 +3343,10 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return { success: false, message: 'Dispatch to 9977881452 is strictly blocked during testing phase.' };
     }
 
-    const assignedPassword = leader.password || localStorage.getItem(`sbh_user_pass_${leader.id}`) || '123456';
+    const assignedPassword =
+      leader.password?.trim() ||
+      localStorage.getItem(`sbh_user_pass_${leader.id}`)?.trim() ||
+      '';
     const deptName = leader.department?.name || 'Hospital Operations';
 
     let msg = `*SBH GROUP OF HOSPITALS, RAIPUR*\n`;
@@ -3359,7 +3357,9 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     msg += `🌐 *Portal Login URL:* https://sbhdom.vercel.app/login\n`;
     msg += `👤 *Username / Email:* ${leader.email}\n`;
     msg += `📱 *Registered Mobile:* ${leader.phone}\n`;
-    msg += `🔑 *Password:* ${assignedPassword}\n`;
+    if (assignedPassword) {
+      msg += `🔑 *Password:* ${assignedPassword}\n`;
+    }
     msg += `🏢 *Department:* ${deptName}\n`;
     msg += `🆔 *Leader Code:* ${leader.employee_code || 'SBH-LEADER'}\n\n`;
     msg += `━━━━━━━━━━━━━━━━━━━━━━\n`;

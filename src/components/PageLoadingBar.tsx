@@ -10,26 +10,31 @@ export const PageLoadingBar: React.FC = () => {
   useEffect(() => {
     setVisible(true);
     setShowSpinner(true);
-    setProgress(35);
+    setProgress(20);
 
     const timer1 = setTimeout(() => {
-      setProgress(80);
-    }, 120);
+      setProgress(55);
+    }, 250);
 
     const timer2 = setTimeout(() => {
-      setProgress(100);
-      setShowSpinner(false);
-    }, 280);
+      setProgress(85);
+    }, 600);
 
     const timer3 = setTimeout(() => {
+      setProgress(100);
+      setShowSpinner(false);
+    }, 1000);
+
+    const timer4 = setTimeout(() => {
       setVisible(false);
       setProgress(0);
-    }, 450);
+    }, 1250);
 
     return () => {
       clearTimeout(timer1);
       clearTimeout(timer2);
       clearTimeout(timer3);
+      clearTimeout(timer4);
     };
   }, [location.pathname, location.search]);
 
@@ -38,30 +43,47 @@ export const PageLoadingBar: React.FC = () => {
   return (
     <>
       {/* Top Hope UI Slim Progress Bar */}
-      <div className="fixed top-0 left-0 right-0 z-[99999] h-1 bg-transparent overflow-hidden pointer-events-none">
+      <div className="fixed top-0 left-0 right-0 z-[99999] h-1.5 bg-transparent overflow-hidden pointer-events-none">
         <div
-          className="h-full bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-600 shadow-md shadow-indigo-500/50 transition-all duration-300 ease-out"
+          className="h-full bg-gradient-to-r from-[#7065f0] via-[#8577ff] to-[#3bb7b8] shadow-md shadow-indigo-500/50 transition-all duration-300 ease-out"
           style={{ width: `${progress}%` }}
         />
       </div>
 
-      {/* Snappy Translucent Center Loader Overlay (Hope UI Style) */}
+      {/* Full-Featured Prominent 1-Second Page Transition Loader (Hope UI / Executive) */}
       {showSpinner && (
-        <div className="fixed inset-0 z-[99998] pointer-events-none flex items-center justify-center bg-slate-950/15 backdrop-blur-[1.5px] transition-opacity duration-200">
-          <div className="flex flex-col items-center justify-center p-4 rounded-2xl bg-white/95 dark:bg-slate-900/95 shadow-2xl border border-slate-200/80 dark:border-slate-800 scale-95 animate-in fade-in zoom-in-95 duration-150">
-            <div className="relative w-12 h-12 flex items-center justify-center">
-              {/* Hope UI Loader image with fallback animated spinner */}
+        <div className="fixed inset-0 z-[99998] pointer-events-none flex items-center justify-center bg-slate-900/30 backdrop-blur-[4px] transition-all duration-300 animate-in fade-in">
+          <div className="flex flex-col items-center justify-center p-8 rounded-3xl bg-white shadow-2xl border-2 border-indigo-100 max-w-sm w-full mx-4 text-center transform scale-100 animate-in zoom-in-95 duration-200">
+            {/* Hope UI Animated Loader Graphic */}
+            <div className="relative w-24 h-24 mb-4 flex items-center justify-center">
+              <div className="absolute inset-0 rounded-full border-4 border-indigo-100 border-t-[#7065f0] animate-spin" />
               <img
                 src="/images/loader.gif"
-                alt="Loading"
-                className="w-10 h-10 object-contain"
+                alt="SBH Loader"
+                className="w-16 h-16 object-contain drop-shadow-md"
                 onError={(e) => {
                   (e.currentTarget as HTMLElement).style.display = 'none';
                 }}
               />
             </div>
-            <span className="mt-1 text-[11px] font-bold tracking-wide text-slate-700 dark:text-slate-200">
-              Loading...
+
+            {/* Title & Brand */}
+            <div className="text-sm font-black text-slate-900 tracking-tight uppercase mb-1">
+              SBH Operations Command
+            </div>
+            <div className="text-xs font-semibold text-[#7065f0] mb-3">
+              Daily Attendance Register
+            </div>
+
+            {/* Smooth Progress Meter */}
+            <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden mb-2">
+              <div
+                className="bg-gradient-to-r from-[#7065f0] to-[#3bb7b8] h-full rounded-full transition-all duration-300 ease-out"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            <span className="text-[10px] font-bold tracking-widest uppercase text-slate-600">
+              Loading Data... {progress}%
             </span>
           </div>
         </div>

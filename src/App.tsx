@@ -12,7 +12,11 @@ import { HospitalFooter } from './components/HospitalFooter';
 import { PageLoadingBar } from './components/PageLoadingBar';
 
 // Automatic Canonical URL Enforcer: Prevent Vercel preview domain redirects from Google Auth
-if (typeof window !== 'undefined' && window.location.hostname.includes('sbhdom-') && window.location.hostname.includes('.vercel.app')) {
+if (
+  typeof window !== 'undefined' &&
+  window.location.hostname.endsWith('.vercel.app') &&
+  window.location.hostname !== 'sbhdom.vercel.app'
+) {
   window.location.replace(`https://sbhdom.vercel.app${window.location.pathname}${window.location.search}${window.location.hash}`);
 }
 
