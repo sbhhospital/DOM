@@ -87,7 +87,8 @@ interface DomAppContextType {
     customTimeStr: string,
     status?: AttendanceStatus,
     mode?: 'PHYSICAL' | 'VIRTUAL',
-    customNote?: string
+    customNote?: string,
+    informedToPerson?: string
   ) => Promise<{ success: boolean; message: string }>;
   resetAttendanceTime: (recordId: string) => Promise<{ success: boolean; message: string }>;
   deleteAttendanceRecordById: (recordId: string) => Promise<{ success: boolean; message: string }>;
@@ -552,12 +553,18 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const { data: attLogs, error: attErr } = await supabase
         .from('admin_audit_logs')
         .select('*')
-        .or('action.eq.ATTENDANCE_RECORD,action.eq.ADMIN_MANUAL_ACTION,entity_type.eq.ATTENDANCE')
+        .or('action.eq.ATTENDANCE_RECORD,action.eq.ADMIN_MANUAL_ACTION,action.eq.DELETE_ATTENDANCE_RECORD,action.eq.RESET_ATTENDANCE_RECORD,action.eq.OVERRIDE_ATTENDANCE_TIME,entity_type.eq.ATTENDANCE')
         .order('created_at', { ascending: true });
 
       if (!attErr && attLogs && attLogs.length > 0) {
         const attMap = new Map<string, AttendanceRecord>();
         attLogs.forEach((log) => {
+          if (log.action === 'DELETE_ATTENDANCE_RECORD') {
+            const delId = log.entity_id || (log.after_data as any)?.deleted_record_id;
+            if (delId) attMap.delete(delId);
+            return;
+          }
+
           if (log.after_data && (log.after_data as any).id) {
             const rawRec = log.after_data as AttendanceRecord;
             const matchedLeader = mappedLeaders.find((l) => l.id === rawRec.leader_id || l.id === rawRec.leader?.id);
@@ -611,7 +618,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const { data: attLogs, error: attErr } = await supabase
         .from('admin_audit_logs')
         .select('*')
-        .or('action.eq.ATTENDANCE_RECORD,action.eq.ADMIN_MANUAL_ACTION,entity_type.eq.ATTENDANCE')
+        .or('action.eq.ATTENDANCE_RECORD,action.eq.ADMIN_MANUAL_ACTION,action.eq.DELETE_ATTENDANCE_RECORD,action.eq.RESET_ATTENDANCE_RECORD,action.eq.OVERRIDE_ATTENDANCE_TIME,entity_type.eq.ATTENDANCE')
         .order('created_at', { ascending: true });
 
       if (!attErr && attLogs && attLogs.length > 0) {
@@ -634,6 +641,11 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
           // Merge fresh live logs from Supabase
           attLogs.forEach((log) => {
+            if (log.action === 'DELETE_ATTENDANCE_RECORD') {
+              const delId = log.entity_id || (log.after_data as any)?.deleted_record_id;
+              if (delId) attMap.delete(delId);
+              return;
+            }
             if (log.after_data && (log.after_data as any).id) {
               const rawRec = log.after_data as AttendanceRecord;
               const matchedLeader = currentLeaders.find((l) => l.id === rawRec.leader_id || l.id === rawRec.leader?.id);
@@ -715,10 +727,18 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 [schedDate]: newSched,
               }));
             }
+          } else if (payload.new && (payload.new as any).action === 'DELETE_ATTENDANCE_RECORD') {
+            const delId = (payload.new as any).entity_id || (payload.new as any).after_data?.deleted_record_id;
+            if (delId) {
+              setAttendanceRecords((prev) => prev.filter((r) => r.id !== delId));
+            }
+            triggerDebouncedLiveSync();
           } else if (
             !payload.new ||
             (payload.new as any).action === 'ATTENDANCE_RECORD' ||
             (payload.new as any).action === 'ADMIN_MANUAL_ACTION' ||
+            (payload.new as any).action === 'RESET_ATTENDANCE_RECORD' ||
+            (payload.new as any).action === 'OVERRIDE_ATTENDANCE_TIME' ||
             (payload.new as any).entity_type === 'ATTENDANCE'
           ) {
             if (payload.new && (payload.new as any).after_data) {
@@ -2832,6 +2852,15 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const isOff = !isExplicitlyEnabled && (isSunday || isHoliday);
     const targetGroup = appSettings.admin_whatsapp_group || '120363432056023698@g.us';
 
+    // If day is marked as Holiday / Standing Off, suppress automated notice
+    if (isOff && isHoliday) {
+      return {
+        success: true,
+        sentCount: 0,
+        message: `ℹ️ ${formatToIndianDate(date)} is marked as HOLIDAY (${meeting.title || 'Stand-Down'}). Automated reminders suppressed.`,
+      };
+    }
+
     let reminderMsg = '';
     let noticeType = 'DOM_0950_NOTICE';
 
@@ -3839,6 +3868,18 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
 
     const meeting = getMeetingForDate(date);
+    const isSundayMeeting = new Date(date).getDay() === 0;
+    const isExplicitlyEnabled = (meeting.cadence === 'DOM' || meeting.cadence === 'WOM' || meeting.cadence === 'MOM') && !meeting.is_holiday_or_shifted;
+    const isHoliday = meeting.cadence === 'HOLIDAY' || Boolean(meeting.is_holiday_or_shifted);
+    const isMeetingOff = !isExplicitlyEnabled && (isSundayMeeting || isHoliday);
+
+    if (isMeetingOff) {
+      return {
+        success: true,
+        message: `ℹ️ ${formatToIndianDate(date)} is an official ${isSundayMeeting ? 'Sunday Weekly Off' : 'Holiday'} (No DOM scheduled). Meeting conclusion reports suppressed.`,
+      };
+    }
+
     if (meeting.is_completed) {
       return {
         success: true,
@@ -3929,26 +3970,84 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     customTimeStr: string,
     status: AttendanceStatus = 'PRESENT',
     mode: 'PHYSICAL' | 'VIRTUAL' = 'PHYSICAL',
-    customNote?: string
+    customNote?: string,
+    informedToPerson?: string
   ): Promise<{ success: boolean; message: string }> => {
     let targetRec: AttendanceRecord | null = null;
     const nowIso = new Date().toISOString();
 
+    // Helper to parse custom time into valid ISO string on meeting date
+    const buildCheckInIso = (dateStr: string, timeInput: string): string => {
+      if (!timeInput || timeInput.trim() === '') return nowIso;
+      try {
+        const timeMatch = timeInput.trim().match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?/i);
+        if (timeMatch) {
+          let h = parseInt(timeMatch[1], 10);
+          const m = parseInt(timeMatch[2], 10);
+          const s = timeMatch[3] ? parseInt(timeMatch[3], 10) : 0;
+          const meridian = timeMatch[4] ? timeMatch[4].toUpperCase() : null;
+
+          if (meridian === 'PM' && h < 12) h += 12;
+          if (meridian === 'AM' && h === 12) h = 0;
+
+          const padH = String(h).padStart(2, '0');
+          const padM = String(m).padStart(2, '0');
+          const padS = String(s).padStart(2, '0');
+          // Asia/Kolkata timezone offset is +05:30
+          const constructedDate = new Date(`${dateStr}T${padH}:${padM}:${padS}+05:30`);
+          if (!isNaN(constructedDate.getTime())) {
+            return constructedDate.toISOString();
+          }
+        }
+      } catch (err) {
+        console.warn('Failed parsing custom time string:', err);
+      }
+      return nowIso;
+    };
+
+    // Calculate late minutes if time is after 10:00 AM IST
+    const calculateLate = (timeInput: string): number => {
+      try {
+        const timeMatch = timeInput.trim().match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?/i);
+        if (timeMatch) {
+          let h = parseInt(timeMatch[1], 10);
+          const m = parseInt(timeMatch[2], 10);
+          const meridian = timeMatch[4] ? timeMatch[4].toUpperCase() : null;
+          if (meridian === 'PM' && h < 12) h += 12;
+          if (meridian === 'AM' && h === 12) h = 0;
+          const totalMinutes = h * 60 + m;
+          // Standard standup start is 10:00 AM (600 minutes)
+          return Math.max(0, totalMinutes - 600);
+        }
+      } catch {}
+      return 0;
+    };
+
+    const isAbsent = status === 'ABSENT';
+    const isLeave = status === 'LEAVE';
+
     setAttendanceRecords((prev) =>
       prev.map((r) => {
         if (r.id === recordId) {
+          const recDate = r.meeting_date || selectedDate;
+          const newCheckInIso = isAbsent || isLeave ? undefined : buildCheckInIso(recDate, customTimeStr);
+          const lateMins = isAbsent || isLeave ? undefined : calculateLate(customTimeStr);
+
           const updated: AttendanceRecord = {
             ...r,
-            check_in_at: status === 'ABSENT' ? undefined : (r.check_in_at || nowIso),
-            selected_mode: mode,
+            check_in_at: newCheckInIso,
+            selected_mode: isAbsent || isLeave ? 'NONE' : mode,
             evidence_source: 'ADMIN_MANUAL',
             status,
-            verification_status: status === 'ABSENT' ? 'REJECTED' : 'VERIFIED',
-            admin_verified_attendance: status !== 'ABSENT',
+            verification_status: isAbsent ? 'REJECTED' : 'VERIFIED',
+            admin_verified_attendance: !isAbsent && !isLeave,
             verification_note: customNote || `Marked by Admin (${customTimeStr})`,
+            late_minutes: lateMins && lateMins > 0 ? lateMins : undefined,
+            informed_to_person: informedToPerson || r.informed_to_person,
+            late_expired: false,
             updated_at: nowIso,
           };
-          (updated as any).join_time = customTimeStr;
+          (updated as any).join_time = isAbsent || isLeave ? undefined : customTimeStr;
           targetRec = updated;
           return updated;
         }
@@ -3958,24 +4057,53 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     if (targetRec) {
       await syncAttendanceRecordToSupabase(targetRec, `Admin Manual Override Time: ${customTimeStr}`);
+      const lead = leaders.find((l) => l.id === (targetRec as any).leader_id || l.id === (targetRec as any).leader?.id);
+      notifyLiveActivity({
+        type: (targetRec as any).selected_mode === 'VIRTUAL' ? 'VIRTUAL' : 'IN_PERSON',
+        leaderName: lead?.full_name || (targetRec as any).leader?.full_name || 'Hospital Leader',
+        departmentName: lead?.department?.name || (targetRec as any).leader?.department?.name || 'Department',
+        title: 'Attendance Updated by Admin',
+        description: `Status: ${status} • Mode: ${mode} • Time: ${customTimeStr}`,
+      });
     }
     return { success: true, message: `Attendance updated to ${status} (${customTimeStr}) successfully!` };
   };
 
   const resetAttendanceTime = async (recordId: string): Promise<{ success: boolean; message: string }> => {
     let targetRec: AttendanceRecord | null = null;
+    let oldLeaderName = 'Hospital Leader';
+    let oldDeptName = 'Department';
     const nowIso = new Date().toISOString();
 
     setAttendanceRecords((prev) =>
       prev.map((r) => {
         if (r.id === recordId) {
+          const lead = leaders.find((l) => l.id === r.leader_id || l.id === r.leader?.id);
+          if (lead) {
+            oldLeaderName = lead.full_name;
+            oldDeptName = lead.department?.name || 'Department';
+          }
           const updated: AttendanceRecord = {
             ...r,
             check_in_at: undefined,
-            status: 'ABSENT',
+            selected_mode: 'NONE',
+            evidence_source: undefined,
+            status: 'PENDING',
             verification_status: 'PENDING',
             admin_verified_attendance: false,
-            verification_note: 'Time Reset by Admin',
+            verification_note: undefined,
+            late_minutes: undefined,
+            committed_late_minutes: undefined,
+            expected_arrival_time: undefined,
+            late_reason: undefined,
+            informed_reason: undefined,
+            informed_to_person: undefined,
+            informed_confirmed: false,
+            late_expired: false,
+            virtual_clicks_count: 0,
+            qr_scanned_at: undefined,
+            latitude: undefined,
+            longitude: undefined,
             updated_at: nowIso,
           };
           delete (updated as any).join_time;
@@ -3987,13 +4115,45 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     );
 
     if (targetRec) {
-      await syncAttendanceRecordToSupabase(targetRec, 'Admin Time Reset to Absent');
+      await syncAttendanceRecordToSupabase(targetRec, 'Admin Attendance Reset to Fresh Pending');
+      try {
+        await supabase.from('admin_audit_logs').insert([
+          {
+            actor_id: null,
+            action: 'RESET_ATTENDANCE_RECORD',
+            entity_type: 'ATTENDANCE',
+            entity_id: recordId,
+            reason: `Attendance reset by Administrator for ${oldLeaderName} (${oldDeptName})`,
+            after_data: targetRec,
+          },
+        ]);
+      } catch (e) {
+        console.warn('Supabase reset record log error:', e);
+      }
+      notifyLiveActivity({
+        type: 'CHECKIN',
+        leaderName: oldLeaderName,
+        departmentName: oldDeptName,
+        title: 'Attendance Reset by Admin',
+        description: `Check-in record cleared and reset to fresh pending status.`,
+      });
     }
-    return { success: true, message: 'Attendance time reset to absent successfully.' };
+    return { success: true, message: 'Attendance record reset to fresh pending successfully.' };
   };
 
   const deleteAttendanceRecordById = async (recordId: string): Promise<{ success: boolean; message: string }> => {
-    setAttendanceRecords((prev) => prev.filter((r) => r.id !== recordId));
+    let recToDelete: AttendanceRecord | undefined;
+    setAttendanceRecords((prev) => {
+      recToDelete = prev.find((r) => r.id === recordId);
+      return prev.filter((r) => r.id !== recordId);
+    });
+
+    const leaderName = recToDelete?.leader?.full_name || 'Hospital Leader';
+    const deptName = recToDelete?.leader?.department?.name || 'Department';
+    const priorStatus = recToDelete?.status || 'UNKNOWN';
+    const priorMode = recToDelete?.selected_mode || 'NONE';
+    const priorTime = recToDelete?.check_in_at || (recToDelete as any)?.join_time || 'None';
+
     try {
       await supabase.from('attendance_records').delete().eq('id', recordId);
       await supabase.from('admin_audit_logs').insert([
@@ -4002,14 +4162,35 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           action: 'DELETE_ATTENDANCE_RECORD',
           entity_type: 'ATTENDANCE',
           entity_id: recordId,
-          reason: 'Record deleted by Administrator',
-          after_data: { deleted_at: new Date().toISOString() },
+          reason: `Attendance record deleted by Administrator. Prior Status: ${priorStatus}, Mode: ${priorMode}, Join Time: ${priorTime}`,
+          before_data: recToDelete,
+          after_data: {
+            deleted_record_id: recordId,
+            leader_id: recToDelete?.leader_id,
+            leader_name: leaderName,
+            department: deptName,
+            meeting_date: recToDelete?.meeting_date,
+            deleted_at: new Date().toISOString(),
+            prior_status: priorStatus,
+            prior_mode: priorMode,
+            prior_time: priorTime,
+            deleted_by: 'Administrator',
+          },
         },
       ]);
     } catch (e) {
       console.warn('Supabase delete record error:', e);
     }
-    return { success: true, message: 'Attendance record deleted successfully.' };
+
+    notifyLiveActivity({
+      type: 'CHECKIN',
+      leaderName,
+      departmentName: deptName,
+      title: 'Attendance Record Deleted',
+      description: `Record removed by Admin. Was: ${priorStatus} (${priorTime}). Fresh check-in opened.`,
+    });
+
+    return { success: true, message: `Attendance record for ${leaderName} deleted successfully!` };
   };
 
   // WhatsApp Leader Credentials & Onboarding Dispatch (Single & Bulk)

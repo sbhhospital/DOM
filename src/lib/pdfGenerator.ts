@@ -117,7 +117,8 @@ export function generateDirectorPdf(
   // 4. Executive Summary KPI Metric Cards
   const totalLeaders = records.length;
   const isSundayMeeting = new Date(meeting.meeting_date).getDay() === 0;
-  const isMeetingOff = isSundayMeeting || meeting.cadence === 'HOLIDAY' || meeting.is_holiday_or_shifted;
+  const isExplicitlyEnabled = (meeting.cadence === 'DOM' || meeting.cadence === 'WOM' || meeting.cadence === 'MOM') && !meeting.is_holiday_or_shifted;
+  const isMeetingOff = !isExplicitlyEnabled && (isSundayMeeting || meeting.cadence === 'HOLIDAY' || Boolean(meeting.is_holiday_or_shifted));
 
   const approvedPresent = records.filter(
     (r) =>
@@ -265,7 +266,7 @@ export function generateDirectorPdf(
     let statusDisplay = 'Absent (Unreported)';
     let auditDisplay = 'UNEXCUSED';
 
-    if (rec.status === 'EXCUSED' || rec.verification_note?.includes('Weekly Off') || rec.verification_note?.includes('Sunday') || (isMeetingOff && rec.status !== 'PRESENT')) {
+    if (isMeetingOff && rec.status !== 'PRESENT') {
       statusDisplay = rec.verification_note || (isSundayMeeting ? 'Sunday Weekly Off' : 'Holiday / No DOM');
       auditDisplay = 'EXCUSED';
     } else if (rec.verification_status === 'REJECTED' || rec.verification_note?.includes('Disapproved') || rec.verification_note?.includes('No Inform')) {
@@ -353,10 +354,13 @@ export function generateDirectorPdf(
       7: { halign: 'center', cellWidth: 23 },
     },
     didDrawCell: (data) => {
-      // Embed official circular leader profile logo in Leader Name column
+      // Embed official circular leader profile logo in Leader Name column (centered vertically in every row)
       if (data.section === 'body' && data.column.index === 1) {
         try {
-          doc.addImage(defaultLeaderAvatarBase64, 'JPEG', data.cell.x + 1.2, data.cell.y + 1.2, 3.8, 3.8);
+          const iconSize = 3.6;
+          const iconX = data.cell.x + 1.2;
+          const iconY = data.cell.y + (data.cell.height - iconSize) / 2;
+          doc.addImage(defaultLeaderAvatarBase64, 'JPEG', iconX, iconY, iconSize, iconSize);
         } catch {}
       }
     },

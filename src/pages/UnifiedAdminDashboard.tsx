@@ -580,34 +580,37 @@ export const UnifiedAdminDashboard: React.FC = () => {
       const dd = String(istDate.getDate()).padStart(2, '0');
       const todayDate = `${yyyy}-${mm}-${dd}`;
 
-      // Stage 1: 09:50 AM Auto-Broadcast (Mon-Sat Standup Notice / Sunday Weekly Off Notice)
+      // Holiday & Sunday Off Suppression Feature:
+      // If a day is marked as HOLIDAY in the calendar, or is Sunday without explicit DOM enable:
+      // Absolutely ZERO automated reminders, voice announcements, or conclusion reports will be sent!
+      const curMeeting = getMeetingForDate(todayDate);
+      const isExplicitlyEnabled = (curMeeting.cadence === 'DOM' || curMeeting.cadence === 'WOM' || curMeeting.cadence === 'MOM') && !curMeeting.is_holiday_or_shifted;
+      const isHolidayToday = curMeeting.cadence === 'HOLIDAY' || Boolean(curMeeting.is_holiday_or_shifted);
+      const isMeetingOffToday = !isExplicitlyEnabled && (isSundayToday || isHolidayToday);
+
+      if (isMeetingOffToday) {
+        return;
+      }
+
+      // Stage 1: 09:50 AM Auto-Broadcast (DOM/WOM/MOM Morning Assembly Notice)
       if (h === 9 && m === 50) {
         const key = `sbh_auto_group_0950_${todayDate}`;
         if (!localStorage.getItem(key)) {
           localStorage.setItem(key, 'dispatched');
-          if (isSundayToday) {
-            sendMeetingReminderNotice(todayDate);
-            setToastAlert({
-              type: 'success',
-              text: '🔔 09:50 AM Automated Notice: Sunday Weekly Off Notice sent to WhatsApp Group!',
-            });
-          } else {
-            triggerAutomated0950Transmission(todayDate);
-            setToastAlert({
-              type: 'success',
-              text: '🔔 09:50 AM Automated Notice: DOM Standup Notice sent to WhatsApp Group!',
-            });
-          }
+          triggerAutomated0950Transmission(todayDate);
+          setToastAlert({
+            type: 'success',
+            text: `🔔 09:50 AM Automated Notice: ${curMeeting.cadence || 'DOM'} Standup Notice sent to WhatsApp Group!`,
+          });
           setTimeout(() => setToastAlert(null), 8000);
         }
       }
 
       // Stage 1.5: 09:55:50 AM to 10:00:00 AM Standup Commencement Countdown & Web Speech Announcement
-      if (!isSundayToday && h === 9 && (m === 55 || m === 59)) {
+      if (h === 9 && (m === 55 || m === 59)) {
         const key = `sbh_standup_announced_${todayDate}`;
         if (!localStorage.getItem(key)) {
           localStorage.setItem(key, 'announced');
-          const curMeeting = getMeetingForDate(todayDate);
           const cadence = curMeeting.cadence || 'DOM';
           setStandupAnnouncement({
             active: true,
@@ -620,8 +623,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
         }
       }
 
-      // Stage 2: 10:30 AM Auto-Broadcast & Meeting Conclusion (Only on meeting days, skipped on Sunday)
-      if (!isSundayToday && h === 10 && m === 30) {
+      // Stage 2: 10:30 AM Auto-Broadcast & Meeting Conclusion
+      if (h === 10 && m === 30) {
         const key = `sbh_auto_group_1030_${todayDate}`;
         if (!localStorage.getItem(key)) {
           localStorage.setItem(key, 'dispatched');
@@ -7962,7 +7965,8 @@ function doPost(e) {
                     editTimeModal.timeStr || (statusToSave === 'ABSENT' ? '' : '10:00:00 AM'),
                     statusToSave,
                     editTimeModal.mode,
-                    customNote
+                    customNote,
+                    editTimeModal.informedTo
                   );
                   setToastAlert({
                     type: 'success',

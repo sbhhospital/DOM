@@ -384,7 +384,7 @@ export const BoardroomCheckin: React.FC = () => {
                   <div className="relative">
                     <input
                       type="password"
-                      placeholder="Enter your password (default: 123456)"
+                      placeholder="Enter your password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="w-full pl-10 pr-3.5 py-3 bg-[#f8f6fe]/70 border border-[#f0f1f8] rounded-2xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#7065f0] focus:ring-2 focus:ring-[#7065f0]/20 transition-all shadow-xs"
@@ -399,11 +399,10 @@ export const BoardroomCheckin: React.FC = () => {
             <button
               type="submit"
               disabled={isSubmitting || currentMeeting.is_completed}
-              className={`w-full py-3.5 px-4 rounded-2xl font-black text-sm shadow-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98] ${
-                currentMeeting.is_completed
+              className={`w-full py-3.5 px-4 rounded-2xl font-black text-sm shadow-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98] ${currentMeeting.is_completed
                   ? 'bg-slate-400 text-white cursor-not-allowed shadow-none opacity-60'
                   : 'bg-gradient-to-r from-[#7065f0] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7065f0] text-white shadow-indigo-300/40 cursor-pointer disabled:opacity-50'
-              }`}
+                }`}
             >
               {currentMeeting.is_completed ? (
                 <>
