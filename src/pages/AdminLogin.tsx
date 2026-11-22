@@ -92,12 +92,21 @@ export const AdminLogin: React.FC = () => {
     return null;
   });
 
+  const getTargetRedirectPath = () => {
+    const params = new URLSearchParams(window.location.search);
+    const redirect = params.get('redirect') || sessionStorage.getItem('sbh_redirect_after_login');
+    if (redirect) {
+      sessionStorage.removeItem('sbh_redirect_after_login');
+      return redirect;
+    }
+    return params.get('mode') === 'room_qr' ? '/boardroom-checkin' : '/portal';
+  };
+
   const handleQuickContinueAsRemembered = (leader: Leader) => {
     loginLeaderDirectlyWithoutPassword(leader);
     setLoggedInName(leader.full_name);
     setShowSuccessPopup(true);
-    const params = new URLSearchParams(window.location.search);
-    const targetPath = params.get('mode') === 'room_qr' ? '/boardroom-checkin' : '/portal';
+    const targetPath = getTargetRedirectPath();
     setTimeout(() => {
       navigate(targetPath);
     }, 1000);
@@ -320,8 +329,7 @@ export const AdminLogin: React.FC = () => {
       setLoggedInName(matched.full_name);
       setShowSuccessPopup(true);
       window.history.replaceState({}, document.title, window.location.pathname);
-      const params = new URLSearchParams(window.location.search);
-      const targetPath = params.get('mode') === 'room_qr' ? '/boardroom-checkin' : '/portal';
+      const targetPath = getTargetRedirectPath();
       setTimeout(() => {
         navigate(targetPath);
       }, 1000);
@@ -502,8 +510,7 @@ export const AdminLogin: React.FC = () => {
         localStorage.setItem('sbh_device_remembered_leader', JSON.stringify(activeLeaderSelected));
         setLoggedInName(activeLeaderSelected.full_name);
         setShowSuccessPopup(true);
-        const params = new URLSearchParams(window.location.search);
-        const targetPath = params.get('mode') === 'room_qr' ? '/boardroom-checkin' : '/portal';
+        const targetPath = getTargetRedirectPath();
         setTimeout(() => {
           navigate(targetPath);
         }, 1200);
@@ -599,6 +606,15 @@ export const AdminLogin: React.FC = () => {
               Select your name and enter security credentials to log in
             </p>
           </div>
+
+          {/* Boardroom QR Scan Verification Prompt */}
+          {(new URLSearchParams(window.location.search).get('redirect') === '/boardroom-checkin' ||
+            (typeof window !== 'undefined' && sessionStorage.getItem('sbh_redirect_after_login') === '/boardroom-checkin')) && (
+            <div className="mb-4 p-3.5 bg-[#eff0fe] border border-purple-200 text-[#7065f0] rounded-2xl text-xs font-bold flex items-center gap-2 shadow-2xs animate-in fade-in">
+              <ShieldCheck className="w-4 h-4 text-[#7065f0] shrink-0" />
+              <span>Boardroom QR Scanned! Please log in to confirm your physical presence in Conference Room (5th Floor).</span>
+            </div>
+          )}
 
           {/* Recognized Device 1-Click Fast Check-in */}
           {rememberedLeader && (

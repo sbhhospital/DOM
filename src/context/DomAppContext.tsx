@@ -3040,7 +3040,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       reminderMsg += `📍 *Venue:* ${appSettings.conference_room_name || 'Conference Room, 5th Floor'}\n\n`;
       reminderMsg += `📌 *MANDATORY CHECK-IN INSTRUCTION:*\n`;
       reminderMsg += `QR Code scanning at the 5th Floor Conference Room is MANDATORY for physical attendance. Physical attendance will not be counted without scanning the room QR code.\n\n`;
-      reminderMsg += `✅ *Direct Attendance Link:* https://sbhdom.vercel.app/boardroom-checkin\n`;
+      reminderMsg += `✅ *Portal Login & Attendance Link:* https://sbhdom.vercel.app/\n`;
       reminderMsg += `━━━━━━━━━━━━━━━━━━━━━━\n*Automated Reminder*`;
     }
 
@@ -3589,8 +3589,8 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     reminderText += `📅 *Date:* ${formattedDate}\n`;
     reminderText += `⏰ *Start Time:* ${cleanTime} IST (Sharp)\n`;
     reminderText += `📍 *Venue:* ${appSettings.conference_room_name || 'Conference Room, 5th Floor'}\n\n`;
-    reminderText += `✅ *ATTENDANCE & CHECK-IN LINK:*\n`;
-    reminderText += `👉 https://sbhdom.vercel.app/boardroom-checkin\n\n`;
+    reminderText += `✅ *PORTAL LOGIN & CHECK-IN LINK:*\n`;
+    reminderText += `👉 https://sbhdom.vercel.app/\n\n`;
     reminderText += `⚠️ *MANDATORY INSTRUCTION:*\n`;
     reminderText += `All leaders are requested to assemble in the Conference Room (5th Floor) and complete check-in before 10:00 AM IST sharp. Physical check-in requires in-person QR code verification.\n`;
     reminderText += `━━━━━━━━━━━━━━━━━━━━━━\n`;
@@ -3636,8 +3636,8 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       alertText += `🚨 *URGENT: ${cadenceCode} SESSION IN PROGRESS — KINDLY JOIN*\n`;
       alertText += `Dear ${lead.full_name},\n`;
       alertText += `Today's ${cadenceCode} (${meeting.title}) has started. Your attendance is required immediately.\n\n`;
-      alertText += `🔴 *CHECK-IN NOW:*\n`;
-      alertText += `👉 https://sbhdom.vercel.app/boardroom-checkin\n`;
+      alertText += `🔴 *PORTAL LOGIN & CHECK-IN:*\n`;
+      alertText += `👉 https://sbhdom.vercel.app/\n`;
       alertText += `📍 In-Person: ${appSettings.conference_room_name || 'Conference Room, 5th Floor'}\n`;
 
       await sendCeoitboxWhatsappMessage({
@@ -3718,8 +3718,8 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       msg += `📅 *Date:* ${formattedDate}\n`;
       msg += `⏰ *Start Time:* 10:00 AM IST (Sharp)\n`;
       msg += `📍 *Venue:* ${appSettings.conference_room_name || 'Conference Room, 5th Floor'}\n\n`;
-      msg += `✅ *ATTENDANCE & CHECK-IN LINK:*\n`;
-      msg += `👉 https://sbhdom.vercel.app/boardroom-checkin\n\n`;
+      msg += `✅ *PORTAL LOGIN & ATTENDANCE LINK:*\n`;
+      msg += `👉 https://sbhdom.vercel.app/\n\n`;
       msg += `⚠️ *INSTRUCTION FOR ALL HODs / LEADERS:*\n`;
       msg += `All Department Heads and Leaders are kindly requested to assemble in the Conference Room (5th Floor) and check in using the link above before 10:00 AM sharp.\n`;
       msg += `Final attendance audit will be finalized at 10:30 AM.\n`;
