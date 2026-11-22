@@ -466,26 +466,26 @@ export const AdminLogin: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen select-none relative overflow-hidden bg-slate-100 text-slate-800 flex items-center justify-center p-3 md:p-6 pb-16 md:pb-20 font-sans">
+    <div className="min-h-screen select-none relative overflow-hidden bg-gradient-to-br from-[#f8f5fe] via-[#f3effb] to-[#ebe5f9] text-slate-800 flex items-center justify-center p-3 md:p-6 pb-16 md:pb-20 font-sans">
       {/* Toast Notification */}
       {toastMsg && (
-        <div className="fixed top-6 left-1/2 transform -translate-x-1/2 z-[40000] px-5 py-3 rounded-2xl bg-amber-600 text-white font-extrabold text-xs shadow-2xl border border-amber-400 animate-bounce text-center">
+        <div className="fixed top-6 left-1/2 transform -translate-x-1/2 z-[40000] px-5 py-3 rounded-2xl bg-gradient-to-r from-[#5f4de6] to-[#7f70f6] text-white font-extrabold text-xs shadow-2xl border border-purple-300 animate-bounce text-center">
           {toastMsg}
         </div>
       )}
 
-      {/* Main 2-Panel Card Layout (Matching User's Specified Design 100%) */}
-      <div className="w-full max-w-5xl bg-white rounded-3xl overflow-hidden shadow-2xl border border-slate-200 flex flex-col md:flex-row min-h-[560px] z-10">
-        {/* Left Panel: Green/Amber Gradient with Official System Details (Desktop View) */}
+      {/* Main 2-Panel Card Layout (Matching User's Specified SaaS Lavender Theme) */}
+      <div className="w-full max-w-5xl bg-white rounded-[32px] overflow-hidden shadow-2xl shadow-indigo-200/50 border border-purple-100 flex flex-col md:flex-row min-h-[560px] z-10">
+        {/* Left Panel: SaaS Lavender/Purple Gradient with Official System Details (Desktop View) */}
         <div
           className="hidden md:flex md:w-1/2 p-8 flex-col justify-between text-white relative overflow-hidden"
-          style={{ background: 'linear-gradient(to bottom, #f59e0b, #10b981, #15803d)' }}
+          style={{ background: 'linear-gradient(135deg, #5f4de6 0%, #7060f0 50%, #8778f8 100%)' }}
         >
           <div className="flex items-center gap-2 z-10">
-            <div className="bg-black/15 p-2 rounded-xl backdrop-blur-md">
+            <div className="bg-white/20 p-2 rounded-2xl backdrop-blur-md">
               <ShieldCheck className="h-5 w-5 text-white" />
             </div>
-            <span className="text-[10px] uppercase tracking-widest font-black text-white">
+            <span className="text-[10px] uppercase tracking-widest font-black text-white/90">
               OFFICIAL ADMINISTRATIVE SYSTEM
             </span>
           </div>
@@ -493,15 +493,15 @@ export const AdminLogin: React.FC = () => {
           <div className="my-6 space-y-5 z-10">
             <h2 className="text-3xl font-black leading-tight text-white">
               SBH Operations & <br />
-              <span className="text-[#ffd54f]">Compliance Hub</span>
+              <span className="text-[#fed7aa]">Compliance Hub</span>
             </h2>
             <p className="text-white/90 text-xs font-medium leading-relaxed max-w-sm">
               Real-time daily operations meeting (DOM), executive attendance tracking, late audits, and virtual attendance command managed in one place.
             </p>
 
             <div className="space-y-3 pt-1">
-              <div className="bg-black/15 border border-white/10 rounded-2xl p-3.5 flex items-center gap-3.5">
-                <div className="bg-[#f59e0b] p-2.5 rounded-xl shadow-md shrink-0">
+              <div className="bg-white/15 border border-white/20 rounded-2xl p-3.5 flex items-center gap-3.5">
+                <div className="bg-white/25 p-2.5 rounded-xl shadow-xs shrink-0">
                   <ClipboardList className="h-4.5 w-4.5 text-white" />
                 </div>
                 <div>
@@ -510,8 +510,8 @@ export const AdminLogin: React.FC = () => {
                 </div>
               </div>
 
-              <div className="bg-black/15 border border-white/10 rounded-2xl p-3.5 flex items-center gap-3.5">
-                <div className="bg-[#10b981] p-2.5 rounded-xl shadow-md shrink-0">
+              <div className="bg-white/15 border border-white/20 rounded-2xl p-3.5 flex items-center gap-3.5">
+                <div className="bg-white/25 p-2.5 rounded-xl shadow-xs shrink-0">
                   <Users className="h-4.5 w-4.5 text-white" />
                 </div>
                 <div>
@@ -520,8 +520,8 @@ export const AdminLogin: React.FC = () => {
                 </div>
               </div>
 
-              <div className="bg-black/15 border border-white/10 rounded-2xl p-3.5 flex items-center gap-3.5">
-                <div className="bg-[#15803d] p-2.5 rounded-xl shadow-md shrink-0">
+              <div className="bg-white/15 border border-white/20 rounded-2xl p-3.5 flex items-center gap-3.5">
+                <div className="bg-white/25 p-2.5 rounded-xl shadow-xs shrink-0">
                   <Flame className="h-4.5 w-4.5 text-white" />
                 </div>
                 <div>
@@ -542,7 +542,7 @@ export const AdminLogin: React.FC = () => {
           <div className="mb-6">
             {/* Official SBH Logo */}
             <img src={sbhLogo} alt="SBH Logo" className="h-12 w-auto object-contain mb-4" />
-            <h3 className="text-2xl font-black text-slate-900 tracking-tight">Portal Authentication</h3>
+            <h3 className="text-2xl font-black text-[#1e1b4b] tracking-tight">Portal Authentication</h3>
             <p className="text-xs font-medium text-slate-500 mt-1">
               Select your name and enter security credentials to log in
             </p>
@@ -550,16 +550,16 @@ export const AdminLogin: React.FC = () => {
 
           {/* Recognized Device 1-Click Fast Check-in */}
           {rememberedLeader && (
-            <div className="mb-5 p-3.5 bg-gradient-to-r from-emerald-50 via-teal-50 to-green-50 border border-emerald-300 rounded-2xl shadow-2xs">
+            <div className="mb-5 p-3.5 bg-gradient-to-r from-[#f5f3ff] via-[#ede9fe]/40 to-[#e0e7ff]/30 border border-purple-200/80 rounded-2xl shadow-2xs">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-full bg-emerald-700 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#5f4de6] to-[#7f70f6] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
                     {rememberedLeader.full_name.charAt(0)}
                   </div>
                   <div className="min-w-0">
-                    <div className="text-xs font-black text-slate-900 truncate flex items-center gap-1.5">
+                    <div className="text-xs font-black text-[#1e1b4b] truncate flex items-center gap-1.5">
                       <span>Device Recognized:</span>
-                      <span className="text-emerald-800">{rememberedLeader.full_name}</span>
+                      <span className="text-[#5b4eed]">{rememberedLeader.full_name}</span>
                     </div>
                     <div className="text-[10px] text-slate-500 font-medium truncate">
                       {rememberedLeader.department?.name || 'Department Leader'} • Today's Check-in Ready
@@ -569,7 +569,7 @@ export const AdminLogin: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => handleQuickContinueAsRemembered(rememberedLeader)}
-                  className="px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer shrink-0"
+                  className="px-3.5 py-1.5 bg-gradient-to-r from-[#5f4de6] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7060f0] text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer shrink-0"
                   title="1-Click fast login with remembered credentials"
                 >
                   Continue ➔
@@ -580,7 +580,7 @@ export const AdminLogin: React.FC = () => {
 
           {/* Error Banner */}
           {errorMsg && (
-            <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold">
+            <div className="mb-4 p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold">
               {errorMsg}
             </div>
           )}
@@ -593,7 +593,7 @@ export const AdminLogin: React.FC = () => {
                   SELECT USERNAME / LEADER NAME <span className="text-rose-600">*</span>
                 </label>
                 {isUserSelectedFromList ? (
-                  <span className="text-[10px] font-black text-emerald-600 flex items-center gap-1">✓ Selected</span>
+                  <span className="text-[10px] font-black text-[#5b4eed] flex items-center gap-1">✓ Selected</span>
                 ) : usernameInput ? (
                   <span className="text-[10px] font-bold text-amber-600 animate-pulse">Click your name from list below</span>
                 ) : null}
@@ -619,9 +619,9 @@ export const AdminLogin: React.FC = () => {
                   }}
                   className={`w-full ${
                     isUserSelectedFromList
-                      ? 'bg-emerald-50/40 border-emerald-500 font-bold text-emerald-950'
-                      : 'bg-slate-50 border-slate-200 text-slate-800 font-medium'
-                  } border rounded-xl p-3 pr-10 text-xs outline-none focus:ring-2 focus:ring-[#15803d] transition-all`}
+                      ? 'bg-[#ede9fe]/30 border-[#7060f0] font-bold text-[#1e1b4b]'
+                      : 'bg-[#f8f6fe]/70 border-purple-100 text-[#1e1b4b] font-medium'
+                  } border rounded-2xl p-3 pr-10 text-xs outline-none focus:ring-2 focus:ring-[#5b4eed] focus:border-[#5b4eed] transition-all`}
                 />
                 <button
                   type="button"
@@ -629,13 +629,13 @@ export const AdminLogin: React.FC = () => {
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
                   title="Toggle Name List"
                 >
-                  <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180 text-emerald-600' : ''}`} />
+                  <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180 text-[#5b4eed]' : ''}`} />
                 </button>
               </div>
 
               {/* Suggestions Dropdown List right beneath the single input */}
               {isDropdownOpen && (
-                <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-white border border-slate-200 rounded-xl shadow-xl max-h-56 overflow-y-auto p-1 divide-y divide-slate-100">
+                <div className="absolute top-full left-0 right-0 mt-1.5 z-50 bg-white border border-purple-100 rounded-2xl shadow-xl max-h-56 overflow-y-auto p-1.5 divide-y divide-purple-50">
                   {/* Administrator Item (Fetched directly from Supabase SQL table) */}
                   {isAdminVisible && (
                     <button
@@ -650,14 +650,14 @@ export const AdminLogin: React.FC = () => {
                         setErrorMsg('');
                         setTimeout(() => passwordRef.current?.focus(), 80);
                       }}
-                      className={`w-full text-left p-3 rounded-xl text-xs font-bold transition-colors flex items-center justify-between cursor-pointer border-b border-slate-100 ${
+                      className={`w-full text-left p-3 rounded-xl text-xs font-bold transition-colors flex items-center justify-between cursor-pointer border-b border-purple-50 ${
                         isAdminSelected && isUserSelectedFromList
-                          ? 'bg-slate-100 text-[#1f2d2a] font-black'
-                          : 'hover:bg-slate-50 text-[#1f2d2a]'
+                          ? 'bg-[#ede9fe] text-[#5b4eed] font-black'
+                          : 'hover:bg-[#ede9fe]/40 text-[#1e1b4b]'
                       }`}
                     >
                       <div>
-                        <div className="text-xs font-black text-[#1f2d2a]">
+                        <div className="text-xs font-black text-[#1e1b4b]">
                           {adminProfile.full_name || 'Administrator'}
                         </div>
                         <div className="text-[10px] text-slate-500 font-normal">
@@ -665,7 +665,7 @@ export const AdminLogin: React.FC = () => {
                         </div>
                       </div>
                       {isAdminSelected && isUserSelectedFromList && (
-                        <span className="text-[#2e7d32] font-bold text-xs">✓ Selected</span>
+                        <span className="text-[#5b4eed] font-bold text-xs">✓ Selected</span>
                       )}
                     </button>
                   )}
@@ -688,10 +688,10 @@ export const AdminLogin: React.FC = () => {
                             setErrorMsg('');
                             setTimeout(() => passwordRef.current?.focus(), 80);
                           }}
-                          className={`w-full text-left p-2.5 rounded-lg text-xs font-bold transition-colors flex items-center justify-between cursor-pointer ${
+                          className={`w-full text-left p-2.5 rounded-xl text-xs font-bold transition-colors flex items-center justify-between cursor-pointer ${
                             isSelected
-                              ? 'bg-emerald-100 text-emerald-900 font-black'
-                              : 'hover:bg-emerald-50 text-slate-800'
+                              ? 'bg-[#ede9fe] text-[#5b4eed] font-black'
+                              : 'hover:bg-[#ede9fe]/30 text-slate-800'
                           }`}
                         >
                           <div className="truncate">
@@ -700,7 +700,7 @@ export const AdminLogin: React.FC = () => {
                               ({lead.department?.name || 'Department'} • {lead.employee_code})
                             </span>
                           </div>
-                          {isSelected && <span className="text-emerald-600 font-bold ml-2">✓ Selected</span>}
+                          {isSelected && <span className="text-[#5b4eed] font-bold ml-2">✓ Selected</span>}
                         </button>
                       );
                     })
@@ -728,7 +728,7 @@ export const AdminLogin: React.FC = () => {
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-[#15803d]"
+                  className="w-full bg-[#f8f6fe]/70 border border-purple-100 rounded-2xl p-3 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-[#5b4eed] focus:border-[#5b4eed]"
                 />
                 <button
                   type="button"
@@ -742,20 +742,20 @@ export const AdminLogin: React.FC = () => {
             </div>
 
             {/* Security Captcha Verification */}
-            <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-2">
+            <div className="bg-[#f8f6fe]/70 p-3.5 rounded-2xl border border-purple-100 space-y-2">
               <div className="flex items-center justify-between text-[10px] font-black text-slate-500 uppercase">
                 <span>SECURITY CAPTCHA VERIFICATION</span>
                 <button
                   type="button"
                   onClick={generateCaptcha}
-                  className="text-[#15803d] hover:text-[#166534] cursor-pointer"
+                  className="text-[#5b4eed] hover:text-[#4f42dc] cursor-pointer"
                   title="Generate new captcha"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
                 </button>
               </div>
               <div className="flex items-center gap-3">
-                <div className="bg-slate-100 px-4 py-2 rounded-xl border border-slate-200 font-black text-sm text-slate-800 shrink-0">
+                <div className="bg-white px-4 py-2 rounded-xl border border-purple-100 font-black text-sm text-[#1e1b4b] shrink-0">
                   {captcha.num1} {captcha.op} {captcha.num2} =
                 </div>
                 <input
@@ -764,7 +764,7 @@ export const AdminLogin: React.FC = () => {
                   placeholder="Answer"
                   value={captchaInput}
                   onChange={(e) => setCaptchaInput(e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-xl p-2 text-center text-sm font-black text-slate-800 outline-none focus:ring-2 focus:ring-[#15803d]"
+                  className="w-full bg-white border border-purple-100 rounded-2xl p-2 text-center text-sm font-black text-[#1e1b4b] outline-none focus:ring-2 focus:ring-[#5b4eed]"
                 />
               </div>
             </div>
@@ -773,7 +773,7 @@ export const AdminLogin: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 rounded-xl bg-[#15803d] hover:bg-[#166534] text-white font-black text-xs uppercase tracking-wider shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 active:scale-[0.99]"
+              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-[#5f4de6] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7060f0] text-white font-black text-xs uppercase tracking-wider shadow-md shadow-indigo-300/40 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 active:scale-[0.99]"
             >
               {loading ? (
                 <>
@@ -792,11 +792,11 @@ export const AdminLogin: React.FC = () => {
 
           {/* Clean Single-Line Divider */}
           <div className="relative flex items-center justify-center my-4">
-            <div className="border-t border-slate-200 w-full" />
+            <div className="border-t border-purple-100 w-full" />
             <span className="bg-white px-3 text-[10px] font-black uppercase text-slate-400 tracking-wider whitespace-nowrap">
               OR SIGN IN WITH GOOGLE AUTHENTICATOR
             </span>
-            <div className="border-t border-slate-200 w-full" />
+            <div className="border-t border-purple-100 w-full" />
           </div>
 
           {/* Google Authenticator Action Button (Positioned Below Form per user instruction) */}
@@ -804,10 +804,10 @@ export const AdminLogin: React.FC = () => {
             type="button"
             onClick={handleLaunchRealGoogleAuth}
             disabled={isGoogleLoading}
-            className="w-full py-3 px-4 bg-white hover:bg-slate-50 border-2 border-slate-200 hover:border-emerald-500 rounded-2xl text-xs font-black text-slate-700 shadow-xs flex items-center justify-center gap-3 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-60"
+            className="w-full py-3 px-4 bg-white hover:bg-[#ede9fe]/20 border-2 border-purple-100 hover:border-purple-300 rounded-2xl text-xs font-black text-slate-700 shadow-xs flex items-center justify-center gap-3 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-60"
           >
             {isGoogleLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
+              <Loader2 className="w-4 h-4 animate-spin text-[#5b4eed]" />
             ) : (
               <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
                 <path
@@ -836,7 +836,7 @@ export const AdminLogin: React.FC = () => {
             <button
               type="button"
               onClick={() => setShowGoogleProviderSetupModal(true)}
-              className="text-emerald-700 hover:text-emerald-900 font-bold underline cursor-pointer"
+              className="text-[#5b4eed] hover:text-[#4f42dc] font-bold underline cursor-pointer"
             >
               How to enable Google Auth?
             </button>

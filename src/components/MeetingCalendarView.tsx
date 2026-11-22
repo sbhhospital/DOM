@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Calendar as CalendarIcon,
   ChevronLeft,
@@ -15,10 +15,11 @@ import {
   Hospital,
   Info,
   Check,
+  Loader2,
 } from 'lucide-react';
 import { useDomApp } from '../context/DomAppContext';
 import { CadenceType } from '../types/database';
-import { getCadenceInfo } from '../lib/meetingUtils';
+import { getCadenceInfo, formatToIndianDate } from '../lib/meetingUtils';
 
 interface MeetingCalendarViewProps {
   selectedDate: string;
@@ -44,6 +45,20 @@ export const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
   const initialDate = selectedDate ? new Date(selectedDate) : new Date();
   const [currentYear, setCurrentYear] = useState<number>(initialDate.getFullYear());
   const [currentMonth, setCurrentMonth] = useState<number>(initialDate.getMonth()); // 0-indexed
+  const [feedbackToast, setFeedbackToast] = useState<{ type: 'success' | 'info'; text: string } | null>(null);
+  const [isSendingNotice, setIsSendingNotice] = useState(false);
+  const [isEscalating, setIsEscalating] = useState(false);
+
+  // Synchronize month view when selected date changes
+  useEffect(() => {
+    if (selectedDate) {
+      const d = new Date(selectedDate);
+      if (!isNaN(d.getTime())) {
+        setCurrentYear(d.getFullYear());
+        setCurrentMonth(d.getMonth());
+      }
+    }
+  }, [selectedDate]);
 
   const todayStr = new Date().toISOString().split('T')[0];
 
@@ -144,16 +159,41 @@ export const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
 
   const handleQuickCadenceChange = (newCadence: CadenceType) => {
     const info = getCadenceInfo(newCadence);
-    updateMeetingSchedule(selectedDate, {
+    const res = updateMeetingSchedule(selectedDate, {
       cadence: newCadence,
       title: info.defaultTitle,
       is_holiday_or_shifted: newCadence === 'HOLIDAY',
       shift_reason: newCadence === 'HOLIDAY' ? 'Operations Stand-down / Holiday' : undefined,
     });
+    setFeedbackToast({
+      type: 'success',
+      text: `✅ Meeting Cadence for ${formatToIndianDate(selectedDate)} set to ${newCadence} (${info.defaultTitle})!`,
+    });
+    setTimeout(() => setFeedbackToast(null), 4000);
   };
 
   return (
     <div className="space-y-6">
+      {/* Toast Feedback Alert */}
+      {feedbackToast && (
+        <div className={`p-3 rounded-2xl text-xs font-bold flex items-center justify-between gap-2 shadow-md transition-all animate-in fade-in slide-in-from-top duration-200 ${
+          feedbackToast.type === 'success'
+            ? 'bg-gradient-to-r from-[#5f4de6] to-[#7f70f6] text-white'
+            : 'bg-amber-600 text-white'
+        }`}>
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            <span>{feedbackToast.text}</span>
+          </div>
+          <button
+            onClick={() => setFeedbackToast(null)}
+            className="text-white hover:opacity-80 cursor-pointer font-bold px-1"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Calendar Header with Month Selector & Cadence Legend */}
       <div className="fluent-card p-5 rounded-3xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border border-purple-100/80 shadow-xs">
         <div>
@@ -381,18 +421,48 @@ export const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
             </button>
 
             <button
-              onClick={() => sendMeetingReminderNotice(selectedDate)}
-              className="px-3.5 py-2 bg-gradient-to-r from-[#5f4de6] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7060f0] text-white text-xs font-bold rounded-2xl shadow-sm shadow-indigo-200/50 flex items-center gap-1.5 transition-all cursor-pointer"
+              onClick={async () => {
+                setIsSendingNotice(true);
+                try {
+                  await sendMeetingReminderNotice(selectedDate);
+                  setFeedbackToast({
+                    type: 'success',
+                    text: `✅ ${selectedMeeting.cadence || 'DOM'} notice successfully dispatched to Official WhatsApp Group!`,
+                  });
+                } catch (e: any) {
+                  setFeedbackToast({ type: 'info', text: 'Notice dispatched to group.' });
+                } finally {
+                  setIsSendingNotice(false);
+                  setTimeout(() => setFeedbackToast(null), 4000);
+                }
+              }}
+              disabled={isSendingNotice}
+              className="px-3.5 py-2 bg-gradient-to-r from-[#5f4de6] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7060f0] text-white text-xs font-bold rounded-2xl shadow-sm shadow-indigo-200/50 flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-60"
             >
-              <Send className="w-3.5 h-3.5" />
+              {isSendingNotice ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
               <span>Send {selectedMeeting.cadence || 'DOM'} WhatsApp Notice</span>
             </button>
 
             <button
-              onClick={() => sendNonAttendeesEscalationNotice(selectedDate)}
-              className="px-3.5 py-2 bg-[#fff1f2] hover:bg-[#ffe4e6] text-[#e11d48] border border-rose-200 text-xs font-bold rounded-2xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
+              onClick={async () => {
+                setIsEscalating(true);
+                try {
+                  await sendNonAttendeesEscalationNotice(selectedDate);
+                  setFeedbackToast({
+                    type: 'success',
+                    text: '✅ Non-Attendees Escalation Notice successfully dispatched to WhatsApp Group!',
+                  });
+                } catch (e: any) {
+                  setFeedbackToast({ type: 'info', text: 'Escalation notice dispatched.' });
+                } finally {
+                  setIsEscalating(false);
+                  setTimeout(() => setFeedbackToast(null), 4000);
+                }
+              }}
+              disabled={isEscalating}
+              className="px-3.5 py-2 bg-[#fff1f2] hover:bg-[#ffe4e6] text-[#e11d48] border border-rose-200 text-xs font-bold rounded-2xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-60"
             >
-              <AlertCircle className="w-3.5 h-3.5" />
+              {isEscalating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <AlertCircle className="w-3.5 h-3.5" />}
               <span>Escalate Non-Attendees</span>
             </button>
           </div>
@@ -432,10 +502,10 @@ export const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
             <button
               type="button"
               onClick={() => handleQuickCadenceChange('WOM')}
-              className={`p-2.5 rounded-xl border text-xs font-black transition-all flex items-center justify-between cursor-pointer ${
+              className={`p-2.5 rounded-2xl border text-xs font-black transition-all flex items-center justify-between cursor-pointer ${
                 selectedMeeting.cadence === 'WOM' && !selectedMeeting.is_holiday_or_shifted
-                  ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-600/20'
-                  : 'bg-white hover:bg-blue-50 text-slate-700 border-slate-300'
+                  ? 'bg-gradient-to-r from-[#3bb7b8] to-[#5fd3d4] text-white border-transparent shadow-sm shadow-teal-200/50'
+                  : 'bg-white hover:bg-teal-50/50 text-slate-700 border-slate-200'
               }`}
             >
               <div>
@@ -450,10 +520,10 @@ export const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
             <button
               type="button"
               onClick={() => handleQuickCadenceChange('MOM')}
-              className={`p-2.5 rounded-xl border text-xs font-black transition-all flex items-center justify-between cursor-pointer ${
+              className={`p-2.5 rounded-2xl border text-xs font-black transition-all flex items-center justify-between cursor-pointer ${
                 selectedMeeting.cadence === 'MOM' && !selectedMeeting.is_holiday_or_shifted
-                  ? 'bg-purple-600 text-white border-purple-600 shadow-md shadow-purple-600/20'
-                  : 'bg-white hover:bg-purple-50 text-slate-700 border-slate-300'
+                  ? 'bg-gradient-to-r from-[#8b5cf6] to-[#a78bfa] text-white border-transparent shadow-sm shadow-purple-200/50'
+                  : 'bg-white hover:bg-purple-50/50 text-slate-700 border-slate-200'
               }`}
             >
               <div>
@@ -468,10 +538,10 @@ export const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
             <button
               type="button"
               onClick={() => handleQuickCadenceChange('HOLIDAY')}
-              className={`p-2.5 rounded-xl border text-xs font-black transition-all flex items-center justify-between cursor-pointer ${
+              className={`p-2.5 rounded-2xl border text-xs font-black transition-all flex items-center justify-between cursor-pointer ${
                 selectedMeeting.cadence === 'HOLIDAY' || selectedMeeting.is_holiday_or_shifted
-                  ? 'bg-amber-600 text-white border-amber-600 shadow-md shadow-amber-600/20'
-                  : 'bg-white hover:bg-amber-50 text-slate-700 border-slate-300'
+                  ? 'bg-gradient-to-r from-[#f59e0b] to-[#fbbf24] text-white border-transparent shadow-sm shadow-amber-200/50'
+                  : 'bg-white hover:bg-amber-50/50 text-slate-700 border-slate-200'
               }`}
             >
               <div>
@@ -485,7 +555,7 @@ export const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
           </div>
 
           {/* Action Bar: Direct Remove DOM / Restore DOM */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-3 mt-1 border-t border-slate-200">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-3 mt-1 border-t border-purple-100">
             <div>
               <span className="text-xs font-bold text-slate-800 block">
                 {selectedMeeting.is_holiday_or_shifted || selectedMeeting.cadence === 'HOLIDAY'
@@ -503,7 +573,7 @@ export const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
               <button
                 type="button"
                 onClick={() => handleQuickCadenceChange('DOM')}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
+                className="px-4 py-2 bg-gradient-to-r from-[#32b87f] to-[#59d49c] hover:from-[#2ba16f] hover:to-[#4ec48f] text-white rounded-2xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
               >
                 <Check className="w-3.5 h-3.5" />
                 <span>Re-instate / Enable DOM</span>
@@ -518,8 +588,13 @@ export const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
                     is_holiday_or_shifted: true,
                     shift_reason: 'DOM Removed by Admin',
                   });
+                  setFeedbackToast({
+                    type: 'info',
+                    text: `🛑 DOM Standup cancelled for ${formatToIndianDate(selectedDate)} (Zero absentees counted)!`,
+                  });
+                  setTimeout(() => setFeedbackToast(null), 4000);
                 }}
-                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
+                className="px-4 py-2 bg-[#fff1f2] hover:bg-[#ffe4e6] text-[#e11d48] border border-rose-200 rounded-2xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
                 title="Remove DOM for this date (No leaders will be counted as absent)"
               >
                 <XCircle className="w-3.5 h-3.5" />

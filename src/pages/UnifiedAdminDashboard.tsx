@@ -1011,7 +1011,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
       // Structured WhatsApp Caption
       const captionText = `🏥 *SBH GROUP OF HOSPITALS, RAIPUR*\n📊 *OFFICIAL ${cadence} LEADERSHIP ATTENDANCE REPORT (${formatToIndianDate(date)})*\n━━━━━━━━━━━━━━━━━━━━━━\n• Total Expected: ${forDate.length}\n• Attended: ${forDate.filter((r) => isPresentRecord(r)).length}\n• Approved Late: ${forDate.filter((r) => isLateRecord(r)).length}\n• Approved Leave: ${forDate.filter((r) => isLeaveRecord(r)).length}\n• Absent / Unreported: ${forDate.filter((r) => isAbsentRecord(r)).length}\n\n📄 *Official Signed Director Attendance PDF Report Attached*\n━━━━━━━━━━━━━━━━━━━━━━\n*Automated Reminder*`;
 
-      // 1. Direct Ceoitbox PDF Dispatch to WhatsApp Group (919977881452-1431506963@g.us) via /api/v1/message/create
+      // 1. Direct Ceoitbox PDF Dispatch to WhatsApp Group (120363432056023698@g.us) via /api/v1/message/create
       const dispatchPromise = sendDirectorPdfToWhatsappGroup(date);
       uploadReportToGoogleDriveAndSheet(date).catch((e) => console.warn('Background sync note:', e));
 
@@ -1034,7 +1034,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
       if (res.success) {
         setToastAlert({
           type: 'success',
-          text: `🎉 Official PDF Report directly dispatched to WhatsApp Group (${appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us'}) via Ceoitbox API!`,
+          text: `🎉 Official PDF Report directly dispatched to WhatsApp Group (${appSettings.admin_whatsapp_group || '120363432056023698@g.us'}) via Ceoitbox API!`,
         });
       } else {
         setToastAlert({
@@ -1099,7 +1099,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
     textMsg += `━━━━━━━━━━━━━━━━━━━━━━\n*Automated Reminder*`;
 
-    const groupJid = appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us';
+    const groupJid = appSettings.admin_whatsapp_group || '120363432056023698@g.us';
     const res = await sendCeoitboxWhatsappMessage({
       mobileNo: groupJid,
       name: 'SBH DOM Official Group',
@@ -2196,7 +2196,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                       openConfirm({
                         title: 'Save & Archive Report',
                         message:
-                          `Archive official DOM attendance report for ${selectedDate} directly to Supabase SQL database, download signed PDF, and dispatch audit summary to Official WhatsApp Group (${appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us'})?`,
+                          `Archive official DOM attendance report for ${selectedDate} directly to Supabase SQL database, download signed PDF, and dispatch audit summary to Official WhatsApp Group (${appSettings.admin_whatsapp_group || '120363432056023698@g.us'})?`,
                         type: 'primary',
                         confirmText: 'Save & Archive',
                         onConfirm: handleUploadToDriveAndSheet,
@@ -3729,13 +3729,13 @@ export const UnifiedAdminDashboard: React.FC = () => {
                         type="text"
                         value={appSettings.admin_whatsapp_group}
                         onChange={(e) => updateAppSettings({ admin_whatsapp_group: e.target.value })}
-                        placeholder="919977881452-1431506963@g.us"
+                        placeholder="120363432056023698@g.us"
                         className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-emerald-500 font-mono font-bold"
                       />
                       <div className="flex items-center justify-between mt-1 text-[11px] text-slate-500">
-                        <span>Target Group: Official DOM Operations ({appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us'})</span>
+                        <span>Target Group: Official DOM Operations ({appSettings.admin_whatsapp_group || '120363432056023698@g.us'})</span>
                         <a
-                          href={`https://app.ceoitbox.com/customer/channel/23642/group/${appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us'}`}
+                          href={`https://app.ceoitbox.com/customer/channel/23642/group/${appSettings.admin_whatsapp_group || '120363432056023698@g.us'}`}
                           target="_blank"
                           rel="noreferrer"
                           className="text-emerald-700 font-bold underline"
@@ -3840,7 +3840,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                       </span>
                     </div>
                     <div className="text-[11px] font-mono text-slate-700 truncate bg-slate-50 p-2 rounded-lg border border-slate-200 font-bold">
-                      {appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us'}
+                      {appSettings.admin_whatsapp_group || '120363432056023698@g.us'}
                     </div>
                     <p className="text-[11px] text-slate-500">09:50 AM notice & 10:30 AM final PDF report are dispatched to this group.</p>
                   </div>
@@ -4353,9 +4353,9 @@ export const UnifiedAdminDashboard: React.FC = () => {
       {/* ================= MODAL: RESCHEDULE / CADENCE EDIT ================= */}
       {showScheduleEditModal && (
         <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-[9999] p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-lg w-full max-h-[92vh] overflow-y-auto custom-scrollbar p-6 shadow-2xl border border-slate-200 animate-in fade-in zoom-in duration-200">
-            <h3 className="text-base font-black text-slate-900 mb-1 flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-orange-600" />
+          <div className="bg-white rounded-[32px] max-w-lg w-full max-h-[92vh] overflow-y-auto custom-scrollbar p-6 sm:p-7 shadow-2xl shadow-indigo-200/50 border border-purple-100 animate-in fade-in zoom-in duration-200">
+            <h3 className="text-base font-black text-[#1e1b4b] mb-1 flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-[#5b4eed]" />
               <span>Modify Date Cadence & Schedule: {selectedDate}</span>
             </h3>
             <p className="text-xs text-slate-500 mb-4">
@@ -4370,9 +4370,9 @@ export const UnifiedAdminDashboard: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => handleCadenceSelectionInModal('DOM')}
-                    className={`p-3 rounded-xl border text-xs font-black transition-all flex items-center justify-between cursor-pointer ${schedForm.cadence === 'DOM' && !schedForm.is_holiday_or_shifted
-                      ? 'bg-orange-600 text-white border-orange-600 shadow-md shadow-orange-600/20'
-                      : 'bg-slate-50 hover:bg-orange-50 text-slate-700 border-slate-200'
+                    className={`p-3 rounded-2xl border text-xs font-black transition-all flex items-center justify-between cursor-pointer ${schedForm.cadence === 'DOM' && !schedForm.is_holiday_or_shifted
+                      ? 'bg-gradient-to-r from-[#5f4de6] to-[#7f70f6] text-white border-transparent shadow-md shadow-indigo-200/50'
+                      : 'bg-slate-50 hover:bg-[#ede9fe]/30 text-slate-700 border-slate-200'
                       }`}
                   >
                     <div>
@@ -4385,9 +4385,9 @@ export const UnifiedAdminDashboard: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => handleCadenceSelectionInModal('WOM')}
-                    className={`p-3 rounded-xl border text-xs font-black transition-all flex items-center justify-between cursor-pointer ${schedForm.cadence === 'WOM' && !schedForm.is_holiday_or_shifted
-                      ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-600/20'
-                      : 'bg-slate-50 hover:bg-blue-50 text-slate-700 border-slate-200'
+                    className={`p-3 rounded-2xl border text-xs font-black transition-all flex items-center justify-between cursor-pointer ${schedForm.cadence === 'WOM' && !schedForm.is_holiday_or_shifted
+                      ? 'bg-gradient-to-r from-[#3bb7b8] to-[#5fd3d4] text-white border-transparent shadow-md shadow-teal-200/50'
+                      : 'bg-slate-50 hover:bg-teal-50/50 text-slate-700 border-slate-200'
                       }`}
                   >
                     <div>
@@ -4400,9 +4400,9 @@ export const UnifiedAdminDashboard: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => handleCadenceSelectionInModal('MOM')}
-                    className={`p-3 rounded-xl border text-xs font-black transition-all flex items-center justify-between cursor-pointer ${schedForm.cadence === 'MOM' && !schedForm.is_holiday_or_shifted
-                      ? 'bg-purple-600 text-white border-purple-600 shadow-md shadow-purple-600/20'
-                      : 'bg-slate-50 hover:bg-purple-50 text-slate-700 border-slate-200'
+                    className={`p-3 rounded-2xl border text-xs font-black transition-all flex items-center justify-between cursor-pointer ${schedForm.cadence === 'MOM' && !schedForm.is_holiday_or_shifted
+                      ? 'bg-gradient-to-r from-[#8b5cf6] to-[#a78bfa] text-white border-transparent shadow-md shadow-purple-200/50'
+                      : 'bg-slate-50 hover:bg-purple-50/50 text-slate-700 border-slate-200'
                       }`}
                   >
                     <div>
@@ -4415,9 +4415,9 @@ export const UnifiedAdminDashboard: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => handleCadenceSelectionInModal('HOLIDAY')}
-                    className={`p-3 rounded-xl border text-xs font-black transition-all flex items-center justify-between cursor-pointer ${schedForm.cadence === 'HOLIDAY' || schedForm.is_holiday_or_shifted
-                      ? 'bg-amber-600 text-white border-amber-600 shadow-md shadow-amber-600/20'
-                      : 'bg-slate-50 hover:bg-amber-50 text-slate-700 border-slate-200'
+                    className={`p-3 rounded-2xl border text-xs font-black transition-all flex items-center justify-between cursor-pointer ${schedForm.cadence === 'HOLIDAY' || schedForm.is_holiday_or_shifted
+                      ? 'bg-gradient-to-r from-[#f59e0b] to-[#fbbf24] text-white border-transparent shadow-md shadow-amber-200/50'
+                      : 'bg-slate-50 hover:bg-amber-50/50 text-slate-700 border-slate-200'
                       }`}
                   >
                     <div>
@@ -4436,7 +4436,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                   required
                   value={schedForm.title}
                   onChange={(e) => setSchedForm({ ...schedForm, title: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-orange-500 font-bold"
+                  className="w-full px-3.5 py-2.5 bg-[#f8f6fe]/70 border border-purple-100 rounded-2xl text-xs text-slate-800 focus:outline-none focus:border-[#5b4eed] focus:ring-2 focus:ring-[#5b4eed]/20 font-bold"
                 />
               </div>
 
@@ -4449,7 +4449,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                     value={schedForm.scheduled_time}
                     onChange={(e) => setSchedForm({ ...schedForm, scheduled_time: e.target.value })}
                     placeholder="10:00 AM IST"
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-orange-500 font-mono font-bold"
+                    className="w-full px-3.5 py-2.5 bg-[#f8f6fe]/70 border border-purple-100 rounded-2xl text-xs text-slate-800 focus:outline-none focus:border-[#5b4eed] focus:ring-2 focus:ring-[#5b4eed]/20 font-mono font-bold"
                   />
                 </div>
 
@@ -4460,33 +4460,33 @@ export const UnifiedAdminDashboard: React.FC = () => {
                     required
                     value={schedForm.google_meet_url}
                     onChange={(e) => setSchedForm({ ...schedForm, google_meet_url: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-orange-500 font-mono"
+                    className="w-full px-3.5 py-2.5 bg-[#f8f6fe]/70 border border-purple-100 rounded-2xl text-xs text-slate-800 focus:outline-none focus:border-[#5b4eed] focus:ring-2 focus:ring-[#5b4eed]/20 font-mono"
                   />
                 </div>
               </div>
 
               {schedForm.is_holiday_or_shifted && (
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl">
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl">
                   <label className="block text-xs font-bold text-amber-900 mb-1">Holiday / Shift Reason</label>
                   <input
                     type="text"
                     placeholder="e.g. Rescheduled due to Public Holiday"
                     value={schedForm.shift_reason}
                     onChange={(e) => setSchedForm({ ...schedForm, shift_reason: e.target.value })}
-                    className="w-full px-3 py-1.5 bg-white border border-amber-300 rounded-lg text-xs text-slate-800 focus:outline-none"
+                    className="w-full px-3 py-1.5 bg-white border border-amber-300 rounded-xl text-xs text-slate-800 focus:outline-none"
                   />
                 </div>
               )}
 
-              <div className="p-3 bg-emerald-50/70 border border-emerald-200 rounded-xl">
-                <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-emerald-950">
+              <div className="p-3 bg-[#ede9fe]/40 border border-purple-200/70 rounded-2xl">
+                <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-[#1e1b4b]">
                   <input
                     type="checkbox"
                     checked={notifyGroupOnScheduleChange}
                     onChange={(e) => setNotifyGroupOnScheduleChange(e.target.checked)}
-                    className="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer"
+                    className="rounded text-[#5b4eed] focus:ring-[#5b4eed] w-4 h-4 cursor-pointer"
                   />
-                  <span>Immediately Notify WhatsApp Group ({appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us'}) of this Schedule Update</span>
+                  <span>Immediately Notify WhatsApp Group ({appSettings.admin_whatsapp_group || '120363432056023698@g.us'}) of this Schedule Update</span>
                 </label>
               </div>
 
@@ -4494,13 +4494,13 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowScheduleEditModal(false)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer"
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl text-xs font-bold cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs font-bold shadow-md shadow-orange-600/25 cursor-pointer"
+                  className="px-5 py-2.5 bg-gradient-to-r from-[#5f4de6] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7060f0] text-white rounded-2xl text-xs font-bold shadow-md shadow-indigo-300/40 cursor-pointer"
                 >
                   Save Schedule & Cadence
                 </button>
@@ -5365,12 +5365,12 @@ export const UnifiedAdminDashboard: React.FC = () => {
  * =======================================================================
  * SBH GROUP OF HOSPITALS, RAIPUR — DOM AUTOMATION PIPELINE (APPS SCRIPT)
  * Target Drive Folder: https://drive.google.com/drive/folders/1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD?usp=sharing
- * Target WhatsApp Group ID: 919977881452-1431506963@g.us
+ * Target WhatsApp Group ID: 120363432056023698@g.us
  * =======================================================================
  */
 
 const DRIVE_FOLDER_ID = "1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD";
-const WHATSAPP_GROUP_ID = "919977881452-1431506963@g.us";
+const WHATSAPP_GROUP_ID = "120363432056023698@g.us";
 const GOOGLE_MEET_URL = "https://meet.google.com/jrz-jfku-gir";
 
 /**
@@ -5472,7 +5472,7 @@ function sendDaily0950Notice() {
               <button
                 onClick={() => {
                   const codeToCopy = `const DRIVE_FOLDER_ID = "1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD";
-const WHATSAPP_GROUP_ID = "919977881452-1431506963@g.us";
+const WHATSAPP_GROUP_ID = "120363432056023698@g.us";
 const GOOGLE_MEET_URL = "https://meet.google.com/jrz-jfku-gir";
 
 function doPost(e) {
@@ -5775,7 +5775,7 @@ function doPost(e) {
                     Send to WhatsApp Group
                   </h3>
                   <p className="text-xs text-slate-500 font-medium">
-                    SBH Express Group ({appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us'})
+                    SBH Express Group ({appSettings.admin_whatsapp_group || '120363432056023698@g.us'})
                   </p>
                 </div>
               </div>

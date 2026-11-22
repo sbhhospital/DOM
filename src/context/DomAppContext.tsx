@@ -126,7 +126,7 @@ const DomAppContext = createContext<DomAppContextType | undefined>(undefined);
 const DEFAULT_SETTINGS: AppSettings = {
   director_whatsapp: '9644404741',
   director_name: 'Director Sir',
-  admin_whatsapp_group: '919977881452-1431506963@g.us',
+  admin_whatsapp_group: '120363432056023698@g.us',
   google_meet_url: 'https://meet.google.com/jrz-jfku-gir',
   allowed_domain: 'sbhhospital.com',
   conference_room_name: 'Conference Room, 5th Floor',
@@ -510,7 +510,14 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [leaders, setLeaders] = useState<Leader[]>(INITIAL_LEADERS);
 
   // Meeting Schedules & Attendance Records state (Stored 100% in Supabase SQL Database, Zero LocalStorage dependency)
-  const [meetingSchedules, setMeetingSchedules] = useState<Record<string, MeetingSchedule>>({});
+  const [meetingSchedules, setMeetingSchedules] = useState<Record<string, MeetingSchedule>>(() => {
+    try {
+      const saved = localStorage.getItem('sbh_meeting_schedules');
+      return saved ? JSON.parse(saved) : {};
+    } catch (e) {
+      return {};
+    }
+  });
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
 
   const [appSettings, setAppSettings] = useState<AppSettings>(() => {
@@ -522,10 +529,10 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
       if (
         !parsed.admin_whatsapp_group ||
-        parsed.admin_whatsapp_group === '120363432056023698@g.us' ||
+        parsed.admin_whatsapp_group === '919977881452-1431506963@g.us' ||
         parsed.admin_whatsapp_group === 'SBH DOM Executive Group'
       ) {
-        parsed.admin_whatsapp_group = '919977881452-1431506963@g.us';
+        parsed.admin_whatsapp_group = '120363432056023698@g.us';
       }
       if (!parsed.google_drive_folder_url) {
         parsed.google_drive_folder_url = 'https://drive.google.com/drive/folders/1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD?usp=sharing';
@@ -884,10 +891,18 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       updated_at: new Date().toISOString(),
     };
 
-    setMeetingSchedules((prev) => ({
-      ...prev,
-      [date]: updated,
-    }));
+    setMeetingSchedules((prev) => {
+      const next = {
+        ...prev,
+        [date]: updated,
+      };
+      try {
+        localStorage.setItem('sbh_meeting_schedules', JSON.stringify(next));
+      } catch (e) {
+        console.warn('LocalStorage save warning for schedules:', e);
+      }
+      return next;
+    });
 
     // Persist directly into Supabase SQL database table
     try {
@@ -2469,7 +2484,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             stage: '1030',
             date,
             message: msg,
-            targetGroup: appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us',
+            targetGroup: appSettings.admin_whatsapp_group || '120363432056023698@g.us',
           }),
         }).catch(() => {});
       } catch (e) {
@@ -2491,7 +2506,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const cadenceCode = meeting.cadence || 'DOM';
     const isSunday = new Date(date).getDay() === 0;
     const isHoliday = cadenceCode === 'HOLIDAY' || Boolean(meeting.is_holiday_or_shifted);
-    const targetGroup = appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us';
+    const targetGroup = appSettings.admin_whatsapp_group || '120363432056023698@g.us';
 
     let reminderMsg = '';
     let noticeType = 'DOM_0950_NOTICE';
@@ -2583,7 +2598,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     scheduledTime: string,
     reason?: string
   ): Promise<{ success: boolean; message: string }> => {
-    const targetGroup = appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us';
+    const targetGroup = appSettings.admin_whatsapp_group || '120363432056023698@g.us';
     let msg = `🏥 *SBH GROUP OF HOSPITALS, RAIPUR*\n`;
     msg += `📢 *OFFICIAL SCHEDULE UPDATE / CADENCE NOTICE*\n`;
     msg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
@@ -2722,7 +2737,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             stage: '1010',
             date,
             message: msg,
-            targetGroup: appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us',
+            targetGroup: appSettings.admin_whatsapp_group || '120363432056023698@g.us',
           }),
         }).catch(() => {});
       } catch (e) {
@@ -2965,7 +2980,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     summaryMsg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
     summaryMsg += `Official signed attendance document attached below.\n*Automated Reminder*`;
 
-    const targetGroup = appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us';
+    const targetGroup = appSettings.admin_whatsapp_group || '120363432056023698@g.us';
 
     const res = await sendCeoitboxPdfAttachment({
       mobileNo: targetGroup,
@@ -3120,7 +3135,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const totalCount = forDate.length || leaders.length;
     const totalPresent = presentPhysical.length + presentVirtual.length;
     const complianceRate = totalCount > 0 ? Math.round(((totalPresent + informedLate.length + informedLeave.length) / totalCount) * 100) : 0;
-    const groupJid = appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us';
+    const groupJid = appSettings.admin_whatsapp_group || '120363432056023698@g.us';
 
     let msg = '';
 
@@ -3270,7 +3285,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         complianceRate,
         pdfBase64: base64,
         pdfFileName: filename,
-        whatsappGroupId: appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us',
+        whatsappGroupId: appSettings.admin_whatsapp_group || '120363432056023698@g.us',
         driveFolderId: appSettings.google_drive_folder_id || '1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD',
       };
 
@@ -3294,7 +3309,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
               leaveCount: informedLeave.length,
               complianceRate,
               pdfFileName: filename,
-              whatsappGroupId: appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us',
+              whatsappGroupId: appSettings.admin_whatsapp_group || '120363432056023698@g.us',
               driveFolderUrl: appSettings.google_drive_folder_url || 'https://drive.google.com/drive/folders/1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD?usp=sharing',
               createdAt: new Date().toISOString(),
             },
@@ -3327,7 +3342,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       return {
         success: true,
-        message: `Official DOM Report successfully archived to Supabase database & dispatched to WhatsApp Group (${appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us'}) via CEOITBOX API!`,
+        message: `Official DOM Report successfully archived to Supabase database & dispatched to WhatsApp Group (${appSettings.admin_whatsapp_group || '120363432056023698@g.us'}) via CEOITBOX API!`,
         driveUrl: cloudDriveUrl,
       };
     } catch (err: any) {
@@ -3349,7 +3364,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return {
       success: true,
       leadersCount: 1,
-      message: `09:50 AM Morning Notice successfully dispatched to Official WhatsApp Group (${appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us'})!`,
+      message: `09:50 AM Morning Notice successfully dispatched to Official WhatsApp Group (${appSettings.admin_whatsapp_group || '120363432056023698@g.us'})!`,
     };
   };
 
