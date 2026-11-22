@@ -2,6 +2,7 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { MeetingSchedule, AttendanceRecord, AppSettings, Leader, Department } from '../types/database';
 import { sbhLogoBase64 } from '../assets/logoBase64';
+import { defaultLeaderAvatarBase64 } from '../assets/defaultLeaderAvatarBase64';
 import { formatLateDuration, formatToIndianDate } from './meetingUtils';
 
 export function generateDirectorPdf(
@@ -148,11 +149,59 @@ export function generateDirectorPdf(
     doc.text(kpi.sub, cardX + 3, currentY + 15);
   });
 
-  currentY += cardHeight + 6;
+  currentY += cardHeight + 4;
+
+  // Segmented Visual Graph / Bar (Executive Compliance Overview)
+  const totalBarWidth = pageWidth - margin * 2;
+  const safeTotal = totalLeaders > 0 ? totalLeaders : 1;
+  const attendedWidth = (approvedPresent / safeTotal) * totalBarWidth;
+  const pendingWidth = (pendingApproval / safeTotal) * totalBarWidth;
+  const leaveWidth = (approvedLeave / safeTotal) * totalBarWidth;
+  const absentWidth = (absentCount / safeTotal) * totalBarWidth;
+
+  // Background track
+  doc.setFillColor(241, 245, 249);
+  doc.roundedRect(margin, currentY, totalBarWidth, 3.5, 1, 1, 'F');
+
+  // Segments
+  let barCurrentX = margin;
+  if (attendedWidth > 0) {
+    doc.setFillColor(22, 163, 74); // Green: Attended
+    doc.rect(barCurrentX, currentY, attendedWidth, 3.5, 'F');
+    barCurrentX += attendedWidth;
+  }
+  if (pendingWidth > 0) {
+    doc.setFillColor(245, 158, 11); // Amber: Informed Late / Pending
+    doc.rect(barCurrentX, currentY, pendingWidth, 3.5, 'F');
+    barCurrentX += pendingWidth;
+  }
+  if (leaveWidth > 0) {
+    doc.setFillColor(147, 51, 234); // Purple: Approved Leave
+    doc.rect(barCurrentX, currentY, leaveWidth, 3.5, 'F');
+    barCurrentX += leaveWidth;
+  }
+  if (absentWidth > 0) {
+    doc.setFillColor(225, 29, 72); // Red: Absent / No Info
+    doc.rect(barCurrentX, currentY, absentWidth, 3.5, 'F');
+  }
+
+  // Graph Legend text
+  doc.setFontSize(6.5);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(22, 163, 74);
+  doc.text(`Attended: ${approvedPresent}`, margin, currentY + 7);
+  doc.setTextColor(217, 119, 6);
+  doc.text(`Informed / Pending: ${pendingApproval}`, margin + 35, currentY + 7);
+  doc.setTextColor(147, 51, 234);
+  doc.text(`Approved Leave: ${approvedLeave}`, margin + 78, currentY + 7);
+  doc.setTextColor(225, 29, 72);
+  doc.text(`Absent (No Inform): ${absentCount}`, margin + 120, currentY + 7);
+
+  currentY += 11;
 
   // 5. Section Header: Official Attendance Roster
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
+  doc.setFontSize(9.5);
   doc.setTextColor(15, 23, 42);
   doc.text('1. OFFICIAL DEPARTMENT ATTENDANCE & VERIFICATION AUDIT', margin, currentY);
 
@@ -268,28 +317,68 @@ export function generateDirectorPdf(
     },
     columnStyles: {
       0: { halign: 'center', cellWidth: 6 },
-      1: { fontStyle: 'bold', halign: 'left', cellWidth: 34 },
-      2: { halign: 'left', cellWidth: 25 },
+      1: { fontStyle: 'bold', halign: 'left', cellWidth: 35, cellPadding: { top: 2, bottom: 2, left: 6, right: 1.5 } },
+      2: { halign: 'left', cellWidth: 24 },
       3: { halign: 'center', cellWidth: 21, fontSize: 6.5 }, // Fits "PHYSICAL" on one line without any wrap
       4: { halign: 'center', cellWidth: 21 },
       5: { halign: 'center', cellWidth: 17 },
       6: { halign: 'center', cellWidth: 35 },
       7: { halign: 'center', cellWidth: 23 },
     },
+    didDrawCell: (data) => {
+      // Embed official circular leader profile logo in Leader Name column
+      if (data.section === 'body' && data.column.index === 1) {
+        try {
+          doc.addImage(defaultLeaderAvatarBase64, 'JPEG', data.cell.x + 1.2, data.cell.y + 1.2, 3.8, 3.8);
+        } catch {}
+      }
+    },
     didParseCell: (data) => {
       if (data.section === 'body') {
+        const val = String(tableRows[data.row.index]?.[6] || '');
+        const audit = String(tableRows[data.row.index]?.[7] || '');
+
+        // Row background tinting according to user rules
+        if (val.includes('Present') || audit === 'APPROVED' || audit === 'ADMIN MANUAL') {
+          data.cell.styles.fillColor = [240, 253, 244]; // Soft emerald tint
+        } else if (val.includes('Informed Late') || (val.includes('Late') && !val.includes('No Inform'))) {
+          data.cell.styles.fillColor = [254, 249, 195]; // Soft amber tint
+        } else if (val.includes('No Inform') || val.includes('Late (No Inform)')) {
+          data.cell.styles.fillColor = [255, 241, 242]; // Soft rose tint
+        } else if (val.includes('Absent') || audit.includes('UNEXCUSED')) {
+          data.cell.styles.fillColor = [254, 226, 226]; // Soft red alert tint
+        } else if (val.includes('Leave') || audit === 'EXCUSED') {
+          data.cell.styles.fillColor = [245, 243, 255]; // Soft purple tint
+        } else if (val.includes('Weekly Off') || val.includes('Holiday')) {
+          data.cell.styles.fillColor = [248, 250, 252]; // Soft slate
+        }
+
+        // Leader Name text coloring
+        if (data.column.index === 1) {
+          if (val.includes('Absent') || audit.includes('UNEXCUSED')) {
+            data.cell.styles.textColor = [185, 28, 28]; // Red name for absent without info
+            data.cell.styles.fontStyle = 'bold';
+          } else if (val.includes('Present') || audit === 'APPROVED' || audit === 'ADMIN MANUAL') {
+            data.cell.styles.textColor = [4, 120, 87]; // Green name for present
+            data.cell.styles.fontStyle = 'bold';
+          }
+        }
+
+        // Status & Audit Status text coloring
         if (data.column.index === 6 || data.column.index === 7) {
-          const val = String(data.cell.raw);
-          if (val.includes('Approved') || val === 'APPROVED' || val.includes('ADMIN MANUAL') || val.includes('Admin Marked')) {
+          if (val.includes('Present') || audit === 'APPROVED' || audit === 'ADMIN MANUAL') {
             data.cell.styles.textColor = [22, 163, 74]; // Emerald Green
             data.cell.styles.fontStyle = 'bold';
-          } else if (val.includes('Pending') || val === 'PENDING') {
-            data.cell.styles.textColor = [217, 119, 6]; // Amber Orange
+          } else if (val.includes('Informed Late')) {
+            data.cell.styles.textColor = [180, 83, 9]; // Amber Orange
             data.cell.styles.fontStyle = 'bold';
-          } else if (val.includes('Absent') || val.includes('UNEXCUSED')) {
-            data.cell.styles.textColor = [225, 29, 72]; // Rose Red
+          } else if (val.includes('No Inform')) {
+            data.cell.styles.textColor = [190, 18, 60]; // Rose Red
             data.cell.styles.fontStyle = 'bold';
-          } else if (val.includes('Leave') || val === 'EXCUSED') {
+          } else if (val.includes('Absent') || audit.includes('UNEXCUSED')) {
+            data.cell.styles.textColor = [185, 28, 28]; // Red
+            data.cell.styles.fontStyle = 'bold';
+          } else if (val.includes('Leave') || audit === 'EXCUSED') {
             data.cell.styles.textColor = [124, 58, 237]; // Purple
             data.cell.styles.fontStyle = 'bold';
           }

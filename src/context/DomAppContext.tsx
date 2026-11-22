@@ -71,7 +71,13 @@ interface DomAppContextType {
     locationData?: { latitude?: number; longitude?: number; accuracy?: number; device?: string; lateReason?: string }
   ) => Promise<{ success: boolean; message: string; alreadyRecorded?: boolean; timeStr?: string }>;
   // Manual Override, Time Reset & Record Deletion
-  overrideAttendanceTime: (recordId: string, customTimeStr: string, status?: AttendanceStatus) => Promise<{ success: boolean; message: string }>;
+  overrideAttendanceTime: (
+    recordId: string,
+    customTimeStr: string,
+    status?: AttendanceStatus,
+    mode?: 'PHYSICAL' | 'VIRTUAL',
+    customNote?: string
+  ) => Promise<{ success: boolean; message: string }>;
   resetAttendanceTime: (recordId: string) => Promise<{ success: boolean; message: string }>;
   deleteAttendanceRecordById: (recordId: string) => Promise<{ success: boolean; message: string }>;
   // WhatsApp Onboarding & Credentials
@@ -3434,7 +3440,9 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const overrideAttendanceTime = async (
     recordId: string,
     customTimeStr: string,
-    status: AttendanceStatus = 'PRESENT'
+    status: AttendanceStatus = 'PRESENT',
+    mode: 'PHYSICAL' | 'VIRTUAL' = 'PHYSICAL',
+    customNote?: string
   ): Promise<{ success: boolean; message: string }> => {
     let targetRec: AttendanceRecord | null = null;
     const nowIso = new Date().toISOString();
@@ -3444,11 +3452,13 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         if (r.id === recordId) {
           const updated: AttendanceRecord = {
             ...r,
-            check_in_at: nowIso,
+            check_in_at: status === 'ABSENT' ? undefined : (r.check_in_at || nowIso),
+            selected_mode: mode,
+            evidence_source: 'ADMIN_MANUAL',
             status,
-            verification_status: 'VERIFIED',
-            admin_verified_attendance: true,
-            verification_note: `Manual Time Override by Admin (${customTimeStr})`,
+            verification_status: status === 'ABSENT' ? 'REJECTED' : 'VERIFIED',
+            admin_verified_attendance: status !== 'ABSENT',
+            verification_note: customNote || `Marked by Admin (${customTimeStr})`,
             updated_at: nowIso,
           };
           (updated as any).join_time = customTimeStr;
@@ -3462,7 +3472,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (targetRec) {
       await syncAttendanceRecordToSupabase(targetRec, `Admin Manual Override Time: ${customTimeStr}`);
     }
-    return { success: true, message: `Check-in time updated to ${customTimeStr} successfully!` };
+    return { success: true, message: `Attendance updated to ${status} (${customTimeStr}) successfully!` };
   };
 
   const resetAttendanceTime = async (recordId: string): Promise<{ success: boolean; message: string }> => {
