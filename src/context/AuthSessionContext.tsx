@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { Leader } from '../types/database';
 
@@ -18,7 +18,7 @@ interface AuthSessionContextType {
   adminUsername: string;
   adminName: string;
   adminProfile: AdminProfile;
-  fetchLiveAdminProfile: () => Promise<AdminProfile>;
+  fetchLiveAdminProfile: (forceRefresh?: boolean) => Promise<AdminProfile>;
   loginAdmin: (username: string, pass: string) => Promise<{ success: boolean; message: string }>;
   logoutAdmin: () => void | Promise<void>;
   updateAdminPassword: (oldPass: string, newPass: string) => Promise<{ success: boolean; message: string }>;
@@ -96,9 +96,20 @@ export const AuthSessionProvider: React.FC<{ children: React.ReactNode }> = ({ c
     return saved ? JSON.parse(saved) : null;
   });
 
+  // Throttling and caching refs for admin profile to prevent excessive polling
+  const lastAdminFetchTimeRef = useRef<number>(0);
+  const cachedAdminProfileRef = useRef<AdminProfile | null>(null);
+
   // Fetch live Admin Profile & credentials from Supabase SQL table (admin_audit_logs)
-  const fetchLiveAdminProfile = async (): Promise<AdminProfile> => {
+  const fetchLiveAdminProfile = async (forceRefresh = false): Promise<AdminProfile> => {
+    const now = Date.now();
+    // Return cached profile if fetched within last 15 seconds unless explicitly forced
+    if (!forceRefresh && cachedAdminProfileRef.current && (now - lastAdminFetchTimeRef.current < 15000)) {
+      return cachedAdminProfileRef.current;
+    }
+
     try {
+      lastAdminFetchTimeRef.current = now;
       const { data, error } = await supabase
         .from('admin_audit_logs')
         .select('*')
@@ -118,9 +129,23 @@ export const AuthSessionProvider: React.FC<{ children: React.ReactNode }> = ({ c
           role: after.role || 'ADMIN',
           updated_at: after.updated_at || data[0].created_at,
         };
-        setAdminProfile(profile);
-        setAdminUsername(profile.username);
-        setAdminName(profile.full_name);
+        cachedAdminProfileRef.current = profile;
+        setAdminProfile((prev) => {
+          if (
+            prev &&
+            prev.username === profile.username &&
+            prev.full_name === profile.full_name &&
+            prev.display_name === profile.display_name &&
+            prev.email === profile.email &&
+            prev.password === profile.password &&
+            prev.role === profile.role
+          ) {
+            return prev;
+          }
+          return profile;
+        });
+        setAdminUsername((prev) => (prev === profile.username ? prev : profile.username));
+        setAdminName((prev) => (prev === profile.full_name ? prev : profile.full_name));
         // Security: Plain password and profile password are NEVER persisted to browser localStorage
         localStorage.removeItem('sbh_admin_profile');
         localStorage.removeItem('sbh_admin_password');
@@ -140,6 +165,7 @@ export const AuthSessionProvider: React.FC<{ children: React.ReactNode }> = ({ c
       password: 'Naman@123',
       role: 'ADMIN',
     };
+    cachedAdminProfileRef.current = fallback;
     return fallback;
   };
 
@@ -334,6 +360,8 @@ export const AuthSessionProvider: React.FC<{ children: React.ReactNode }> = ({ c
     const updatedProfile: AdminProfile = {
       ...payload,
     };
+    cachedAdminProfileRef.current = updatedProfile;
+    lastAdminFetchTimeRef.current = Date.now();
     setAdminProfile(updatedProfile);
     setAdminUsername(nextUsername);
     setAdminName(nextFullName);

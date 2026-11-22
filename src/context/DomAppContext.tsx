@@ -663,11 +663,15 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
+  const lastRefreshTimeRef = useRef<number>(0);
+
   // Live Real-Time Attendance Synchronizer (Invoked on Supabase Realtime event & smart visibility sync)
-  const refreshLiveAttendance = async () => {
-    // Guard against concurrent overlapping fetches
-    if (isRefreshingRef.current) return;
+  const refreshLiveAttendance = useCallback(async () => {
+    // Guard against concurrent overlapping fetches and throttle (minimum 2.5s between network calls)
+    const now = Date.now();
+    if (isRefreshingRef.current || (now - lastRefreshTimeRef.current < 2500)) return;
     isRefreshingRef.current = true;
+    lastRefreshTimeRef.current = now;
 
     try {
       const { data: attLogs, error: attErr } = await supabase
@@ -788,7 +792,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     } finally {
       isRefreshingRef.current = false;
     }
-  };
+  }, []);
 
   // Debounced realtime synchronization helper (prevents UI freeze & network request flood)
   const triggerDebouncedLiveSync = () => {
@@ -797,7 +801,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
     debounceSyncTimerRef.current = setTimeout(() => {
       refreshLiveAttendance();
-    }, 600);
+    }, 1200);
   };
 
   useEffect(() => {
@@ -944,12 +948,12 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     document.addEventListener('visibilitychange', handleVisibilityOrFocus);
     window.addEventListener('focus', handleVisibilityOrFocus);
 
-    // 3. Gentle background safety sync every 8 seconds (Only when tab is visible — 0 network spam)
+    // 3. Gentle background safety sync every 30 seconds (Only when tab is visible — 0 network spam)
     const gentleSyncInterval = setInterval(() => {
       if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
         refreshLiveAttendance();
       }
-    }, 8000);
+    }, 30000);
 
     return () => {
       supabase.removeChannel(channel);

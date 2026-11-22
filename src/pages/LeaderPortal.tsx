@@ -49,15 +49,19 @@ export const LeaderPortal: React.FC = () => {
   } = useDomApp();
   const { currentUser, logoutUser, updateUserPassword, isUserAuthenticated } = useAuthSession();
 
-  // Real-time synchronization: sync on mount, focus, and every 6 seconds
+  // Real-time synchronization: sync on mount, focus, and every 30 seconds (gentle background fallback)
   React.useEffect(() => {
     const handleFocus = () => {
-      refreshLiveAttendance();
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        refreshLiveAttendance();
+      }
     };
     window.addEventListener('focus', handleFocus);
     const interval = setInterval(() => {
-      refreshLiveAttendance();
-    }, 6000);
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        refreshLiveAttendance();
+      }
+    }, 30000);
     return () => {
       window.removeEventListener('focus', handleFocus);
       clearInterval(interval);

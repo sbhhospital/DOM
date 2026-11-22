@@ -176,10 +176,8 @@ export const AdminLogin: React.FC = () => {
     };
   }, [showToast]);
 
-  // Listen for real Google OAuth Callback from Supabase / Browser session
+  // Listen for real Google OAuth Callback from Supabase / Browser session (Initialized once on mount)
   useEffect(() => {
-    fetchLiveAdminProfile();
-
     const checkRealGoogleAuthSession = async () => {
       try {
         // Detect OAuth error returned in URL query or hash
@@ -235,7 +233,7 @@ export const AdminLogin: React.FC = () => {
       document.removeEventListener('mousedown', handleClickOutside);
       subscription.unsubscribe();
     };
-  }, [leaders, adminProfile]);
+  }, []);
 
   const generateCaptcha = () => {
     const isMinus = Math.random() < 0.5;
