@@ -92,6 +92,7 @@ interface DomAppContextType {
   ) => Promise<{ success: boolean; message: string }>;
   resetAttendanceTime: (recordId: string) => Promise<{ success: boolean; message: string }>;
   deleteAttendanceRecordById: (recordId: string) => Promise<{ success: boolean; message: string }>;
+  refreshLiveAttendance: () => Promise<void>;
   // WhatsApp Onboarding & Credentials
   sendLeaderOnboardingCredentials: (leader: Leader) => Promise<{ success: boolean; message: string }>;
   sendBulkLeaderCredentials: (leaderIds: string[]) => Promise<{ success: boolean; successCount: number; message: string }>;
@@ -570,7 +571,52 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         attLogs.forEach((log) => {
           if (log.action === 'DELETE_ATTENDANCE_RECORD') {
             const delId = log.entity_id || (log.after_data as any)?.deleted_record_id;
+            const delLeaderId = (log.after_data as any)?.leader_id;
+            const delDate = (log.after_data as any)?.meeting_date;
             if (delId) attMap.delete(delId);
+            if (delLeaderId && delDate) {
+              for (const [k, v] of attMap.entries()) {
+                if (v.leader_id === delLeaderId && v.meeting_date === delDate) {
+                  attMap.delete(k);
+                }
+              }
+            }
+            return;
+          }
+
+          if (log.action === 'RESET_ATTENDANCE_RECORD') {
+            const resetId = log.entity_id || (log.after_data as any)?.id;
+            const resetLeaderId = (log.after_data as any)?.leader_id;
+            const resetDate = (log.after_data as any)?.meeting_date;
+            if (resetId && attMap.has(resetId)) {
+              const prevR = attMap.get(resetId)!;
+              attMap.set(resetId, {
+                ...prevR,
+                check_in_at: undefined,
+                selected_mode: 'NONE',
+                status: 'PENDING',
+                verification_status: 'PENDING',
+                admin_verified_attendance: false,
+                late_minutes: undefined,
+                verification_note: undefined,
+              });
+            }
+            if (resetLeaderId && resetDate) {
+              for (const [k, v] of attMap.entries()) {
+                if (v.leader_id === resetLeaderId && v.meeting_date === resetDate) {
+                  attMap.set(k, {
+                    ...v,
+                    check_in_at: undefined,
+                    selected_mode: 'NONE',
+                    status: 'PENDING',
+                    verification_status: 'PENDING',
+                    admin_verified_attendance: false,
+                    late_minutes: undefined,
+                    verification_note: undefined,
+                  });
+                }
+              }
+            }
             return;
           }
 
@@ -652,7 +698,52 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           attLogs.forEach((log) => {
             if (log.action === 'DELETE_ATTENDANCE_RECORD') {
               const delId = log.entity_id || (log.after_data as any)?.deleted_record_id;
+              const delLeaderId = (log.after_data as any)?.leader_id;
+              const delDate = (log.after_data as any)?.meeting_date;
               if (delId) attMap.delete(delId);
+              if (delLeaderId && delDate) {
+                for (const [k, v] of attMap.entries()) {
+                  if (v.leader_id === delLeaderId && v.meeting_date === delDate) {
+                    attMap.delete(k);
+                  }
+                }
+              }
+              return;
+            }
+
+            if (log.action === 'RESET_ATTENDANCE_RECORD') {
+              const resetId = log.entity_id || (log.after_data as any)?.id;
+              const resetLeaderId = (log.after_data as any)?.leader_id;
+              const resetDate = (log.after_data as any)?.meeting_date;
+              if (resetId && attMap.has(resetId)) {
+                const prevR = attMap.get(resetId)!;
+                attMap.set(resetId, {
+                  ...prevR,
+                  check_in_at: undefined,
+                  selected_mode: 'NONE',
+                  status: 'PENDING',
+                  verification_status: 'PENDING',
+                  admin_verified_attendance: false,
+                  late_minutes: undefined,
+                  verification_note: undefined,
+                });
+              }
+              if (resetLeaderId && resetDate) {
+                for (const [k, v] of attMap.entries()) {
+                  if (v.leader_id === resetLeaderId && v.meeting_date === resetDate) {
+                    attMap.set(k, {
+                      ...v,
+                      check_in_at: undefined,
+                      selected_mode: 'NONE',
+                      status: 'PENDING',
+                      verification_status: 'PENDING',
+                      admin_verified_attendance: false,
+                      late_minutes: undefined,
+                      verification_note: undefined,
+                    });
+                  }
+                }
+              }
               return;
             }
             if (log.after_data && (log.after_data as any).id) {
@@ -738,9 +829,42 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             }
           } else if (payload.new && (payload.new as any).action === 'DELETE_ATTENDANCE_RECORD') {
             const delId = (payload.new as any).entity_id || (payload.new as any).after_data?.deleted_record_id;
-            if (delId) {
-              setAttendanceRecords((prev) => prev.filter((r) => r.id !== delId));
+            const delLeaderId = (payload.new as any).after_data?.leader_id;
+            const delDate = (payload.new as any).after_data?.meeting_date;
+            if (delId || (delLeaderId && delDate)) {
+              setAttendanceRecords((prev) =>
+                prev.filter((r) => {
+                  if (delId && r.id === delId) return false;
+                  if (delLeaderId && delDate && r.leader_id === delLeaderId && r.meeting_date === delDate) return false;
+                  return true;
+                })
+              );
             }
+            triggerDebouncedLiveSync();
+          } else if (payload.new && (payload.new as any).action === 'RESET_ATTENDANCE_RECORD') {
+            const resetId = (payload.new as any).entity_id || (payload.new as any).after_data?.id;
+            const resetLeaderId = (payload.new as any).after_data?.leader_id;
+            const resetDate = (payload.new as any).after_data?.meeting_date;
+            setAttendanceRecords((prev) =>
+              prev.map((r) => {
+                const isMatch = (resetId && r.id === resetId) || (resetLeaderId && resetDate && r.leader_id === resetLeaderId && r.meeting_date === resetDate);
+                if (isMatch) {
+                  const updated: AttendanceRecord = {
+                    ...r,
+                    check_in_at: undefined,
+                    selected_mode: 'NONE',
+                    evidence_source: undefined,
+                    status: 'PENDING',
+                    verification_status: 'PENDING',
+                    admin_verified_attendance: false,
+                    late_minutes: undefined,
+                  };
+                  delete (updated as any).join_time;
+                  return updated;
+                }
+                return r;
+              })
+            );
             triggerDebouncedLiveSync();
           } else if (
             !payload.new ||
@@ -820,12 +944,12 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     document.addEventListener('visibilitychange', handleVisibilityOrFocus);
     window.addEventListener('focus', handleVisibilityOrFocus);
 
-    // 3. Gentle background safety sync every 60 seconds (Only when tab is visible — 0 network spam)
+    // 3. Gentle background safety sync every 8 seconds (Only when tab is visible — 0 network spam)
     const gentleSyncInterval = setInterval(() => {
       if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
         refreshLiveAttendance();
       }
-    }, 60000);
+    }, 8000);
 
     return () => {
       supabase.removeChannel(channel);
@@ -4173,9 +4297,13 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     let oldDeptName = 'Department';
     const nowIso = new Date().toISOString();
 
-    setAttendanceRecords((prev) =>
-      prev.map((r) => {
-        if (r.id === recordId) {
+    setAttendanceRecords((prev) => {
+      const recToReset = prev.find((r) => r.id === recordId);
+      const targetLeaderId = recToReset?.leader_id || (recordId.startsWith(`att-${selectedDate}-`) ? recordId.replace(`att-${selectedDate}-`, '') : null);
+
+      return prev.map((r) => {
+        const isMatch = r.id === recordId || (targetLeaderId && r.leader_id === targetLeaderId && r.meeting_date === selectedDate);
+        if (isMatch) {
           const lead = leaders.find((l) => l.id === r.leader_id || l.id === r.leader?.id);
           if (lead) {
             oldLeaderName = lead.full_name;
@@ -4209,8 +4337,8 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           return updated;
         }
         return r;
-      })
-    );
+      });
+    });
 
     if (targetRec) {
       await syncAttendanceRecordToSupabase(targetRec, 'Admin Attendance Reset to Fresh Pending');
@@ -4222,7 +4350,12 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             entity_type: 'ATTENDANCE',
             entity_id: recordId,
             reason: `Attendance reset by Administrator for ${oldLeaderName} (${oldDeptName})`,
-            after_data: targetRec,
+            after_data: {
+              ...((targetRec as any) || {}),
+              id: recordId,
+              leader_id: (targetRec as any)?.leader_id,
+              meeting_date: (targetRec as any)?.meeting_date || selectedDate,
+            },
           },
         ]);
       } catch (e) {
@@ -4241,9 +4374,17 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const deleteAttendanceRecordById = async (recordId: string): Promise<{ success: boolean; message: string }> => {
     let recToDelete: AttendanceRecord | undefined;
+    const targetDate = selectedDate;
+    let targetLeaderId: string | null = null;
+
     setAttendanceRecords((prev) => {
       recToDelete = prev.find((r) => r.id === recordId);
-      return prev.filter((r) => r.id !== recordId);
+      targetLeaderId = recToDelete?.leader_id || (recordId.startsWith(`att-${selectedDate}-`) ? recordId.replace(`att-${selectedDate}-`, '') : null);
+      return prev.filter((r) => {
+        if (r.id === recordId) return false;
+        if (targetLeaderId && r.leader_id === targetLeaderId && (r.meeting_date === selectedDate || r.meeting_date === recToDelete?.meeting_date)) return false;
+        return true;
+      });
     });
 
     const leaderName = recToDelete?.leader?.full_name || 'Hospital Leader';
@@ -4254,6 +4395,9 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     try {
       await supabase.from('attendance_records').delete().eq('id', recordId);
+      if (targetLeaderId) {
+        await supabase.from('attendance_records').delete().match({ leader_id: targetLeaderId, meeting_date: targetDate });
+      }
       await supabase.from('admin_audit_logs').insert([
         {
           actor_id: null,
@@ -4264,10 +4408,10 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           before_data: recToDelete,
           after_data: {
             deleted_record_id: recordId,
-            leader_id: recToDelete?.leader_id,
+            leader_id: targetLeaderId || recToDelete?.leader_id,
             leader_name: leaderName,
             department: deptName,
-            meeting_date: recToDelete?.meeting_date,
+            meeting_date: recToDelete?.meeting_date || targetDate,
             deleted_at: new Date().toISOString(),
             prior_status: priorStatus,
             prior_mode: priorMode,
@@ -4421,6 +4565,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         overrideAttendanceTime,
         resetAttendanceTime,
         deleteAttendanceRecordById,
+        refreshLiveAttendance,
         sendLeaderOnboardingCredentials,
         sendBulkLeaderCredentials,
         updateAppSettings,

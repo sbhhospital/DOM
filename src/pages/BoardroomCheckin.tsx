@@ -119,8 +119,8 @@ export const BoardroomCheckin: React.FC = () => {
       return;
     }
 
-    // Check Standup Time Window (09:50 AM - 10:20 AM IST)
-    const windowCheck = checkStandupWindowStatus(selectedDate, false, currentMeeting.cadence);
+    // Check Standup Time Window (Opens 10m before start, Closes 20m past start - dynamic on rescheduled time)
+    const windowCheck = checkStandupWindowStatus(selectedDate, false, currentMeeting.cadence, currentMeeting.scheduled_time);
     if (!windowCheck.allowed) {
       setErrorMessage(windowCheck.message);
       return;

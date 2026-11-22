@@ -22,7 +22,7 @@ import { useDomApp } from '../context/DomAppContext';
 import { useAuthSession } from '../context/AuthSessionContext';
 import { Leader } from '../types/database';
 import { verifyLeaderMagicLink } from '../lib/magicLink';
-import { getLiveIndiaDateStr } from '../lib/meetingUtils';
+import { getLiveIndiaDateStr, checkStandupWindowStatus } from '../lib/meetingUtils';
 import { LiveRoomQrScannerModal } from '../components/LiveRoomQrScannerModal';
 import sbhLogo from '../assets/sbh-logo.png';
 
@@ -37,8 +37,24 @@ export const LeaderPortal: React.FC = () => {
     submitInformedAbsence,
     getMeetingForDate,
     attendanceRecords,
+    refreshLiveAttendance,
   } = useDomApp();
   const { currentUser, logoutUser, updateUserPassword, isUserAuthenticated } = useAuthSession();
+
+  // Real-time synchronization: sync on mount, focus, and every 6 seconds
+  React.useEffect(() => {
+    const handleFocus = () => {
+      refreshLiveAttendance();
+    };
+    window.addEventListener('focus', handleFocus);
+    const interval = setInterval(() => {
+      refreshLiveAttendance();
+    }, 6000);
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      clearInterval(interval);
+    };
+  }, [refreshLiveAttendance]);
 
   // Always force live current date in India (IST) on mount so leaders never face "old date" check-in errors
   React.useEffect(() => {
@@ -196,10 +212,24 @@ export const LeaderPortal: React.FC = () => {
 
   const hasJoinedToday = Boolean(
     todayRecord &&
+      todayRecord.status !== 'PENDING' &&
+      todayRecord.status !== 'ABSENT' &&
+      todayRecord.status !== 'EXCUSED' &&
+      todayRecord.status !== 'INFORMED_ABSENT' &&
       (todayRecord.check_in_at ||
         (todayRecord as any).join_time ||
         todayRecord.status === 'PRESENT')
   );
+
+  const windowStatus = checkStandupWindowStatus(
+    selectedDate,
+    hasJoinedToday,
+    currentMeeting.cadence,
+    currentMeeting.scheduled_time,
+    todayRecord?.committed_late_minutes || todayRecord?.late_minutes
+  );
+
+  const isCutoffLocked = !hasJoinedToday && !windowStatus.allowed && windowStatus.code === 'AFTER_WINDOW';
 
   const hasInformedAbsence = Boolean(
     todayRecord &&
@@ -277,7 +307,7 @@ export const LeaderPortal: React.FC = () => {
       setShowMeetingClosedModal(true);
       return;
     }
-    if (isLateGraceExpired) {
+    if (isCutoffLocked || isLateGraceExpired) {
       setShowExpiredAccessModal(true);
       return;
     }
@@ -354,7 +384,7 @@ export const LeaderPortal: React.FC = () => {
       setShowMeetingClosedModal(true);
       return;
     }
-    if (isLateGraceExpired) {
+    if (isCutoffLocked || isLateGraceExpired) {
       setShowExpiredAccessModal(true);
       return;
     }
@@ -671,9 +701,6 @@ export const LeaderPortal: React.FC = () => {
                     <Video className="w-4 h-4 text-white" />
                     <span>Rejoin Official Meeting (Google Meet) &rarr;</span>
                   </button>
-                  <p className="text-[10px] text-slate-500 text-center mt-1.5 font-medium">
-                    Rejoining does not increment attendance count. Rejoin timestamp is logged silently in SQL database.
-                  </p>
                 </div>
               </div>
             ) : isInformedLatePending ? (
@@ -860,13 +887,30 @@ export const LeaderPortal: React.FC = () => {
                       </a>
                     </div>
                   </div>
+                ) : isCutoffLocked ? (
+                  <div className="p-4 rounded-3xl bg-rose-50 border-2 border-rose-300 text-rose-950 shadow-sm flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                      <Lock className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-black text-rose-950">
+                        Check-In Window Locked ({windowStatus.windowCloseStr})
+                      </h4>
+                      <p className="text-xs text-rose-800 mt-1 leading-relaxed">
+                        Today's daily standup check-in window closed at <strong>{windowStatus.windowCloseStr}</strong> (Meeting Start + 20 minutes). Since no attendance was recorded and no prior late notice was approved before cutoff, self check-in is now locked. You are finalized as <strong className="text-rose-950">ABSENT</strong> on the Director's Register.
+                      </p>
+                      <div className="mt-2 text-[11px] font-bold text-rose-900 bg-rose-100/80 px-2.5 py-1 rounded-xl inline-block">
+                        🔒 Please contact Hospital Administrator for manual review.
+                      </div>
+                    </div>
+                  </div>
                 ) : (
                   <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-2.5 text-rose-950 shadow-2xs">
                     <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
                     <div className="text-xs">
                       <strong className="block font-bold">Daily Check-in Mandatory</strong>
                       <span>
-                        Please submit your presence before 10:20 AM IST. Leaders without a recorded check-in or approved notice will be marked <strong>ABSENT (No Information)</strong> on the Hospital Director's 10:30 AM Audit Report.
+                        Please submit your presence before {windowStatus.windowCloseStr}. Leaders without a recorded check-in or approved notice will be marked <strong>ABSENT (No Information)</strong> on the Hospital Director's 10:30 AM Audit Report.
                       </span>
                     </div>
                   </div>
@@ -881,32 +925,50 @@ export const LeaderPortal: React.FC = () => {
                     {/* Mode 1: Physical Check-In (In-Room Camera Scanner) */}
                     <button
                       onClick={handleAttendPhysically}
-                      className="p-5 rounded-2xl bg-white border-2 border-[#f0f1f8] hover:border-[#7065f0] text-left transition-all group cursor-pointer shadow-xs hover:shadow-md"
+                      disabled={isCutoffLocked}
+                      className={`p-5 rounded-2xl border-2 text-left transition-all group shadow-xs ${
+                        isCutoffLocked
+                          ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed opacity-60'
+                          : 'bg-white border-[#f0f1f8] hover:border-[#7065f0] text-slate-900 hover:shadow-md cursor-pointer'
+                      }`}
                     >
-                      <div className="w-10 h-10 rounded-xl bg-[#eff0fe] text-[#7065f0] flex items-center justify-center mb-3 shadow-xs">
-                        <Camera className="w-5 h-5" />
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 shadow-xs ${
+                        isCutoffLocked ? 'bg-slate-200 text-slate-500' : 'bg-[#eff0fe] text-[#7065f0]'
+                      }`}>
+                        {isCutoffLocked ? <Lock className="w-5 h-5" /> : <Camera className="w-5 h-5" />}
                       </div>
-                      <div className="font-bold text-[#232d42] text-sm group-hover:text-[#7065f0]">
+                      <div className={`font-bold text-sm ${isCutoffLocked ? 'text-slate-500' : 'text-[#232d42] group-hover:text-[#7065f0]'}`}>
                         Attending In-Person
                       </div>
                       <p className="text-[11px] text-slate-500 mt-1 font-medium">
-                        Opens live camera to scan Boardroom QR code in 5th Floor Conference Hall (GPS Verified).
+                        {isCutoffLocked
+                          ? `Self check-in closed at ${windowStatus.windowCloseStr}.`
+                          : 'Opens live camera to scan Boardroom QR code in 5th Floor Conference Hall (GPS Verified).'}
                       </p>
                     </button>
 
                     {/* Mode 2: Virtual Join (Google Meet) */}
                     <button
                       onClick={handleJoinVirtually}
-                      className="p-5 rounded-2xl bg-white border-2 border-[#f0f1f8] hover:border-[#3bb7b8] text-left transition-all group cursor-pointer shadow-xs hover:shadow-md"
+                      disabled={isCutoffLocked}
+                      className={`p-5 rounded-2xl border-2 text-left transition-all group shadow-xs ${
+                        isCutoffLocked
+                          ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed opacity-60'
+                          : 'bg-white border-[#f0f1f8] hover:border-[#3bb7b8] text-slate-900 hover:shadow-md cursor-pointer'
+                      }`}
                     >
-                      <div className="w-10 h-10 rounded-xl bg-teal-50 text-[#3bb7b8] flex items-center justify-center mb-3 shadow-xs">
-                        <Video className="w-5 h-5" />
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 shadow-xs ${
+                        isCutoffLocked ? 'bg-slate-200 text-slate-500' : 'bg-teal-50 text-[#3bb7b8]'
+                      }`}>
+                        {isCutoffLocked ? <Lock className="w-5 h-5" /> : <Video className="w-5 h-5" />}
                       </div>
-                      <div className="font-bold text-[#232d42] text-sm group-hover:text-[#3bb7b8]">
+                      <div className={`font-bold text-sm ${isCutoffLocked ? 'text-slate-500' : 'text-[#232d42] group-hover:text-[#3bb7b8]'}`}>
                         Join Online (Google Meet)
                       </div>
                       <p className="text-[11px] text-slate-500 mt-1 font-medium">
-                        Opens official Google Meet. Records your login automatically as virtual attendee.
+                        {isCutoffLocked
+                          ? `Self check-in closed at ${windowStatus.windowCloseStr}.`
+                          : 'Opens official Google Meet. Records your login automatically as virtual attendee.'}
                       </p>
                     </button>
                   </div>

@@ -218,22 +218,67 @@ export function formatToIndianDate(dateStr: string): string {
 export function checkStandupWindowStatus(
   dateStr: string,
   isAlreadyCheckedIn: boolean = false,
-  cadence: string = 'DOM'
+  cadence: string = 'DOM',
+  scheduledTimeStr: string = '10:00 AM',
+  hasApprovedLateUntilMinutes?: number
 ): {
   allowed: boolean;
   code: 'BEFORE_WINDOW' | 'OPEN' | 'AFTER_WINDOW' | 'HOLIDAY_OFF';
   message: string;
   isSundayOrHoliday: boolean;
+  windowOpenStr: string;
+  windowCloseStr: string;
 } {
   const isSunday = new Date(dateStr + 'T00:00:00').getDay() === 0;
   const isExplicitlyEnabled = cadence === 'DOM' || cadence === 'WOM' || cadence === 'MOM';
   const isOffDay = cadence === 'HOLIDAY' || (isSunday && !isExplicitlyEnabled);
+
+  // Helper to format minutes from midnight into 12-hour AM/PM string
+  const formatMinsTo12h = (totalMins: number): string => {
+    let h = Math.floor(totalMins / 60) % 24;
+    const m = totalMins % 60;
+    const meridian = h >= 12 ? 'PM' : 'AM';
+    if (h === 0) h = 12;
+    else if (h > 12) h -= 12;
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')} ${meridian} IST`;
+  };
+
+  // Parse meeting scheduled start time dynamically (e.g. "10:00 AM", "10:30 AM", "11:00 AM")
+  let startMinutes = 600; // default 10:00 AM (10 * 60)
+  try {
+    const match = (scheduledTimeStr || '10:00 AM').match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+    if (match) {
+      let h = parseInt(match[1], 10);
+      const m = parseInt(match[2], 10);
+      const meridian = match[3] ? match[3].toUpperCase() : 'AM';
+      if (meridian === 'PM' && h < 12) h += 12;
+      if (meridian === 'AM' && h === 12) h = 0;
+      startMinutes = h * 60 + m;
+    }
+  } catch {
+    startMinutes = 600;
+  }
+
+  // Standup opens 10 mins before start time (e.g., 09:50 AM)
+  const windowOpenMinutes = startMinutes - 10;
+  // Standup hard cutoff is 20 mins after start time (e.g., 10:20 AM for 10:00 AM start, 10:50 AM for 10:30 AM start)
+  let windowCloseMinutes = startMinutes + 20;
+
+  // If leader has approved informed late with specific grace period (e.g. +30m), extend cutoff for them
+  if (hasApprovedLateUntilMinutes && hasApprovedLateUntilMinutes > 20) {
+    windowCloseMinutes = Math.max(windowCloseMinutes, startMinutes + hasApprovedLateUntilMinutes);
+  }
+
+  const windowOpenStr = formatMinsTo12h(windowOpenMinutes);
+  const windowCloseStr = formatMinsTo12h(windowCloseMinutes);
 
   if (isOffDay) {
     return {
       allowed: false,
       code: 'HOLIDAY_OFF',
       isSundayOrHoliday: true,
+      windowOpenStr,
+      windowCloseStr,
       message: `Hospital Official Off: Today is an official off day (${isSunday ? 'Sunday Weekly Off' : 'Sanctioned Holiday'}). Standup attendance is not required today and zero absentees are recorded.`,
     };
   }
@@ -255,32 +300,39 @@ export function checkStandupWindowStatus(
     currentMinutes = d.getHours() * 60 + d.getMinutes();
   }
 
-  const windowOpenMinutes = 590; // 09:50 AM IST
-  const windowCloseMinutes = 620; // 10:20 AM IST
+  // Reconnection for leaders already checked in is always permitted
+  if (isAlreadyCheckedIn) {
+    return {
+      allowed: true,
+      code: 'OPEN',
+      isSundayOrHoliday: false,
+      windowOpenStr,
+      windowCloseStr,
+      message: 'Reconnected to ongoing session.',
+    };
+  }
 
+  // Early check-in before official 10-minute window
   if (currentMinutes < windowOpenMinutes) {
     return {
       allowed: true,
       code: 'OPEN',
       isSundayOrHoliday: false,
-      message: 'Early Check-in Active: Daily Operations Meeting commences at 10:00 AM IST. Check-in recorded.',
+      windowOpenStr,
+      windowCloseStr,
+      message: `Early Check-in Active: Daily Operations Meeting commences at ${formatMinsTo12h(startMinutes)}. Check-in recorded.`,
     };
   }
 
+  // Strict Cutoff Check: After 20 minutes past start time (10:20 AM IST, or rescheduled time + 20 mins)
   if (currentMinutes > windowCloseMinutes) {
-    if (isAlreadyCheckedIn) {
-      return {
-        allowed: true,
-        code: 'OPEN',
-        isSundayOrHoliday: false,
-        message: 'Reconnected to ongoing session.',
-      };
-    }
     return {
-      allowed: true,
-      code: 'OPEN',
+      allowed: false,
+      code: 'AFTER_WINDOW',
       isSundayOrHoliday: false,
-      message: 'Late Check-in Active: Check-in recorded as late arrival on the Director\'s Attendance Register.',
+      windowOpenStr,
+      windowCloseStr,
+      message: `Check-in Locked: Daily standup check-in officially closed at ${windowCloseStr} (Cutoff: Start + 20 mins). Unrecorded leaders are finalized as Absent. Please contact Hospital Administration for manual assistance.`,
     };
   }
 
@@ -288,6 +340,8 @@ export function checkStandupWindowStatus(
     allowed: true,
     code: 'OPEN',
     isSundayOrHoliday: false,
+    windowOpenStr,
+    windowCloseStr,
     message: 'Check-in window is active.',
   };
 }

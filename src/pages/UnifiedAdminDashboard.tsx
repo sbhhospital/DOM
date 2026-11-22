@@ -374,6 +374,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
     overrideAttendanceTime,
     resetAttendanceTime,
     deleteAttendanceRecordById,
+    refreshLiveAttendance,
     sendLeaderOnboardingCredentials,
     sendBulkLeaderCredentials,
     appSettings,
@@ -804,10 +805,11 @@ export const UnifiedAdminDashboard: React.FC = () => {
     customTime: '10:00:00 AM',
   });
 
-  // Short Snappy Top Tab Loading Progress
+  // Short Snappy Top Tab Loading Progress & Live Instant Sync on Tab Switch
   const [tabLoading, setTabLoading] = useState<boolean>(false);
   useEffect(() => {
     setTabLoading(true);
+    refreshLiveAttendance();
     const t = setTimeout(() => setTabLoading(false), 200);
     return () => clearTimeout(t);
   }, [activeTab]);
@@ -2915,20 +2917,20 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs border-collapse min-w-[850px]">
                     <thead>
-                      <tr className="bg-slate-100 text-slate-900 font-black border-b-2 border-slate-300">
-                        <th className="py-3 px-3.5 font-black text-xs uppercase tracking-wider text-slate-900">Leader Name</th>
-                        <th className="py-3 px-3.5 font-black text-xs uppercase tracking-wider text-slate-900">Department</th>
-                        <th className="py-3 px-3.5 text-center font-black text-xs uppercase tracking-wider text-slate-900">Expected Mode</th>
-                        <th className="py-3 px-3.5 text-center font-black text-xs uppercase tracking-wider text-slate-900">Actual Join Mode</th>
-                        <th className="py-3 px-3.5 text-center font-black text-xs uppercase tracking-wider text-slate-900">Accurate Join Time</th>
-                        <th className="py-3 px-3.5 text-center font-black text-xs uppercase tracking-wider text-slate-900">Status</th>
-                        <th className="py-3 px-3.5 text-right font-black text-xs uppercase tracking-wider text-slate-900">Verification Action</th>
+                      <tr className="bg-slate-50 text-slate-800 font-bold border-b-2 border-slate-200">
+                        <th className="py-3.5 px-4 font-bold text-xs uppercase tracking-wider text-slate-800">Leader Name</th>
+                        <th className="py-3.5 px-4 font-bold text-xs uppercase tracking-wider text-slate-800">Department</th>
+                        <th className="py-3.5 px-4 text-center font-bold text-xs uppercase tracking-wider text-slate-800">Expected Mode</th>
+                        <th className="py-3.5 px-4 text-center font-bold text-xs uppercase tracking-wider text-slate-800">Actual Join Mode</th>
+                        <th className="py-3.5 px-4 text-center font-bold text-xs uppercase tracking-wider text-slate-800">Accurate Join Time</th>
+                        <th className="py-3.5 px-4 text-center font-bold text-xs uppercase tracking-wider text-slate-800">Status</th>
+                        <th className="py-3.5 px-4 text-right font-bold text-xs uppercase tracking-wider text-slate-800">Verification Action</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {filteredRecords.length === 0 ? (
                         <tr>
-                          <td colSpan={7} className="py-8 text-center text-slate-400 font-medium text-xs">
+                          <td colSpan={7} className="py-8 text-center text-slate-500 font-medium text-xs">
                             No leaders match the current search or filters.
                           </td>
                         </tr>
@@ -2940,57 +2942,45 @@ export const UnifiedAdminDashboard: React.FC = () => {
                           const isLeave = rec.status === 'LEAVE' || (rec.status === 'INFORMED_ABSENT' && rec.informed_confirmed);
                           const isAbsentNoInfo = !isPresent && !isLeave && !isOffDate && (rec.status === 'ABSENT' || rec.verification_status === 'REJECTED' || rec.verification_note?.includes('No Inform'));
 
-                          const rowBgClass = isAbsentNoInfo
-                            ? 'bg-rose-50/40 hover:bg-rose-50/70 border-rose-200/80'
-                            : isLateNoInfo
-                              ? 'bg-orange-50/30 hover:bg-orange-50/60 border-orange-200/70'
-                              : isInformedLate
-                                ? 'bg-amber-50/30 hover:bg-amber-50/60 border-amber-200/70'
-                                : isPresent
-                                  ? 'bg-emerald-50/20 hover:bg-emerald-50/50 border-emerald-100'
-                                  : isLeave
-                                    ? 'bg-purple-50/20 hover:bg-purple-50/50 border-purple-100'
-                                    : 'hover:bg-slate-50/70 border-slate-100';
-
                           return (
-                            <tr key={rec.id} className={`transition-colors border-b ${rowBgClass}`}>
-                              <td className="py-2.5 px-3">
-                                <div className="flex items-center gap-2.5">
+                            <tr key={rec.id} className="transition-colors border-b border-slate-200 bg-white hover:bg-slate-50/90">
+                              <td className="py-3 px-4">
+                                <div className="flex items-center gap-3">
                                   <img
                                     src={defaultLeaderAvatar}
                                     alt={rec.leader?.full_name || 'Leader'}
-                                    className="w-8 h-8 rounded-full object-cover border border-purple-200/80 shadow-2xs shrink-0"
+                                    className="w-8 h-8 rounded-full object-cover border border-purple-200 shadow-2xs shrink-0"
                                   />
                                   <div className="min-w-0">
-                                    <div className={`font-bold text-[13px] leading-snug truncate ${isAbsentNoInfo ? 'text-rose-700' : 'text-slate-900'}`}>
+                                    <div className="font-bold text-sm leading-snug text-slate-900 truncate">
                                       {rec.leader?.full_name}
                                     </div>
                                   </div>
                                 </div>
                               </td>
-                              <td className="py-2.5 px-3 text-slate-900 font-bold text-xs">
+                              <td className="py-3 px-4 text-slate-800 font-bold text-xs uppercase tracking-wide">
                                 {rec.leader?.department?.name || 'Department'}
                               </td>
-                              <td className="py-2.5 px-3 text-center">
-                                <span className="text-xs font-mono bg-slate-200/80 text-slate-900 px-2.5 py-0.5 rounded font-black border border-slate-300">
+                              <td className="py-3 px-4 text-center">
+                                <span className="text-xs font-mono bg-slate-100 text-slate-800 px-2.5 py-1 rounded-lg font-bold border border-slate-200">
                                   {rec.leader?.expected_mode || 'PHYSICAL'}
                                 </span>
                               </td>
-                              <td className="py-2.5 px-3 text-center">
+                              <td className="py-3 px-4 text-center">
                                 {rec.evidence_source === 'ADMIN_MANUAL' ? (
-                                  <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-300 inline-flex items-center gap-1 shadow-2xs">
-                                    <Shield className="w-3 h-3 text-emerald-700" /> Admin Manual
+                                  <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-300 inline-flex items-center gap-1 shadow-2xs">
+                                    <Shield className="w-3.5 h-3.5 text-emerald-700" /> Admin Manual
                                   </span>
                                 ) : rec.selected_mode === 'PHYSICAL' ? (
-                                  <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-300 inline-flex items-center gap-1 shadow-2xs">
-                                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                  <span className="text-xs font-bold text-emerald-800 bg-emerald-100 px-2.5 py-1 rounded-lg border border-emerald-300 inline-flex items-center gap-1 shadow-2xs">
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                                     {rec.evidence_source === 'ROOM_STATIC_QR' || rec.evidence_source === 'VIRTUAL_QR_VERIFIED' || rec.qr_scanned_at
                                       ? 'Physical (QR Verified)'
                                       : 'Physical (5th Flr)'}
                                   </span>
                                 ) : rec.selected_mode === 'VIRTUAL' ? (
-                                  <span className="text-[10px] font-bold text-sky-800 bg-sky-50 px-2 py-0.5 rounded-full border border-sky-200 inline-flex items-center gap-1">
-                                    <Video className="w-3 h-3 text-sky-600" /> Virtual (Meet)
+                                  <span className="text-xs font-bold text-sky-800 bg-sky-50 px-2.5 py-1 rounded-lg border border-sky-200 inline-flex items-center gap-1">
+                                    <Video className="w-3.5 h-3.5 text-sky-600" /> Virtual (Meet)
                                   </span>
                                 ) : (
                                   <span className="text-xs text-slate-400 font-semibold">—</span>
@@ -3012,158 +3002,123 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                     </a>
                                   </div>
                                 )}
-
-                                {/* Off-Campus Geofence Breach Attempt Warning & Google Maps Link */}
-                                {(() => {
-                                  const vLog = geoViolationLogs.find(
-                                    (v) =>
-                                      (v.actor_id === rec.leader_id || v.after_data?.leader_id === rec.leader_id) &&
-                                      (v.after_data?.meeting_date === selectedDate || v.created_at?.startsWith(selectedDate))
-                                  );
-                                  if (!vLog) return null;
-                                  const vLat = vLog.after_data?.latitude;
-                                  const vLng = vLog.after_data?.longitude;
-                                  const vDist = vLog.after_data?.distance_meters;
-                                  return (
-                                    <div className="mt-1 flex items-center justify-center">
-                                      <a
-                                        href={vLat && vLng ? `https://www.google.com/maps?q=${vLat},${vLng}` : undefined}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-1 px-2 py-0.5 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-300 rounded-lg text-[10px] font-bold shadow-2xs transition-all cursor-pointer active:scale-95"
-                                        title={`Geofence breach attempt: User tried to check in from ~${vDist ? Math.round(vDist) : ''}m away. Click to view location on Google Maps.`}
-                                      >
-                                        <AlertTriangle className="w-3 h-3 text-rose-600" />
-                                        <span>Breach: ~{vDist ? `${Math.round(vDist)}m` : 'Remote'}</span>
-                                        <ExternalLink className="w-2.5 h-2.5 text-rose-500" />
-                                      </a>
-                                    </div>
-                                  );
-                                })()}
                               </td>
-                              <td className="py-2 px-3 text-center">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const curTime = rec.check_in_at
-                                      ? new Date(rec.check_in_at).toLocaleTimeString('en-IN', {
+                              <td className="py-3 px-4 text-center">
+                                <div className="inline-flex items-center justify-center gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const curTime = rec.check_in_at
+                                        ? new Date(rec.check_in_at).toLocaleTimeString('en-IN', {
+                                            hour: '2-digit',
+                                            minute: '2-digit',
+                                            second: '2-digit',
+                                            hour12: true,
+                                          })
+                                        : (rec as any).join_time || '10:00:00 AM';
+                                      setQuickTimeModal({
+                                        isOpen: true,
+                                        record: rec,
+                                        customTime: curTime,
+                                      });
+                                    }}
+                                    className="group px-3 py-1.5 bg-slate-50 hover:bg-purple-50 text-slate-900 hover:text-[#7065f0] border border-slate-200 hover:border-purple-300 rounded-xl text-xs font-mono font-bold shadow-2xs transition-all cursor-pointer inline-flex items-center gap-1.5 active:scale-95"
+                                    title="Click to modify arrival time for this leader"
+                                  >
+                                    <Clock className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#7065f0] transition-colors" />
+                                    <span>
+                                      {rec.check_in_at ? (
+                                        new Date(rec.check_in_at).toLocaleTimeString('en-IN', {
                                           hour: '2-digit',
                                           minute: '2-digit',
                                           second: '2-digit',
                                           hour12: true,
                                         })
-                                      : (rec as any).join_time || '10:00:00 AM';
-                                    setQuickTimeModal({
-                                      isOpen: true,
-                                      record: rec,
-                                      customTime: curTime,
-                                    });
-                                  }}
-                                  className="group px-2.5 py-1.5 bg-slate-50 hover:bg-purple-50 text-slate-800 hover:text-[#7065f0] border border-slate-200 hover:border-purple-300 rounded-xl text-xs font-mono font-bold shadow-2xs transition-all cursor-pointer inline-flex items-center gap-1.5 active:scale-95"
-                                  title="Click to modify arrival time for this leader"
-                                >
-                                  <Clock className="w-3 h-3 text-slate-400 group-hover:text-[#7065f0] transition-colors" />
-                                  <span>
-                                    {rec.check_in_at ? (
-                                      new Date(rec.check_in_at).toLocaleTimeString('en-IN', {
-                                        hour: '2-digit',
-                                        minute: '2-digit',
-                                        second: '2-digit',
-                                        hour12: true,
-                                      })
-                                    ) : (rec as any).join_time ? (
-                                      (rec as any).join_time
-                                    ) : (
-                                      <span className="text-slate-400 font-semibold">— (Set Time)</span>
-                                    )}
-                                  </span>
-                                  <Edit2 className="w-2.5 h-2.5 text-slate-400 group-hover:text-[#7065f0] transition-colors" />
-                                </button>
+                                      ) : (rec as any).join_time ? (
+                                        (rec as any).join_time
+                                      ) : (
+                                        <span className="text-slate-400 font-semibold">— (Set Time)</span>
+                                      )}
+                                    </span>
+                                    <Edit2 className="w-3 h-3 text-slate-400 group-hover:text-[#7065f0] transition-colors" />
+                                  </button>
+                                  {rec.late_minutes && rec.late_minutes > 0 && rec.late_minutes <= 60 && rec.evidence_source !== 'ADMIN_MANUAL' ? (
+                                    <span className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded font-bold">
+                                      +{rec.late_minutes}m late
+                                    </span>
+                                  ) : null}
+                                </div>
                               </td>
-                              <td className="py-2.5 px-3 text-center">
+                              <td className="py-3 px-4 text-center">
                                 {isOffDate && rec.status !== 'PRESENT' ? (
-                                  <span className="text-[10px] bg-slate-100 text-slate-700 font-bold px-2 py-0.5 rounded-full border border-slate-300 inline-flex items-center gap-1 shadow-2xs">
-                                    <Calendar className="w-3 h-3 text-slate-500" />
+                                  <span className="text-xs bg-slate-100 text-slate-800 font-bold px-2.5 py-1 rounded-lg border border-slate-300 inline-flex items-center gap-1.5 shadow-2xs">
+                                    <Calendar className="w-3.5 h-3.5 text-slate-500" />
                                     <span>{rec.verification_note || (isSundayDate ? 'Sunday Weekly Off' : 'Holiday / No DOM')}</span>
                                   </span>
                                 ) : rec.verification_status === 'REJECTED' || rec.verification_note?.includes('Disapproved') || rec.verification_note?.includes('No Inform') ? (
-                                  <span className="text-[10px] bg-rose-100 text-rose-800 font-bold px-2 py-0.5 rounded-full border border-rose-300 inline-flex items-center gap-1">
-                                    <XCircle className="w-3 h-3 text-rose-600" />
+                                  <span className="text-xs bg-rose-100 text-rose-800 font-bold px-2.5 py-1 rounded-lg border border-rose-300 inline-flex items-center gap-1.5">
+                                    <XCircle className="w-3.5 h-3.5 text-rose-600" />
                                     <span>ABSENT (No Inform)</span>
                                   </span>
                                 ) : rec.status === 'LEAVE' || (rec.status === 'INFORMED_ABSENT' && rec.informed_confirmed) ? (
-                                  <span className="text-[10px] bg-purple-100 text-purple-900 font-bold px-2 py-0.5 rounded-full border border-purple-300 inline-flex items-center gap-1">
-                                    <CheckCircle2 className="w-3 h-3 text-purple-600" />
+                                  <span className="text-xs bg-purple-100 text-purple-900 font-bold px-2.5 py-1 rounded-lg border border-purple-300 inline-flex items-center gap-1.5">
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-purple-600" />
                                     <span>APPROVED LEAVE {rec.informed_to_person ? `(${rec.informed_to_person})` : ''}</span>
                                   </span>
                                 ) : rec.status === 'INFORMED_ABSENT' && !rec.informed_confirmed ? (
                                   <div className="flex flex-col items-center gap-0.5">
-                                    <span className="text-[10px] bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded-full border border-amber-300 inline-flex items-center gap-1 shadow-2xs">
-                                      <Clock className="w-3 h-3 text-amber-600 animate-pulse" />
+                                    <span className="text-xs bg-amber-100 text-amber-900 font-bold px-2.5 py-1 rounded-lg border border-amber-300 inline-flex items-center gap-1.5 shadow-2xs">
+                                      <Clock className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
                                       <span>Informed Awaiting Approval</span>
                                     </span>
-                                    <span className="text-[9px] text-amber-800 font-medium">
+                                    <span className="text-[10px] text-amber-800 font-medium">
                                       To: {rec.informed_to_person || 'Authority'}
                                     </span>
                                   </div>
                                 ) : (rec.late_expired || (rec.status === 'INFORMED_LATE' && !rec.check_in_at && !isFutureDate && rec.late_minutes && rec.late_minutes > 0)) ? (
-                                  <span className="text-[10px] bg-rose-100 text-rose-800 font-bold px-2 py-0.5 rounded-full border border-rose-300 inline-flex items-center gap-1">
-                                    <XCircle className="w-3 h-3 text-rose-600" />
+                                  <span className="text-xs bg-rose-100 text-rose-800 font-bold px-2.5 py-1 rounded-lg border border-rose-300 inline-flex items-center gap-1.5">
+                                    <XCircle className="w-3.5 h-3.5 text-rose-600" />
                                     <span>ABSENT (Promised +{rec.committed_late_minutes || rec.late_minutes || 10}m, Failed to Join)</span>
                                   </span>
                                 ) : (rec.status === 'INFORMED_LATE' && !rec.check_in_at) ? (
                                   <div className="flex flex-col items-center gap-0.5">
-                                    <span className="text-[10px] bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded-full border border-amber-300 inline-flex items-center gap-1 shadow-2xs">
-                                      <Clock className="w-3 h-3 text-amber-600 animate-pulse" />
+                                    <span className="text-xs bg-amber-100 text-amber-900 font-bold px-2.5 py-1 rounded-lg border border-amber-300 inline-flex items-center gap-1.5 shadow-2xs">
+                                      <Clock className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
                                       <span>Informed Late (+{rec.committed_late_minutes || rec.late_minutes || 10}m)</span>
                                     </span>
-                                    <span className="text-[9px] text-amber-800 font-medium">
+                                    <span className="text-[10px] text-amber-800 font-medium">
                                       Awaiting Check-in
                                     </span>
                                   </div>
                                 ) : (rec.admin_verified_attendance || rec.verification_status === 'VERIFIED') && rec.evidence_source === 'ADMIN_MANUAL' ? (
-                                  <span className="text-[10px] bg-emerald-100 text-emerald-950 font-bold px-2 py-0.5 rounded-full border border-emerald-300 inline-flex items-center gap-1 shadow-2xs" title={rec.verification_note || 'Marked Present by Admin'}>
-                                    <ShieldCheck className="w-3 h-3 text-emerald-700" />
+                                  <span className="text-xs bg-emerald-100 text-emerald-950 font-bold px-2.5 py-1 rounded-lg border border-emerald-300 inline-flex items-center gap-1.5 shadow-2xs" title={rec.verification_note || 'Marked Present by Admin'}>
+                                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
                                     <span>PRESENT (Marked by Admin)</span>
-                                    {rec.late_minutes && rec.late_minutes > 0 ? (
-                                      <span className="text-[9px] bg-emerald-700 text-white px-1.5 py-0.2 rounded font-black tracking-wide ml-1">
-                                        {formatLateDuration(rec.late_minutes)}
-                                      </span>
-                                    ) : null}
                                   </span>
                                 ) : rec.admin_verified_attendance || rec.verification_status === 'VERIFIED' ? (
-                                  <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-300 inline-flex items-center gap-1">
-                                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                  <span className="text-xs bg-emerald-100 text-emerald-900 font-bold px-2.5 py-1 rounded-lg border border-emerald-300 inline-flex items-center gap-1.5 shadow-2xs">
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                                     <span>PRESENT (Approved)</span>
-                                    {rec.late_minutes && rec.late_minutes > 0 ? (
-                                      <span className="text-[9px] bg-emerald-700 text-white px-1.5 py-0.2 rounded font-black tracking-wide ml-1">
-                                        {formatLateDuration(rec.late_minutes)}
-                                      </span>
-                                    ) : null}
                                   </span>
                                 ) : !rec.admin_verified_attendance &&
                                   (rec.status === 'PRESENT' || rec.status === 'INFORMED_LATE' || rec.selected_mode !== 'NONE') ? (
-                                  <span className="text-[10px] bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded-full border border-amber-300 inline-flex items-center gap-1 shadow-2xs">
-                                    <Clock className="w-3 h-3 text-amber-600 animate-pulse" />
+                                  <span className="text-xs bg-amber-100 text-amber-900 font-bold px-2.5 py-1 rounded-lg border border-amber-300 inline-flex items-center gap-1.5 shadow-2xs">
+                                    <Clock className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
                                     <span>Approval Pending</span>
-                                    {rec.late_minutes && rec.late_minutes > 0 ? (
-                                      <span className="text-[9px] bg-amber-200 text-amber-950 px-1 py-0.2 rounded font-black tracking-wide ml-1">
-                                        {formatLateDuration(rec.late_minutes)}
-                                      </span>
-                                    ) : null}
                                   </span>
                                 ) : isFutureDate ? (
-                                  <span className="text-[10px] bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded-full border border-indigo-200 inline-flex items-center gap-1">
-                                    <Clock className="w-3 h-3 text-indigo-500" />
+                                  <span className="text-xs bg-indigo-50 text-indigo-700 font-bold px-2.5 py-1 rounded-lg border border-indigo-200 inline-flex items-center gap-1.5">
+                                    <Clock className="w-3.5 h-3.5 text-indigo-500" />
                                     <span>SCHEDULED (Upcoming)</span>
                                   </span>
                                 ) : (
-                                  <span className="text-[10px] bg-rose-50 text-rose-700 font-bold px-2 py-0.5 rounded-full border border-rose-200 inline-flex items-center gap-1">
+                                  <span className="text-xs bg-rose-50 text-rose-700 font-bold px-2.5 py-1 rounded-lg border border-rose-200 inline-flex items-center gap-1.5">
+                                    <XCircle className="w-3.5 h-3.5 text-rose-600" />
                                     <span>ABSENT</span>
                                   </span>
                                 )}
                               </td>
-                              <td className="py-2.5 px-3 text-right">
+                              <td className="py-3 px-4 text-right">
                                 <div className="flex items-center justify-end gap-1.5">
                                   {isOffDate ? (
                                     <span className="px-2 py-0.5 bg-slate-100 text-slate-500 text-[10px] font-bold rounded-lg border border-slate-200 inline-flex items-center gap-1">
