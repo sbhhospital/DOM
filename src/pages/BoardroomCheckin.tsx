@@ -201,24 +201,24 @@ export const BoardroomCheckin: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#f8f5fe] via-[#f3effb] to-[#ebe5f9] text-slate-800 flex flex-col font-sans p-4 sm:p-6 pb-24 items-center justify-center">
+    <div className="min-h-screen bg-gradient-to-br from-[#f4f5fa] via-[#f4f5fa] to-[#f4f5fa] text-slate-800 flex flex-col font-sans p-4 sm:p-6 pb-24 items-center justify-center">
       <div className="w-full max-w-lg space-y-6">
         {/* Main Check-In Card */}
-        <div className="bg-white rounded-[32px] p-6 sm:p-8 shadow-2xl shadow-indigo-200/50 border border-purple-100 relative overflow-hidden">
+        <div className="bg-white rounded-[32px] p-6 sm:p-8 shadow-2xl shadow-indigo-200/50 border border-[#f0f1f8] relative overflow-hidden">
           {/* Top Tricolor Accent Line */}
-          <div className="h-2 w-full bg-gradient-to-r from-[#5f4de6] via-[#7060f0] to-[#8778f8] absolute top-0 left-0" />
+          <div className="h-2 w-full bg-gradient-to-r from-[#7065f0] via-[#7065f0] to-[#8577ff] absolute top-0 left-0" />
 
           {/* Hospital Logo & Header */}
-          <div className="text-center pt-2 pb-5 border-b border-purple-50">
+          <div className="text-center pt-2 pb-5 border-b border-[#f0f1f8]">
             <img
               src={sbhLogo}
               alt="SBH Group of Hospitals"
               className="h-14 sm:h-16 w-auto object-contain mx-auto mb-3 drop-shadow-xs"
             />
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-[#ede9fe] text-[#5b4eed] border border-purple-200/60 uppercase tracking-wider mb-2">
-              <ShieldCheck className="w-3.5 h-3.5 text-[#5b4eed]" /> 5th Floor Conference Hall Check-In
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-[#eff0fe] text-[#7065f0] border border-purple-200/60 uppercase tracking-wider mb-2">
+              <ShieldCheck className="w-3.5 h-3.5 text-[#7065f0]" /> 5th Floor Conference Hall Check-In
             </span>
-            <h1 className="text-xl sm:text-2xl font-black text-[#1e1b4b] tracking-tight">
+            <h1 className="text-xl sm:text-2xl font-black text-[#232d42] tracking-tight">
               BOARDROOM PHYSICAL ATTENDANCE
             </h1>
             <p className="text-xs text-slate-500 mt-1">
@@ -228,19 +228,19 @@ export const BoardroomCheckin: React.FC = () => {
 
           {/* Session Venue & Time Badges */}
           <div className="grid grid-cols-2 gap-2.5 my-4 text-center">
-            <div className="bg-[#ede9fe]/40 border border-purple-100 rounded-2xl p-2.5">
+            <div className="bg-[#eff0fe]/40 border border-[#f0f1f8] rounded-2xl p-2.5">
               <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider flex items-center justify-center gap-1">
-                <MapPin className="w-3 h-3 text-[#5b4eed]" /> Physical Venue
+                <MapPin className="w-3 h-3 text-[#7065f0]" /> Physical Venue
               </span>
-              <span className="text-xs font-bold text-[#1e1b4b] block mt-0.5">
+              <span className="text-xs font-bold text-[#232d42] block mt-0.5">
                 Conference Room, 5th Floor
               </span>
             </div>
-            <div className="bg-[#ede9fe]/40 border border-purple-100 rounded-2xl p-2.5">
+            <div className="bg-[#eff0fe]/40 border border-[#f0f1f8] rounded-2xl p-2.5">
               <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider flex items-center justify-center gap-1">
-                <Clock className="w-3 h-3 text-[#5b4eed]" /> Today's Date
+                <Clock className="w-3 h-3 text-[#7065f0]" /> Today's Date
               </span>
-              <span className="text-xs font-bold text-[#1e1b4b] block mt-0.5">
+              <span className="text-xs font-bold text-[#232d42] block mt-0.5">
                 {formatToIndianDate(selectedDate)} ({currentMeeting.scheduled_time})
               </span>
             </div>
@@ -266,19 +266,19 @@ export const BoardroomCheckin: React.FC = () => {
           <form onSubmit={handleConfirmAttendance} className="space-y-4">
             {/* If user is already authenticated */}
             {currentUser ? (
-              <div className="p-4 bg-[#ede9fe]/40 border border-purple-200/70 rounded-2xl">
-                <div className="text-[11px] font-black uppercase text-[#5b4eed] tracking-wider flex items-center gap-1.5 mb-1">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-[#5b4eed]" />
+              <div className="p-4 bg-[#eff0fe]/40 border border-purple-200/70 rounded-2xl">
+                <div className="text-[11px] font-black uppercase text-[#7065f0] tracking-wider flex items-center gap-1.5 mb-1">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-[#7065f0]" />
                   <span>Authenticated Leader Profile</span>
                 </div>
-                <div className="text-base font-black text-[#1e1b4b]">
+                <div className="text-base font-black text-[#232d42]">
                   {currentUser.full_name}
                 </div>
                 <div className="text-xs text-slate-600 font-semibold mt-0.5">
-                  Department: <strong className="text-[#5b4eed]">{resolvedDepartmentName}</strong>
+                  Department: <strong className="text-[#7065f0]">{resolvedDepartmentName}</strong>
                 </div>
-                <div className="flex items-center justify-between text-[11px] text-slate-500 font-mono mt-2 pt-2 border-t border-purple-100">
-                  <span>Mode: <strong className="text-[#5b4eed]">Physical / Conference Room</strong></span>
+                <div className="flex items-center justify-between text-[11px] text-slate-500 font-mono mt-2 pt-2 border-t border-[#f0f1f8]">
+                  <span>Mode: <strong className="text-[#7065f0]">Physical / Conference Room</strong></span>
                   <button
                     type="button"
                     onClick={() => logoutUser()}
@@ -305,7 +305,7 @@ export const BoardroomCheckin: React.FC = () => {
                         setIsDropdownOpen(true);
                       }}
                       onFocus={() => setIsDropdownOpen(true)}
-                      className="w-full pl-3.5 pr-10 py-3 bg-[#f8f6fe]/70 border border-purple-100 rounded-2xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#5b4eed] focus:ring-2 focus:ring-[#5b4eed]/20 transition-all shadow-xs"
+                      className="w-full pl-3.5 pr-10 py-3 bg-[#f8f6fe]/70 border border-[#f0f1f8] rounded-2xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#7065f0] focus:ring-2 focus:ring-[#7065f0]/20 transition-all shadow-xs"
                     />
                     <button
                       type="button"
@@ -318,7 +318,7 @@ export const BoardroomCheckin: React.FC = () => {
 
                   {/* Dropdown Options */}
                   {isDropdownOpen && (
-                    <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-purple-100 rounded-2xl shadow-2xl max-h-56 overflow-y-auto z-50 p-1.5 space-y-1">
+                    <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-[#f0f1f8] rounded-2xl shadow-2xl max-h-56 overflow-y-auto z-50 p-1.5 space-y-1">
                       {filteredLeaders.length === 0 ? (
                         <div className="p-3 text-center text-xs text-slate-400">
                           No registered leaders match search
@@ -328,7 +328,7 @@ export const BoardroomCheckin: React.FC = () => {
                           <div
                             key={lead.id}
                             onClick={() => handleSelectLeader(lead)}
-                            className="p-2.5 hover:bg-[#ede9fe]/50 rounded-xl cursor-pointer transition-colors flex items-center justify-between"
+                            className="p-2.5 hover:bg-[#eff0fe]/50 rounded-xl cursor-pointer transition-colors flex items-center justify-between"
                           >
                             <div>
                               <div className="text-xs font-bold text-slate-900">
@@ -338,7 +338,7 @@ export const BoardroomCheckin: React.FC = () => {
                                 {lead.department?.name || 'Dept'} • {lead.email}
                               </div>
                             </div>
-                            <span className="text-[10px] bg-[#ede9fe] text-[#5b4eed] px-2 py-0.5 rounded font-mono font-bold">
+                            <span className="text-[10px] bg-[#eff0fe] text-[#7065f0] px-2 py-0.5 rounded font-mono font-bold">
                               Select
                             </span>
                           </div>
@@ -359,7 +359,7 @@ export const BoardroomCheckin: React.FC = () => {
                       placeholder="Enter your password (default: 123456)"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full pl-10 pr-3.5 py-3 bg-[#f8f6fe]/70 border border-purple-100 rounded-2xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#5b4eed] focus:ring-2 focus:ring-[#5b4eed]/20 transition-all shadow-xs"
+                      className="w-full pl-10 pr-3.5 py-3 bg-[#f8f6fe]/70 border border-[#f0f1f8] rounded-2xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#7065f0] focus:ring-2 focus:ring-[#7065f0]/20 transition-all shadow-xs"
                     />
                     <KeyRound className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
                   </div>
@@ -371,7 +371,7 @@ export const BoardroomCheckin: React.FC = () => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full py-3.5 px-4 bg-gradient-to-r from-[#5f4de6] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7060f0] text-white rounded-2xl font-black text-sm shadow-lg shadow-indigo-300/40 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 active:scale-[0.98]"
+              className="w-full py-3.5 px-4 bg-gradient-to-r from-[#7065f0] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7065f0] text-white rounded-2xl font-black text-sm shadow-lg shadow-indigo-300/40 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 active:scale-[0.98]"
             >
               <CheckCircle2 className="w-4 h-4 text-white" />
               <span>
@@ -383,7 +383,7 @@ export const BoardroomCheckin: React.FC = () => {
           </form>
 
           {/* Quick Notice */}
-          <div className="mt-5 pt-4 border-t border-purple-50 text-[11px] text-slate-500 text-center">
+          <div className="mt-5 pt-4 border-t border-[#f0f1f8] text-[11px] text-slate-500 text-center">
             🔒 Single Daily Count Enforced • Verified for Hospital Director's 10:30 AM Audit
           </div>
         </div>
@@ -392,9 +392,9 @@ export const BoardroomCheckin: React.FC = () => {
       {/* ================= STYLISH THANK YOU POPUP MODAL ================= */}
       {showThankYouModal && confirmationData && (
         <div className="fixed inset-0 z-[20000] modal-backdrop flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white rounded-[32px] max-w-md w-full p-6 sm:p-8 text-center shadow-2xl shadow-indigo-200/50 border border-purple-100 relative overflow-hidden">
+          <div className="bg-white rounded-[32px] max-w-md w-full p-6 sm:p-8 text-center shadow-2xl shadow-indigo-200/50 border border-[#f0f1f8] relative overflow-hidden">
             {/* Top Glowing Gradient Accent */}
-            <div className="h-2 w-full bg-gradient-to-r from-[#5f4de6] via-[#7060f0] to-[#8778f8] absolute top-0 left-0" />
+            <div className="h-2 w-full bg-gradient-to-r from-[#7065f0] via-[#7065f0] to-[#8577ff] absolute top-0 left-0" />
 
             {/* Hospital Logo */}
             <img
@@ -404,17 +404,17 @@ export const BoardroomCheckin: React.FC = () => {
             />
 
             {/* Glowing Violet Checkmark Icon */}
-            <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-[#5f4de6] to-[#7f70f6] text-white flex items-center justify-center mx-auto mb-4 shadow-xl shadow-indigo-400/30 ring-8 ring-purple-100 animate-in zoom-in-75">
+            <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-[#7065f0] to-[#7f70f6] text-white flex items-center justify-center mx-auto mb-4 shadow-xl shadow-indigo-400/30 ring-8 ring-purple-100 animate-in zoom-in-75">
               <CheckCircle2 className="w-10 h-10 text-white" />
             </div>
 
             {/* Thank You Title */}
-            <h2 className="text-2xl font-black text-[#1e1b4b] tracking-tight">
+            <h2 className="text-2xl font-black text-[#232d42] tracking-tight">
               Thank You, {confirmationData.leaderName}!
             </h2>
 
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#ede9fe] text-[#5b4eed] border border-purple-200/60 mt-2">
-              <Sparkles className="w-3.5 h-3.5 text-[#5b4eed]" /> Physical Attendance Confirmed
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#eff0fe] text-[#7065f0] border border-purple-200/60 mt-2">
+              <Sparkles className="w-3.5 h-3.5 text-[#7065f0]" /> Physical Attendance Confirmed
             </div>
 
             <p className="text-xs text-slate-600 mt-3 max-w-xs mx-auto leading-relaxed">
@@ -422,22 +422,22 @@ export const BoardroomCheckin: React.FC = () => {
             </p>
 
             {/* Audit Details Card */}
-            <div className="my-5 p-4 bg-[#ede9fe]/30 rounded-2xl border border-purple-100 text-left text-xs space-y-2">
+            <div className="my-5 p-4 bg-[#eff0fe]/30 rounded-2xl border border-[#f0f1f8] text-left text-xs space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-slate-500 font-semibold">Department:</span>
-                <span className="font-bold text-[#1e1b4b]">{confirmationData.department}</span>
+                <span className="font-bold text-[#232d42]">{confirmationData.department}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-slate-500 font-semibold">Recorded Time:</span>
-                <span className="font-mono font-bold text-[#5b4eed]">{confirmationData.timeStr} IST</span>
+                <span className="font-mono font-bold text-[#7065f0]">{confirmationData.timeStr} IST</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-slate-500 font-semibold">Audit Status:</span>
-                <span className="font-bold text-[#5b4eed]">PRESENT (Physical / Verified)</span>
+                <span className="font-bold text-[#7065f0]">PRESENT (Physical / Verified)</span>
               </div>
-              <div className="flex items-center justify-between pt-1 border-t border-purple-100">
+              <div className="flex items-center justify-between pt-1 border-t border-[#f0f1f8]">
                 <span className="text-slate-500 font-semibold">Single Count Lock:</span>
-                <span className="font-bold text-[#5b4eed]">Active (1 Count / Day)</span>
+                <span className="font-bold text-[#7065f0]">Active (1 Count / Day)</span>
               </div>
             </div>
 
@@ -448,7 +448,7 @@ export const BoardroomCheckin: React.FC = () => {
                   setShowThankYouModal(false);
                   navigate('/login');
                 }}
-                className="w-full py-3 bg-gradient-to-r from-[#5f4de6] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7060f0] text-white rounded-2xl font-bold text-xs shadow-md shadow-indigo-300/40 transition-all cursor-pointer"
+                className="w-full py-3 bg-gradient-to-r from-[#7065f0] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7065f0] text-white rounded-2xl font-bold text-xs shadow-md shadow-indigo-300/40 transition-all cursor-pointer"
               >
                 Close & Return
               </button>
@@ -456,9 +456,9 @@ export const BoardroomCheckin: React.FC = () => {
                 href="https://meet.google.com/jrz-jfku-gir"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full py-2.5 bg-[#ede9fe]/50 hover:bg-[#ede9fe] text-[#5b4eed] border border-purple-200/60 rounded-2xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                className="w-full py-2.5 bg-[#eff0fe]/50 hover:bg-[#eff0fe] text-[#7065f0] border border-purple-200/60 rounded-2xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
               >
-                <Video className="w-3.5 h-3.5 text-[#5b4eed]" />
+                <Video className="w-3.5 h-3.5 text-[#7065f0]" />
                 <span>Open Google Meet (Follow Slides)</span>
               </a>
             </div>
@@ -479,7 +479,7 @@ export const BoardroomCheckin: React.FC = () => {
             <div className="w-16 h-16 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center mx-auto mb-3 shadow-lg">
               <span className="text-2xl">🏖️</span>
             </div>
-            <h2 className="text-xl font-black text-[#1e1b4b] tracking-tight">
+            <h2 className="text-xl font-black text-[#232d42] tracking-tight">
               Sunday Weekly Off / Holiday
             </h2>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300 mt-2">

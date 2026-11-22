@@ -10,58 +10,75 @@
   inset: 0 !important;
   width: 100vw !important;
   height: 100vh !important;
-  background-color: rgba(15, 23, 42, 0.72) !important;
-  backdrop-filter: blur(12px) saturate(160%) !important;
-  -webkit-backdrop-filter: blur(12px) saturate(160%) !important;
+  background-color: rgba(35, 45, 66, 0.6) !important;
+  backdrop-filter: blur(10px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(140%) !important;
   z-index: 9999 !important;
 }
 
 @layer base {
   :root {
-    --hospital-orange: #ea580c;
-    --hospital-green: #2e7d32;
-    --hospital-dark: #1e1b4b;
-    --hospital-border: #ede9fe;
+    --hope-primary: #7065f0;
+    --hope-primary-hover: #5e52e4;
+    --hope-primary-tint: #eff0fe;
+    --hope-body-bg: #f4f5fa;
+    --hope-dark: #232d42;
+    --hope-muted: #8a92a6;
+    --hope-border: #f0f1f8;
   }
 
   body {
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background-color: #f6effb;
-    color: #1e1b4b;
+    background-color: #f4f5fa;
+    color: #232d42;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     min-height: 100vh;
   }
 }
 
-/* Modern SaaS Pastel Enterprise Cards */
+/* Hope UI Clean SaaS Enterprise Cards */
 .fluent-card {
   background: #ffffff;
-  border: 1px solid #ede9fe;
-  border-radius: 1.75rem;
-  box-shadow: 0 4px 20px -4px rgba(100, 75, 180, 0.05);
+  border: 1px solid #f0f1f8;
+  border-radius: 1.25rem;
+  box-shadow: 0 8px 24px -4px rgba(17, 38, 146, 0.04);
 }
 
 .fluent-card-hover {
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .fluent-card-hover:hover {
-  border-color: #7060f0;
-  box-shadow: 0 8px 24px -4px rgba(95, 77, 230, 0.12);
+  border-color: #7065f0;
+  box-shadow: 0 12px 30px -4px rgba(112, 101, 240, 0.12);
 }
 
-/* Custom scrollbar for hospital tables */
+/* Hope UI Pastel Gradient Metric Cards */
+.hope-card-purple {
+  background: linear-gradient(135deg, #8a7ff5 0%, #a497fc 100%);
+}
+.hope-card-teal {
+  background: linear-gradient(135deg, #5ec4c7 0%, #80e3e6 100%);
+}
+.hope-card-coral {
+  background: linear-gradient(135deg, #f9a69b 0%, #fcbeb1 100%);
+}
+.hope-card-mint {
+  background: linear-gradient(135deg, #68dba0 0%, #91efb6 100%);
+}
+
+/* Custom scrollbar matching Hope UI styling */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: #f4f5fa;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #d8dbe5;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #8a92a6;
 }

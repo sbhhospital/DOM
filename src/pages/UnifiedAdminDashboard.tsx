@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Users,
   UserPlus,
@@ -163,53 +163,53 @@ const LiveIndiaClockAndCountdown: React.FC<{ currentCadence: string }> = React.m
 
   return (
     <>
-      {/* Card 1: Live India Time (IST) */}
-      <div className="bg-white p-3 sm:p-3.5 rounded-2xl border border-purple-100/80 shadow-xs flex items-center gap-3">
-        <div className="w-10 h-10 rounded-2xl bg-[#ede9fe] border border-purple-200/50 flex items-center justify-center shrink-0">
-          <Clock className="w-5 h-5 text-[#6351e8]" />
+      {/* Card 1: Live India Time (IST) - Hope UI Styling */}
+      <div className="bg-white p-3 rounded-2xl border border-[#f0f1f8] shadow-xs flex items-center gap-3">
+        <div className="w-9 h-9 rounded-xl bg-[#eff0fe] border border-indigo-200/50 flex items-center justify-center shrink-0">
+          <Clock className="w-4 h-4 text-[#7065f0]" />
         </div>
         <div className="min-w-0">
-          <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+          <div className="text-[10px] font-bold text-[#8a92a6] uppercase tracking-wider flex items-center gap-1.5">
             <span>Live India Time (IST)</span>
             <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#8c7ff8] opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#6351e8]"></span>
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#7065f0] opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#7065f0]"></span>
             </span>
           </div>
-          <div className="text-base sm:text-lg font-black font-mono text-[#1e1b4b] leading-tight mt-0.5">
+          <div className="text-base font-black font-mono text-[#232d42] leading-tight mt-0.5">
             {countdown.liveIndiaTime}
           </div>
-          <div className="text-[11px] text-slate-500 font-semibold truncate">
+          <div className="text-[10px] text-[#8a92a6] font-semibold truncate">
             {time.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
           </div>
         </div>
       </div>
 
-      {/* Card 2: Next Standup Countdown */}
-      <div className="bg-gradient-to-r from-[#5f4de6] via-[#7060f0] to-[#8778f8] p-3 sm:p-3.5 rounded-2xl shadow-md shadow-indigo-300/40 text-white flex flex-col justify-between">
+      {/* Card 2: Next Standup Countdown - Hope UI Styling */}
+      <div className="bg-gradient-to-r from-[#7065f0] via-[#8577ff] to-[#a497fc] p-3 rounded-2xl shadow-xs text-white flex flex-col justify-between">
         <div className="flex items-center justify-between gap-2 mb-1.5">
-          <div className="text-[10px] font-black text-indigo-100 uppercase tracking-wider truncate flex items-center gap-1">
-            <Sparkles className="w-3 h-3 text-amber-300 shrink-0" />
+          <div className="text-[10px] font-bold text-white/90 uppercase tracking-wider truncate flex items-center gap-1">
+            <Sparkles className="w-3 h-3 text-amber-200 shrink-0" />
             <span>{countdown.stageTitle}</span>
           </div>
-          <span className="text-[9px] font-bold uppercase px-2 py-0.5 rounded-full bg-white/20 text-white border border-white/20 shrink-0">
+          <span className="text-[9px] font-bold uppercase px-2 py-0.5 rounded-full bg-white/20 text-white shrink-0">
             {countdown.targetMilestone}
           </span>
         </div>
-        <div className="flex items-center gap-1 sm:gap-1.5">
+        <div className="flex items-center gap-1">
           <div className="flex items-baseline gap-1 bg-white/20 px-2 py-0.5 rounded-lg border border-white/20">
-            <span className="text-base font-black font-mono text-white">{countdown.hoursStr}</span>
-            <span className="text-[9px] font-black text-indigo-100">HRS</span>
+            <span className="text-sm font-black font-mono text-white">{countdown.hoursStr}</span>
+            <span className="text-[8px] font-bold text-white/90">HRS</span>
           </div>
-          <span className="text-indigo-200 font-black text-sm">:</span>
+          <span className="text-white/80 font-black text-xs">:</span>
           <div className="flex items-baseline gap-1 bg-white/20 px-2 py-0.5 rounded-lg border border-white/20">
-            <span className="text-base font-black font-mono text-white">{countdown.minsStr}</span>
-            <span className="text-[9px] font-black text-indigo-100">MIN</span>
+            <span className="text-sm font-black font-mono text-white">{countdown.minsStr}</span>
+            <span className="text-[8px] font-bold text-white/90">MIN</span>
           </div>
-          <span className="text-indigo-200 font-black text-sm">:</span>
+          <span className="text-white/80 font-black text-xs">:</span>
           <div className="flex items-baseline gap-1 bg-white/25 px-2 py-0.5 rounded-lg border border-white/30 text-amber-200">
-            <span className="text-base font-black font-mono text-amber-200">{countdown.secsStr}</span>
-            <span className="text-[9px] font-black text-amber-200">SEC</span>
+            <span className="text-sm font-black font-mono text-amber-200">{countdown.secsStr}</span>
+            <span className="text-[8px] font-bold text-amber-200">SEC</span>
           </div>
         </div>
       </div>
@@ -447,6 +447,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<
     'attendance' | 'calendar' | 'reports' | 'leaders' | 'departments' | 'settings' | 'links' | 'geo-history'
   >('attendance');
+  const datePickerInputRef = useRef<HTMLInputElement | null>(null);
 
   // Attendance Geo-History Filter States
   const [geoSearchTerm, setGeoSearchTerm] = useState<string>('');
@@ -1011,7 +1012,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
       // Structured WhatsApp Caption
       const captionText = `🏥 *SBH GROUP OF HOSPITALS, RAIPUR*\n📊 *OFFICIAL ${cadence} LEADERSHIP ATTENDANCE REPORT (${formatToIndianDate(date)})*\n━━━━━━━━━━━━━━━━━━━━━━\n• Total Expected: ${forDate.length}\n• Attended: ${forDate.filter((r) => isPresentRecord(r)).length}\n• Approved Late: ${forDate.filter((r) => isLateRecord(r)).length}\n• Approved Leave: ${forDate.filter((r) => isLeaveRecord(r)).length}\n• Absent / Unreported: ${forDate.filter((r) => isAbsentRecord(r)).length}\n\n📄 *Official Signed Director Attendance PDF Report Attached*\n━━━━━━━━━━━━━━━━━━━━━━\n*Automated Reminder*`;
 
-      // 1. Direct Ceoitbox PDF Dispatch to WhatsApp Group (120363432056023698@g.us) via /api/v1/message/create
+      // 1. Direct Ceoitbox PDF Dispatch to WhatsApp Group (919977881452-1431506963@g.us) via /api/v1/message/create
       const dispatchPromise = sendDirectorPdfToWhatsappGroup(date);
       uploadReportToGoogleDriveAndSheet(date).catch((e) => console.warn('Background sync note:', e));
 
@@ -1034,7 +1035,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
       if (res.success) {
         setToastAlert({
           type: 'success',
-          text: `🎉 Official PDF Report directly dispatched to WhatsApp Group (${appSettings.admin_whatsapp_group || '120363432056023698@g.us'}) via Ceoitbox API!`,
+          text: `🎉 Official PDF Report directly dispatched to WhatsApp Group (${appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us'}) via Ceoitbox API!`,
         });
       } else {
         setToastAlert({
@@ -1099,7 +1100,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
     textMsg += `━━━━━━━━━━━━━━━━━━━━━━\n*Automated Reminder*`;
 
-    const groupJid = appSettings.admin_whatsapp_group || '120363432056023698@g.us';
+    const groupJid = appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us';
     const res = await sendCeoitboxWhatsappMessage({
       mobileNo: groupJid,
       name: 'SBH DOM Official Group',
@@ -1180,14 +1181,14 @@ export const UnifiedAdminDashboard: React.FC = () => {
   const renderSidebarNav = (isMobile: boolean = false) => (
     <>
       {/* Sidebar Header: Hospital Emblem & Title */}
-      <div className="h-20 flex items-center justify-between px-5 border-b border-purple-100/60 bg-white shrink-0">
+      <div className="h-20 flex items-center justify-between px-5 border-b border-[#f0f1f8]/60 bg-white shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#ede9fe] rounded-2xl flex items-center justify-center p-1.5 border border-purple-200/60 shadow-xs">
+          <div className="w-10 h-10 bg-[#eff0fe] rounded-2xl flex items-center justify-center p-1.5 border border-purple-200/60 shadow-xs">
             <img src={sbhLogo} alt="Logo" className="w-full h-full object-contain" />
           </div>
           <div className="flex flex-col">
-            <span className="font-bold text-base text-[#1e1b4b] tracking-tight uppercase leading-none">
-              SBH <span className="text-[#6351e8]">DOM PORTAL</span>
+            <span className="font-bold text-base text-[#232d42] tracking-tight uppercase leading-none">
+              SBH <span className="text-[#7065f0]">DOM PORTAL</span>
             </span>
             <span className="text-[9px] font-bold text-slate-400 tracking-wider uppercase mt-1">
               Daily Operations Meeting
@@ -1205,13 +1206,13 @@ export const UnifiedAdminDashboard: React.FC = () => {
       </div>
 
       {/* Live Clock Pill inside Sidebar */}
-      <div className="p-3 mx-2 my-2 rounded-2xl bg-[#ede9fe]/50 border border-purple-200/50 shadow-xs">
+      <div className="p-3 mx-2 my-2 rounded-2xl bg-[#eff0fe]/50 border border-purple-200/50 shadow-xs">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
-            <div className="p-1 rounded-lg bg-[#6351e8] text-white">
+            <div className="p-1 rounded-lg bg-[#7065f0] text-white">
               <Clock size={11} strokeWidth={3} />
             </div>
-            <span className="text-[9px] font-black uppercase tracking-widest text-[#6351e8]">System Clock</span>
+            <span className="text-[9px] font-black uppercase tracking-widest text-[#7065f0]">System Clock</span>
           </div>
           <SidebarSystemClock />
         </div>
@@ -1232,15 +1233,15 @@ export const UnifiedAdminDashboard: React.FC = () => {
             if (isMobile) setIsMobileMenuOpen(false);
           }}
           className={`relative flex items-center justify-between w-full transition-all duration-200 font-semibold tracking-wide text-[13px] px-3.5 py-2.5 rounded-2xl cursor-pointer ${activeTab === 'attendance'
-              ? 'bg-[#ede9fe] text-[#5b4eed] font-bold shadow-xs transform scale-[1.01]'
-              : 'text-slate-600 hover:bg-[#f5f3ff] hover:text-[#5b4eed]'
+              ? 'bg-[#eff0fe] text-[#7065f0] font-bold shadow-xs transform scale-[1.01]'
+              : 'text-slate-600 hover:bg-[#f5f3ff] hover:text-[#7065f0]'
             }`}
         >
           <div className="flex items-center gap-3">
-            <Home size={18} strokeWidth={activeTab === 'attendance' ? 2.5 : 2} className={activeTab === 'attendance' ? 'text-[#5b4eed]' : 'text-slate-400 flex-shrink-0'} />
+            <Home size={18} strokeWidth={activeTab === 'attendance' ? 2.5 : 2} className={activeTab === 'attendance' ? 'text-[#7065f0]' : 'text-slate-400 flex-shrink-0'} />
             <span className="truncate">Live Attendance Register</span>
           </div>
-          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${activeTab === 'attendance' ? 'bg-[#5b4eed] text-white' : 'bg-slate-200/60 text-slate-700'}`}>
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${activeTab === 'attendance' ? 'bg-[#7065f0] text-white' : 'bg-slate-200/60 text-slate-700'}`}>
             Live
           </span>
         </button>
@@ -1252,15 +1253,15 @@ export const UnifiedAdminDashboard: React.FC = () => {
             if (isMobile) setIsMobileMenuOpen(false);
           }}
           className={`relative flex items-center justify-between w-full transition-all duration-200 font-semibold tracking-wide text-[13px] px-3.5 py-2.5 rounded-2xl cursor-pointer ${activeTab === 'links'
-              ? 'bg-[#ede9fe] text-[#5b4eed] font-bold shadow-xs transform scale-[1.01]'
-              : 'text-slate-600 hover:bg-[#f5f3ff] hover:text-[#5b4eed]'
+              ? 'bg-[#eff0fe] text-[#7065f0] font-bold shadow-xs transform scale-[1.01]'
+              : 'text-slate-600 hover:bg-[#f5f3ff] hover:text-[#7065f0]'
             }`}
         >
           <div className="flex items-center gap-3">
-            <Video size={18} strokeWidth={activeTab === 'links' ? 2.5 : 2} className={activeTab === 'links' ? 'text-[#5b4eed]' : 'text-slate-400 flex-shrink-0'} />
+            <Video size={18} strokeWidth={activeTab === 'links' ? 2.5 : 2} className={activeTab === 'links' ? 'text-[#7065f0]' : 'text-slate-400 flex-shrink-0'} />
             <span className="truncate">Daily Meeting Links</span>
           </div>
-          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${activeTab === 'links' ? 'bg-[#5b4eed] text-white' : 'bg-slate-200/60 text-slate-700'}`}>
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${activeTab === 'links' ? 'bg-[#7065f0] text-white' : 'bg-slate-200/60 text-slate-700'}`}>
             Meet
           </span>
         </button>
@@ -1272,15 +1273,15 @@ export const UnifiedAdminDashboard: React.FC = () => {
             if (isMobile) setIsMobileMenuOpen(false);
           }}
           className={`relative flex items-center justify-between w-full transition-all duration-200 font-semibold tracking-wide text-[13px] px-3.5 py-2.5 rounded-2xl cursor-pointer ${activeTab === 'geo-history'
-              ? 'bg-[#ede9fe] text-[#5b4eed] font-bold shadow-xs transform scale-[1.01]'
-              : 'text-slate-600 hover:bg-[#f5f3ff] hover:text-[#5b4eed]'
+              ? 'bg-[#eff0fe] text-[#7065f0] font-bold shadow-xs transform scale-[1.01]'
+              : 'text-slate-600 hover:bg-[#f5f3ff] hover:text-[#7065f0]'
             }`}
         >
           <div className="flex items-center gap-3">
-            <MapPin size={18} strokeWidth={activeTab === 'geo-history' ? 2.5 : 2} className={activeTab === 'geo-history' ? 'text-[#5b4eed]' : 'text-slate-400 flex-shrink-0'} />
+            <MapPin size={18} strokeWidth={activeTab === 'geo-history' ? 2.5 : 2} className={activeTab === 'geo-history' ? 'text-[#7065f0]' : 'text-slate-400 flex-shrink-0'} />
             <span className="truncate">Attendance Geo-History</span>
           </div>
-          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${activeTab === 'geo-history' ? 'bg-[#5b4eed] text-white' : 'bg-slate-200/60 text-slate-700'}`}>
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${activeTab === 'geo-history' ? 'bg-[#7065f0] text-white' : 'bg-slate-200/60 text-slate-700'}`}>
             Geo Log
           </span>
         </button>
@@ -1292,15 +1293,15 @@ export const UnifiedAdminDashboard: React.FC = () => {
             if (isMobile) setIsMobileMenuOpen(false);
           }}
           className={`relative flex items-center justify-between w-full transition-all duration-200 font-semibold tracking-wide text-[13px] px-3.5 py-2.5 rounded-2xl cursor-pointer ${activeTab === 'leaders'
-              ? 'bg-[#ede9fe] text-[#5b4eed] font-bold shadow-xs transform scale-[1.01]'
-              : 'text-slate-600 hover:bg-[#f5f3ff] hover:text-[#5b4eed]'
+              ? 'bg-[#eff0fe] text-[#7065f0] font-bold shadow-xs transform scale-[1.01]'
+              : 'text-slate-600 hover:bg-[#f5f3ff] hover:text-[#7065f0]'
             }`}
         >
           <div className="flex items-center gap-3">
-            <Users size={18} strokeWidth={activeTab === 'leaders' ? 2.5 : 2} className={activeTab === 'leaders' ? 'text-[#5b4eed]' : 'text-slate-400 flex-shrink-0'} />
+            <Users size={18} strokeWidth={activeTab === 'leaders' ? 2.5 : 2} className={activeTab === 'leaders' ? 'text-[#7065f0]' : 'text-slate-400 flex-shrink-0'} />
             <span className="truncate">Hospital Leaders Roster</span>
           </div>
-          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${activeTab === 'leaders' ? 'bg-[#5b4eed] text-white' : 'bg-slate-200/60 text-slate-700'}`}>
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${activeTab === 'leaders' ? 'bg-[#7065f0] text-white' : 'bg-slate-200/60 text-slate-700'}`}>
             {leaders.length}
           </span>
         </button>
@@ -1312,15 +1313,15 @@ export const UnifiedAdminDashboard: React.FC = () => {
             if (isMobile) setIsMobileMenuOpen(false);
           }}
           className={`relative flex items-center justify-between w-full transition-all duration-200 font-semibold tracking-wide text-[13px] px-3.5 py-2.5 rounded-2xl cursor-pointer ${activeTab === 'departments'
-              ? 'bg-[#ede9fe] text-[#5b4eed] font-bold shadow-xs transform scale-[1.01]'
-              : 'text-slate-600 hover:bg-[#f5f3ff] hover:text-[#5b4eed]'
+              ? 'bg-[#eff0fe] text-[#7065f0] font-bold shadow-xs transform scale-[1.01]'
+              : 'text-slate-600 hover:bg-[#f5f3ff] hover:text-[#7065f0]'
             }`}
         >
           <div className="flex items-center gap-3">
-            <Building size={18} strokeWidth={activeTab === 'departments' ? 2.5 : 2} className={activeTab === 'departments' ? 'text-[#5b4eed]' : 'text-slate-400 flex-shrink-0'} />
+            <Building size={18} strokeWidth={activeTab === 'departments' ? 2.5 : 2} className={activeTab === 'departments' ? 'text-[#7065f0]' : 'text-slate-400 flex-shrink-0'} />
             <span className="truncate">Departments Master</span>
           </div>
-          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${activeTab === 'departments' ? 'bg-[#5b4eed] text-white' : 'bg-slate-200/60 text-slate-700'}`}>
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${activeTab === 'departments' ? 'bg-[#7065f0] text-white' : 'bg-slate-200/60 text-slate-700'}`}>
             {departments.length}
           </span>
         </button>
@@ -1332,15 +1333,15 @@ export const UnifiedAdminDashboard: React.FC = () => {
             if (isMobile) setIsMobileMenuOpen(false);
           }}
           className={`relative flex items-center justify-between w-full transition-all duration-200 font-semibold tracking-wide text-[13px] px-3.5 py-2.5 rounded-2xl cursor-pointer ${activeTab === 'calendar'
-              ? 'bg-[#ede9fe] text-[#5b4eed] font-bold shadow-xs transform scale-[1.01]'
-              : 'text-slate-600 hover:bg-[#f5f3ff] hover:text-[#5b4eed]'
+              ? 'bg-[#eff0fe] text-[#7065f0] font-bold shadow-xs transform scale-[1.01]'
+              : 'text-slate-600 hover:bg-[#f5f3ff] hover:text-[#7065f0]'
             }`}
         >
           <div className="flex items-center gap-3">
-            <Calendar size={18} strokeWidth={activeTab === 'calendar' ? 2.5 : 2} className={activeTab === 'calendar' ? 'text-[#5b4eed]' : 'text-slate-400 flex-shrink-0'} />
+            <Calendar size={18} strokeWidth={activeTab === 'calendar' ? 2.5 : 2} className={activeTab === 'calendar' ? 'text-[#7065f0]' : 'text-slate-400 flex-shrink-0'} />
             <span className="truncate">Cadence Calendar</span>
           </div>
-          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${activeTab === 'calendar' ? 'bg-[#5b4eed] text-white' : 'bg-slate-200/60 text-slate-700'}`}>
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${activeTab === 'calendar' ? 'bg-[#7065f0] text-white' : 'bg-slate-200/60 text-slate-700'}`}>
             {currentCadence}
           </span>
         </button>
@@ -1352,15 +1353,15 @@ export const UnifiedAdminDashboard: React.FC = () => {
             if (isMobile) setIsMobileMenuOpen(false);
           }}
           className={`relative flex items-center justify-between w-full transition-all duration-200 font-semibold tracking-wide text-[13px] px-3.5 py-2.5 rounded-2xl cursor-pointer ${activeTab === 'reports'
-              ? 'bg-[#ede9fe] text-[#5b4eed] font-bold shadow-xs transform scale-[1.01]'
-              : 'text-slate-600 hover:bg-[#f5f3ff] hover:text-[#5b4eed]'
+              ? 'bg-[#eff0fe] text-[#7065f0] font-bold shadow-xs transform scale-[1.01]'
+              : 'text-slate-600 hover:bg-[#f5f3ff] hover:text-[#7065f0]'
             }`}
         >
           <div className="flex items-center gap-3">
-            <BarChart3 size={18} strokeWidth={activeTab === 'reports' ? 2.5 : 2} className={activeTab === 'reports' ? 'text-[#5b4eed]' : 'text-slate-400 flex-shrink-0'} />
+            <BarChart3 size={18} strokeWidth={activeTab === 'reports' ? 2.5 : 2} className={activeTab === 'reports' ? 'text-[#7065f0]' : 'text-slate-400 flex-shrink-0'} />
             <span className="truncate">Graphical Analytics</span>
           </div>
-          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${activeTab === 'reports' ? 'bg-[#5b4eed] text-white' : 'bg-slate-200/60 text-slate-700'}`}>
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${activeTab === 'reports' ? 'bg-[#7065f0] text-white' : 'bg-slate-200/60 text-slate-700'}`}>
             Graphs
           </span>
         </button>
@@ -1374,35 +1375,35 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
         <button
           onClick={() => downloadPdfReport(selectedDate)}
-          className="w-full px-3.5 py-2 rounded-2xl text-[13px] font-semibold text-slate-600 hover:bg-[#ede9fe]/50 hover:text-[#5b4eed] flex items-center gap-3 cursor-pointer transition-all hover:translate-x-1"
+          className="w-full px-3.5 py-2 rounded-2xl text-[13px] font-semibold text-slate-600 hover:bg-[#eff0fe]/50 hover:text-[#7065f0] flex items-center gap-3 cursor-pointer transition-all hover:translate-x-1"
         >
-          <Download size={16} className="text-[#6351e8] shrink-0" />
+          <Download size={16} className="text-[#7065f0] shrink-0" />
           <span className="truncate">Daily Attendance PDF</span>
         </button>
         <button
           onClick={() => downloadMonthlyPdfReport('October 2026')}
-          className="w-full px-3.5 py-2 rounded-2xl text-[13px] font-semibold text-slate-600 hover:bg-[#ede9fe]/50 hover:text-[#5b4eed] flex items-center gap-3 cursor-pointer transition-all hover:translate-x-1"
+          className="w-full px-3.5 py-2 rounded-2xl text-[13px] font-semibold text-slate-600 hover:bg-[#eff0fe]/50 hover:text-[#7065f0] flex items-center gap-3 cursor-pointer transition-all hover:translate-x-1"
         >
-          <Download size={16} className="text-[#6351e8] shrink-0" />
+          <Download size={16} className="text-[#7065f0] shrink-0" />
           <span className="truncate">Monthly MOM Audit PDF</span>
         </button>
         <button
           onClick={() => downloadYearlyPdfReport(2026)}
-          className="w-full px-3.5 py-2 rounded-2xl text-[13px] font-semibold text-slate-600 hover:bg-[#ede9fe]/50 hover:text-[#5b4eed] flex items-center gap-3 cursor-pointer transition-all hover:translate-x-1"
+          className="w-full px-3.5 py-2 rounded-2xl text-[13px] font-semibold text-slate-600 hover:bg-[#eff0fe]/50 hover:text-[#7065f0] flex items-center gap-3 cursor-pointer transition-all hover:translate-x-1"
         >
-          <Download size={16} className="text-[#6351e8] shrink-0" />
+          <Download size={16} className="text-[#7065f0] shrink-0" />
           <span className="truncate">Annual Hospital Audit PDF</span>
         </button>
       </div>
 
       {/* Sidebar Footer with Admin Controls & Clean Logout */}
-      <div className="p-3 border-t border-purple-100/60 bg-white space-y-2 shrink-0">
-        <div className="flex items-center gap-2.5 px-3 py-2 bg-[#ede9fe]/40 rounded-2xl border border-purple-100 shadow-2xs">
-          <div className="w-8 h-8 rounded-xl bg-[#ede9fe] text-[#6351e8] flex items-center justify-center font-black text-xs border border-purple-200/50">
-            <Shield size={16} className="text-[#6351e8]" />
+      <div className="p-3 border-t border-[#f0f1f8]/60 bg-white space-y-2 shrink-0">
+        <div className="flex items-center gap-2.5 px-3 py-2 bg-[#eff0fe]/40 rounded-2xl border border-[#f0f1f8] shadow-2xs">
+          <div className="w-8 h-8 rounded-xl bg-[#eff0fe] text-[#7065f0] flex items-center justify-center font-black text-xs border border-purple-200/50">
+            <Shield size={16} className="text-[#7065f0]" />
           </div>
           <div className="overflow-hidden flex-1">
-            <div className="truncate font-black text-[#1e1b4b] text-xs leading-tight">
+            <div className="truncate font-black text-[#232d42] text-xs leading-tight">
               {adminProfile?.full_name || 'Administrator'}
             </div>
             <div className="text-[10px] text-slate-400 font-semibold truncate">
@@ -1416,10 +1417,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
               setShowQrDisplayModal(true);
               if (isMobile) setIsMobileMenuOpen(false);
             }}
-            className="px-2.5 py-2 rounded-2xl text-[11px] font-bold bg-white hover:bg-[#ede9fe]/40 text-[#1e1b4b] border border-purple-100 flex items-center justify-center gap-1.5 cursor-pointer transition-all shadow-xs hover:border-[#6351e8]"
+            className="px-2.5 py-2 rounded-2xl text-[11px] font-bold bg-white hover:bg-[#eff0fe]/40 text-[#232d42] border border-[#f0f1f8] flex items-center justify-center gap-1.5 cursor-pointer transition-all shadow-xs hover:border-[#7065f0]"
             title="Boardroom Static QR"
           >
-            <QrCode className="w-3.5 h-3.5 text-[#6351e8]" />
+            <QrCode className="w-3.5 h-3.5 text-[#7065f0]" />
             <span>Room QR</span>
           </button>
           <button
@@ -1427,7 +1428,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
               setShowPasswordModal(true);
               if (isMobile) setIsMobileMenuOpen(false);
             }}
-            className="px-2.5 py-2 rounded-2xl text-[11px] font-bold bg-white hover:bg-[#ede9fe]/40 text-[#1e1b4b] border border-purple-100 flex items-center justify-center gap-1.5 cursor-pointer transition-all shadow-xs hover:border-[#6351e8]"
+            className="px-2.5 py-2 rounded-2xl text-[11px] font-bold bg-white hover:bg-[#eff0fe]/40 text-[#232d42] border border-[#f0f1f8] flex items-center justify-center gap-1.5 cursor-pointer transition-all shadow-xs hover:border-[#7065f0]"
             title="Change Password"
           >
             <KeyRound className="w-3.5 h-3.5 text-amber-500" />
@@ -1449,9 +1450,9 @@ export const UnifiedAdminDashboard: React.FC = () => {
   );
 
   return (
-    <div className="min-h-screen bg-[#f6effb] flex font-sans antialiased text-[#1e1b4b]">
+    <div className="min-h-screen bg-[#f6effb] flex font-sans antialiased text-[#232d42]">
       {/* Desktop Fixed Left Sidebar */}
-      <aside className="hidden lg:flex w-68 xl:w-72 bg-white text-[#1e1b4b] shrink-0 sticky top-0 h-[calc(100vh-2.5rem)] flex-col border-r border-purple-100/70 z-30 shadow-xs overflow-hidden">
+      <aside className="hidden lg:flex w-68 xl:w-72 bg-white text-[#232d42] shrink-0 sticky top-0 h-[calc(100vh-2.5rem)] flex-col border-r border-[#f0f1f8]/70 z-30 shadow-xs overflow-hidden">
         {renderSidebarNav(false)}
       </aside>
 
@@ -1462,7 +1463,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
             className="fixed inset-0 modal-backdrop transition-opacity"
             onClick={() => setIsMobileMenuOpen(false)}
           />
-          <aside className="fixed inset-y-0 left-0 w-72 max-w-[85vw] bg-white flex flex-col border-r border-purple-100/70 shadow-2xl overflow-hidden z-10 animate-in slide-in-from-left duration-200">
+          <aside className="fixed inset-y-0 left-0 w-72 max-w-[85vw] bg-white flex flex-col border-r border-[#f0f1f8]/70 shadow-2xl overflow-hidden z-10 animate-in slide-in-from-left duration-200">
             {renderSidebarNav(true)}
           </aside>
         </div>
@@ -1471,22 +1472,22 @@ export const UnifiedAdminDashboard: React.FC = () => {
       {/* ================= RIGHT DASHBOARD CONTENT AREA ================= */}
       <div className="flex-1 min-w-0 flex flex-col min-h-screen bg-[#f6effb] pb-16">
         {/* Mobile Top Navbar (lg:hidden) */}
-        <div className="lg:hidden sticky top-0 z-40 w-full bg-white border-b border-purple-100/70 px-3.5 py-2.5 flex items-center justify-between shadow-xs">
+        <div className="lg:hidden sticky top-0 z-40 w-full bg-white border-b border-[#f0f1f8]/70 px-3.5 py-2.5 flex items-center justify-between shadow-xs">
           <div className="flex items-center gap-2.5">
             <button
               onClick={() => setIsMobileMenuOpen(true)}
-              className="p-2 rounded-2xl text-[#1e1b4b] hover:bg-slate-100 border border-purple-100 cursor-pointer"
+              className="p-2 rounded-2xl text-[#232d42] hover:bg-slate-100 border border-[#f0f1f8] cursor-pointer"
               title="Open Navigation Menu"
             >
               <Menu size={20} />
             </button>
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-[#ede9fe] rounded-xl p-1 border border-purple-200/50 shadow-2xs">
+              <div className="w-8 h-8 bg-[#eff0fe] rounded-xl p-1 border border-purple-200/50 shadow-2xs">
                 <img src={sbhLogo} alt="Logo" className="w-full h-full object-contain" />
               </div>
               <div>
-                <div className="text-xs font-black uppercase text-[#1e1b4b] leading-none">
-                  SBH <span className="text-[#6351e8]">DOM PORTAL</span>
+                <div className="text-xs font-black uppercase text-[#232d42] leading-none">
+                  SBH <span className="text-[#7065f0]">DOM PORTAL</span>
                 </div>
                 <div className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
                   Live Sync v2.1
@@ -1496,14 +1497,14 @@ export const UnifiedAdminDashboard: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="text-[10px] font-bold text-[#6351e8] bg-[#ede9fe] px-2 py-1 rounded-xl border border-purple-200/60 font-mono">
+            <div className="text-[10px] font-bold text-[#7065f0] bg-[#eff0fe] px-2 py-1 rounded-xl border border-purple-200/60 font-mono">
               {formatToIndianDate(selectedDate)}
             </div>
             <a
               href={currentMeeting.google_meet_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-2.5 py-1.5 bg-gradient-to-r from-[#5f4de6] to-[#7f70f6] text-white rounded-xl text-xs font-bold flex items-center gap-1 shadow-xs"
+              className="px-2.5 py-1.5 bg-gradient-to-r from-[#7065f0] to-[#7f70f6] text-white rounded-xl text-xs font-bold flex items-center gap-1 shadow-xs"
               title="Google Meet"
             >
               <Video size={14} />
@@ -1515,7 +1516,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
         {/* Toast Alert Banner */}
         {toastAlert && (
           <div className={`p-3 text-xs font-bold text-center flex items-center justify-center gap-2 sticky top-0 z-40 transition-all ${toastAlert.type === 'success'
-            ? 'bg-gradient-to-r from-[#5f4de6] to-[#7f70f6] text-white shadow-md'
+            ? 'bg-gradient-to-r from-[#7065f0] to-[#7f70f6] text-white shadow-md'
             : toastAlert.type === 'info'
               ? 'bg-[#3bb7b8] text-white shadow-md'
               : 'bg-[#e11d48] text-white shadow-md'
@@ -1542,64 +1543,64 @@ export const UnifiedAdminDashboard: React.FC = () => {
         )}
 
         {/* Top Header Bar Attached to Dashboard */}
-        <header className="sticky top-0 z-[100] w-full bg-white/95 backdrop-blur-md border-b border-purple-100/60 shadow-2xs">
+        <header className="sticky top-0 z-[100] w-full bg-white/95 backdrop-blur-md border-b border-[#f0f1f8]/60 shadow-2xs">
           <div className="px-4 sm:px-6 py-3.5 flex justify-between items-center gap-4">
             <div className="flex items-center gap-3">
               <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-[#1e1b4b] tracking-tight flex items-center gap-3">
+                <h1 className="text-xl sm:text-2xl font-bold text-[#232d42] tracking-tight flex items-center gap-3">
                   {activeTab === 'attendance' && (
                     <>
-                      Daily Attendance <span className="text-[#6351e8]">Register ({currentCadence})</span>
-                      <span className="px-3 py-1 rounded-2xl bg-[#ede9fe] border border-purple-200/60 text-[10px] font-bold text-[#6351e8] tracking-wider whitespace-nowrap">
+                      Daily Attendance <span className="text-[#7065f0]">Register ({currentCadence})</span>
+                      <span className="px-3 py-1 rounded-2xl bg-[#eff0fe] border border-purple-200/60 text-[10px] font-bold text-[#7065f0] tracking-wider whitespace-nowrap">
                         Live Sync v2.1
                       </span>
                     </>
                   )}
                   {activeTab === 'links' && (
                     <>
-                      Daily Meeting <span className="text-[#6351e8]">Links & Tracker</span>
-                      <span className="px-3 py-1 rounded-2xl bg-[#ede9fe] border border-purple-200/60 text-[10px] font-bold text-[#6351e8] tracking-wider whitespace-nowrap font-mono">
+                      Daily Meeting <span className="text-[#7065f0]">Links & Tracker</span>
+                      <span className="px-3 py-1 rounded-2xl bg-[#eff0fe] border border-purple-200/60 text-[10px] font-bold text-[#7065f0] tracking-wider whitespace-nowrap font-mono">
                         {formatToIndianDate(selectedDate)}
                       </span>
                     </>
                   )}
                   {activeTab === 'geo-history' && (
                     <>
-                      Attendance <span className="text-[#6351e8]">Geo-History & Location Logs</span>
-                      <span className="px-3 py-1 rounded-2xl bg-[#ede9fe] border border-purple-200/60 text-[10px] font-bold text-[#6351e8] tracking-wider whitespace-nowrap">
+                      Attendance <span className="text-[#7065f0]">Geo-History & Location Logs</span>
+                      <span className="px-3 py-1 rounded-2xl bg-[#eff0fe] border border-purple-200/60 text-[10px] font-bold text-[#7065f0] tracking-wider whitespace-nowrap">
                         Live GPS Verification
                       </span>
                     </>
                   )}
                   {activeTab === 'calendar' && (
                     <>
-                      Cadence <span className="text-[#6351e8]">Calendar (DOM / WOM / MOM)</span>
+                      Cadence <span className="text-[#7065f0]">Calendar (DOM / WOM / MOM)</span>
                     </>
                   )}
                   {activeTab === 'reports' && (
                     <>
-                      Graphical <span className="text-[#6351e8]">Analytics & Absenteeism</span>
+                      Graphical <span className="text-[#7065f0]">Analytics & Absenteeism</span>
                     </>
                   )}
                   {activeTab === 'leaders' && (
                     <>
-                      Hospital Leaders <span className="text-[#6351e8]">Roster</span>
-                      <span className="px-3 py-1 rounded-2xl bg-[#ede9fe] border border-purple-200/60 text-[10px] font-bold text-[#6351e8] tracking-wider whitespace-nowrap">
+                      Hospital Leaders <span className="text-[#7065f0]">Roster</span>
+                      <span className="px-3 py-1 rounded-2xl bg-[#eff0fe] border border-purple-200/60 text-[10px] font-bold text-[#7065f0] tracking-wider whitespace-nowrap">
                         {leaders.length} Leaders
                       </span>
                     </>
                   )}
                   {activeTab === 'departments' && (
                     <>
-                      Hospital <span className="text-[#6351e8]">Departments Master</span>
-                      <span className="px-3 py-1 rounded-2xl bg-[#ede9fe] border border-purple-200/60 text-[10px] font-bold text-[#6351e8] tracking-wider whitespace-nowrap">
+                      Hospital <span className="text-[#7065f0]">Departments Master</span>
+                      <span className="px-3 py-1 rounded-2xl bg-[#eff0fe] border border-purple-200/60 text-[10px] font-bold text-[#7065f0] tracking-wider whitespace-nowrap">
                         {departments.length} Depts
                       </span>
                     </>
                   )}
                   {activeTab === 'settings' && (
                     <>
-                      WhatsApp Gateway <span className="text-[#6351e8]">& Settings</span>
+                      WhatsApp Gateway <span className="text-[#7065f0]">& Settings</span>
                     </>
                   )}
                 </h1>
@@ -1608,12 +1609,23 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
             {/* Right Header: Date Selector and Google Meet button */}
             <div className="flex items-center gap-3">
-              <div className="relative flex items-center gap-2 bg-white hover:bg-[#ede9fe]/30 px-3.5 py-2 rounded-2xl border border-purple-100 shadow-xs transition-all cursor-pointer group">
-                <Calendar className="w-4 h-4 text-[#6351e8] group-hover:scale-110 transition-transform shrink-0" />
-                <span className="text-xs font-black text-slate-800 font-mono tracking-tight">
+              <div
+                onClick={() => {
+                  try {
+                    datePickerInputRef.current?.showPicker();
+                  } catch (e) {
+                    datePickerInputRef.current?.focus();
+                  }
+                }}
+                className="relative flex items-center gap-2 bg-white hover:bg-[#eff0fe]/50 px-3.5 py-2 rounded-xl border border-slate-200 shadow-xs transition-all cursor-pointer group"
+                title="Click to change date"
+              >
+                <Calendar className="w-4 h-4 text-[#7065f0] group-hover:scale-110 transition-transform shrink-0" />
+                <span className="text-xs font-bold text-[#232d42] font-mono tracking-tight">
                   {formatToIndianDate(selectedDate)}
                 </span>
                 <input
+                  ref={datePickerInputRef}
                   type="date"
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
@@ -1626,11 +1638,11 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 href={currentMeeting.google_meet_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-4 py-2 bg-gradient-to-r from-[#5f4de6] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7060f0] text-white rounded-2xl text-xs font-bold shadow-sm shadow-indigo-200/60 transition-all active:scale-[0.98] flex items-center justify-center gap-1.5 cursor-pointer"
+                className="px-4 py-2 bg-[#7065f0] hover:bg-[#5e52e4] text-white rounded-xl text-xs font-bold shadow-xs shadow-indigo-500/20 transition-all active:scale-[0.98] flex items-center justify-center gap-1.5 cursor-pointer"
                 title="Open Google Meet"
               >
-                <Video className="w-4 h-4" />
-                <span className="hidden sm:inline">Google Meet</span>
+                <Video className="w-4 h-4 text-white" />
+                <span className="hidden sm:inline font-bold">Google Meet</span>
               </a>
             </div>
           </div>
@@ -1640,24 +1652,24 @@ export const UnifiedAdminDashboard: React.FC = () => {
         <div className="flex-1 p-4 sm:p-6 space-y-6 max-w-[1600px] w-full mx-auto">
           {/* Top Meeting Header for Non-Attendance Tabs */}
           {activeTab !== 'attendance' && (
-            <div className="bg-white rounded-3xl border border-purple-100/80 shadow-xs px-4 py-3 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+            <div className="bg-white rounded-3xl border border-[#f0f1f8]/80 shadow-xs px-4 py-3 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
               <div className="flex items-center gap-3">
                 <div
                   className={`w-9 h-9 rounded-2xl flex items-center justify-center font-black text-white shadow-xs text-xs shrink-0 ${currentCadence === 'MOM'
                       ? 'bg-purple-600'
                       : currentCadence === 'WOM'
                         ? 'bg-blue-600'
-                        : 'bg-gradient-to-br from-[#5f4de6] to-[#7f70f6]'
+                        : 'bg-gradient-to-br from-[#7065f0] to-[#7f70f6]'
                     }`}
                 >
                   {currentCadence}
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold text-[#5b4eed] bg-[#ede9fe] border border-purple-200/60 px-2 py-0.5 rounded-full">
+                    <span className="text-[10px] font-bold text-[#7065f0] bg-[#eff0fe] border border-purple-200/60 px-2 py-0.5 rounded-full">
                       {currentCadence} Cadence
                     </span>
-                    <span className="text-sm font-bold text-[#1e1b4b]">{currentMeeting.title}</span>
+                    <span className="text-sm font-bold text-[#232d42]">{currentMeeting.title}</span>
                   </div>
                   <div className="text-xs text-slate-500 font-mono">
                     Scheduled: {currentMeeting.scheduled_time}
@@ -1679,7 +1691,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                     });
                     setShowScheduleEditModal(true);
                   }}
-                  className="flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-50 text-[#1e1b4b] border border-purple-100 rounded-2xl text-xs font-bold shadow-2xs transition-colors cursor-pointer"
+                  className="flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-50 text-[#232d42] border border-[#f0f1f8] rounded-2xl text-xs font-bold shadow-2xs transition-colors cursor-pointer"
                 >
                   <Settings2 className="w-3.5 h-3.5 text-slate-600" />
                   <span>Modify Cadence</span>
@@ -1687,7 +1699,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
                 <button
                   onClick={handleSendReminderNotice}
-                  className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-[#5f4de6] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7060f0] text-white rounded-2xl text-xs font-bold shadow-2xs transition-all cursor-pointer"
+                  className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-[#7065f0] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7065f0] text-white rounded-2xl text-xs font-bold shadow-2xs transition-all cursor-pointer"
                 >
                   <Send className="w-3.5 h-3.5" />
                   <span>Notice</span>
@@ -1700,11 +1712,11 @@ export const UnifiedAdminDashboard: React.FC = () => {
           {activeTab === 'attendance' && (
             <div className="space-y-4">
               {/* Executive Command Center */}
-              <div className="bg-white rounded-3xl border border-purple-100/80 shadow-xs relative overflow-hidden">
-                <div className="h-1.5 w-full bg-gradient-to-r from-[#5f4de6] via-[#8576f7] to-[#45b7b8] absolute top-0 left-0" />
+              <div className="bg-white rounded-3xl border border-[#f0f1f8]/80 shadow-xs relative overflow-hidden">
+                <div className="h-1.5 w-full bg-gradient-to-r from-[#7065f0] via-[#8576f7] to-[#45b7b8] absolute top-0 left-0" />
 
                 {/* Row 1: Meeting Cadence, Title, Time, Meet Link & Header Actions */}
-                <div className="p-3.5 sm:p-4 border-b border-purple-50 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3">
+                <div className="p-3.5 sm:p-4 border-b border-[#f0f1f8] flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <div
                       className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-white shadow-xs text-xs shrink-0 ${currentCadence === 'MOM'
@@ -1713,14 +1725,14 @@ export const UnifiedAdminDashboard: React.FC = () => {
                             ? 'bg-[#3bb7b8]'
                             : currentMeeting.is_holiday_or_shifted
                               ? 'bg-amber-500'
-                              : 'bg-gradient-to-br from-[#5f4de6] to-[#7f70f6]'
+                              : 'bg-gradient-to-br from-[#7065f0] to-[#7f70f6]'
                         }`}
                     >
                       {currentCadence}
                     </div>
                     <div>
                       <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                        <span className="text-[10px] font-black uppercase tracking-wider text-[#5b4eed] bg-[#ede9fe] border border-purple-200/60 px-2.5 py-0.5 rounded-full">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-[#7065f0] bg-[#eff0fe] border border-purple-200/60 px-2.5 py-0.5 rounded-full">
                           {currentCadence === 'MOM' && 'MOM Strategic'}
                           {currentCadence === 'WOM' && 'WOM Review'}
                           {currentCadence === 'DOM' && 'DOM — Daily Operations Standup'}
@@ -1732,10 +1744,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
                           </span>
                         )}
                       </div>
-                      <h2 className="text-base sm:text-lg font-black text-[#1e1b4b] tracking-tight">{currentMeeting.title}</h2>
+                      <h2 className="text-base sm:text-lg font-black text-[#232d42] tracking-tight">{currentMeeting.title}</h2>
                       <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-500 flex-wrap">
                         <span className="inline-flex items-center gap-1 font-bold text-slate-700 font-mono text-xs">
-                          <Clock className="w-3.5 h-3.5 text-[#6351e8]" />
+                          <Clock className="w-3.5 h-3.5 text-[#7065f0]" />
                           Scheduled: {currentMeeting.scheduled_time}
                         </span>
                         <span className="text-slate-300">•</span>
@@ -1743,9 +1755,9 @@ export const UnifiedAdminDashboard: React.FC = () => {
                           href={currentMeeting.google_meet_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-[#5b4eed] hover:underline font-bold flex items-center gap-1 transition-colors text-xs"
+                          className="text-[#7065f0] hover:underline font-bold flex items-center gap-1 transition-colors text-xs"
                         >
-                          <Video className="w-3.5 h-3.5 text-[#6351e8]" />
+                          <Video className="w-3.5 h-3.5 text-[#7065f0]" />
                           <span>Meet Link</span>
                         </a>
                         <span className="text-slate-300">•</span>
@@ -1777,7 +1789,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                     <button
                       onClick={handleSendReminderNotice}
                       disabled={isSendingNotice}
-                      className="px-3.5 py-1.5 bg-gradient-to-r from-[#5f4de6] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7060f0] text-white rounded-2xl text-xs font-bold shadow-sm shadow-indigo-200/50 flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150 disabled:opacity-60"
+                      className="px-3.5 py-1.5 bg-gradient-to-r from-[#7065f0] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7065f0] text-white rounded-2xl text-xs font-bold shadow-sm shadow-indigo-200/50 flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150 disabled:opacity-60"
                     >
                       {isSendingNotice ? <Loader2 className="w-3.5 h-3.5 animate-spin text-white" /> : <Send className="w-3.5 h-3.5" />}
                       <span>Send {currentCadence} WhatsApp Notice</span>
@@ -1807,7 +1819,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 </div>
 
                 {/* Row 2: Live India Time (IST), Countdown, and Daily Operations Action Bar */}
-                <div className="p-3 sm:p-3.5 bg-slate-50/50 border-t border-purple-50 grid grid-cols-1 md:grid-cols-3 gap-2.5 items-center">
+                <div className="p-3 sm:p-3.5 bg-slate-50/50 border-t border-[#f0f1f8] grid grid-cols-1 md:grid-cols-3 gap-2.5 items-center">
                   {/* Isolated Live India Time & Standup Countdown (Zero re-renders on parent dashboard) */}
                   <LiveIndiaClockAndCountdown currentCadence={currentCadence} />
 
@@ -1871,7 +1883,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
                     <button
                       onClick={() => setShowGroupDispatchModal(true)}
-                      className="px-3 py-1.5 bg-gradient-to-r from-[#5f4de6] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7060f0] text-white rounded-2xl text-xs font-bold shadow-sm shadow-indigo-200/50 flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150"
+                      className="px-3 py-1.5 bg-gradient-to-r from-[#7065f0] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7065f0] text-white rounded-2xl text-xs font-bold shadow-sm shadow-indigo-200/50 flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150"
                       title="Send Official PDF or Absentee Text Report to SBH WhatsApp Group"
                     >
                       <Send className="w-3.5 h-3.5 text-white" />
@@ -1946,12 +1958,12 @@ export const UnifiedAdminDashboard: React.FC = () => {
                         setTimeout(() => setToastAlert(null), 4000);
                       }}
                       className={`px-3 py-1.5 rounded-2xl text-xs font-bold flex items-center gap-1 cursor-pointer active:scale-95 transition-all duration-150 border shrink-0 ${autoCeoitboxDispatch
-                          ? 'bg-[#ede9fe] text-[#5b4eed] border-purple-200'
+                          ? 'bg-[#eff0fe] text-[#7065f0] border-purple-200'
                           : 'bg-slate-100 text-slate-500 border-slate-200'
                         }`}
                       title="Auto-Scheduler Toggle"
                     >
-                      <Clock className={`w-3.5 h-3.5 ${autoCeoitboxDispatch ? 'text-[#5b4eed]' : 'text-slate-400'}`} />
+                      <Clock className={`w-3.5 h-3.5 ${autoCeoitboxDispatch ? 'text-[#7065f0]' : 'text-slate-400'}`} />
                       <span>Auto: {autoCeoitboxDispatch ? 'ON' : 'OFF'}</span>
                     </button>
                   </div>
@@ -1982,25 +1994,25 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 </div>
               )}
 
-              {/* 7 Colorful Modern SaaS Matrix Cards */}
+              {/* 7 Colorful Hope UI Matrix Cards */}
               <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
                 {/* 1. Scheduled Today */}
                 <div
                   onClick={() => setStatusFilter('ALL')}
-                  className={`p-3 rounded-2xl transition-all cursor-pointer group relative overflow-hidden text-white bg-gradient-to-r from-[#6e5ce6] to-[#8c7cf0] shadow-md shadow-indigo-200/50 ${statusFilter === 'ALL'
-                      ? 'ring-3 ring-slate-900/60 shadow-lg scale-[1.03]'
-                      : 'hover:scale-[1.02] hover:shadow-lg'
+                  className={`p-3.5 rounded-2xl transition-all cursor-pointer group relative overflow-hidden text-white bg-gradient-to-br from-[#8a7ff5] to-[#a497fc] shadow-xs ${statusFilter === 'ALL'
+                      ? 'ring-3 ring-indigo-900/40 shadow-md scale-[1.02]'
+                      : 'hover:scale-[1.01] hover:shadow-md'
                     }`}
                 >
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white backdrop-blur-xs">
-                      <Users className="w-4 h-4" />
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center text-white backdrop-blur-xs">
+                      <Users className="w-3.5 h-3.5" />
                     </div>
-                    <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-white/20 text-white uppercase tracking-wider font-mono">
+                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-white/20 text-white uppercase tracking-wider font-mono">
                       Roster
                     </span>
                   </div>
-                  <div className="text-xl sm:text-2xl font-black text-white leading-tight tracking-tight mt-1">{totalLeaders}</div>
+                  <div className="text-xl sm:text-2xl font-black text-white leading-tight tracking-tight mt-0.5">{totalLeaders}</div>
                   <div className="text-[10px] font-bold text-white uppercase tracking-wider mt-0.5">Scheduled</div>
                   <div className="text-[9px] text-white/80 font-medium truncate">Total Registered</div>
                 </div>
@@ -2008,20 +2020,20 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 {/* 2. Total Joined (Turnout Recorded) */}
                 <div
                   onClick={() => setStatusFilter(statusFilter === 'PRESENT' ? 'ALL' : 'PRESENT')}
-                  className={`p-3 rounded-2xl transition-all cursor-pointer group relative overflow-hidden text-white bg-gradient-to-r from-[#32b87f] to-[#59d49c] shadow-md shadow-emerald-200/50 ${statusFilter === 'PRESENT'
-                      ? 'ring-3 ring-slate-900/60 shadow-lg scale-[1.03]'
-                      : 'hover:scale-[1.02] hover:shadow-lg'
+                  className={`p-3.5 rounded-2xl transition-all cursor-pointer group relative overflow-hidden text-white bg-gradient-to-br from-[#5ec4c7] to-[#80e3e6] shadow-xs ${statusFilter === 'PRESENT'
+                      ? 'ring-3 ring-teal-900/40 shadow-md scale-[1.02]'
+                      : 'hover:scale-[1.01] hover:shadow-md'
                     }`}
                 >
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white backdrop-blur-xs">
-                      <CheckCircle2 className="w-4 h-4" />
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center text-white backdrop-blur-xs">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
                     </div>
-                    <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-white/20 text-white uppercase tracking-wider font-mono">
+                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-white/20 text-white uppercase tracking-wider font-mono">
                       {turnoutPercent}%
                     </span>
                   </div>
-                  <div className="text-xl sm:text-2xl font-black text-white leading-tight tracking-tight mt-1">{countPresent}</div>
+                  <div className="text-xl sm:text-2xl font-black text-white leading-tight tracking-tight mt-0.5">{countPresent}</div>
                   <div className="text-[10px] font-bold text-white uppercase tracking-wider mt-0.5">Total Joined</div>
                   <div className="text-[9px] text-white/80 font-medium truncate">Turnout Recorded</div>
                 </div>
@@ -2029,20 +2041,20 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 {/* 3. In-Person (Physical Room) */}
                 <div
                   onClick={() => setStatusFilter(statusFilter === 'PHYSICAL' ? 'ALL' : 'PHYSICAL')}
-                  className={`p-3 rounded-2xl transition-all cursor-pointer group relative overflow-hidden text-white bg-gradient-to-r from-[#f88f7b] to-[#f7aa97] shadow-md shadow-rose-200/50 ${statusFilter === 'PHYSICAL'
-                      ? 'ring-3 ring-slate-900/60 shadow-lg scale-[1.03]'
-                      : 'hover:scale-[1.02] hover:shadow-lg'
+                  className={`p-3.5 rounded-2xl transition-all cursor-pointer group relative overflow-hidden text-white bg-gradient-to-br from-[#7065f0] to-[#9286fa] shadow-xs ${statusFilter === 'PHYSICAL'
+                      ? 'ring-3 ring-indigo-900/40 shadow-md scale-[1.02]'
+                      : 'hover:scale-[1.01] hover:shadow-md'
                     }`}
                 >
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white backdrop-blur-xs">
-                      <Building className="w-4 h-4" />
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center text-white backdrop-blur-xs">
+                      <Building className="w-3.5 h-3.5" />
                     </div>
-                    <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-white/20 text-white uppercase tracking-wider font-mono">
+                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-white/20 text-white uppercase tracking-wider font-mono">
                       5th Flr
                     </span>
                   </div>
-                  <div className="text-xl sm:text-2xl font-black text-white leading-tight tracking-tight mt-1">{countPhysical}</div>
+                  <div className="text-xl sm:text-2xl font-black text-white leading-tight tracking-tight mt-0.5">{countPhysical}</div>
                   <div className="text-[10px] font-bold text-white uppercase tracking-wider mt-0.5">In-Person</div>
                   <div className="text-[9px] text-white/80 font-medium truncate">Conference Room</div>
                 </div>
@@ -2050,20 +2062,20 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 {/* 4. Virtual (Meet) */}
                 <div
                   onClick={() => setStatusFilter(statusFilter === 'VIRTUAL' ? 'ALL' : 'VIRTUAL')}
-                  className={`p-3 rounded-2xl transition-all cursor-pointer group relative overflow-hidden text-white bg-gradient-to-r from-[#3bb7b8] to-[#5fd3d4] shadow-md shadow-teal-200/50 ${statusFilter === 'VIRTUAL'
-                      ? 'ring-3 ring-slate-900/60 shadow-lg scale-[1.03]'
-                      : 'hover:scale-[1.02] hover:shadow-lg'
+                  className={`p-3.5 rounded-2xl transition-all cursor-pointer group relative overflow-hidden text-white bg-gradient-to-br from-[#4facfe] to-[#00f2fe] shadow-xs ${statusFilter === 'VIRTUAL'
+                      ? 'ring-3 ring-sky-900/40 shadow-md scale-[1.02]'
+                      : 'hover:scale-[1.01] hover:shadow-md'
                     }`}
                 >
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white backdrop-blur-xs">
-                      <Video className="w-4 h-4" />
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center text-white backdrop-blur-xs">
+                      <Video className="w-3.5 h-3.5" />
                     </div>
-                    <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-white/20 text-white uppercase tracking-wider font-mono">
+                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-white/20 text-white uppercase tracking-wider font-mono">
                       Online
                     </span>
                   </div>
-                  <div className="text-xl sm:text-2xl font-black text-white leading-tight tracking-tight mt-1">{countVirtual}</div>
+                  <div className="text-xl sm:text-2xl font-black text-white leading-tight tracking-tight mt-0.5">{countVirtual}</div>
                   <div className="text-[10px] font-bold text-white uppercase tracking-wider mt-0.5">Virtual</div>
                   <div className="text-[9px] text-white/80 font-medium truncate">Google Meet</div>
                 </div>
@@ -2071,20 +2083,20 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 {/* 5. Late (Approved) */}
                 <div
                   onClick={() => setStatusFilter(statusFilter === 'INFORMED_LATE' ? 'ALL' : 'INFORMED_LATE')}
-                  className={`p-3 rounded-2xl transition-all cursor-pointer group relative overflow-hidden text-white bg-gradient-to-r from-[#f59e0b] to-[#fbbf24] shadow-md shadow-amber-200/50 ${statusFilter === 'INFORMED_LATE'
-                      ? 'ring-3 ring-slate-900/60 shadow-lg scale-[1.03]'
-                      : 'hover:scale-[1.02] hover:shadow-lg'
+                  className={`p-3.5 rounded-2xl transition-all cursor-pointer group relative overflow-hidden text-white bg-gradient-to-br from-[#f9a69b] to-[#fcbeb1] shadow-xs ${statusFilter === 'INFORMED_LATE'
+                      ? 'ring-3 ring-orange-900/40 shadow-md scale-[1.02]'
+                      : 'hover:scale-[1.01] hover:shadow-md'
                     }`}
                 >
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white backdrop-blur-xs">
-                      <Clock className="w-4 h-4" />
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center text-white backdrop-blur-xs">
+                      <Clock className="w-3.5 h-3.5" />
                     </div>
-                    <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-white/20 text-white uppercase tracking-wider font-mono">
+                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-white/20 text-white uppercase tracking-wider font-mono">
                       Delay
                     </span>
                   </div>
-                  <div className="text-xl sm:text-2xl font-black text-white leading-tight tracking-tight mt-1">{countLate}</div>
+                  <div className="text-xl sm:text-2xl font-black text-white leading-tight tracking-tight mt-0.5">{countLate}</div>
                   <div className="text-[10px] font-bold text-white uppercase tracking-wider mt-0.5">Informed Late</div>
                   <div className="text-[9px] text-white/80 font-medium truncate">Admin Approved</div>
                 </div>
@@ -2092,20 +2104,20 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 {/* 6. Approved Leave */}
                 <div
                   onClick={() => setStatusFilter(statusFilter === 'LEAVE' ? 'ALL' : 'LEAVE')}
-                  className={`p-3 rounded-2xl transition-all cursor-pointer group relative overflow-hidden text-white bg-gradient-to-r from-[#8b5cf6] to-[#a78bfa] shadow-md shadow-purple-200/50 ${statusFilter === 'LEAVE'
-                      ? 'ring-3 ring-slate-900/60 shadow-lg scale-[1.03]'
-                      : 'hover:scale-[1.02] hover:shadow-lg'
+                  className={`p-3.5 rounded-2xl transition-all cursor-pointer group relative overflow-hidden text-white bg-gradient-to-br from-[#a78bfa] to-[#c4b5fd] shadow-xs ${statusFilter === 'LEAVE'
+                      ? 'ring-3 ring-purple-900/40 shadow-md scale-[1.02]'
+                      : 'hover:scale-[1.01] hover:shadow-md'
                     }`}
                 >
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white backdrop-blur-xs">
-                      <HelpCircle className="w-4 h-4" />
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center text-white backdrop-blur-xs">
+                      <HelpCircle className="w-3.5 h-3.5" />
                     </div>
-                    <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-white/20 text-white uppercase tracking-wider font-mono">
+                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-white/20 text-white uppercase tracking-wider font-mono">
                       Leave
                     </span>
                   </div>
-                  <div className="text-xl sm:text-2xl font-black text-white leading-tight tracking-tight mt-1">{countInformed}</div>
+                  <div className="text-xl sm:text-2xl font-black text-white leading-tight tracking-tight mt-0.5">{countInformed}</div>
                   <div className="text-[10px] font-bold text-white uppercase tracking-wider mt-0.5">On Leave</div>
                   <div className="text-[9px] text-white/80 font-medium truncate">Official Sanction</div>
                 </div>
@@ -2113,20 +2125,20 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 {/* 7. Absent */}
                 <div
                   onClick={() => setStatusFilter(statusFilter === 'ABSENT' ? 'ALL' : 'ABSENT')}
-                  className={`p-3 rounded-2xl transition-all cursor-pointer group relative overflow-hidden text-white bg-gradient-to-r from-[#e11d48] to-[#f43f5e] shadow-md shadow-rose-300/50 ${statusFilter === 'ABSENT'
-                      ? 'ring-3 ring-slate-900/60 shadow-lg scale-[1.03]'
-                      : 'hover:scale-[1.02] hover:shadow-lg'
+                  className={`p-3.5 rounded-2xl transition-all cursor-pointer group relative overflow-hidden text-white bg-gradient-to-br from-[#f43f5e] to-[#fb7185] shadow-xs ${statusFilter === 'ABSENT'
+                      ? 'ring-3 ring-rose-900/40 shadow-md scale-[1.02]'
+                      : 'hover:scale-[1.01] hover:shadow-md'
                     }`}
                 >
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white backdrop-blur-xs">
-                      <XCircle className="w-4 h-4" />
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center text-white backdrop-blur-xs">
+                      <XCircle className="w-3.5 h-3.5" />
                     </div>
-                    <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-white/20 text-white uppercase tracking-wider font-mono">
+                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-white/20 text-white uppercase tracking-wider font-mono">
                       {countAbsent > 0 ? 'Action' : 'Zero'}
                     </span>
                   </div>
-                  <div className="text-xl sm:text-2xl font-black text-white leading-tight tracking-tight mt-1">{countAbsent}</div>
+                  <div className="text-xl sm:text-2xl font-black text-white leading-tight tracking-tight mt-0.5">{countAbsent}</div>
                   <div className="text-[10px] font-bold text-white uppercase tracking-wider mt-0.5">Absent</div>
                   <div className="text-[9px] text-white/80 font-medium truncate">{countAbsent > 0 ? 'Unexcused' : 'Full Attendance'}</div>
                 </div>
@@ -2134,10 +2146,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
               {/* Active Matrix Filter Indicator Pill */}
               {statusFilter !== 'ALL' && (
-                <div className="flex items-center justify-between bg-[#ede9fe]/70 border border-purple-200/80 px-4 py-2 rounded-2xl text-xs shadow-2xs">
+                <div className="flex items-center justify-between bg-[#eff0fe]/70 border border-purple-200/80 px-4 py-2 rounded-2xl text-xs shadow-2xs">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-bold text-[#5b4eed] text-xs">Active Matrix Filter:</span>
-                    <span className="font-mono font-bold px-2.5 py-0.5 rounded-xl bg-white text-[#5b4eed] border border-purple-200 text-xs shadow-2xs">
+                    <span className="font-bold text-[#7065f0] text-xs">Active Matrix Filter:</span>
+                    <span className="font-mono font-bold px-2.5 py-0.5 rounded-xl bg-white text-[#7065f0] border border-purple-200 text-xs shadow-2xs">
                       {statusFilter === 'PRESENT' && `Total Joined (${countPresent} Leaders)`}
                       {statusFilter === 'PHYSICAL' && `In-Person Room (${countPhysical} Leaders)`}
                       {statusFilter === 'VIRTUAL' && `Virtual Meet (${countVirtual} Leaders)`}
@@ -2149,16 +2161,16 @@ export const UnifiedAdminDashboard: React.FC = () => {
                   </div>
                   <button
                     onClick={() => setStatusFilter('ALL')}
-                    className="flex items-center gap-1 font-bold text-[#5b4eed] hover:text-[#4338ca] px-2.5 py-1 rounded-xl bg-white border border-purple-200 text-xs shadow-2xs cursor-pointer transition-colors"
+                    className="flex items-center gap-1 font-bold text-[#7065f0] hover:text-[#4338ca] px-2.5 py-1 rounded-xl bg-white border border-purple-200 text-xs shadow-2xs cursor-pointer transition-colors"
                   >
-                    <X className="w-3.5 h-3.5 text-[#5b4eed]" />
+                    <X className="w-3.5 h-3.5 text-[#7065f0]" />
                     <span>Clear Filter</span>
                   </button>
                 </div>
               )}
 
               {/* Filter & Dispatch Action Bar */}
-              <div className="bg-white p-3 sm:p-3.5 rounded-2xl border border-purple-100/80 shadow-xs flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
+              <div className="bg-white p-3 sm:p-3.5 rounded-2xl border border-[#f0f1f8]/80 shadow-xs flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
                 <div className="flex items-center gap-2 flex-1">
                   <div className="relative flex-1 max-w-sm">
                     <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
@@ -2167,13 +2179,13 @@ export const UnifiedAdminDashboard: React.FC = () => {
                       placeholder="Search leader by name, department, or code..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-[#1e1b4b] placeholder-slate-400 font-semibold focus:outline-none focus:border-[#6351e8] focus:ring-1 focus:ring-[#6351e8]"
+                      className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-[#232d42] placeholder-slate-400 font-semibold focus:outline-none focus:border-[#7065f0] focus:ring-1 focus:ring-[#7065f0]"
                     />
                   </div>
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
-                    className="bg-slate-50 border border-slate-200 text-[#1e1b4b] text-xs px-3 py-2 rounded-2xl focus:outline-none focus:border-[#6351e8] font-bold cursor-pointer"
+                    className="bg-slate-50 border border-slate-200 text-[#232d42] text-xs px-3 py-2 rounded-2xl focus:outline-none focus:border-[#7065f0] font-bold cursor-pointer"
                   >
                     <option value="ALL">All Leaders ({totalLeaders})</option>
                     <option value="PRESENT">Total Joined / Present ({countPresent})</option>
@@ -2192,14 +2204,14 @@ export const UnifiedAdminDashboard: React.FC = () => {
                       openConfirm({
                         title: 'Save & Archive Report',
                         message:
-                          `Archive official DOM attendance report for ${selectedDate} directly to Supabase SQL database, download signed PDF, and dispatch audit summary to Official WhatsApp Group (${appSettings.admin_whatsapp_group || '120363432056023698@g.us'})?`,
+                          `Archive official DOM attendance report for ${selectedDate} directly to Supabase SQL database, download signed PDF, and dispatch audit summary to Official WhatsApp Group (${appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us'})?`,
                         type: 'primary',
                         confirmText: 'Save & Archive',
                         onConfirm: handleUploadToDriveAndSheet,
                       })
                     }
                     disabled={isSyncingDrive}
-                    className="px-3 py-2 bg-[#ede9fe] hover:bg-[#dfd7fd] text-[#5b4eed] rounded-2xl text-xs font-bold shadow-xs flex items-center gap-1.5 active:scale-95 transition-all duration-150 cursor-pointer"
+                    className="px-3 py-2 bg-[#eff0fe] hover:bg-[#dfd7fd] text-[#7065f0] rounded-2xl text-xs font-bold shadow-xs flex items-center gap-1.5 active:scale-95 transition-all duration-150 cursor-pointer"
                     title="Archive report directly to Supabase SQL Database & dispatch to WhatsApp Group"
                   >
                     {isSyncingDrive ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Share2 className="w-3.5 h-3.5" />}
@@ -2208,7 +2220,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
                   <button
                     onClick={() => setShowGroupDispatchModal(true)}
-                    className="px-3 py-2 bg-gradient-to-r from-[#5f4de6] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7060f0] text-white rounded-2xl text-xs font-bold shadow-md shadow-indigo-200/50 flex items-center gap-1.5 active:scale-95 transition-all duration-150 cursor-pointer"
+                    className="px-3 py-2 bg-gradient-to-r from-[#7065f0] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7065f0] text-white rounded-2xl text-xs font-bold shadow-md shadow-indigo-200/50 flex items-center gap-1.5 active:scale-95 transition-all duration-150 cursor-pointer"
                     title="Send Official PDF or Absentee Text Report to SBH WhatsApp Group"
                   >
                     <Send className="w-3.5 h-3.5 text-white" />
@@ -2686,13 +2698,13 @@ export const UnifiedAdminDashboard: React.FC = () => {
             return (
               <div className="space-y-5">
                 {/* Header & Controls Bar */}
-                <div className="bg-white rounded-3xl p-5 border border-purple-100/80 shadow-xs flex flex-col gap-4">
+                <div className="bg-white rounded-3xl p-5 border border-[#f0f1f8]/80 shadow-xs flex flex-col gap-4">
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-slate-100">
                     <div>
-                      <h3 className="text-lg font-bold text-[#1e1b4b] flex items-center gap-2 uppercase tracking-tight">
-                        <Users className="w-5 h-5 text-[#6351e8]" />
-                        <span>Hospital Leaders <span className="text-[#6351e8]">Roster</span></span>
-                        <span className="text-[10px] bg-[#ede9fe] text-[#5b4eed] font-bold px-2.5 py-0.5 rounded-full border border-purple-200/60">
+                      <h3 className="text-lg font-bold text-[#232d42] flex items-center gap-2 uppercase tracking-tight">
+                        <Users className="w-5 h-5 text-[#7065f0]" />
+                        <span>Hospital Leaders <span className="text-[#7065f0]">Roster</span></span>
+                        <span className="text-[10px] bg-[#eff0fe] text-[#7065f0] font-bold px-2.5 py-0.5 rounded-full border border-purple-200/60">
                           {leaders.length} Registered
                         </span>
                         <span className="text-[10px] bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded-full border border-emerald-200">
@@ -2727,7 +2739,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                         setFormSuccess('');
                         setShowAddLeaderModal(true);
                       }}
-                      className="px-5 py-2.5 bg-gradient-to-r from-[#5f4de6] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7060f0] text-white rounded-2xl text-[10px] font-black tracking-[0.2em] shadow-sm shadow-indigo-200/50 transition-all active:scale-[0.98] flex items-center justify-center gap-2 uppercase cursor-pointer shrink-0"
+                      className="px-5 py-2.5 bg-gradient-to-r from-[#7065f0] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7065f0] text-white rounded-2xl text-[10px] font-black tracking-[0.2em] shadow-sm shadow-indigo-200/50 transition-all active:scale-[0.98] flex items-center justify-center gap-2 uppercase cursor-pointer shrink-0"
                     >
                       <UserPlus className="w-4 h-4" />
                       <span>Add New Leader</span>
@@ -2745,7 +2757,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                           placeholder="Search leader by name, code, email, phone, or department..."
                           value={leaderSearchTerm}
                           onChange={(e) => setLeaderSearchTerm(e.target.value)}
-                          className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-[#1e1b4b] placeholder-slate-400 focus:outline-none focus:border-[#6351e8] font-semibold"
+                          className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-[#232d42] placeholder-slate-400 focus:outline-none focus:border-[#7065f0] font-semibold"
                         />
                         {leaderSearchTerm && (
                           <button
@@ -2762,7 +2774,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                         <select
                           value={leaderDeptFilter}
                           onChange={(e) => setLeaderDeptFilter(e.target.value)}
-                          className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-[#1e1b4b] font-bold focus:outline-none focus:border-[#6351e8] cursor-pointer"
+                          className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-[#232d42] font-bold focus:outline-none focus:border-[#7065f0] cursor-pointer"
                         >
                           <option value="ALL">All Departments ({departments.length})</option>
                           {departments.map((d) => (
@@ -2781,8 +2793,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                           type="button"
                           onClick={() => setRosterStatusFilter('ALL')}
                           className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${rosterStatusFilter === 'ALL'
-                              ? 'bg-white text-[#1e1b4b] shadow-xs'
-                              : 'text-slate-500 hover:text-[#1e1b4b]'
+                              ? 'bg-white text-[#232d42] shadow-xs'
+                              : 'text-slate-500 hover:text-[#232d42]'
                             }`}
                         >
                           All ({leaders.length})
@@ -2791,8 +2803,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                           type="button"
                           onClick={() => setRosterStatusFilter('ACTIVE')}
                           className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${rosterStatusFilter === 'ACTIVE'
-                              ? 'bg-[#6351e8] text-white shadow-xs'
-                              : 'text-slate-500 hover:text-[#6351e8]'
+                              ? 'bg-[#7065f0] text-white shadow-xs'
+                              : 'text-slate-500 hover:text-[#7065f0]'
                             }`}
                         >
                           Active ({leaders.filter((l) => l.is_active !== false).length})
@@ -2815,8 +2827,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                           type="button"
                           onClick={() => setLeaderViewMode('list')}
                           className={`p-1.5 rounded-xl transition-all cursor-pointer ${leaderViewMode === 'list'
-                              ? 'bg-white text-[#6351e8] shadow-xs'
-                              : 'text-slate-400 hover:text-[#1e1b4b]'
+                              ? 'bg-white text-[#7065f0] shadow-xs'
+                              : 'text-slate-400 hover:text-[#232d42]'
                             }`}
                           title="Detailed List / Table View"
                         >
@@ -2826,8 +2838,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                           type="button"
                           onClick={() => setLeaderViewMode('grid')}
                           className={`p-1.5 rounded-xl transition-all cursor-pointer ${leaderViewMode === 'grid'
-                              ? 'bg-white text-[#6351e8] shadow-xs'
-                              : 'text-slate-400 hover:text-[#1e1b4b]'
+                              ? 'bg-white text-[#7065f0] shadow-xs'
+                              : 'text-slate-400 hover:text-[#232d42]'
                             }`}
                           title="Grid Cards View"
                         >
@@ -2885,18 +2897,18 @@ export const UnifiedAdminDashboard: React.FC = () => {
                               {/* Leader Name, Role, Employee ID */}
                               <td className="py-3.5 px-4">
                                 <div className="flex items-center gap-3">
-                                  <div className="w-9 h-9 rounded-2xl bg-[#ede9fe] text-[#6351e8] font-black text-xs flex items-center justify-center shrink-0 border border-purple-200/60 shadow-2xs">
+                                  <div className="w-9 h-9 rounded-2xl bg-[#eff0fe] text-[#7065f0] font-black text-xs flex items-center justify-center shrink-0 border border-purple-200/60 shadow-2xs">
                                     {lead.full_name.slice(0, 2).toUpperCase()}
                                   </div>
                                   <div>
-                                    <div className="font-bold text-[#1e1b4b] text-sm leading-snug">
+                                    <div className="font-bold text-[#232d42] text-sm leading-snug">
                                       {lead.full_name}
                                     </div>
                                     <div className="flex items-center gap-1.5 mt-0.5">
                                       <span className="text-[10px] font-mono font-bold text-slate-500 bg-slate-100 px-1.5 py-0.2 rounded border border-slate-200">
                                         {lead.employee_code || 'ID-N/A'}
                                       </span>
-                                      <span className="text-[9px] font-bold uppercase px-1.5 py-0.2 rounded bg-purple-50 text-[#6351e8] border border-purple-200">
+                                      <span className="text-[9px] font-bold uppercase px-1.5 py-0.2 rounded bg-purple-50 text-[#7065f0] border border-purple-200">
                                         {lead.role || 'LEADER'}
                                       </span>
                                     </div>
@@ -2906,8 +2918,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
                               {/* Department */}
                               <td className="py-3.5 px-4">
-                                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#5b4eed] bg-[#ede9fe]/80 border border-purple-200/60 px-2.5 py-1 rounded-xl">
-                                  <Building size={13} className="text-[#6351e8]" />
+                                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#7065f0] bg-[#eff0fe]/80 border border-purple-200/60 px-2.5 py-1 rounded-xl">
+                                  <Building size={13} className="text-[#7065f0]" />
                                   <span>{lead.department?.name || 'Department'}</span>
                                   <span className="text-[10px] font-mono text-slate-500 font-semibold">
                                     ({lead.department?.code || 'DEPT'})
@@ -2920,10 +2932,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                 <div className="space-y-1 text-xs font-mono">
                                   <a
                                     href={`mailto:${lead.email}`}
-                                    className="flex items-center gap-1.5 text-slate-600 hover:text-[#6351e8] truncate max-w-[220px]"
+                                    className="flex items-center gap-1.5 text-slate-600 hover:text-[#7065f0] truncate max-w-[220px]"
                                     title={lead.email}
                                   >
-                                    <Mail size={13} className="text-[#6351e8] shrink-0" />
+                                    <Mail size={13} className="text-[#7065f0] shrink-0" />
                                     <span className="truncate">{lead.email}</span>
                                   </a>
                                   <a
@@ -3042,13 +3054,13 @@ export const UnifiedAdminDashboard: React.FC = () => {
                           </div>
 
                           <div className="flex items-center gap-3 mt-3">
-                            <div className="w-10 h-10 rounded-2xl bg-[#ede9fe] text-[#6351e8] font-black text-sm flex items-center justify-center shrink-0 border border-purple-200/60 shadow-2xs">
+                            <div className="w-10 h-10 rounded-2xl bg-[#eff0fe] text-[#7065f0] font-black text-sm flex items-center justify-center shrink-0 border border-purple-200/60 shadow-2xs">
                               {lead.full_name.slice(0, 2).toUpperCase()}
                             </div>
                             <div className="min-w-0">
-                              <h4 className="text-base font-bold text-[#1e1b4b] truncate">{lead.full_name}</h4>
+                              <h4 className="text-base font-bold text-[#232d42] truncate">{lead.full_name}</h4>
                               <p className="text-xs text-slate-600 font-semibold flex items-center gap-1 mt-0.5 truncate">
-                                <Building className="w-3.5 h-3.5 text-[#6351e8] shrink-0" />
+                                <Building className="w-3.5 h-3.5 text-[#7065f0] shrink-0" />
                                 <span className="truncate">{lead.department?.name || 'Department'}</span>
                               </p>
                             </div>
@@ -3056,7 +3068,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
                           <div className="mt-4 space-y-1.5 text-xs text-slate-600 font-mono">
                             <div className="flex items-center gap-2 text-slate-500">
-                              <Mail className="w-3.5 h-3.5 text-[#6351e8] shrink-0" />
+                              <Mail className="w-3.5 h-3.5 text-[#7065f0] shrink-0" />
                               <span className="truncate">{lead.email}</span>
                             </div>
                             <div className="flex items-center gap-2 text-slate-500">
@@ -3127,12 +3139,12 @@ export const UnifiedAdminDashboard: React.FC = () => {
           {/* ================= TAB 5: DEPARTMENTS MASTER (24 OFFICIAL DEPARTMENTS) ================= */}
           {activeTab === 'departments' && (
             <div className="space-y-6">
-              <div className="bg-white p-5 rounded-3xl border border-purple-100/80 shadow-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="bg-white p-5 rounded-3xl border border-[#f0f1f8]/80 shadow-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                  <h3 className="text-lg font-bold text-[#1e1b4b] flex items-center gap-2 uppercase tracking-tight">
-                    <Building className="w-5 h-5 text-[#6351e8]" />
-                    <span>Hospital Departments <span className="text-[#6351e8]">Master</span> ({departments.length})</span>
-                    <span className="text-[10px] bg-[#ede9fe] text-[#5b4eed] font-bold px-2.5 py-0.5 rounded-full border border-purple-200/60">
+                  <h3 className="text-lg font-bold text-[#232d42] flex items-center gap-2 uppercase tracking-tight">
+                    <Building className="w-5 h-5 text-[#7065f0]" />
+                    <span>Hospital Departments <span className="text-[#7065f0]">Master</span> ({departments.length})</span>
+                    <span className="text-[10px] bg-[#eff0fe] text-[#7065f0] font-bold px-2.5 py-0.5 rounded-full border border-purple-200/60">
                       Official 24 Departments Active
                     </span>
                   </h3>
@@ -3149,7 +3161,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                       placeholder="Search departments..."
                       value={deptSearchTerm}
                       onChange={(e) => setDeptSearchTerm(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-[#1e1b4b] placeholder-slate-400 focus:outline-none focus:border-[#6351e8] font-semibold"
+                      className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-[#232d42] placeholder-slate-400 focus:outline-none focus:border-[#7065f0] font-semibold"
                     />
                   </div>
 
@@ -3161,7 +3173,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                       setDeptFormSuccess('');
                       setShowAddDeptModal(true);
                     }}
-                    className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-[#5f4de6] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7060f0] text-white rounded-2xl text-xs font-bold shadow-sm shadow-indigo-200/50 transition-all cursor-pointer shrink-0"
+                    className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-[#7065f0] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7065f0] text-white rounded-2xl text-xs font-bold shadow-sm shadow-indigo-200/50 transition-all cursor-pointer shrink-0"
                   >
                     <Plus className="w-4 h-4" />
                     <span>Add Department</span>
@@ -3725,13 +3737,13 @@ export const UnifiedAdminDashboard: React.FC = () => {
                         type="text"
                         value={appSettings.admin_whatsapp_group}
                         onChange={(e) => updateAppSettings({ admin_whatsapp_group: e.target.value })}
-                        placeholder="120363432056023698@g.us"
+                        placeholder="919977881452-1431506963@g.us"
                         className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-emerald-500 font-mono font-bold"
                       />
                       <div className="flex items-center justify-between mt-1 text-[11px] text-slate-500">
-                        <span>Target Group: Official DOM Operations ({appSettings.admin_whatsapp_group || '120363432056023698@g.us'})</span>
+                        <span>Target Group: Official DOM Operations ({appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us'})</span>
                         <a
-                          href={`https://app.ceoitbox.com/customer/channel/23642/group/${appSettings.admin_whatsapp_group || '120363432056023698@g.us'}`}
+                          href={`https://app.ceoitbox.com/customer/channel/23642/group/${appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us'}`}
                           target="_blank"
                           rel="noreferrer"
                           className="text-emerald-700 font-bold underline"
@@ -3836,7 +3848,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                       </span>
                     </div>
                     <div className="text-[11px] font-mono text-slate-700 truncate bg-slate-50 p-2 rounded-lg border border-slate-200 font-bold">
-                      {appSettings.admin_whatsapp_group || '120363432056023698@g.us'}
+                      {appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us'}
                     </div>
                     <p className="text-[11px] text-slate-500">09:50 AM notice & 10:30 AM final PDF report are dispatched to this group.</p>
                   </div>
@@ -4349,9 +4361,9 @@ export const UnifiedAdminDashboard: React.FC = () => {
       {/* ================= MODAL: RESCHEDULE / CADENCE EDIT ================= */}
       {showScheduleEditModal && (
         <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-[9999] p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-white rounded-[32px] max-w-lg w-full max-h-[92vh] overflow-y-auto custom-scrollbar p-6 sm:p-7 shadow-2xl shadow-indigo-200/50 border border-purple-100 animate-in fade-in zoom-in duration-200">
-            <h3 className="text-base font-black text-[#1e1b4b] mb-1 flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-[#5b4eed]" />
+          <div className="bg-white rounded-[32px] max-w-lg w-full max-h-[92vh] overflow-y-auto custom-scrollbar p-6 sm:p-7 shadow-2xl shadow-indigo-200/50 border border-[#f0f1f8] animate-in fade-in zoom-in duration-200">
+            <h3 className="text-base font-black text-[#232d42] mb-1 flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-[#7065f0]" />
               <span>Modify Date Cadence & Schedule: {selectedDate}</span>
             </h3>
             <p className="text-xs text-slate-500 mb-4">
@@ -4367,8 +4379,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                     type="button"
                     onClick={() => handleCadenceSelectionInModal('DOM')}
                     className={`p-3 rounded-2xl border text-xs font-black transition-all flex items-center justify-between cursor-pointer ${schedForm.cadence === 'DOM' && !schedForm.is_holiday_or_shifted
-                      ? 'bg-gradient-to-r from-[#5f4de6] to-[#7f70f6] text-white border-transparent shadow-md shadow-indigo-200/50'
-                      : 'bg-slate-50 hover:bg-[#ede9fe]/30 text-slate-700 border-slate-200'
+                      ? 'bg-gradient-to-r from-[#7065f0] to-[#7f70f6] text-white border-transparent shadow-md shadow-indigo-200/50'
+                      : 'bg-slate-50 hover:bg-[#eff0fe]/30 text-slate-700 border-slate-200'
                       }`}
                   >
                     <div>
@@ -4432,7 +4444,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                   required
                   value={schedForm.title}
                   onChange={(e) => setSchedForm({ ...schedForm, title: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-[#f8f6fe]/70 border border-purple-100 rounded-2xl text-xs text-slate-800 focus:outline-none focus:border-[#5b4eed] focus:ring-2 focus:ring-[#5b4eed]/20 font-bold"
+                  className="w-full px-3.5 py-2.5 bg-[#f8f6fe]/70 border border-[#f0f1f8] rounded-2xl text-xs text-slate-800 focus:outline-none focus:border-[#7065f0] focus:ring-2 focus:ring-[#7065f0]/20 font-bold"
                 />
               </div>
 
@@ -4445,7 +4457,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                     value={schedForm.scheduled_time}
                     onChange={(e) => setSchedForm({ ...schedForm, scheduled_time: e.target.value })}
                     placeholder="10:00 AM IST"
-                    className="w-full px-3.5 py-2.5 bg-[#f8f6fe]/70 border border-purple-100 rounded-2xl text-xs text-slate-800 focus:outline-none focus:border-[#5b4eed] focus:ring-2 focus:ring-[#5b4eed]/20 font-mono font-bold"
+                    className="w-full px-3.5 py-2.5 bg-[#f8f6fe]/70 border border-[#f0f1f8] rounded-2xl text-xs text-slate-800 focus:outline-none focus:border-[#7065f0] focus:ring-2 focus:ring-[#7065f0]/20 font-mono font-bold"
                   />
                 </div>
 
@@ -4456,7 +4468,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                     required
                     value={schedForm.google_meet_url}
                     onChange={(e) => setSchedForm({ ...schedForm, google_meet_url: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-[#f8f6fe]/70 border border-purple-100 rounded-2xl text-xs text-slate-800 focus:outline-none focus:border-[#5b4eed] focus:ring-2 focus:ring-[#5b4eed]/20 font-mono"
+                    className="w-full px-3.5 py-2.5 bg-[#f8f6fe]/70 border border-[#f0f1f8] rounded-2xl text-xs text-slate-800 focus:outline-none focus:border-[#7065f0] focus:ring-2 focus:ring-[#7065f0]/20 font-mono"
                   />
                 </div>
               </div>
@@ -4474,15 +4486,15 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 </div>
               )}
 
-              <div className="p-3 bg-[#ede9fe]/40 border border-purple-200/70 rounded-2xl">
-                <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-[#1e1b4b]">
+              <div className="p-3 bg-[#eff0fe]/40 border border-purple-200/70 rounded-2xl">
+                <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-[#232d42]">
                   <input
                     type="checkbox"
                     checked={notifyGroupOnScheduleChange}
                     onChange={(e) => setNotifyGroupOnScheduleChange(e.target.checked)}
-                    className="rounded text-[#5b4eed] focus:ring-[#5b4eed] w-4 h-4 cursor-pointer"
+                    className="rounded text-[#7065f0] focus:ring-[#7065f0] w-4 h-4 cursor-pointer"
                   />
-                  <span>Immediately Notify WhatsApp Group ({appSettings.admin_whatsapp_group || '120363432056023698@g.us'}) of this Schedule Update</span>
+                  <span>Immediately Notify WhatsApp Group ({appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us'}) of this Schedule Update</span>
                 </label>
               </div>
 
@@ -4496,7 +4508,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 bg-gradient-to-r from-[#5f4de6] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7060f0] text-white rounded-2xl text-xs font-bold shadow-md shadow-indigo-300/40 cursor-pointer"
+                  className="px-5 py-2.5 bg-gradient-to-r from-[#7065f0] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7065f0] text-white rounded-2xl text-xs font-bold shadow-md shadow-indigo-300/40 cursor-pointer"
                 >
                   Save Schedule & Cadence
                 </button>
@@ -5361,12 +5373,12 @@ export const UnifiedAdminDashboard: React.FC = () => {
  * =======================================================================
  * SBH GROUP OF HOSPITALS, RAIPUR — DOM AUTOMATION PIPELINE (APPS SCRIPT)
  * Target Drive Folder: https://drive.google.com/drive/folders/1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD?usp=sharing
- * Target WhatsApp Group ID: 120363432056023698@g.us
+ * Target WhatsApp Group ID: 919977881452-1431506963@g.us
  * =======================================================================
  */
 
 const DRIVE_FOLDER_ID = "1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD";
-const WHATSAPP_GROUP_ID = "120363432056023698@g.us";
+const WHATSAPP_GROUP_ID = "919977881452-1431506963@g.us";
 const GOOGLE_MEET_URL = "https://meet.google.com/jrz-jfku-gir";
 
 /**
@@ -5468,7 +5480,7 @@ function sendDaily0950Notice() {
               <button
                 onClick={() => {
                   const codeToCopy = `const DRIVE_FOLDER_ID = "1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD";
-const WHATSAPP_GROUP_ID = "120363432056023698@g.us";
+const WHATSAPP_GROUP_ID = "919977881452-1431506963@g.us";
 const GOOGLE_MEET_URL = "https://meet.google.com/jrz-jfku-gir";
 
 function doPost(e) {
@@ -5771,7 +5783,7 @@ function doPost(e) {
                     Send to WhatsApp Group
                   </h3>
                   <p className="text-xs text-slate-500 font-medium">
-                    SBH Express Group ({appSettings.admin_whatsapp_group || '120363432056023698@g.us'})
+                    SBH Express Group ({appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us'})
                   </p>
                 </div>
               </div>
@@ -5872,7 +5884,7 @@ function doPost(e) {
                 type="button"
                 disabled={isDispatchingGroup !== null}
                 onClick={() => handleGroupDispatchAction('both')}
-                className="w-full p-4 rounded-2xl border border-purple-200 hover:border-purple-500 hover:bg-purple-50/50 bg-white flex items-center justify-between transition-all group cursor-pointer text-left shadow-2xs hover:shadow-xs"
+                className="w-full p-4 rounded-2xl border border-purple-200 hover:border-[#f0f1f8]0 hover:bg-purple-50/50 bg-white flex items-center justify-between transition-all group cursor-pointer text-left shadow-2xs hover:shadow-xs"
               >
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center shrink-0">

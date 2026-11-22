@@ -35,6 +35,7 @@ export const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
   const {
     leaders,
     attendanceRecords,
+    meetingSchedules,
     getMeetingForDate,
     updateMeetingSchedule,
     sendDailyWhatsappReport,
@@ -119,7 +120,7 @@ export const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
   const getCellCadenceBadge = (cadence?: CadenceType, isHoliday?: boolean, isSunday?: boolean) => {
     if (isSunday) {
       return {
-        bg: 'bg-rose-50 text-rose-900 border-rose-300 font-bold',
+        bg: 'bg-rose-50 text-rose-800 border-rose-200 font-bold',
         dot: 'bg-rose-500',
         label: '🏖️ Sunday Off',
         code: 'SUNDAY',
@@ -127,7 +128,7 @@ export const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
     }
     if (isHoliday || cadence === 'HOLIDAY') {
       return {
-        bg: 'bg-amber-100/90 text-amber-900 border-amber-300 font-bold',
+        bg: 'bg-amber-50 text-amber-900 border-amber-200 font-bold',
         dot: 'bg-amber-500',
         label: 'HOLIDAY / OFF',
         code: 'HOLIDAY',
@@ -135,7 +136,7 @@ export const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
     }
     if (cadence === 'MOM') {
       return {
-        bg: 'bg-purple-100 text-purple-900 border-purple-300 font-bold',
+        bg: 'bg-purple-50 text-purple-900 border-purple-200 font-bold',
         dot: 'bg-purple-600',
         label: 'MOM (Monthly)',
         code: 'MOM',
@@ -143,15 +144,15 @@ export const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
     }
     if (cadence === 'WOM') {
       return {
-        bg: 'bg-blue-100 text-blue-900 border-blue-300 font-bold',
+        bg: 'bg-blue-50 text-blue-900 border-blue-200 font-bold',
         dot: 'bg-blue-600',
         label: 'WOM (Weekly)',
         code: 'WOM',
       };
     }
     return {
-      bg: 'bg-orange-100 text-orange-900 border-orange-300 font-bold',
-      dot: 'bg-orange-600',
+      bg: 'bg-[#eff0fe] text-[#7065f0] border-indigo-200/60 font-bold',
+      dot: 'bg-[#7065f0]',
       label: 'DOM (Daily)',
       code: 'DOM',
     };
@@ -159,7 +160,7 @@ export const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
 
   const handleQuickCadenceChange = (newCadence: CadenceType) => {
     const info = getCadenceInfo(newCadence);
-    const res = updateMeetingSchedule(selectedDate, {
+    updateMeetingSchedule(selectedDate, {
       cadence: newCadence,
       title: info.defaultTitle,
       is_holiday_or_shifted: newCadence === 'HOLIDAY',
@@ -176,9 +177,9 @@ export const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
     <div className="space-y-6">
       {/* Toast Feedback Alert */}
       {feedbackToast && (
-        <div className={`p-3 rounded-2xl text-xs font-bold flex items-center justify-between gap-2 shadow-md transition-all animate-in fade-in slide-in-from-top duration-200 ${
+        <div className={`p-3.5 rounded-2xl text-xs font-bold flex items-center justify-between gap-2 shadow-md transition-all animate-in fade-in slide-in-from-top duration-200 ${
           feedbackToast.type === 'success'
-            ? 'bg-gradient-to-r from-[#5f4de6] to-[#7f70f6] text-white'
+            ? 'bg-[#7065f0] text-white shadow-indigo-500/20'
             : 'bg-amber-600 text-white'
         }`}>
           <div className="flex items-center gap-2">
@@ -195,49 +196,49 @@ export const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
       )}
 
       {/* Calendar Header with Month Selector & Cadence Legend */}
-      <div className="fluent-card p-5 rounded-3xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border border-purple-100/80 shadow-xs">
+      <div className="bg-white p-5 rounded-3xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border border-[#f0f1f8] shadow-sm">
         <div>
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#5f4de6] to-[#7f70f6] flex items-center justify-center text-white shadow-md shadow-indigo-300/30">
-              <CalendarIcon className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-2xl bg-[#eff0fe] text-[#7065f0] flex items-center justify-center shadow-xs border border-indigo-200/50">
+              <CalendarIcon className="w-5 h-5 text-[#7065f0]" />
             </div>
             <div>
-              <h2 className="text-base font-black text-[#1e1b4b] flex items-center gap-2">
-                <span>Hospital Meeting Cadence Calendar</span>
-                <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-[#ede9fe] text-[#5b4eed] font-bold border border-purple-200/60">
+              <h2 className="text-base font-black text-[#232d42] flex items-center gap-2">
+                <span>Hospital Cadence Calendar</span>
+                <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-[#eff0fe] text-[#7065f0] font-bold border border-indigo-200/60">
                   DOM • WOM • MOM
                 </span>
               </h2>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-[#8a92a6] mt-0.5">
                 Click any date to assign <b>DOM</b> (Daily), <b>WOM</b> (Weekly), <b>MOM</b> (Monthly) or <b>HOLIDAY</b>
               </p>
             </div>
           </div>
         </div>
 
-        {/* Month Navigation */}
+        {/* Month Navigation matching Hope UI styling */}
         <div className="flex items-center gap-2">
           <button
             onClick={handleTodayClick}
-            className="px-3.5 py-1.5 bg-white hover:bg-[#ede9fe]/30 text-[#1e1b4b] text-xs font-bold border border-purple-100 rounded-2xl shadow-xs transition-colors cursor-pointer"
+            className="px-3.5 py-2 bg-white hover:bg-[#f4f5fa] text-[#232d42] text-xs font-bold border border-slate-200 rounded-xl shadow-xs transition-colors cursor-pointer"
           >
             Today
           </button>
 
-          <div className="flex items-center bg-white border border-purple-100 rounded-2xl p-1 shadow-xs">
+          <div className="flex items-center bg-white border border-slate-200 rounded-2xl p-1 shadow-xs">
             <button
               onClick={handlePrevMonth}
-              className="p-1.5 hover:bg-[#ede9fe]/50 text-slate-600 hover:text-[#6351e8] rounded-xl transition-colors cursor-pointer"
+              className="p-1.5 hover:bg-[#f4f5fa] text-slate-600 hover:text-[#7065f0] rounded-xl transition-colors cursor-pointer"
               title="Previous Month"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <span className="px-3 text-xs font-bold text-[#1e1b4b] min-w-[130px] text-center">
+            <span className="px-3 text-xs font-bold text-[#232d42] min-w-[130px] text-center">
               {monthNames[currentMonth]} {currentYear}
             </span>
             <button
               onClick={handleNextMonth}
-              className="p-1.5 hover:bg-[#ede9fe]/50 text-slate-600 hover:text-[#6351e8] rounded-xl transition-colors cursor-pointer"
+              className="p-1.5 hover:bg-[#f4f5fa] text-slate-600 hover:text-[#7065f0] rounded-xl transition-colors cursor-pointer"
               title="Next Month"
             >
               <ChevronRight className="w-4 h-4" />
@@ -246,38 +247,38 @@ export const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
         </div>
       </div>
 
-      {/* 3 Meeting Options Legend */}
-      <div className="bg-white border border-purple-100/80 rounded-2xl p-3.5 shadow-xs flex flex-wrap items-center justify-between gap-3 text-xs">
-        <span className="font-bold text-[#1e1b4b] flex items-center gap-1.5">
-          <Sparkles className="w-3.5 h-3.5 text-[#6351e8]" />
+      {/* 4 Meeting Options Legend */}
+      <div className="bg-white border border-[#f0f1f8] rounded-2xl p-3.5 shadow-sm flex flex-wrap items-center justify-between gap-3 text-xs">
+        <span className="font-bold text-[#232d42] flex items-center gap-1.5">
+          <Sparkles className="w-3.5 h-3.5 text-[#7065f0]" />
           Official Meeting Cadence:
         </span>
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#ede9fe] text-[#5b4eed] font-black border border-purple-200/60 text-[11px]">
-            <span className="w-2 h-2 rounded-full bg-[#6351e8]" />
-            DOM — Daily Operations Meeting
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#eff0fe] text-[#7065f0] font-bold border border-indigo-200/60 text-[11px]">
+            <span className="w-2 h-2 rounded-full bg-[#7065f0]" />
+            DOM — Daily Operations Standup
           </span>
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-50 text-teal-800 font-black border border-teal-200 text-[11px]">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-50 text-teal-800 font-bold border border-teal-200 text-[11px]">
             <span className="w-2 h-2 rounded-full bg-[#3bb7b8]" />
-            WOM — Weekly Operations Meeting (Every Monday)
+            WOM — Weekly Review (Monday)
           </span>
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-50 text-purple-900 font-black border border-purple-200 text-[11px]">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-50 text-purple-900 font-bold border border-purple-200 text-[11px]">
             <span className="w-2 h-2 rounded-full bg-[#8b5cf6]" />
-            MOM — Monthly Operations Meeting (1st Monday)
+            MOM — Monthly Meeting (1st Mon)
           </span>
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-900 font-bold border border-amber-200 text-[11px]">
             <span className="w-2 h-2 rounded-full bg-amber-500" />
-            HOLIDAY / Off-Day
+            HOLIDAY / Weekly Off
           </span>
         </div>
       </div>
 
       {/* Main Calendar Grid */}
-      <div className="fluent-card rounded-3xl p-4 sm:p-6 shadow-sm overflow-hidden border border-purple-100/80">
+      <div className="bg-white rounded-3xl p-4 sm:p-6 shadow-sm overflow-hidden border border-[#f0f1f8]">
         {/* Day Name Headers */}
-        <div className="grid grid-cols-7 gap-1.5 sm:gap-2 mb-2 text-center text-xs font-black text-slate-600 uppercase tracking-wider">
+        <div className="grid grid-cols-7 gap-1.5 sm:gap-2 mb-2 text-center text-xs font-bold text-[#8a92a6] uppercase tracking-wider">
           {dayNames.map((d, i) => (
-            <div key={d} className={`py-2 rounded-2xl ${i === 6 ? 'text-rose-500 bg-rose-50/50' : 'bg-slate-50'}`}>
+            <div key={d} className={`py-2 rounded-xl ${i === 6 ? 'text-rose-500 bg-rose-50/50' : 'bg-[#f4f5fa]'}`}>
               {d}
             </div>
           ))}
@@ -286,7 +287,7 @@ export const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
         {/* Days Grid */}
         <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
           {Array.from({ length: startingDayOfWeek }).map((_, idx) => (
-            <div key={`empty-${idx}`} className="min-h-[90px] sm:min-h-[115px] bg-slate-50/50 rounded-2xl border border-dashed border-slate-200/60 p-2 opacity-40" />
+            <div key={`empty-${idx}`} className="min-h-[85px] sm:min-h-[110px] bg-[#f8f9fe]/50 rounded-2xl border border-dashed border-slate-200/60 p-2 opacity-40" />
           ))}
 
           {Array.from({ length: daysInMonth }).map((_, idx) => {
@@ -313,34 +314,34 @@ export const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
               <div
                 key={dateStr}
                 onClick={() => onSelectDate(dateStr)}
-                className={`min-h-[95px] sm:min-h-[120px] rounded-2xl p-2 sm:p-2.5 transition-all cursor-pointer flex flex-col justify-between relative group active:scale-95 duration-150 ${
+                className={`min-h-[90px] sm:min-h-[115px] rounded-2xl p-2 sm:p-2.5 transition-all cursor-pointer flex flex-col justify-between relative group active:scale-95 duration-150 ${
                   isSelected
-                    ? 'bg-gradient-to-br from-[#ede9fe] via-white to-[#ede9fe]/40 border-2 border-[#6351e8] shadow-md ring-2 ring-[#6351e8]/25 z-10'
+                    ? 'bg-[#eff0fe]/80 border-2 border-[#7065f0] shadow-md ring-2 ring-[#7065f0]/25 z-10'
                     : isToday
-                    ? 'bg-[#ede9fe]/30 border border-purple-300 hover:border-[#6351e8] shadow-xs'
+                    ? 'bg-[#eff0fe]/30 border border-indigo-200 hover:border-[#7065f0] shadow-2xs'
                     : isSunday
-                    ? 'bg-rose-50/30 border border-rose-200/80 hover:bg-rose-100/50'
-                    : 'bg-white border border-slate-200/90 hover:border-purple-300 hover:shadow-xs'
+                    ? 'bg-rose-50/30 border border-rose-200/60 hover:bg-rose-50/80'
+                    : 'bg-white border border-slate-200/80 hover:border-indigo-300 hover:shadow-2xs'
                 }`}
               >
                 {/* Header: Date Number + Badges */}
                 <div className="flex items-center justify-between">
                   <span
-                    className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black ${
+                    className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
                       isSelected
-                        ? 'bg-[#6351e8] text-white shadow-xs'
+                        ? 'bg-[#7065f0] text-white shadow-xs'
                         : isToday
-                        ? 'bg-[#ede9fe] text-[#6351e8] font-bold border border-purple-200'
+                        ? 'bg-[#eff0fe] text-[#7065f0] font-bold border border-indigo-200'
                         : isSunday
                         ? 'text-rose-500 font-bold'
-                        : 'text-slate-800'
+                        : 'text-[#232d42]'
                     }`}
                   >
                     {dayNum}
                   </span>
 
                   {isToday && (
-                    <span className="text-[9px] font-black uppercase tracking-wider text-[#6351e8] bg-[#ede9fe] px-1.5 py-0.2 rounded-md">
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-[#7065f0] bg-[#eff0fe] px-1.5 py-0.2 rounded-md">
                       Today
                     </span>
                   )}
@@ -375,7 +376,7 @@ export const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
                     </span>
                   </div>
                 ) : (
-                  <div className="text-[9px] text-slate-400 font-mono text-center pt-1 border-t border-slate-100">
+                  <div className="text-[9px] text-[#8a92a6] font-mono text-center pt-1 border-t border-slate-100">
                     {meeting.scheduled_time}
                   </div>
                 )}
@@ -386,24 +387,22 @@ export const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
       </div>
 
       {/* Selected Day Details & Quick Cadence Switcher Panel */}
-      <div className="fluent-card p-6 rounded-3xl border-l-4 border-l-[#6351e8] border border-purple-100/80 shadow-xs space-y-4">
+      <div className="bg-white p-6 rounded-3xl border-l-4 border-l-[#7065f0] border border-[#f0f1f8] shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <div className="text-xs text-slate-500 font-bold uppercase tracking-wider flex items-center gap-1.5">
-              <CalendarIcon className="w-3.5 h-3.5 text-[#6351e8]" />
+            <div className="text-xs text-[#8a92a6] font-bold uppercase tracking-wider flex items-center gap-1.5">
+              <CalendarIcon className="w-3.5 h-3.5 text-[#7065f0]" />
               Selected Meeting Date:
             </div>
-            <h3 className="text-lg font-black text-[#1e1b4b] mt-0.5 flex items-center gap-2">
+            <h3 className="text-lg font-black text-[#232d42] mt-0.5 flex items-center gap-2">
               <span>
-                {new Date(selectedDate).toLocaleDateString('en-IN', {
+                {formatToIndianDate(selectedDate)} ({new Date(selectedDate).toLocaleDateString('en-IN', {
                   weekday: 'long',
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric',
-                })}
+                  month: 'short',
+                })})
               </span>
               {todayStr === selectedDate && (
-                <span className="text-xs bg-[#ede9fe] text-[#5b4eed] font-bold px-2.5 py-0.5 rounded-full border border-purple-200/60">
+                <span className="text-xs bg-[#eff0fe] text-[#7065f0] font-bold px-2.5 py-0.5 rounded-full border border-indigo-200/60">
                   Today's Active Session
                 </span>
               )}
@@ -414,7 +413,7 @@ export const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
           <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={onOpenReschedule}
-              className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold border border-slate-200 rounded-2xl shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+              className="px-3.5 py-2 bg-white hover:bg-[#f4f5fa] text-[#232d42] text-xs font-bold border border-slate-200 rounded-xl shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <Settings2 className="w-3.5 h-3.5 text-slate-600" />
               <span>Full Schedule Editor</span>
@@ -437,7 +436,7 @@ export const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
                 }
               }}
               disabled={isSendingNotice}
-              className="px-3.5 py-2 bg-gradient-to-r from-[#5f4de6] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7060f0] text-white text-xs font-bold rounded-2xl shadow-sm shadow-indigo-200/50 flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-60"
+              className="px-3.5 py-2 bg-[#7065f0] hover:bg-[#5e52e4] text-white text-xs font-bold rounded-xl shadow-xs shadow-indigo-500/20 flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-60"
             >
               {isSendingNotice ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
               <span>Send {selectedMeeting.cadence || 'DOM'} WhatsApp Notice</span>
@@ -460,7 +459,7 @@ export const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
                 }
               }}
               disabled={isEscalating}
-              className="px-3.5 py-2 bg-[#fff1f2] hover:bg-[#ffe4e6] text-[#e11d48] border border-rose-200 text-xs font-bold rounded-2xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-60"
+              className="px-3.5 py-2 bg-[#fff1f2] hover:bg-[#ffe4e6] text-[#e11d48] border border-rose-200 text-xs font-bold rounded-xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-60"
             >
               {isEscalating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <AlertCircle className="w-3.5 h-3.5" />}
               <span>Escalate Non-Attendees</span>
@@ -469,14 +468,14 @@ export const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
         </div>
 
         {/* 1-Click Meeting Cadence Selector (DOM, WOM, MOM, HOLIDAY) */}
-        <div className="p-4 bg-[#ede9fe]/30 rounded-2xl border border-purple-100 space-y-2">
-          <div className="text-xs font-black text-[#1e1b4b] flex items-center justify-between">
+        <div className="p-4 bg-[#f4f5fa] rounded-2xl border border-slate-200/60 space-y-2">
+          <div className="text-xs font-bold text-[#232d42] flex items-center justify-between">
             <span className="flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-[#6351e8]" />
-              Select Meeting Cadence for {selectedDate}:
+              <Sparkles className="w-3.5 h-3.5 text-[#7065f0]" />
+              Select Meeting Cadence for {formatToIndianDate(selectedDate)}:
             </span>
-            <span className="text-[11px] font-bold text-slate-500">
-              Active: <b className="text-[#5b4eed] uppercase">{selectedMeeting.cadence || 'DOM'}</b>
+            <span className="text-[11px] font-bold text-[#8a92a6]">
+              Active: <b className="text-[#7065f0] uppercase">{selectedMeeting.cadence || 'DOM'}</b>
             </span>
           </div>
 
@@ -484,10 +483,10 @@ export const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
             <button
               type="button"
               onClick={() => handleQuickCadenceChange('DOM')}
-              className={`p-2.5 rounded-2xl border text-xs font-black transition-all flex items-center justify-between cursor-pointer ${
+              className={`p-2.5 rounded-xl border text-xs font-bold transition-all flex items-center justify-between cursor-pointer ${
                 (selectedMeeting.cadence === 'DOM' || !selectedMeeting.cadence) && !selectedMeeting.is_holiday_or_shifted
-                  ? 'bg-gradient-to-r from-[#5f4de6] to-[#7f70f6] text-white border-transparent shadow-sm shadow-indigo-200/50'
-                  : 'bg-white hover:bg-[#ede9fe]/30 text-slate-700 border-slate-200'
+                  ? 'bg-[#7065f0] text-white border-transparent shadow-xs shadow-indigo-500/20'
+                  : 'bg-white hover:bg-[#eff0fe]/50 text-slate-700 border-slate-200'
               }`}
             >
               <div>
@@ -502,9 +501,9 @@ export const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
             <button
               type="button"
               onClick={() => handleQuickCadenceChange('WOM')}
-              className={`p-2.5 rounded-2xl border text-xs font-black transition-all flex items-center justify-between cursor-pointer ${
+              className={`p-2.5 rounded-xl border text-xs font-bold transition-all flex items-center justify-between cursor-pointer ${
                 selectedMeeting.cadence === 'WOM' && !selectedMeeting.is_holiday_or_shifted
-                  ? 'bg-gradient-to-r from-[#3bb7b8] to-[#5fd3d4] text-white border-transparent shadow-sm shadow-teal-200/50'
+                  ? 'bg-[#3bb7b8] text-white border-transparent shadow-xs'
                   : 'bg-white hover:bg-teal-50/50 text-slate-700 border-slate-200'
               }`}
             >
@@ -520,15 +519,15 @@ export const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
             <button
               type="button"
               onClick={() => handleQuickCadenceChange('MOM')}
-              className={`p-2.5 rounded-2xl border text-xs font-black transition-all flex items-center justify-between cursor-pointer ${
+              className={`p-2.5 rounded-xl border text-xs font-bold transition-all flex items-center justify-between cursor-pointer ${
                 selectedMeeting.cadence === 'MOM' && !selectedMeeting.is_holiday_or_shifted
-                  ? 'bg-gradient-to-r from-[#8b5cf6] to-[#a78bfa] text-white border-transparent shadow-sm shadow-purple-200/50'
+                  ? 'bg-[#8b5cf6] text-white border-transparent shadow-xs'
                   : 'bg-white hover:bg-purple-50/50 text-slate-700 border-slate-200'
               }`}
             >
               <div>
                 <span className="block text-xs font-black">MOM</span>
-                <span className="block text-[10px] opacity-80 font-normal">Monthly Operations</span>
+                <span className="block text-[10px] opacity-80 font-normal">Monthly Review</span>
               </div>
               {selectedMeeting.cadence === 'MOM' && !selectedMeeting.is_holiday_or_shifted && (
                 <Check className="w-4 h-4" />
@@ -538,131 +537,20 @@ export const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
             <button
               type="button"
               onClick={() => handleQuickCadenceChange('HOLIDAY')}
-              className={`p-2.5 rounded-2xl border text-xs font-black transition-all flex items-center justify-between cursor-pointer ${
+              className={`p-2.5 rounded-xl border text-xs font-bold transition-all flex items-center justify-between cursor-pointer ${
                 selectedMeeting.cadence === 'HOLIDAY' || selectedMeeting.is_holiday_or_shifted
-                  ? 'bg-gradient-to-r from-[#f59e0b] to-[#fbbf24] text-white border-transparent shadow-sm shadow-amber-200/50'
+                  ? 'bg-amber-500 text-white border-transparent shadow-xs'
                   : 'bg-white hover:bg-amber-50/50 text-slate-700 border-slate-200'
               }`}
             >
               <div>
-                <span className="block text-xs font-black">HOLIDAY / OFF</span>
-                <span className="block text-[10px] opacity-80 font-normal">Hospital Stand-down</span>
+                <span className="block text-xs font-black">HOLIDAY</span>
+                <span className="block text-[10px] opacity-80 font-normal">Hospital Off</span>
               </div>
               {(selectedMeeting.cadence === 'HOLIDAY' || selectedMeeting.is_holiday_or_shifted) && (
                 <Check className="w-4 h-4" />
               )}
             </button>
-          </div>
-
-          {/* Action Bar: Direct Remove DOM / Restore DOM */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-3 mt-1 border-t border-purple-100">
-            <div>
-              <span className="text-xs font-bold text-slate-800 block">
-                {selectedMeeting.is_holiday_or_shifted || selectedMeeting.cadence === 'HOLIDAY'
-                  ? '🛑 DOM Standup is currently REMOVED / CANCELLED for this date.'
-                  : 'DOM Standup is currently ACTIVE for this date.'}
-              </span>
-              <span className="text-[11px] text-slate-500 block">
-                {selectedMeeting.is_holiday_or_shifted || selectedMeeting.cadence === 'HOLIDAY'
-                  ? 'Leaders are not scheduled today and zero absentees are counted in the hospital audit.'
-                  : 'Click "Remove DOM" to cancel today\'s standup without penalizing leaders as absent.'}
-              </span>
-            </div>
-
-            {selectedMeeting.is_holiday_or_shifted || selectedMeeting.cadence === 'HOLIDAY' ? (
-              <button
-                type="button"
-                onClick={() => handleQuickCadenceChange('DOM')}
-                className="px-4 py-2 bg-gradient-to-r from-[#32b87f] to-[#59d49c] hover:from-[#2ba16f] hover:to-[#4ec48f] text-white rounded-2xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
-              >
-                <Check className="w-3.5 h-3.5" />
-                <span>Re-instate / Enable DOM</span>
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  updateMeetingSchedule(selectedDate, {
-                    cadence: 'HOLIDAY',
-                    title: 'NO DOM — Standup Removed by Admin',
-                    is_holiday_or_shifted: true,
-                    shift_reason: 'DOM Removed by Admin',
-                  });
-                  setFeedbackToast({
-                    type: 'info',
-                    text: `🛑 DOM Standup cancelled for ${formatToIndianDate(selectedDate)} (Zero absentees counted)!`,
-                  });
-                  setTimeout(() => setFeedbackToast(null), 4000);
-                }}
-                className="px-4 py-2 bg-[#fff1f2] hover:bg-[#ffe4e6] text-[#e11d48] border border-rose-200 rounded-2xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
-                title="Remove DOM for this date (No leaders will be counted as absent)"
-              >
-                <XCircle className="w-3.5 h-3.5" />
-                <span>Remove DOM (No Standup)</span>
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Meeting Details Box */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
-          <div>
-            <span className="text-[11px] text-slate-500 font-bold block">Meeting Title</span>
-            <span className="text-xs font-bold text-slate-900 mt-0.5 block">{selectedMeeting.title}</span>
-          </div>
-
-          <div>
-            <span className="text-[11px] text-slate-500 font-bold block">Active Cadence</span>
-            <span className="text-xs font-bold text-slate-900 mt-0.5 block">
-              {selectedMeeting.cadence === 'MOM' && '🟣 MOM — Monthly Operations Meeting (1st Monday)'}
-              {selectedMeeting.cadence === 'WOM' && '🔵 WOM — Weekly Operations Meeting (Weekly Review)'}
-              {(selectedMeeting.cadence === 'DOM' || !selectedMeeting.cadence) && '🟠 DOM — Daily Operations Meeting'}
-              {selectedMeeting.cadence === 'HOLIDAY' && '🟡 HOLIDAY — Operations Off'}
-            </span>
-          </div>
-
-          <div>
-            <span className="text-[11px] text-slate-500 font-bold block">Scheduled Time</span>
-            <span className="text-xs font-mono font-bold text-orange-600 mt-0.5 block flex items-center gap-1">
-              <Clock className="w-3.5 h-3.5" />
-              {selectedMeeting.scheduled_time}
-            </span>
-          </div>
-
-          <div>
-            <span className="text-[11px] text-slate-500 font-bold block">Google Meet URL</span>
-            <a
-              href={selectedMeeting.google_meet_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs font-mono font-bold text-blue-600 hover:underline mt-0.5 block truncate flex items-center gap-1"
-            >
-              <Video className="w-3.5 h-3.5 shrink-0" />
-              <span className="truncate">{selectedMeeting.google_meet_url}</span>
-            </a>
-          </div>
-        </div>
-
-        {/* Selected Date Attendance Snapshot */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-          <div className="bg-emerald-50 border border-emerald-200 p-3 rounded-2xl text-center">
-            <span className="text-[11px] font-bold text-emerald-800 block">Present (Verified)</span>
-            <span className="text-2xl font-black text-emerald-700 mt-1 block">{presentCount}</span>
-          </div>
-
-          <div className="bg-purple-50 border border-purple-200 p-3 rounded-2xl text-center">
-            <span className="text-[11px] font-bold text-purple-800 block">Sanctioned Leave</span>
-            <span className="text-2xl font-black text-purple-700 mt-1 block">{leaveCount}</span>
-          </div>
-
-          <div className="bg-amber-50 border border-amber-200 p-3 rounded-2xl text-center">
-            <span className="text-[11px] font-bold text-amber-800 block">Pending Admin Notice</span>
-            <span className="text-2xl font-black text-amber-700 mt-1 block">{pendingInformedCount}</span>
-          </div>
-
-          <div className="bg-rose-50 border border-rose-200 p-3 rounded-2xl text-center">
-            <span className="text-[11px] font-bold text-rose-800 block">Unexcused Missed</span>
-            <span className="text-2xl font-black text-rose-700 mt-1 block">{absentCount}</span>
           </div>
         </div>
       </div>
