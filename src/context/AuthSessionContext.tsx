@@ -20,7 +20,7 @@ interface AuthSessionContextType {
   adminProfile: AdminProfile;
   fetchLiveAdminProfile: () => Promise<AdminProfile>;
   loginAdmin: (username: string, pass: string) => Promise<{ success: boolean; message: string }>;
-  logoutAdmin: () => void;
+  logoutAdmin: () => void | Promise<void>;
   updateAdminPassword: (oldPass: string, newPass: string) => Promise<{ success: boolean; message: string }>;
   updateAdminProfileAndCredentials: (updates: {
     username?: string;
@@ -38,7 +38,7 @@ interface AuthSessionContextType {
   loginLeaderDirect: (leader: Leader, pass: string) => Promise<{ success: boolean; message: string }>;
   loginLeaderDirectlyWithoutPassword: (leader: Leader) => void;
   loginAdminDirectly: () => void;
-  logoutUser: () => void;
+  logoutUser: () => void | Promise<void>;
   updateUserPassword: (leaderId: string, oldPass: string, newPass: string) => Promise<{ success: boolean; message: string }>;
 }
 
@@ -227,7 +227,7 @@ export const AuthSessionProvider: React.FC<{ children: React.ReactNode }> = ({ c
     return { success: false, message: 'Invalid administrator password. Please try again.' };
   };
 
-  const logoutAdmin = () => {
+  const logoutAdmin = async () => {
     setIsAdminAuthenticated(false);
     localStorage.removeItem('sbh_admin_logged_in');
     localStorage.removeItem('sbh_admin_login_time');
@@ -235,6 +235,24 @@ export const AuthSessionProvider: React.FC<{ children: React.ReactNode }> = ({ c
     localStorage.removeItem('sbh_admin_fullname');
     localStorage.removeItem('sbh_admin_profile');
     localStorage.removeItem('sbh_admin_password');
+    sessionStorage.clear();
+
+    try {
+      Object.keys(localStorage).forEach((key) => {
+        if (key.startsWith('sb-') || key.includes('auth-token') || key.includes('supabase')) {
+          localStorage.removeItem(key);
+        }
+      });
+    } catch {}
+
+    try {
+      await supabase.auth.signOut({ scope: 'local' });
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn('Error signing out Supabase auth session:', e);
+    }
+
+    window.location.href = '/login';
   };
 
   // Periodic Check for 2-Hour Auto-Logout
@@ -393,10 +411,29 @@ export const AuthSessionProvider: React.FC<{ children: React.ReactNode }> = ({ c
     localStorage.setItem('sbh_admin_login_time', Date.now().toString());
   };
 
-  const logoutUser = () => {
+  const logoutUser = async () => {
     setCurrentUser(null);
     localStorage.removeItem('sbh_active_user_session');
+    localStorage.removeItem('sbh_device_remembered_leader');
+    localStorage.removeItem('sbh_leader_id');
+    localStorage.removeItem('sbh_leader_name');
     sessionStorage.clear();
+
+    try {
+      Object.keys(localStorage).forEach((key) => {
+        if (key.startsWith('sb-') || key.includes('auth-token') || key.includes('supabase')) {
+          localStorage.removeItem(key);
+        }
+      });
+    } catch {}
+
+    try {
+      await supabase.auth.signOut({ scope: 'local' });
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn('Error signing out Supabase auth session:', e);
+    }
+
     window.location.href = '/login';
   };
 

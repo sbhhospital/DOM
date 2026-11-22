@@ -518,22 +518,30 @@ export const LeaderPortal: React.FC = () => {
           )}
 
           {/* User authenticated top controls */}
-          {currentUser && (
+          {activeLeader && (
             <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
               <div className="text-slate-600">
-                Logged in as: <span className="font-bold text-slate-900">{currentUser.full_name}</span>
+                Logged in as: <span className="font-bold text-slate-900">{activeLeader.full_name}</span>
               </div>
               <div className="flex items-center gap-2">
+                {currentUser && (
+                  <>
+                    <button
+                      onClick={() => setShowUserPassModal(true)}
+                      className="text-orange-600 hover:text-orange-700 font-bold flex items-center gap-1 cursor-pointer"
+                    >
+                      <KeyRound className="w-3.5 h-3.5" />
+                      <span>Password</span>
+                    </button>
+                    <span>•</span>
+                  </>
+                )}
                 <button
-                  onClick={() => setShowUserPassModal(true)}
-                  className="text-orange-600 hover:text-orange-700 font-bold flex items-center gap-1 cursor-pointer"
-                >
-                  <KeyRound className="w-3.5 h-3.5" />
-                  <span>Password</span>
-                </button>
-                <span>•</span>
-                <button
-                  onClick={() => logoutUser()}
+                  type="button"
+                  onClick={async () => {
+                    setSelectedLeader(null);
+                    await logoutUser();
+                  }}
                   className="text-rose-600 hover:text-rose-700 font-bold flex items-center gap-1 cursor-pointer"
                 >
                   <LogOut className="w-3.5 h-3.5" />
@@ -626,17 +634,20 @@ export const LeaderPortal: React.FC = () => {
                 </div>
               </div>
 
-              {!currentUser && (
+              <div className="flex items-center gap-2">
                 <button
-                  onClick={() => {
+                  type="button"
+                  onClick={async () => {
                     setSelectedLeader(null);
-                    setActionMessage(null);
+                    await logoutUser();
                   }}
-                  className="text-xs text-[#7065f0] hover:text-[#4f42dc] font-bold underline underline-offset-2 cursor-pointer"
+                  className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+                  title="Sign out from this leader account"
                 >
-                  Change
+                  <LogOut className="w-3.5 h-3.5 text-rose-600" />
+                  <span>Sign Out</span>
                 </button>
-              )}
+              </div>
             </div>
 
             {hasJoinedToday ? (

@@ -14,6 +14,7 @@ import {
   ArrowRight,
   Video,
   Lock,
+  LogOut,
 } from 'lucide-react';
 import { useDomApp } from '../context/DomAppContext';
 import { useAuthSession } from '../context/AuthSessionContext';
@@ -396,9 +397,12 @@ export const BoardroomCheckin: React.FC = () => {
                   <span>Mode: <strong className="text-[#7065f0]">{checkinMode === 'PHYSICAL' ? 'Physical / Conference Room' : 'Virtual / Google Meet'}</strong></span>
                   <button
                     type="button"
-                    onClick={() => logoutUser()}
+                    onClick={async () => {
+                      await logoutUser();
+                    }}
                     className="text-rose-600 hover:text-rose-700 font-bold flex items-center gap-1 cursor-pointer"
                   >
+                    <LogOut className="w-3.5 h-3.5" />
                     <span>Sign Out &rarr;</span>
                   </button>
                 </div>
