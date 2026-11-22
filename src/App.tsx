@@ -11,14 +11,6 @@ import { ErrorPage } from './pages/ErrorPage';
 import { HospitalFooter } from './components/HospitalFooter';
 import { PageLoadingBar } from './components/PageLoadingBar';
 
-// Automatic Canonical URL Enforcer: Prevent Vercel preview domain redirects from Google Auth
-if (
-  typeof window !== 'undefined' &&
-  window.location.hostname.endsWith('.vercel.app') &&
-  window.location.hostname !== 'sbhdom.vercel.app'
-) {
-  window.location.replace(`https://sbhdom.vercel.app${window.location.pathname}${window.location.search}${window.location.hash}`);
-}
 
 // Admin Protected Route Guard
 const AdminProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {

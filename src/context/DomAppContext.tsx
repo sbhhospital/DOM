@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import {
   Leader,
   Department,
@@ -32,6 +32,16 @@ import {
 } from '../lib/meetingUtils';
 import { generateLeaderMagicLink } from '../lib/magicLink';
 import { generateDailyMeetingLink } from '../lib/meetingLinks';
+
+export interface LiveActivityEvent {
+  id: string;
+  type: 'IN_PERSON' | 'VIRTUAL' | 'INFORMED_LATE' | 'LEAVE' | 'GEO_BREACH' | 'SCHEDULE' | 'CHECKIN';
+  leaderName: string;
+  departmentName?: string;
+  title: string;
+  description: string;
+  timestamp: string;
+}
 
 interface DomAppContextType {
   leaders: Leader[];
@@ -151,6 +161,9 @@ interface DomAppContextType {
   ) => Promise<{ success: boolean; message: string; driveUrl?: string }>;
   // Settings
   updateAppSettings: (newSettings: Partial<AppSettings>) => void;
+  latestLiveActivity: LiveActivityEvent | null;
+  dismissLiveActivity: () => void;
+  notifyLiveActivity: (event: Omit<LiveActivityEvent, 'id' | 'timestamp'>) => void;
 }
 
 const DomAppContext = createContext<DomAppContextType | undefined>(undefined);
@@ -304,6 +317,32 @@ const resolveLeaderDepartment = (lead: any, deptsList: Department[]): Department
 export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const todayStr = getLiveIndiaDateStr();
   const [selectedDate, setSelectedDate] = useState<string>(todayStr);
+  const [latestLiveActivity, setLatestLiveActivity] = useState<LiveActivityEvent | null>(null);
+  const liveActivityTimerRef = useRef<any>(null);
+
+  const dismissLiveActivity = useCallback(() => {
+    setLatestLiveActivity(null);
+    if (liveActivityTimerRef.current) {
+      clearTimeout(liveActivityTimerRef.current);
+      liveActivityTimerRef.current = null;
+    }
+  }, []);
+
+  const notifyLiveActivity = useCallback((event: Omit<LiveActivityEvent, 'id' | 'timestamp'>) => {
+    const newActivity: LiveActivityEvent = {
+      ...event,
+      id: `act-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      timestamp: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }),
+    };
+    setLatestLiveActivity(newActivity);
+    if (liveActivityTimerRef.current) {
+      clearTimeout(liveActivityTimerRef.current);
+    }
+    liveActivityTimerRef.current = setTimeout(() => {
+      setLatestLiveActivity(null);
+      liveActivityTimerRef.current = null;
+    }, 7000);
+  }, []);
 
   // Daily midnight date synchronization (Asia/Kolkata live time)
   useEffect(() => {
@@ -682,6 +721,47 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             (payload.new as any).action === 'ADMIN_MANUAL_ACTION' ||
             (payload.new as any).entity_type === 'ATTENDANCE'
           ) {
+            if (payload.new && (payload.new as any).after_data) {
+              const rec = (payload.new as any).after_data as AttendanceRecord;
+              if (rec && rec.leader_id) {
+                const lead = leaders.find((l) => l.id === rec.leader_id || l.id === rec.leader?.id);
+                const leadName = lead?.full_name || rec.leader?.full_name || 'Hospital Leader';
+                const deptName = lead?.department?.name || rec.leader?.department?.name || 'Department';
+                if (rec.selected_mode === 'PHYSICAL' && rec.check_in_at) {
+                  notifyLiveActivity({
+                    type: 'IN_PERSON',
+                    leaderName: leadName,
+                    departmentName: deptName,
+                    title: 'Live Join: In-Person (5th Floor)',
+                    description: `${leadName} verified presence via Room QR Code.`,
+                  });
+                } else if (rec.selected_mode === 'VIRTUAL' && rec.check_in_at) {
+                  notifyLiveActivity({
+                    type: 'VIRTUAL',
+                    leaderName: leadName,
+                    departmentName: deptName,
+                    title: 'Live Join: Google Meet',
+                    description: `${leadName} joined Google Meet standup session.`,
+                  });
+                } else if (rec.status === 'INFORMED_LATE') {
+                  notifyLiveActivity({
+                    type: 'INFORMED_LATE',
+                    leaderName: leadName,
+                    departmentName: deptName,
+                    title: 'Live Notice: Informed Late Arrival',
+                    description: `${leadName} (+${rec.late_minutes || 10}m late) informed ${rec.informed_to_person || 'Authority'}.`,
+                  });
+                } else if (rec.status === 'LEAVE' || rec.status === 'INFORMED_ABSENT') {
+                  notifyLiveActivity({
+                    type: 'LEAVE',
+                    leaderName: leadName,
+                    departmentName: deptName,
+                    title: 'Live Notice: Leave Request',
+                    description: `${leadName} submitted leave notice to ${rec.informed_to_person || 'Authority'}.`,
+                  });
+                }
+              }
+            }
             triggerDebouncedLiveSync();
           }
         }
@@ -785,13 +865,8 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             ? current.scheduled_time
             : '10:00 AM IST'
         : updates.scheduled_time || current.scheduled_time || 'OFF',
-      is_holiday_or_shifted:
-        updates.is_holiday_or_shifted !== undefined
-          ? updates.is_holiday_or_shifted
-          : resolvedCadence === 'HOLIDAY',
-      shift_reason: isEnabling
-        ? undefined
-        : updates.shift_reason || current.shift_reason,
+      is_holiday_or_shifted: isEnabling ? false : (updates.is_holiday_or_shifted !== undefined ? updates.is_holiday_or_shifted : resolvedCadence === 'HOLIDAY'),
+      shift_reason: isEnabling ? undefined : updates.shift_reason || current.shift_reason,
       updated_at: new Date().toISOString(),
     };
 
@@ -800,6 +875,31 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       ...prev,
       [date]: updated,
     }));
+
+    if (isEnabling) {
+      setAttendanceRecords((prev) =>
+        prev.map((rec) => {
+          if (
+            rec.meeting_date === date &&
+            !rec.check_in_at &&
+            (rec.status === 'EXCUSED' ||
+              rec.verification_note?.includes('Weekly Off') ||
+              rec.verification_note?.includes('Sunday') ||
+              rec.verification_note?.includes('Holiday'))
+          ) {
+            return {
+              ...rec,
+              status: 'ABSENT',
+              verification_status: 'PENDING',
+              admin_verified_attendance: false,
+              verification_note: undefined,
+              evidence_source: undefined,
+            };
+          }
+          return rec;
+        })
+      );
+    }
 
     // 2. Persist directly into Supabase SQL database (admin_audit_logs table)
     try {
@@ -1579,6 +1679,15 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
     } catch {}
 
+    const matchedVLeader = leaders.find((l) => l.id === leaderId);
+    notifyLiveActivity({
+      type: 'VIRTUAL',
+      leaderName: matchedVLeader?.full_name || 'Hospital Leader',
+      departmentName: matchedVLeader?.department?.name || 'Department',
+      title: 'Virtual Meet Check-in Recorded',
+      description: 'Connected to Daily Operations Google Meet room',
+    });
+
     return {
       success: true,
       meetUrl: meeting.google_meet_url || appSettings.google_meet_url || 'https://meet.google.com/jrz-jfku-gir',
@@ -1927,6 +2036,17 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       hour12: true,
     });
 
+    const matchedQrLeader = leaders.find((l) => l.id === leaderId);
+    notifyLiveActivity({
+      type: 'IN_PERSON',
+      leaderName: matchedQrLeader?.full_name || 'Hospital Leader',
+      departmentName: matchedQrLeader?.department?.name || 'Department',
+      title: 'In-Room Presence Verified (QR Scan)',
+      description: isAlreadyRecorded
+        ? `Re-scanned QR at Conference Room (${formattedNow})`
+        : `Physical attendance recorded at 5th Floor Conference Room (${formattedNow})`,
+    });
+
     return {
       success: true,
       alreadyRecorded: isAlreadyRecorded,
@@ -2244,6 +2364,16 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         recordToSave,
         isLateNotice ? `Informed Late submitted: +${clampedLate}m (ETA ${arrivalTimeStr})` : `Informed Leave: ${reason}`
       );
+      const leadMatch = leaders.find((l) => l.id === leaderId);
+      notifyLiveActivity({
+        type: isLateNotice ? 'INFORMED_LATE' : 'LEAVE',
+        leaderName: leadMatch?.full_name || 'Hospital Leader',
+        departmentName: leadMatch?.department?.name || 'Department',
+        title: isLateNotice ? 'Informed Late Arrival Notice' : 'Leave Notice Submitted',
+        description: isLateNotice
+          ? `Informed +${clampedLate}m late arrival (ETA: ${arrivalTimeStr}) • To: ${informedTo}`
+          : `Submitted leave request for Admin approval • To: ${informedTo}`,
+      });
     }
 
     return {
@@ -2697,13 +2827,15 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const meeting = getMeetingForDate(date);
     const cadenceCode = meeting.cadence || 'DOM';
     const isSunday = new Date(date).getDay() === 0;
+    const isExplicitlyEnabled = (cadenceCode === 'DOM' || cadenceCode === 'WOM' || cadenceCode === 'MOM') && !meeting.is_holiday_or_shifted;
     const isHoliday = cadenceCode === 'HOLIDAY' || Boolean(meeting.is_holiday_or_shifted);
+    const isOff = !isExplicitlyEnabled && (isSunday || isHoliday);
     const targetGroup = appSettings.admin_whatsapp_group || '120363432056023698@g.us';
 
     let reminderMsg = '';
     let noticeType = 'DOM_0950_NOTICE';
 
-    if (isSunday || isHoliday) {
+    if (isOff) {
       noticeType = isSunday ? 'SUNDAY_OFF_NOTICE' : 'HOLIDAY_NOTICE';
       reminderMsg = `*SBH GROUP OF HOSPITALS, RAIPUR*\n`;
       reminderMsg += `🏖️ *OFFICIAL NOTICE: ${isSunday ? 'WEEKLY OFF (SUNDAY)' : 'HOSPITAL HOLIDAY / STAND-DOWN'}*\n`;
@@ -2734,7 +2866,6 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
 
     // Direct Native Audio File Dispatch (Sent as direct playable WhatsApp audio attachment, not a text link)
-    const isOff = isSunday || isHoliday;
     const audioFilename = !isOff ? `announcement-${cadenceCode.toLowerCase()}.mp3` : undefined;
     const audioBase64 = !isOff ? await getAudioBase64(cadenceCode) : undefined;
 
@@ -2818,13 +2949,19 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     msg += `\n📌 All department leaders please take note of this updated schedule in your calendars.\n`;
     msg += `━━━━━━━━━━━━━━━━━━━━━━\n*Automated Reminder*`;
 
+    const isOff = newCadence === 'HOLIDAY';
+    const audioFilename = !isOff ? `announcement-${newCadence.toLowerCase()}.mp3` : undefined;
+    const audioBase64 = !isOff ? await getAudioBase64(newCadence) : undefined;
+
     const res = await sendCeoitboxWhatsappMessage({
       mobileNo: targetGroup,
       name: 'SBH DOM Official Group',
       message: msg,
+      audioBase64,
+      audioFilename,
+      filePathUrl: audioFilename ? `https://sbhdom.vercel.app/audio/${audioFilename}` : undefined,
       settings: appSettings,
     });
-
     try {
       await supabase.from('admin_audit_logs').insert({
         action: 'SCHEDULE_CHANGE_BROADCAST',
@@ -3070,6 +3207,23 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             verification_status: 'VERIFIED',
             verification_note: isSunday ? 'Sunday Weekly Off' : 'Holiday / No DOM',
             admin_verified_attendance: true,
+          };
+        }
+        if (
+          !isOff &&
+          (existing.status === 'EXCUSED' ||
+            (!existing.check_in_at &&
+              (existing.verification_note?.includes('Sunday') ||
+                existing.verification_note?.includes('Weekly Off') ||
+                existing.verification_note?.includes('Holiday'))))
+        ) {
+          return {
+            ...existing,
+            leader: lead,
+            status: 'ABSENT',
+            verification_status: 'PENDING',
+            verification_note: undefined,
+            admin_verified_attendance: false,
           };
         }
         return {
@@ -3991,6 +4145,9 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         sendLeaderOnboardingCredentials,
         sendBulkLeaderCredentials,
         updateAppSettings,
+        latestLiveActivity,
+        dismissLiveActivity,
+        notifyLiveActivity,
       }}
     >
       {children}

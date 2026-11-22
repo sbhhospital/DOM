@@ -370,9 +370,7 @@ export const AdminLogin: React.FC = () => {
     }, 12000);
 
     try {
-      const redirectOrigin = window.location.hostname.includes('localhost')
-        ? window.location.origin
-        : 'https://sbhdom.vercel.app';
+      const redirectOrigin = window.location.origin;
 
       // 1. Trigger Supabase Google OAuth (Generates real Google Account OAuth authorization URL)
       const { data, error } = await supabase.auth.signInWithOAuth({

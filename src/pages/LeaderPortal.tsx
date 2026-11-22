@@ -833,7 +833,7 @@ export const LeaderPortal: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                ) : currentMeeting.cadence === 'HOLIDAY' || currentMeeting.is_holiday_or_shifted ? (
+                ) : (currentMeeting.cadence === 'HOLIDAY' || currentMeeting.is_holiday_or_shifted) && currentMeeting.cadence !== 'DOM' && currentMeeting.cadence !== 'WOM' && currentMeeting.cadence !== 'MOM' ? (
                   <div className="p-5 rounded-3xl bg-amber-50/90 border-2 border-amber-300 text-amber-950 shadow-xs space-y-3">
                     <div className="flex items-start gap-3">
                       <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">

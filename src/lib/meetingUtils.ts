@@ -260,10 +260,10 @@ export function checkStandupWindowStatus(
 
   if (currentMinutes < windowOpenMinutes) {
     return {
-      allowed: false,
-      code: 'BEFORE_WINDOW',
+      allowed: true,
+      code: 'OPEN',
       isSundayOrHoliday: false,
-      message: 'Check-in Not Open Yet: Daily Operations Meeting starts at 10:00 AM IST. Check-in opens 10 minutes prior at 09:50 AM IST. Kindly check in between 09:50 AM and 10:20 AM IST.',
+      message: 'Early Check-in Active: Daily Operations Meeting commences at 10:00 AM IST. Check-in recorded.',
     };
   }
 
@@ -277,10 +277,10 @@ export function checkStandupWindowStatus(
       };
     }
     return {
-      allowed: false,
-      code: 'AFTER_WINDOW',
+      allowed: true,
+      code: 'OPEN',
       isSundayOrHoliday: false,
-      message: 'Check-in Closed: Daily Operations Meeting check-in closed at 10:20 AM IST. First-time submissions are no longer accepted for today. Unreported leaders are marked absent for the Director\'s audit.',
+      message: 'Late Check-in Active: Check-in recorded as late arrival on the Director\'s Attendance Register.',
     };
   }
 
