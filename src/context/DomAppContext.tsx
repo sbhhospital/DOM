@@ -2514,6 +2514,13 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const sendNonAttendeesEscalationNotice = async (
     date: string
   ): Promise<{ count: number; message: string; payload: string }> => {
+    if (date > getLiveIndiaDateStr()) {
+      return {
+        count: 0,
+        message: `Meeting has not started yet for ${formatToIndianDate(date)}. Non-attendee escalation notices can only be sent on or after meeting day.`,
+        payload: '',
+      };
+    }
     const meeting = getMeetingForDate(date);
     const forDate = attendanceRecords.filter((r) => r.meeting_date === date);
     const cadenceCode = meeting.cadence || 'DOM';
@@ -2819,6 +2826,13 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const sendDirectorPdfToWhatsappGroup = async (
     date: string
   ): Promise<{ success: boolean; message: string }> => {
+    if (date > getLiveIndiaDateStr()) {
+      return {
+        success: false,
+        message: `Meeting has not started yet for ${formatToIndianDate(date)}. Future attendance reports cannot be generated or dispatched. Only meeting announcements can be broadcast for future dates.`,
+      };
+    }
+
     const meeting = getMeetingForDate(date);
     const cadenceCode = meeting.cadence || 'DOM';
     const fullRecords = getFullRosterForDate(date);
@@ -2826,23 +2840,8 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     // 1. Generate direct base64 PDF
     const { base64: pdfBase64, filename } = getDirectorPdfBase64(meeting, fullRecords, appSettings);
 
-    // 2. Compute summary numbers for text dispatch
-    const presentPhysical = fullRecords.filter(
-      (r) => r.selected_mode === 'PHYSICAL' && (r.status === 'PRESENT' || r.admin_verified_attendance)
-    );
-    const presentVirtual = fullRecords.filter((r) => r.selected_mode === 'VIRTUAL' && r.status === 'PRESENT');
-    const informedLeave = fullRecords.filter((r) => r.status === 'LEAVE');
-    const absent = fullRecords.filter(
-      (r) => r.status === 'ABSENT' || (r.status === 'PENDING' && r.selected_mode === 'NONE')
-    );
-
-    let summaryMsg = `*SBH GROUP OF HOSPITALS, RAIPUR*\n`;
-    summaryMsg += `📄 *OFFICIAL ${cadenceCode} ATTENDANCE PDF REPORT*\n`;
-    summaryMsg += `📅 Date: ${formatToIndianDate(date)} (${cadenceCode})\n`;
-    summaryMsg += `⏰ Time: ${meeting.scheduled_time} IST\n`;
-    summaryMsg += `👥 Scheduled: ${fullRecords.length} | 🏢 Physical: ${presentPhysical.length} | 💻 Virtual: ${presentVirtual.length} | 🟣 Leave: ${informedLeave.length} | ❌ Absent: ${absent.length}\n`;
-    summaryMsg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
-    summaryMsg += `Official signed attendance document attached below.\n*Automated Reminder*`;
+    // 2. Clean concise caption: PDF is dispatched exclusively without duplicate text
+    const summaryMsg = `*SBH GROUP OF HOSPITALS, RAIPUR*\n📄 *OFFICIAL ${cadenceCode} SIGNED ATTENDANCE PDF REPORT (${formatToIndianDate(date)})*\n*Automated Reminder*`;
 
     const targetGroup = appSettings.admin_whatsapp_group || '120363432056023698@g.us';
 
@@ -2959,6 +2958,16 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     // Sunday Rule: Automated group broadcasts paused on Sunday
     if (new Date(date).getDay() === 0) {
       return { success: true, message: 'Sunday is an official weekly off. Group broadcast skipped.', url: '', payload: '' };
+    }
+
+    // Future Date Protection: 10:30 AM attendance audit cannot be dispatched for future dates
+    if (stage === '1030' && date > getLiveIndiaDateStr()) {
+      return {
+        success: false,
+        message: `Meeting has not started yet for ${formatToIndianDate(date)}. Final attendance reports cannot be generated or broadcast for future dates. Only 09:50 AM schedule announcements are permitted.`,
+        url: '',
+        payload: '',
+      };
     }
 
     const meeting = getMeetingForDate(date);
@@ -3105,6 +3114,12 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     date: string
   ): Promise<{ success: boolean; message: string; driveUrl?: string }> => {
     try {
+      if (date > getLiveIndiaDateStr()) {
+        return {
+          success: false,
+          message: `Meeting has not started yet for ${formatToIndianDate(date)}. Attendance reports cannot be archived for future dates.`,
+        };
+      }
       const meeting = getMeetingForDate(date);
       const forDate = attendanceRecords.filter((r) => r.meeting_date === date);
       const { base64, filename } = getDirectorPdfBase64(meeting, forDate, appSettings);

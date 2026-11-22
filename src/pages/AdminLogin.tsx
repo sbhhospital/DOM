@@ -28,6 +28,7 @@ import { useDomApp } from '../context/DomAppContext';
 import { INITIAL_LEADERS } from '../data/hospitalLeadersData';
 import { supabase } from '../lib/supabase';
 import { Leader } from '../types/database';
+import defaultLeaderAvatar from '../assets/default-leader-avatar.jpg';
 import sbhLogo from '../assets/sbh-logo.png';
 
 export const AdminLogin: React.FC = () => {
@@ -562,9 +563,11 @@ export const AdminLogin: React.FC = () => {
             <div className="mb-5 p-3.5 bg-gradient-to-r from-[#f5f3ff] via-[#eff0fe]/40 to-[#e0e7ff]/30 border border-purple-200/80 rounded-2xl shadow-2xs">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#7065f0] to-[#7f70f6] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
-                    {rememberedLeader.full_name.charAt(0)}
-                  </div>
+                  <img
+                    src={defaultLeaderAvatar}
+                    alt={rememberedLeader.full_name}
+                    className="w-8 h-8 rounded-full object-cover shrink-0 border border-purple-200/80 shadow-2xs"
+                  />
                   <div className="min-w-0">
                     <div className="text-xs font-black text-[#232d42] truncate flex items-center gap-1.5">
                       <span>Device Recognized:</span>

@@ -60,7 +60,7 @@ import { useDomApp } from '../context/DomAppContext';
 import { useAuthSession } from '../context/AuthSessionContext';
 import { useNavigate } from 'react-router-dom';
 import { Leader, Department, AttendanceStatus, MeetingFrequency, CadenceType, AttendanceRecord } from '../types/database';
-import { getCadenceInfo, formatLateDuration, formatToIndianDate, calculateDistanceInMeters } from '../lib/meetingUtils';
+import { getCadenceInfo, formatLateDuration, formatToIndianDate, calculateDistanceInMeters, getLiveIndiaDateStr } from '../lib/meetingUtils';
 import { MeetingCalendarView } from '../components/MeetingCalendarView';
 import { AnalyticsReportsView } from '../components/AnalyticsReportsView';
 import { generateDailyMeetingLink } from '../lib/meetingLinks';
@@ -797,8 +797,11 @@ export const UnifiedAdminDashboard: React.FC = () => {
   // Helper functions for Attendance Classification (strictly mutually exclusive)
   const isSundayDate = new Date(selectedDate).getDay() === 0;
   const isOffDate = isSundayDate || currentMeeting.cadence === 'HOLIDAY' || currentMeeting.is_holiday_or_shifted;
+  const liveTodayDate = getLiveIndiaDateStr();
+  const isFutureDate = selectedDate > liveTodayDate;
 
   const isPresentRecord = (r: AttendanceRecord) =>
+    !isFutureDate &&
     r.status !== 'EXCUSED' &&
     r.verification_status !== 'REJECTED' &&
     r.status !== 'LEAVE' &&
@@ -815,12 +818,13 @@ export const UnifiedAdminDashboard: React.FC = () => {
     isPresentRecord(r) && r.selected_mode === 'VIRTUAL';
 
   const isLateRecord = (r: AttendanceRecord) =>
-    r.status === 'INFORMED_LATE' || ((r.late_minutes ?? 0) > 0 && isPresentRecord(r));
+    !isFutureDate && (r.status === 'INFORMED_LATE' || ((r.late_minutes ?? 0) > 0 && isPresentRecord(r)));
 
   const isLeaveRecord = (r: AttendanceRecord) =>
     r.status === 'LEAVE' || r.status === 'INFORMED_ABSENT';
 
   const isAbsentRecord = (r: AttendanceRecord) =>
+    !isFutureDate &&
     !isOffDate &&
     r.status !== 'EXCUSED' &&
     !isPresentRecord(r) &&
@@ -1205,44 +1209,27 @@ export const UnifiedAdminDashboard: React.FC = () => {
     }
   };
 
-  // Direct PDF Sharing into WhatsApp Group (CEOITBOX Direct API + Native OS share)
+  // Direct PDF Sharing into WhatsApp Group (Exclusively sends signed PDF via CEOITBOX API without duplicate text)
   const handleSharePdfDirectly = async (date: string) => {
     try {
-      const meeting = getMeetingForDate(date);
-      const forDate = getFullRosterForDate(date);
-      const doc = generateDirectorPdf(meeting, forDate, appSettings);
-      const pdfBlob = doc.output('blob');
-      const cadence = meeting.cadence || 'DOM';
-      const filename = `SBH_${cadence}_Report_${date}.pdf`;
-      const pdfFile = new File([pdfBlob], filename, { type: 'application/pdf' });
-
-      // Structured WhatsApp Caption
-      const captionText = `*SBH GROUP OF HOSPITALS, RAIPUR*\n📊 *OFFICIAL ${cadence} LEADERSHIP ATTENDANCE REPORT (${formatToIndianDate(date)})*\n━━━━━━━━━━━━━━━━━━━━━━\n• Total Expected: ${forDate.length}\n• Attended: ${forDate.filter((r) => isPresentRecord(r)).length}\n• Approved Late: ${forDate.filter((r) => isLateRecord(r)).length}\n• Approved Leave: ${forDate.filter((r) => isLeaveRecord(r)).length}\n• Absent / Unreported: ${forDate.filter((r) => isAbsentRecord(r)).length}\n\n📄 *Official Signed Director Attendance PDF Report Attached*\n━━━━━━━━━━━━━━━━━━━━━━\n*Automated Reminder*`;
+      if (date > liveTodayDate) {
+        setToastAlert({
+          type: 'error',
+          text: `⚠️ Meeting has not started yet for ${formatToIndianDate(date)}. Future attendance reports cannot be generated or dispatched. Only meeting announcements can be broadcast for future dates.`,
+        });
+        setTimeout(() => setToastAlert(null), 6000);
+        return { success: false, message: 'Meeting has not started yet' };
+      }
 
       // 1. Direct Ceoitbox PDF Dispatch to WhatsApp Group (120363432056023698@g.us) via /api/v1/message/create
       const dispatchPromise = sendDirectorPdfToWhatsappGroup(date);
       uploadReportToGoogleDriveAndSheet(date).catch((e) => console.warn('Background sync note:', e));
 
-      // 2. If mobile Native Web Share is available, invoke it simultaneously
-      if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
-        try {
-          await navigator.share({
-            title: `SBH Hospital ${cadence} Report - ${date}`,
-            text: captionText,
-            files: [pdfFile],
-          });
-        } catch (shareErr: any) {
-          if (shareErr.name !== 'AbortError') {
-            console.warn('Web Share note:', shareErr);
-          }
-        }
-      }
-
       const res = await dispatchPromise;
       if (res.success) {
         setToastAlert({
           type: 'success',
-          text: `🎉 Official PDF Report directly dispatched to WhatsApp Group (${appSettings.admin_whatsapp_group || '120363432056023698@g.us'}) via Ceoitbox API!`,
+          text: `🎉 Official Signed PDF Report directly dispatched to WhatsApp Group (${appSettings.admin_whatsapp_group || '120363432056023698@g.us'}) via Ceoitbox API!`,
         });
       } else {
         setToastAlert({
@@ -1319,6 +1306,15 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
   // Unified Handler for the 3 WhatsApp Group Dispatch Options
   const handleGroupDispatchAction = async (action: 'pdf' | 'text' | 'both') => {
+    if (selectedDate > liveTodayDate) {
+      setToastAlert({
+        type: 'error',
+        text: `⚠️ Meeting has not started yet for ${formatToIndianDate(selectedDate)}. Attendance reports cannot be dispatched for future dates. You can broadcast meeting announcements only.`,
+      });
+      setShowGroupDispatchModal(false);
+      setTimeout(() => setToastAlert(null), 6000);
+      return;
+    }
     setIsDispatchingGroup(action);
     try {
       if (action === 'pdf' || action === 'both') {
@@ -2196,7 +2192,16 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
                     {/* Approve Joined */}
                     <button
-                      onClick={() =>
+                      disabled={isFutureDate}
+                      onClick={() => {
+                        if (isFutureDate) {
+                          setToastAlert({
+                            type: 'info',
+                            text: `Meeting has not started yet for ${formatToIndianDate(selectedDate)}. Attendance approval will activate on meeting day.`,
+                          });
+                          setTimeout(() => setToastAlert(null), 5000);
+                          return;
+                        }
                         openConfirm({
                           title: 'Approve All Joined Leaders',
                           message: `Verify and approve attendance for all pending leaders who joined today (${selectedDate})?`,
@@ -2207,10 +2212,12 @@ export const UnifiedAdminDashboard: React.FC = () => {
                             setToastAlert({ type: 'success', text: res.message });
                             setTimeout(() => setToastAlert(null), 5000);
                           },
-                        })
-                      }
-                      className="h-9 px-3.5 bg-[#ecfdf5] hover:bg-[#d1fae5] text-[#059669] border border-emerald-200/80 rounded-2xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150 shrink-0"
-                      title="Approve all leaders who have joined on this date"
+                        });
+                      }}
+                      className={`h-9 px-3.5 bg-[#ecfdf5] hover:bg-[#d1fae5] text-[#059669] border border-emerald-200/80 rounded-2xl text-xs font-bold shadow-2xs flex items-center gap-1.5 active:scale-95 transition-all duration-150 shrink-0 ${
+                        isFutureDate ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                      }`}
+                      title={isFutureDate ? 'Meeting has not started yet' : 'Approve all leaders who have joined on this date'}
                     >
                       <CheckCircle2 className="w-3.5 h-3.5 text-[#059669]" />
                       <span>Approve Joined</span>
@@ -2306,6 +2313,33 @@ export const UnifiedAdminDashboard: React.FC = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Future Date / Upcoming Meeting Notice Banner */}
+              {isFutureDate && (
+                <div className="p-4 bg-gradient-to-r from-indigo-50 via-purple-50 to-sky-50 border border-indigo-200/90 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-indigo-950 shadow-xs mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                      <Clock className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-black text-indigo-950 flex items-center gap-2">
+                        <span>Upcoming {currentCadence} Scheduled for {formatToIndianDate(selectedDate)}</span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-200/70 text-indigo-900 uppercase font-mono">
+                          Meeting Not Started
+                        </span>
+                      </h4>
+                      <p className="text-xs text-indigo-900/80 font-medium mt-0.5">
+                        This meeting has not started yet. Leader attendance verification, actions, and signed Director PDF reports will activate on the meeting day at 10:00 AM IST. Only 09:50 AM schedule announcements can be broadcast in advance.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="shrink-0 flex items-center gap-2">
+                    <span className="px-3 py-1.5 bg-white border border-indigo-200 text-indigo-700 text-xs font-bold rounded-xl shadow-2xs">
+                      🔒 Attendance Reports Locked
+                    </span>
+                  </div>
+                </div>
+              )}
 
               {/* Sunday or Removed DOM / Holiday Banner */}
               {(currentMeeting.cadence === 'HOLIDAY' || currentMeeting.is_holiday_or_shifted || new Date(selectedDate).getDay() === 0) && (
@@ -2537,7 +2571,15 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 {/* Action Buttons: PDF Download, Print & Email Report & Drive Sync */}
                 <div className="flex flex-wrap items-center gap-2 justify-end">
                   <button
-                    onClick={() =>
+                    onClick={() => {
+                      if (isFutureDate) {
+                        setToastAlert({
+                          type: 'error',
+                          text: `⚠️ Meeting has not started yet for ${formatToIndianDate(selectedDate)}. Future attendance reports cannot be archived.`,
+                        });
+                        setTimeout(() => setToastAlert(null), 5000);
+                        return;
+                      }
                       openConfirm({
                         title: 'Save & Archive Report',
                         message:
@@ -2545,8 +2587,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                         type: 'primary',
                         confirmText: 'Save & Archive',
                         onConfirm: handleUploadToDriveAndSheet,
-                      })
-                    }
+                      });
+                    }}
                     disabled={isSyncingDrive}
                     className="px-3 py-2 bg-[#eff0fe] hover:bg-[#dfd7fd] text-[#7065f0] rounded-2xl text-xs font-bold shadow-xs flex items-center gap-1.5 active:scale-95 transition-all duration-150 cursor-pointer"
                     title="Archive report directly to Supabase SQL Database & dispatch to WhatsApp Group"
@@ -2566,6 +2608,14 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
                   <button
                     onClick={() => {
+                      if (isFutureDate) {
+                        setToastAlert({
+                          type: 'error',
+                          text: `⚠️ Meeting has not started yet for ${formatToIndianDate(selectedDate)}. Attendance reports can only be downloaded on or after meeting day.`,
+                        });
+                        setTimeout(() => setToastAlert(null), 5000);
+                        return;
+                      }
                       setIsDownloadingPdf(true);
                       try {
                         downloadPdfReport(selectedDate);
@@ -2587,7 +2637,17 @@ export const UnifiedAdminDashboard: React.FC = () => {
                   </button>
 
                   <button
-                    onClick={() => openPdfReport(selectedDate)}
+                    onClick={() => {
+                      if (isFutureDate) {
+                        setToastAlert({
+                          type: 'error',
+                          text: `⚠️ Meeting has not started yet for ${formatToIndianDate(selectedDate)}. Attendance reports can only be printed on or after meeting day.`,
+                        });
+                        setTimeout(() => setToastAlert(null), 5000);
+                        return;
+                      }
+                      openPdfReport(selectedDate);
+                    }}
                     className="px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-2xl text-xs font-bold shadow-xs flex items-center gap-1.5 active:scale-95 transition-all duration-150 cursor-pointer"
                     title="Print official PDF report"
                   >
@@ -2597,6 +2657,14 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
                   <button
                     onClick={() => {
+                      if (isFutureDate) {
+                        setToastAlert({
+                          type: 'info',
+                          text: `Meeting has not started yet for ${formatToIndianDate(selectedDate)}. Zero absentees recorded.`,
+                        });
+                        setTimeout(() => setToastAlert(null), 5000);
+                        return;
+                      }
                       const esc = generateNonAttendeesEscalationEmail(selectedDate);
                       setEscalationData(esc);
                       setShowEscalationModal(true);
@@ -2777,6 +2845,11 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                     </span>
                                   ) : null}
                                 </span>
+                              ) : isFutureDate ? (
+                                <span className="text-[10px] bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded-full border border-indigo-200 inline-flex items-center gap-1">
+                                  <Clock className="w-3 h-3 text-indigo-500" />
+                                  <span>SCHEDULED (Upcoming)</span>
+                                </span>
                               ) : (
                                 <span className="text-[10px] bg-rose-50 text-rose-700 font-bold px-2 py-0.5 rounded-full border border-rose-200 inline-flex items-center gap-1">
                                   <span>ABSENT</span>
@@ -2789,6 +2862,11 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                   <span className="px-2 py-0.5 bg-slate-100 text-slate-500 text-[10px] font-bold rounded-lg border border-slate-200 inline-flex items-center gap-1">
                                     <Calendar className="w-3 h-3 text-slate-400" />
                                     <span>Weekly Off</span>
+                                  </span>
+                                ) : isFutureDate ? (
+                                  <span className="px-2.5 py-1 bg-slate-50 text-slate-400 text-[10px] font-semibold rounded-lg border border-slate-200 inline-flex items-center gap-1">
+                                    <Clock className="w-3 h-3 text-slate-400" />
+                                    <span>Meeting Not Started</span>
                                   </span>
                                 ) : (
                                   <>
@@ -3807,9 +3885,11 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                   className="flex items-center justify-between p-2 rounded-xl bg-slate-50 border border-slate-200/80 hover:bg-white hover:border-[#2e7d32]/40 transition-all text-xs"
                                 >
                                   <div className="flex items-center gap-2 min-w-0">
-                                    <div className="w-6 h-6 rounded-lg bg-[#cfead6] text-[#2e7d32] font-black text-[10px] flex items-center justify-center shrink-0">
-                                      {lead.full_name.slice(0, 2).toUpperCase()}
-                                    </div>
+                                    <img
+                                      src={defaultLeaderAvatar}
+                                      alt={lead.full_name}
+                                      className="w-6 h-6 rounded-full object-cover shrink-0 border border-purple-200/80 shadow-2xs"
+                                    />
                                     <div className="min-w-0">
                                       <div className="font-bold text-[#1f2d2a] truncate text-xs">{lead.full_name}</div>
                                       <div className="text-[10px] text-slate-400 font-mono truncate">{lead.employee_code} • {lead.expected_mode}</div>
@@ -4123,9 +4203,11 @@ export const UnifiedAdminDashboard: React.FC = () => {
                               {/* Leader Info */}
                               <td className="py-3 px-4">
                                 <div className="flex items-center gap-2.5">
-                                  <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-teal-500 to-emerald-500 text-white font-bold flex items-center justify-center text-xs shadow-2xs shrink-0">
-                                    {lead.full_name.charAt(0)}
-                                  </div>
+                                  <img
+                                    src={defaultLeaderAvatar}
+                                    alt={lead.full_name}
+                                    className="w-8 h-8 rounded-full object-cover shrink-0 border border-purple-200/80 shadow-2xs"
+                                  />
                                   <div>
                                     <div className="font-black text-slate-900">{lead.full_name}</div>
                                     <div className="text-[11px] text-slate-500 font-semibold flex items-center gap-1.5">
@@ -6978,13 +7060,30 @@ function doPost(e) {
               </div>
             </div>
 
+            {/* Future Date Alert in Modal */}
+            {isFutureDate && (
+              <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-900 flex items-start gap-2.5">
+                <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-bold">Meeting Has Not Started Yet ({formatToIndianDate(selectedDate)})</div>
+                  <div className="text-[11px] text-amber-800 mt-0.5">
+                    Attendance reports cannot be dispatched for future dates. You can broadcast advance schedule announcements instead.
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Selection Options */}
             <div className="space-y-2.5">
               <button
                 type="button"
-                disabled={isDispatchingGroup !== null}
+                disabled={isDispatchingGroup !== null || isFutureDate}
                 onClick={() => handleGroupDispatchAction('pdf')}
-                className="w-full p-4 rounded-2xl border border-emerald-200 hover:border-emerald-500 hover:bg-emerald-50/50 bg-white flex items-center justify-between transition-all group cursor-pointer text-left shadow-2xs hover:shadow-xs"
+                className={`w-full p-4 rounded-2xl border bg-white flex items-center justify-between transition-all text-left shadow-2xs ${
+                  isFutureDate
+                    ? 'border-slate-200 opacity-50 cursor-not-allowed bg-slate-50'
+                    : 'border-emerald-200 hover:border-emerald-500 hover:bg-emerald-50/50 group cursor-pointer hover:shadow-xs'
+                }`}
               >
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
@@ -6999,20 +7098,26 @@ function doPost(e) {
                       📄 Send Official PDF Report
                     </div>
                     <div className="text-[11px] text-slate-500">
-                      Dispatches signed PDF document directly into the WhatsApp group
+                      {isFutureDate ? 'Locked — Attendance report generates on meeting day' : 'Dispatches signed PDF document directly into the WhatsApp group'}
                     </div>
                   </div>
                 </div>
-                <span className="text-xs font-bold text-emerald-700 px-3 py-1 bg-emerald-100 rounded-lg shrink-0">
-                  {isDispatchingGroup === 'pdf' ? 'Sending...' : 'Send PDF'}
+                <span className={`text-xs font-bold px-3 py-1 rounded-lg shrink-0 ${
+                  isFutureDate ? 'bg-slate-200 text-slate-500' : 'text-emerald-700 bg-emerald-100'
+                }`}>
+                  {isFutureDate ? 'Locked' : isDispatchingGroup === 'pdf' ? 'Sending...' : 'Send PDF'}
                 </span>
               </button>
 
               <button
                 type="button"
-                disabled={isDispatchingGroup !== null}
+                disabled={isDispatchingGroup !== null || isFutureDate}
                 onClick={() => handleGroupDispatchAction('text')}
-                className="w-full p-4 rounded-2xl border border-blue-200 hover:border-blue-500 hover:bg-blue-50/50 bg-white flex items-center justify-between transition-all group cursor-pointer text-left shadow-2xs hover:shadow-xs"
+                className={`w-full p-4 rounded-2xl border bg-white flex items-center justify-between transition-all text-left shadow-2xs ${
+                  isFutureDate
+                    ? 'border-slate-200 opacity-50 cursor-not-allowed bg-slate-50'
+                    : 'border-blue-200 hover:border-blue-500 hover:bg-blue-50/50 group cursor-pointer hover:shadow-xs'
+                }`}
               >
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
@@ -7027,20 +7132,26 @@ function doPost(e) {
                       📝 Send Absentee Text Report
                     </div>
                     <div className="text-[11px] text-slate-500">
-                      Dispatches formatted text report listing all absent leaders by name & department
+                      {isFutureDate ? 'Locked — Zero absentees for unstarted meeting' : 'Dispatches formatted text report listing all absent leaders by name & department'}
                     </div>
                   </div>
                 </div>
-                <span className="text-xs font-bold text-blue-700 px-3 py-1 bg-blue-100 rounded-lg shrink-0">
-                  {isDispatchingGroup === 'text' ? 'Sending...' : 'Send Text'}
+                <span className={`text-xs font-bold px-3 py-1 rounded-lg shrink-0 ${
+                  isFutureDate ? 'bg-slate-200 text-slate-500' : 'text-blue-700 bg-blue-100'
+                }`}>
+                  {isFutureDate ? 'Locked' : isDispatchingGroup === 'text' ? 'Sending...' : 'Send Text'}
                 </span>
               </button>
 
               <button
                 type="button"
-                disabled={isDispatchingGroup !== null}
+                disabled={isDispatchingGroup !== null || isFutureDate}
                 onClick={() => handleGroupDispatchAction('both')}
-                className="w-full p-4 rounded-2xl border border-purple-200 hover:border-[#f0f1f8]0 hover:bg-purple-50/50 bg-white flex items-center justify-between transition-all group cursor-pointer text-left shadow-2xs hover:shadow-xs"
+                className={`w-full p-4 rounded-2xl border bg-white flex items-center justify-between transition-all text-left shadow-2xs ${
+                  isFutureDate
+                    ? 'border-slate-200 opacity-50 cursor-not-allowed bg-slate-50'
+                    : 'border-purple-200 hover:border-purple-500 hover:bg-purple-50/50 group cursor-pointer hover:shadow-xs'
+                }`}
               >
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center shrink-0">
@@ -7052,15 +7163,17 @@ function doPost(e) {
                   </div>
                   <div>
                     <div className="text-xs font-black text-slate-900 group-hover:text-purple-800">
-                      🚀 Send Both (PDF Document + Text Summary)
+                      ⚡ Send Both (PDF + Text Summary)
                     </div>
                     <div className="text-[11px] text-slate-500">
-                      Dispatches the official PDF file followed by the absentee summary
+                      {isFutureDate ? 'Locked — Available on meeting day' : 'Sends signed PDF followed by detailed leadership text roster'}
                     </div>
                   </div>
                 </div>
-                <span className="text-xs font-bold text-purple-700 px-3 py-1 bg-purple-100 rounded-lg shrink-0">
-                  {isDispatchingGroup === 'both' ? 'Sending...' : 'Send Both'}
+                <span className={`text-xs font-bold px-3 py-1 rounded-lg shrink-0 ${
+                  isFutureDate ? 'bg-slate-200 text-slate-500' : 'text-purple-700 bg-purple-100'
+                }`}>
+                  {isFutureDate ? 'Locked' : isDispatchingGroup === 'both' ? 'Sending...' : 'Send Both'}
                 </span>
               </button>
             </div>

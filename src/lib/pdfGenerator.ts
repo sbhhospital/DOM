@@ -5,6 +5,33 @@ import { sbhLogoBase64 } from '../assets/logoBase64';
 import { defaultLeaderAvatarBase64 } from '../assets/defaultLeaderAvatarBase64';
 import { formatLateDuration, formatToIndianDate } from './meetingUtils';
 
+// Subtle Official Hospital Logo Watermark on Every Page
+function addHospitalLogoWatermark(doc: jsPDF) {
+  try {
+    const totalPages = doc.getNumberOfPages();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const wmWidth = 110;
+    const wmHeight = 32;
+    const wmX = (pageWidth - wmWidth) / 2;
+    const wmY = (pageHeight - wmHeight) / 2;
+
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      try {
+        (doc as any).saveGraphicsState();
+        (doc as any).setGState(new (doc as any).GState({ opacity: 0.07 }));
+        doc.addImage(sbhLogoBase64, 'PNG', wmX, wmY, wmWidth, wmHeight);
+        (doc as any).restoreGraphicsState();
+      } catch (innerErr) {
+        // Fallback if GState opacity isn't supported in environment
+      }
+    }
+  } catch (err) {
+    console.warn('PDF watermark note:', err);
+  }
+}
+
 export function generateDirectorPdf(
   meeting: MeetingSchedule,
   records: AttendanceRecord[],
@@ -83,7 +110,7 @@ export function generateDirectorPdf(
   doc.setFontSize(8.5);
   doc.setTextColor(71, 85, 105);
   doc.text(`Date: ${formatToIndianDate(meeting.meeting_date)} (${formattedDate})   |   Scheduled Time: ${meeting.scheduled_time}   |   Cadence: ${cadenceCode} (${meeting.frequency})`, margin + 4, currentY + 12);
-  doc.text(`Venue: ${settings.conference_room_name}   |   Meet URL: ${meeting.google_meet_url}`, margin + 4, currentY + 17);
+  doc.text(`Venue: ${settings.conference_room_name}   |   Portal URL: https://sbhdom.vercel.app`, margin + 4, currentY + 17);
 
   currentY += 26;
 
@@ -490,6 +517,9 @@ export function generateDirectorPdf(
     { align: 'center' }
   );
 
+  // Apply Subtle Hospital Watermark Across All Pages
+  addHospitalLogoWatermark(doc);
+
   return doc;
 }
 
@@ -697,6 +727,9 @@ export function generateMonthlyAuditPdf(
     },
   });
 
+  // Apply Subtle Hospital Watermark Across All Pages
+  addHospitalLogoWatermark(doc);
+
   return doc;
 }
 
@@ -808,6 +841,9 @@ export function generateYearlyAuditPdf(
       8: { halign: 'center', cellWidth: 32 },
     },
   });
+
+  // Apply Subtle Hospital Watermark Across All Pages
+  addHospitalLogoWatermark(doc);
 
   return doc;
 }
