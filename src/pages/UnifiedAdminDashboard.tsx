@@ -310,6 +310,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
     broadcastScheduleChange,
     uploadReportToGoogleDriveAndSheet,
     getFullRosterForDate,
+    concludeAndCloseMeeting,
+    reopenMeeting,
     generateNonAttendeesEscalationEmail,
     overrideAttendanceTime,
     resetAttendanceTime,
@@ -374,6 +376,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
   const [isSendingNotice, setIsSendingNotice] = useState<boolean>(false);
   const [isEscalating, setIsEscalating] = useState<boolean>(false);
   const [isDownloadingPdf, setIsDownloadingPdf] = useState<boolean>(false);
+  const [isClosingMeeting, setIsClosingMeeting] = useState<boolean>(false);
+  const [showMeetingClosureModal, setShowMeetingClosureModal] = useState<boolean>(false);
 
   // 10:00 AM Standup Meeting Audio Announcement & Countdown Dropdown Banner State
   const [standupAnnouncement, setStandupAnnouncement] = useState<{
@@ -556,15 +560,15 @@ export const UnifiedAdminDashboard: React.FC = () => {
         }
       }
 
-      // Stage 2: 10:30 AM Auto-Broadcast (Only on meeting days, skipped on Sunday)
+      // Stage 2: 10:30 AM Auto-Broadcast & Meeting Conclusion (Only on meeting days, skipped on Sunday)
       if (!isSundayToday && h === 10 && m === 30) {
         const key = `sbh_auto_group_1030_${todayDate}`;
         if (!localStorage.getItem(key)) {
           localStorage.setItem(key, 'dispatched');
-          sendCeoitboxGroupBroadcast('1030', todayDate);
+          concludeAndCloseMeeting(todayDate);
           setToastAlert({
             type: 'success',
-            text: '📊 10:30 AM Final Leadership Audit Report automatically sent to WhatsApp Group!',
+            text: '📊 10:30 AM Final Leadership Audit Report & Absentees Notice automatically dispatched to WhatsApp Group!',
           });
           setTimeout(() => setToastAlert(null), 8000);
         }
@@ -1417,7 +1421,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
   );
 
   const renderSidebarNav = (isMobile: boolean = false) => (
-    <div className="w-full h-full flex flex-col bg-white">
+    <div className="w-full h-full flex flex-col bg-white min-h-0 select-none">
       {/* Sidebar Header: Hospital Emblem & Title */}
       <div className="h-20 flex items-center justify-between px-5 border-b border-[#f0f1f8]/60 bg-white shrink-0">
         <div className="flex items-center gap-3">
@@ -1444,7 +1448,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
       </div>
 
       {/* Live Clock Pill inside Sidebar */}
-      <div className="p-3 mx-2 my-2 rounded-2xl bg-[#eff0fe]/50 border border-purple-200/50 shadow-xs">
+      <div className="p-3 mx-2 my-2 rounded-2xl bg-[#eff0fe]/50 border border-purple-200/50 shadow-xs shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
             <div className="p-1 rounded-lg bg-[#7065f0] text-white">
@@ -1457,7 +1461,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
       </div>
 
       {/* Sidebar Navigation Menu */}
-      <div className="flex-1 overflow-y-auto px-2 py-1 space-y-1 custom-scrollbar">
+      <div className="flex-1 overflow-y-auto min-h-0 px-2 py-1 space-y-1 custom-scrollbar">
         <div className="px-3 pt-2 pb-1">
           <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
             Command Center
@@ -1738,10 +1742,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-[10050] lg:hidden flex">
           <div
-            className="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] transition-opacity z-10"
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
             onClick={() => setIsMobileMenuOpen(false)}
           />
-          <aside className="relative z-20 w-72 max-w-[85vw] h-full bg-white flex flex-col border-r border-[#f0f1f8] shadow-2xl overflow-hidden animate-in slide-in-from-left duration-200">
+          <aside className="relative z-20 w-72 max-w-[85vw] h-[100dvh] bg-white flex flex-col border-r border-[#f0f1f8] shadow-2xl overflow-hidden animate-in slide-in-from-left duration-200">
             {renderSidebarNav(true)}
           </aside>
         </div>
@@ -2276,6 +2280,66 @@ export const UnifiedAdminDashboard: React.FC = () => {
                       <CheckCircle2 className="w-3.5 h-3.5 text-[#059669]" />
                       <span>Approve Joined</span>
                     </button>
+
+                    {/* Today Meeting Has Been Completed Button */}
+                    {!currentMeeting.is_completed ? (
+                      <button
+                        onClick={() => {
+                          if (isFutureDate) {
+                            setToastAlert({
+                              type: 'info',
+                              text: `⚠️ Cannot close future meeting scheduled for ${formatToIndianDate(selectedDate)}! Meeting closure can only be performed on or after meeting day.`,
+                            });
+                            setTimeout(() => setToastAlert(null), 5000);
+                            return;
+                          }
+                          setShowMeetingClosureModal(true);
+                        }}
+                        disabled={isClosingMeeting}
+                        className={`h-9 px-3.5 w-full sm:w-auto justify-center bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-2xl text-xs font-bold shadow-sm shadow-emerald-200/50 flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150 shrink-0 ${
+                          isFutureDate ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
+                        title="Officially conclude today's DOM/WOM meeting, lock check-ins, and dispatch audit reports to WhatsApp"
+                      >
+                        {isClosingMeeting ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 text-white animate-spin" />
+                            <span>Closing Meeting...</span>
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+                            <span>Today Meeting Has Been Completed</span>
+                          </>
+                        )}
+                      </button>
+                    ) : (
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <div className="h-9 px-3 bg-emerald-50 border border-emerald-300 text-emerald-800 rounded-2xl text-xs font-bold flex items-center gap-1.5 shadow-2xs">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>🔒 Meeting Completed (Closed)</span>
+                        </div>
+                        <button
+                          onClick={() => {
+                            openConfirm({
+                              title: 'Re-open Meeting Session',
+                              message: `Re-open meeting session for ${selectedDate}?\n\n• Leaders will be permitted to check in again.\n• Meeting completed lock will be lifted.`,
+                              type: 'primary',
+                              confirmText: 'Re-open Session',
+                              onConfirm: () => {
+                                reopenMeeting(selectedDate);
+                                setToastAlert({ type: 'success', text: `Meeting session re-opened for ${selectedDate}.` });
+                                setTimeout(() => setToastAlert(null), 4000);
+                              },
+                            });
+                          }}
+                          className="h-9 px-2.5 text-[11px] font-bold text-slate-500 hover:text-slate-800 bg-white hover:bg-slate-100 border border-slate-200 rounded-2xl cursor-pointer"
+                          title="Re-open this meeting session if concluded prematurely"
+                        >
+                          Re-open
+                        </button>
+                      </div>
+                    )}
 
                     {/* Send to WhatsApp Group */}
                     <button
@@ -7328,6 +7392,127 @@ function doPost(e) {
                   </span>
                 </button>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= MODAL: TODAY MEETING HAS BEEN COMPLETED CONFIRMATION ================= */}
+      {showMeetingClosureModal && (
+        <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-[10001] p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 transform transition-all space-y-5">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                  <CheckCircle2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900 leading-tight">
+                    Conclude & Finalize Today's Meeting
+                  </h3>
+                  <p className="text-xs text-slate-500 font-medium">
+                    {currentMeeting.title || `${currentCadence} Standup`} • {formatToIndianDate(selectedDate)}
+                  </p>
+                </div>
+              </div>
+              <button
+                disabled={isClosingMeeting}
+                onClick={() => setShowMeetingClosureModal(false)}
+                className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 font-bold cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Warning & Protocol Box */}
+            <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-200 text-amber-900 text-xs space-y-2">
+              <div className="font-bold flex items-center gap-1.5 text-amber-950">
+                <AlertCircle size={15} className="text-amber-600 shrink-0" />
+                <span>Executive Meeting Closure Protocol:</span>
+              </div>
+              <ul className="list-disc pl-5 space-y-1 text-slate-700 text-[11px] font-medium leading-relaxed">
+                <li>
+                  <strong className="text-slate-900">Check-in Lockdown:</strong> The meeting check-in window will be permanently closed for all leaders across Leader Portal and Boardroom QR.
+                </li>
+                <li>
+                  <strong className="text-slate-900">Absentee Finalization:</strong> All unrecorded / unverified leaders will be finalized as <span className="text-rose-600 font-bold">ABSENT</span>.
+                </li>
+                <li>
+                  <strong className="text-slate-900">Report 1 to WhatsApp Group:</strong> Full Attendance Audit Summary Report will be instantly dispatched to the Official WhatsApp Group.
+                </li>
+                <li>
+                  <strong className="text-slate-900">Report 2 to WhatsApp Group:</strong> Dedicated Unexcused Absentees Escalation Notice with complete leader names and departments demanding formal justification.
+                </li>
+              </ul>
+            </div>
+
+            {/* Attendance Snapshot */}
+            <div className="grid grid-cols-4 gap-2 text-center">
+              <div className="p-2.5 bg-slate-50 rounded-2xl border border-slate-100">
+                <div className="text-[10px] text-slate-500 font-bold uppercase">Roster</div>
+                <div className="text-sm font-black text-slate-900">{recordsForDate.length}</div>
+              </div>
+              <div className="p-2.5 bg-emerald-50 rounded-2xl border border-emerald-100">
+                <div className="text-[10px] text-emerald-600 font-bold uppercase">Present</div>
+                <div className="text-sm font-black text-emerald-950">{countPresent}</div>
+              </div>
+              <div className="p-2.5 bg-amber-50 rounded-2xl border border-amber-100">
+                <div className="text-[10px] text-amber-600 font-bold uppercase">Late</div>
+                <div className="text-sm font-black text-amber-950">{countLate}</div>
+              </div>
+              <div className="p-2.5 bg-rose-50 rounded-2xl border border-rose-100">
+                <div className="text-[10px] text-rose-600 font-bold uppercase">Final Absent</div>
+                <div className="text-sm font-black text-rose-950">{isOffDate ? 0 : countAbsent}</div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="pt-2 flex items-center justify-end gap-3 border-t border-slate-100">
+              <button
+                type="button"
+                disabled={isClosingMeeting}
+                onClick={() => setShowMeetingClosureModal(false)}
+                className="px-4 py-2.5 rounded-2xl text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isClosingMeeting}
+                onClick={async () => {
+                  setIsClosingMeeting(true);
+                  try {
+                    const res = await concludeAndCloseMeeting(selectedDate);
+                    setShowMeetingClosureModal(false);
+                    setToastAlert({
+                      type: res.success ? 'success' : 'error',
+                      text: res.message,
+                    });
+                    setTimeout(() => setToastAlert(null), 8000);
+                  } catch (e: any) {
+                    setToastAlert({
+                      type: 'error',
+                      text: `Failed to conclude meeting: ${e.message || e}`,
+                    });
+                  } finally {
+                    setIsClosingMeeting(false);
+                  }
+                }}
+                className="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-2xl text-xs font-bold shadow-md shadow-emerald-200 flex items-center gap-2 cursor-pointer transition-all active:scale-95 disabled:opacity-50"
+              >
+                {isClosingMeeting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Finalizing & Dispatching WhatsApp Reports...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Confirm & Conclude Meeting</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>

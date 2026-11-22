@@ -58,6 +58,8 @@ export interface MeetingSchedule {
   shift_reason?: string;
   google_meet_url: string;
   agenda?: string;
+  is_completed?: boolean;
+  closed_at?: string;
   created_at?: string;
   updated_at?: string;
 }

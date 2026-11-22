@@ -129,6 +129,7 @@ export const LeaderPortal: React.FC = () => {
   const [informedToPerson, setInformedToPerson] = useState('');
   const [informedReason, setInformedReason] = useState('');
   const [showExpiredAccessModal, setShowExpiredAccessModal] = useState<boolean>(false);
+  const [showMeetingClosedModal, setShowMeetingClosedModal] = useState<boolean>(false);
 
   // Live 1-second ticker for accurate countdowns
   const [liveNow, setLiveNow] = useState<Date>(new Date());
@@ -272,6 +273,10 @@ export const LeaderPortal: React.FC = () => {
 
   const handleAttendPhysically = () => {
     if (!activeLeader) return;
+    if (currentMeeting.is_completed) {
+      setShowMeetingClosedModal(true);
+      return;
+    }
     if (isLateGraceExpired) {
       setShowExpiredAccessModal(true);
       return;
@@ -345,6 +350,10 @@ export const LeaderPortal: React.FC = () => {
 
   const handleJoinVirtually = async () => {
     if (!activeLeader) return;
+    if (currentMeeting.is_completed) {
+      setShowMeetingClosedModal(true);
+      return;
+    }
     if (isLateGraceExpired) {
       setShowExpiredAccessModal(true);
       return;
@@ -807,15 +816,34 @@ export const LeaderPortal: React.FC = () => {
             ) : (
               /* State C: Not Checked In Yet -> Mandatory Daily Check-in Alert & Verification Modes */
               <div className="space-y-4">
-                <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-2.5 text-rose-950 shadow-2xs">
-                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-                  <div className="text-xs">
-                    <strong className="block font-bold">Daily Check-in Mandatory</strong>
-                    <span>
-                      Please submit your presence before 10:20 AM IST. Leaders without a recorded check-in or approved notice will be marked <strong>ABSENT (No Information)</strong> on the Hospital Director's 10:30 AM Audit Report.
-                    </span>
+                {currentMeeting.is_completed ? (
+                  <div className="p-4 rounded-3xl bg-rose-50 border-2 border-rose-300 text-rose-950 shadow-sm flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                      <Lock className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-black text-rose-950">
+                        Today's Meeting Session Has Concluded
+                      </h4>
+                      <p className="text-xs text-rose-800 mt-1 leading-relaxed">
+                        This meeting session has officially concluded and been closed by Hospital Operations Command. Attendance registration is locked. All unrecorded leaders have been finalized as <strong className="text-rose-900 font-bold">ABSENT</strong>.
+                      </p>
+                      <div className="mt-2 text-[11px] font-bold text-rose-900 bg-rose-100/80 px-2.5 py-1 rounded-xl inline-block">
+                        🔒 Official Attendance Reports have been dispatched to the WhatsApp Group.
+                      </div>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-2.5 text-rose-950 shadow-2xs">
+                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                    <div className="text-xs">
+                      <strong className="block font-bold">Daily Check-in Mandatory</strong>
+                      <span>
+                        Please submit your presence before 10:20 AM IST. Leaders without a recorded check-in or approved notice will be marked <strong>ABSENT (No Information)</strong> on the Hospital Director's 10:30 AM Audit Report.
+                      </span>
+                    </div>
+                  </div>
+                )}
 
                 <div>
                   <h4 className="text-xs font-bold text-slate-600 uppercase tracking-wider mb-3">
@@ -1013,6 +1041,34 @@ export const LeaderPortal: React.FC = () => {
                   className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl cursor-pointer"
                 >
                   Acknowledge & Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal: Meeting Concluded & Locked */}
+        {showMeetingClosedModal && (
+          <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border-2 border-rose-300 animate-in fade-in zoom-in duration-150">
+              <div className="flex items-center gap-2 mb-2 text-rose-700">
+                <AlertCircle className="w-6 h-6 text-rose-600 shrink-0" />
+                <h3 className="text-base font-black text-slate-900">
+                  Meeting Concluded: Check-In Closed
+                </h3>
+              </div>
+              <p className="text-xs text-slate-600 leading-relaxed mb-4">
+                Today's {currentMeeting.cadence || 'DOM'} meeting session has officially concluded and been closed by Hospital Operations Command. Attendance registration is no longer permitted for today. All unrecorded leaders have been finalized as <strong>ABSENT</strong>.
+              </p>
+              <div className="p-3 bg-rose-50 rounded-xl border border-rose-200 text-[11px] text-rose-800 mb-4 font-medium">
+                📊 The Final Attendance Audit Report and Absentee Escalation Notice have already been dispatched to the Official WhatsApp Group.
+              </div>
+              <div className="flex justify-end">
+                <button
+                  onClick={() => setShowMeetingClosedModal(false)}
+                  className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl cursor-pointer"
+                >
+                  Close Window
                 </button>
               </div>
             </div>

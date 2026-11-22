@@ -13,6 +13,7 @@ import {
   Sparkles,
   ArrowRight,
   Video,
+  Lock,
 } from 'lucide-react';
 import { useDomApp } from '../context/DomAppContext';
 import { useAuthSession } from '../context/AuthSessionContext';
@@ -97,6 +98,11 @@ export const BoardroomCheckin: React.FC = () => {
 
     if (isSundayOrHoliday) {
       setShowHolidayModal(true);
+      return;
+    }
+
+    if (currentMeeting.is_completed) {
+      setErrorMessage("Access Denied: Today's meeting session has officially concluded and been closed by Operations Command. Check-in is locked. All unrecorded leaders have been marked ABSENT.");
       return;
     }
 
@@ -225,6 +231,21 @@ export const BoardroomCheckin: React.FC = () => {
               Daily Operations Standup (DOM) • Sharp 10:00 AM IST
             </p>
           </div>
+
+          {/* Meeting Concluded & Locked Alert Banner */}
+          {currentMeeting.is_completed && (
+            <div className="my-4 p-4 rounded-2xl bg-rose-50 border-2 border-rose-300 text-rose-950 flex items-start gap-3 shadow-xs">
+              <div className="w-9 h-9 rounded-xl bg-rose-600 text-white flex items-center justify-center shrink-0">
+                <Lock className="w-5 h-5" />
+              </div>
+              <div className="text-xs">
+                <strong className="block font-black text-rose-950 text-sm">Meeting Concluded: Check-In Closed</strong>
+                <span className="text-rose-800 font-medium leading-relaxed block mt-0.5">
+                  Today's meeting session has officially concluded and been closed by Operations Command. Check-in is locked. All unrecorded leaders have been finalized as <strong>ABSENT</strong>.
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Session Venue & Time Badges */}
           <div className="grid grid-cols-2 gap-2.5 my-4 text-center">
@@ -370,15 +391,28 @@ export const BoardroomCheckin: React.FC = () => {
             {/* Submit Physical Check-in Button */}
             <button
               type="submit"
-              disabled={isSubmitting}
-              className="w-full py-3.5 px-4 bg-gradient-to-r from-[#7065f0] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7065f0] text-white rounded-2xl font-black text-sm shadow-lg shadow-indigo-300/40 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 active:scale-[0.98]"
+              disabled={isSubmitting || currentMeeting.is_completed}
+              className={`w-full py-3.5 px-4 rounded-2xl font-black text-sm shadow-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98] ${
+                currentMeeting.is_completed
+                  ? 'bg-slate-400 text-white cursor-not-allowed shadow-none opacity-60'
+                  : 'bg-gradient-to-r from-[#7065f0] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7065f0] text-white shadow-indigo-300/40 cursor-pointer disabled:opacity-50'
+              }`}
             >
-              <CheckCircle2 className="w-4 h-4 text-white" />
-              <span>
-                {isSubmitting
-                  ? 'Verifying Physical Attendance...'
-                  : 'Confirm My Physical Presence in Boardroom'}
-              </span>
+              {currentMeeting.is_completed ? (
+                <>
+                  <Lock className="w-4 h-4 text-white" />
+                  <span>Meeting Concluded: Check-In Closed</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-4 h-4 text-white" />
+                  <span>
+                    {isSubmitting
+                      ? 'Verifying Physical Attendance...'
+                      : 'Confirm My Physical Presence in Boardroom'}
+                  </span>
+                </>
+              )}
             </button>
           </form>
 

@@ -126,6 +126,8 @@ interface DomAppContextType {
     absentCount: number;
   };
   getFullRosterForDate: (date: string) => AttendanceRecord[];
+  concludeAndCloseMeeting: (date: string) => Promise<{ success: boolean; message: string }>;
+  reopenMeeting: (date: string) => void;
   // PDF Reports (Daily DOM, Monthly MOM, Annual Audit)
   downloadPdfReport: (date: string) => void;
   openPdfReport: (date: string) => void;
@@ -1295,6 +1297,16 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       existingPrior?.check_in_at || existingPrior?.status === 'PRESENT' || existingPrior?.status === 'INFORMED_LATE'
     );
 
+    // Meeting completed / closed check
+    if (meeting.is_completed) {
+      return {
+        success: false,
+        meetUrl: meeting.google_meet_url || 'https://meet.google.com/jrz-jfku-gir',
+        clicksCount: existingPrior?.virtual_clicks_count || 0,
+        message: "Access Denied: Today's meeting session has officially concluded and been closed by Operations Command. Check-in is locked.",
+      };
+    }
+
     // Standup window & holiday check
     const windowStatus = checkStandupWindowStatus(targetDate, isAlreadyCheckedIn, meeting.cadence);
     if (!windowStatus.allowed) {
@@ -1534,6 +1546,15 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const isAlreadyRecordedPrior = Boolean(
       existingRec?.check_in_at || existingRec?.status === 'PRESENT' || existingRec?.status === 'INFORMED_LATE'
     );
+
+    // 0. Meeting completed / closed check
+    if (meeting.is_completed) {
+      return {
+        success: false,
+        message: "Access Denied: Today's meeting session has officially concluded and been closed by Operations Command. Check-in is locked.",
+        alreadyRecorded: isAlreadyRecordedPrior,
+      };
+    }
 
     // 1. Standup Window Status & Holiday Check
     const windowStatus = checkStandupWindowStatus(selectedDate, isAlreadyRecordedPrior, meeting.cadence);
@@ -3458,6 +3479,116 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
   };
 
+  // Official Meeting Conclusion, Check-in Lock & WhatsApp Closure Reports Dispatch
+  const concludeAndCloseMeeting = async (
+    date: string
+  ): Promise<{ success: boolean; message: string }> => {
+    if (date > getLiveIndiaDateStr()) {
+      return {
+        success: false,
+        message: `Cannot close future meeting scheduled for ${formatToIndianDate(date)}. Meeting closure can only be performed on or after meeting day.`,
+      };
+    }
+
+    const meeting = getMeetingForDate(date);
+    if (meeting.is_completed) {
+      return {
+        success: true,
+        message: `Meeting for ${formatToIndianDate(date)} was already completed and closed.`,
+      };
+    }
+
+    // 1. Finalize & Lock all attendance records for this date
+    const updatedRecords: AttendanceRecord[] = [];
+    const fullRoster = getFullRosterForDate(date);
+
+    for (const rec of fullRoster) {
+      const isPresent = rec.status === 'PRESENT' || rec.admin_verified_attendance || rec.verification_status === 'VERIFIED';
+      const isLeave = rec.status === 'LEAVE' || (rec.status === 'INFORMED_ABSENT' && rec.informed_confirmed);
+      const isExcused = rec.status === 'EXCUSED';
+
+      if (!isPresent && !isLeave && !isExcused) {
+        // Leader failed to attend and was not excused
+        const isLateExpired = rec.status === 'INFORMED_LATE' || Boolean(rec.late_minutes && !rec.check_in_at);
+        const lockedRec: AttendanceRecord = {
+          ...rec,
+          status: 'ABSENT',
+          verification_status: 'REJECTED',
+          late_expired: isLateExpired ? true : rec.late_expired,
+          verification_note: isLateExpired
+            ? `ABSENT — Promised late join (+${rec.committed_late_minutes || rec.late_minutes || 10}m), failed to join before meeting closure`
+            : rec.informed_reason
+              ? `ABSENT — Unapproved notice: "${rec.informed_reason}"`
+              : 'ABSENT — No prior information. Session concluded by Admin',
+          updated_at: new Date().toISOString(),
+        };
+        updatedRecords.push(lockedRec);
+
+        // Update in Supabase
+        try {
+          supabase
+            .from('attendance_records')
+            .update({
+              status: 'ABSENT',
+              verification_status: 'REJECTED',
+              verification_note: lockedRec.verification_note,
+              late_expired: lockedRec.late_expired,
+              updated_at: lockedRec.updated_at,
+            })
+            .eq('id', rec.id)
+            .then(() => {});
+        } catch (e) {
+          console.warn('Supabase update note on meeting closure:', e);
+        }
+      }
+    }
+
+    if (updatedRecords.length > 0) {
+      setAttendanceRecords((prev) => {
+        const next = prev.map((r) => {
+          const match = updatedRecords.find((u) => u.id === r.id);
+          return match || r;
+        });
+        try {
+          localStorage.setItem('sbh_attendance_records', JSON.stringify(next));
+        } catch (e) {}
+        return next;
+      });
+    }
+
+    // 2. Mark meeting schedule as completed & closed
+    updateMeetingSchedule(date, {
+      is_completed: true,
+      closed_at: new Date().toISOString(),
+    });
+
+    // 3. Dispatch Report 1: Official Attendance Audit Summary to WhatsApp Group
+    try {
+      await sendCeoitboxGroupBroadcast('1030', date);
+    } catch (e) {
+      console.warn('Error sending meeting conclusion broadcast:', e);
+    }
+
+    // 4. Dispatch Report 2: Unexcused Absentees Escalation Notice to WhatsApp Group
+    try {
+      await sendNonAttendeesEscalationNotice(date);
+    } catch (e) {
+      console.warn('Error sending non-attendees escalation notice:', e);
+    }
+
+    return {
+      success: true,
+      message: `✅ Today's ${meeting.cadence || 'DOM'} meeting successfully concluded and closed! Check-in locked, attendance summary report, and absentee explanation notice dispatched to WhatsApp group.`,
+    };
+  };
+
+  const reopenMeeting = (date: string) => {
+    updateMeetingSchedule(date, {
+      is_completed: false,
+      closed_at: undefined,
+    });
+  };
+
   // Manual Override Check-in Time & Reset & Delete Operations
   const overrideAttendanceTime = async (
     recordId: string,
@@ -3570,11 +3701,11 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     msg += `Welcome to the SBH Operations Leadership Team. Your secure login credentials for the Daily Operations Meeting (DOM / WOM / MOM) Attendance Portal have been provisioned:\n\n`;
     msg += `🌐 *Portal Login URL:* https://sbhdom.vercel.app/login\n`;
     msg += `👤 *Username:* ${leader.full_name}\n`;
+    msg += `✉️ *Email ID:* ${leader.email}\n`;
+    msg += `📱 *Registered Mobile:* ${leader.phone}\n`;
     if (assignedPassword) {
       msg += `🔑 *Password:* ${assignedPassword}\n`;
     }
-    msg += `✉️ *Email ID:* ${leader.email}\n`;
-    msg += `📱 *Registered Mobile:* ${leader.phone}\n`;
     msg += `🏢 *Department:* ${deptName}\n\n`;
     msg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
     msg += `📌 *QUICK START LOGIN & CHECK-IN GUIDE:*\n`;
@@ -3660,6 +3791,8 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         generateEmailReportDraft,
         generateNonAttendeesEscalationEmail,
         getFullRosterForDate,
+        concludeAndCloseMeeting,
+        reopenMeeting,
         downloadPdfReport,
         openPdfReport,
         downloadMonthlyPdfReport,
