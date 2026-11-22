@@ -674,13 +674,17 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     lastRefreshTimeRef.current = now;
 
     try {
-      const { data: attLogs, error: attErr } = await supabase
+      const { data: rawLogs, error: attErr } = await supabase
         .from('admin_audit_logs')
         .select('*')
         .or('action.eq.ATTENDANCE_RECORD,action.eq.ADMIN_MANUAL_ACTION,action.eq.DELETE_ATTENDANCE_RECORD,action.eq.RESET_ATTENDANCE_RECORD,action.eq.OVERRIDE_ATTENDANCE_TIME,entity_type.eq.ATTENDANCE')
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: false })
+        .limit(150);
 
-      if (!attErr && attLogs && attLogs.length > 0) {
+      if (!attErr && rawLogs && rawLogs.length > 0) {
+        // Process chronologically (oldest to newest) to correctly apply state mutations
+        const attLogs = [...rawLogs].reverse();
+
         // Fingerprint incoming audit logs to avoid triggering redundant re-renders when data has not changed
         const currentFingerprint = attLogs
           .map((l) => `${l.id}_${l.created_at}_${(l.after_data as any)?.status}_${(l.after_data as any)?.verification_status}_${(l.after_data as any)?.selected_mode}`)

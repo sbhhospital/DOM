@@ -574,35 +574,35 @@ export const LeaderPortal: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#f4f5fa] via-[#f4f5fa] to-[#f4f5fa] text-[#232d42] flex flex-col font-sans p-4 sm:p-6 pb-24 items-center page-transition">
-      <div className="w-full max-w-xl space-y-6">
-        {/* Header Branding (SaaS Lavender Reference Theme) */}
-        <div className="rounded-[32px] p-6 text-center relative overflow-hidden bg-white shadow-xl shadow-purple-900/5 border border-[#f0f1f8]">
-          <div className="h-2 w-full bg-gradient-to-r from-[#7065f0] via-[#7065f0] to-[#8577ff] absolute top-0 left-0" />
+    <div className="min-h-screen bg-gradient-to-br from-[#f4f5fa] via-[#f4f5fa] to-[#f4f5fa] text-[#232d42] flex flex-col font-sans p-2.5 sm:p-5 pb-16 items-center page-transition">
+      <div className="w-full max-w-xl space-y-3 sm:space-y-4">
+        {/* Header Branding (Compact SaaS Lavender Reference Theme) */}
+        <div className="rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 text-center relative overflow-hidden bg-white shadow-xl shadow-purple-900/5 border border-[#f0f1f8]">
+          <div className="h-1.5 w-full bg-gradient-to-r from-[#7065f0] via-[#7065f0] to-[#8577ff] absolute top-0 left-0" />
           
           {/* Top Right Admin Direct Access */}
           <button
             type="button"
             onClick={() => navigate('/login')}
-            className="absolute top-4 right-4 text-[11px] font-bold text-slate-500 hover:text-[#7065f0] flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-purple-50 border border-slate-200 hover:border-purple-200 transition-all cursor-pointer shadow-2xs z-10"
+            className="absolute top-3 right-3 text-[11px] font-bold text-slate-500 hover:text-[#7065f0] flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl bg-slate-50 hover:bg-purple-50 border border-slate-200 hover:border-purple-200 transition-all cursor-pointer shadow-2xs z-10"
             title="Go to Command Admin Login"
           >
             <ShieldCheck className="w-3.5 h-3.5 text-[#7065f0]" />
-            <span className="hidden sm:inline">Admin Login</span>
+            <span className="hidden sm:inline">Admin</span>
           </button>
 
-          <div className="flex items-center justify-center mx-auto mb-3 pt-2">
-            <img src={sbhLogo} alt="SBH Group of Hospitals" className="h-11 w-auto object-contain" />
+          <div className="flex items-center justify-center mx-auto mb-1.5 pt-0.5">
+            <img src={sbhLogo} alt="SBH Group of Hospitals" className="h-8 sm:h-9 w-auto object-contain" />
           </div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#eff0fe] text-[#7065f0] border border-purple-200/60 mb-2">
-            <Sparkles className="w-3.5 h-3.5 text-[#7065f0]" /> SBH Group of Hospitals • Raipur
+          <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-[#eff0fe] text-[#7065f0] border border-purple-200/60 mb-1">
+            <Sparkles className="w-3 h-3 text-[#7065f0]" /> SBH Group of Hospitals • Raipur
           </div>
-          <h1 className="text-xl sm:text-2xl font-bold text-[#232d42] tracking-tight">Leader Attendance Portal</h1>
+          <h1 className="text-base sm:text-xl font-bold text-[#232d42] tracking-tight">Leader Attendance Portal</h1>
 
-          {/* Session Type Badge: Daily, Weekly, or Monthly */}
-          <div className="mt-2.5 inline-block">
+          {/* Compact Cadence Badge & Session Date */}
+          <div className="mt-1.5 flex items-center justify-center gap-1.5 text-xs text-slate-500 font-medium flex-wrap">
             <span
-              className={`text-xs font-bold px-3 py-1 rounded-full ${
+              className={`text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-full ${
                 currentMeeting.frequency === 'MONTHLY'
                   ? 'bg-purple-100 text-purple-900 border border-purple-300'
                   : currentMeeting.frequency === 'WEEKLY'
@@ -612,44 +612,37 @@ export const LeaderPortal: React.FC = () => {
             >
               {currentMeeting.title}
             </span>
+            <span>•</span>
+            <span className="font-bold text-[#232d42]">{formatFriendlyDate(selectedDate)}</span>
+            <span className="text-slate-400 font-mono text-[10px]">({formatToIndianDate(selectedDate)})</span>
+            <span>•</span>
+            <span className="font-semibold text-slate-700">{currentMeeting.scheduled_time}</span>
           </div>
 
-          <p className="text-xs text-slate-500 mt-2 flex items-center justify-center gap-1.5 font-medium flex-wrap">
-            <Calendar className="w-3.5 h-3.5 text-[#7065f0]" />
-            <span>Date: </span>
-            <span className="font-extrabold text-[#232d42]">
-              {formatFriendlyDate(selectedDate)}
-            </span>
-            <span className="text-slate-400 font-mono text-[11px]">({formatToIndianDate(selectedDate)})</span>
-            <span>•</span>
-            <Clock className="w-3.5 h-3.5 text-[#7065f0]" />
-            <span className="font-semibold text-slate-700">{currentMeeting.scheduled_time}</span>
-          </p>
-
           {currentMeeting.is_holiday_or_shifted && (
-            <div className="mt-3 p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 font-semibold flex items-center justify-center gap-2">
-              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+            <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-900 font-semibold flex items-center justify-center gap-1.5">
+              <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
               <span>{currentMeeting.shift_reason || 'Rescheduled meeting session'}</span>
             </div>
           )}
 
           {/* Personalized 1-Click Magic Link Welcome Banner */}
           {magicAuthStatus.valid && (
-            <div className="mt-4 p-4 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50 to-orange-50 border-2 border-emerald-400 text-left shadow-md">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-500 text-white flex items-center justify-center font-black shadow-sm shrink-0">
-                  <Sparkles className="w-5 h-5 text-white" />
+            <div className="mt-2.5 p-3 rounded-xl bg-gradient-to-r from-emerald-50 via-teal-50 to-orange-50 border-2 border-emerald-400 text-left shadow-xs">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-emerald-500 to-teal-500 text-white flex items-center justify-center font-black shadow-xs shrink-0">
+                  <Sparkles className="w-4 h-4 text-white" />
                 </div>
                 <div className="min-w-0">
-                  <div className="text-[10px] font-black uppercase tracking-wider text-emerald-700 flex items-center gap-1.5">
-                    <span>✨ Verified 1-Click Attendance Access</span>
-                    <span className="bg-emerald-200/80 text-emerald-900 px-1.5 py-0.2 rounded font-mono text-[9px]">15-Min Session Active</span>
+                  <div className="text-[9px] font-black uppercase tracking-wider text-emerald-700 flex items-center gap-1">
+                    <span>✨ Verified 1-Click Access</span>
+                    <span className="bg-emerald-200/80 text-emerald-900 px-1 py-0.2 rounded font-mono text-[9px]">15m Active</span>
                   </div>
-                  <div className="text-base font-black text-slate-900 truncate">
+                  <div className="text-sm font-bold text-slate-900 truncate">
                     Welcome, {magicAuthStatus.name}!
                   </div>
-                  <div className="text-xs text-slate-600 font-semibold truncate">
-                    Department: <span className="text-orange-700 font-bold">{magicAuthStatus.dept}</span> • Select your check-in mode below
+                  <div className="text-[11px] text-slate-600 font-medium truncate">
+                    Dept: <span className="text-orange-700 font-bold">{magicAuthStatus.dept}</span> • Select check-in below
                   </div>
                 </div>
               </div>
@@ -658,45 +651,11 @@ export const LeaderPortal: React.FC = () => {
 
           {/* Expired Magic Link Alert */}
           {magicAuthStatus.expired && (
-            <div className="mt-4 p-3.5 rounded-2xl bg-amber-50 border border-amber-300 text-left text-xs text-amber-900 shadow-sm flex items-start gap-2.5">
-              <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+            <div className="mt-2.5 p-2.5 rounded-xl bg-amber-50 border border-amber-300 text-left text-xs text-amber-900 shadow-xs flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
               <div>
-                <strong className="block font-bold">15-Minute Quick Link Expired</strong>
-                <span>Your personalized access link for <strong>{magicAuthStatus.name}</strong> has passed its 15-minute security lifetime. Please select your profile below to sign in with your PIN.</span>
-              </div>
-            </div>
-          )}
-
-          {/* User authenticated top controls */}
-          {activeLeader && (
-            <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-              <div className="text-slate-600">
-                Logged in as: <span className="font-bold text-slate-900">{activeLeader.full_name}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                {currentUser && (
-                  <>
-                    <button
-                      onClick={() => setShowUserPassModal(true)}
-                      className="text-orange-600 hover:text-orange-700 font-bold flex items-center gap-1 cursor-pointer"
-                    >
-                      <KeyRound className="w-3.5 h-3.5" />
-                      <span>Password</span>
-                    </button>
-                    <span>•</span>
-                  </>
-                )}
-                <button
-                  type="button"
-                  onClick={async () => {
-                    setSelectedLeader(null);
-                    await logoutUser();
-                  }}
-                  className="text-rose-600 hover:text-rose-700 font-bold flex items-center gap-1 cursor-pointer"
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                  <span>Sign Out</span>
-                </button>
+                <strong className="block font-bold">Quick Link Expired</strong>
+                <span className="text-[11px]">Access link for {magicAuthStatus.name} expired. Sign in below.</span>
               </div>
             </div>
           )}
@@ -772,26 +731,45 @@ export const LeaderPortal: React.FC = () => {
           </div>
         ) : (
           /* Step 2: Selected / Logged-in Leader - Choose Mode */
-          <div className="rounded-[32px] p-6 space-y-6 bg-white border border-[#f0f1f8] shadow-xl shadow-purple-900/5">
-            <div className="flex items-center justify-between pb-4 border-b border-[#f0f1f8]">
-              <div>
-                <span className="text-[10px] uppercase font-mono tracking-wider text-[#7065f0] bg-[#eff0fe] px-2.5 py-0.5 rounded-full border border-purple-200/60 font-bold">
-                  Active Hospital Leader
-                </span>
-                <h3 className="text-xl font-bold text-[#232d42] mt-1.5">{activeLeader.full_name}</h3>
-                <div className="text-xs text-slate-500 font-semibold">
-                  {activeLeader.department?.name} • {activeLeader.email}
+          <div className="rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 space-y-3 sm:space-y-4 bg-white border border-[#f0f1f8] shadow-xl shadow-purple-900/5">
+            <div className="flex items-center justify-between pb-3 border-b border-[#f0f1f8]">
+              <div className="min-w-0 pr-2">
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <span className="text-[9px] uppercase font-mono tracking-wider text-[#7065f0] bg-[#eff0fe] px-2 py-0.5 rounded-full border border-purple-200/60 font-bold">
+                    Active Leader
+                  </span>
+                  {activeLeader.employee_code && (
+                    <span className="text-[9px] font-mono text-slate-400">
+                      {activeLeader.employee_code}
+                    </span>
+                  )}
+                </div>
+                <h3 className="text-base sm:text-lg font-bold text-[#232d42] truncate">{activeLeader.full_name}</h3>
+                <div className="text-[11px] text-slate-500 font-medium truncate">
+                  <span className="text-[#7065f0] font-semibold">{activeLeader.department?.name || 'Department'}</span> • {activeLeader.email}
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              {/* Single Official Sign Out & PIN Change button */}
+              <div className="flex items-center gap-1.5 shrink-0">
+                {currentUser && (
+                  <button
+                    type="button"
+                    onClick={() => setShowUserPassModal(true)}
+                    className="px-2 py-1 sm:px-2.5 sm:py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-xl text-xs font-bold flex items-center gap-1 transition-all cursor-pointer shadow-2xs"
+                    title="Change Account PIN / Password"
+                  >
+                    <KeyRound className="w-3.5 h-3.5 text-amber-600" />
+                    <span className="hidden sm:inline">PIN</span>
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={async () => {
                     setSelectedLeader(null);
                     await logoutUser();
                   }}
-                  className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+                  className="px-2.5 py-1 sm:px-3 sm:py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
                   title="Sign out from this leader account"
                 >
                   <LogOut className="w-3.5 h-3.5 text-rose-600" />
@@ -1022,82 +1000,86 @@ export const LeaderPortal: React.FC = () => {
                     </div>
                   </div>
                 ) : (currentMeeting.cadence === 'HOLIDAY' || currentMeeting.is_holiday_or_shifted) && currentMeeting.cadence !== 'DOM' && currentMeeting.cadence !== 'WOM' && currentMeeting.cadence !== 'MOM' ? (
-                  <div className="p-5 rounded-3xl bg-amber-50/90 border-2 border-amber-300 text-amber-950 shadow-xs space-y-2">
-                    <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
-                        <Sparkles className="w-5 h-5" />
+                  <div className="p-3 sm:p-3.5 rounded-2xl bg-amber-50/90 border border-amber-300 text-amber-950 shadow-2xs">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+                        <Sparkles className="w-4 h-4" />
                       </div>
-                      <div>
-                        <h4 className="text-sm font-black text-amber-950">
-                          Official Weekly Off (Sunday) — Standup Standing Off
+                      <div className="min-w-0">
+                        <h4 className="text-xs sm:text-sm font-bold text-amber-950 truncate">
+                          Official Weekly Off (Sunday) — Standup Excused
                         </h4>
-                        <p className="text-xs text-amber-800 mt-1 leading-relaxed">
-                          Today is an official hospital off day. Daily Operations Standup (DOM) attendance is not required today and zero absentees are counted. Next standup is Monday 10:00 AM IST (WOM).
+                        <p className="text-[11px] text-amber-800 font-medium truncate sm:whitespace-normal">
+                          Official hospital off day. Zero absentees counted. Next: Monday 10:00 AM IST (WOM).
                         </p>
                       </div>
                     </div>
                   </div>
                 ) : isCutoffLocked ? (
-                  <div className="p-4 rounded-3xl bg-rose-50 border-2 border-rose-300 text-rose-950 shadow-sm flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-                      <Lock className="w-5 h-5" />
+                  <div className="p-3 sm:p-4 rounded-2xl bg-rose-50 border border-rose-300 text-rose-950 shadow-2xs flex items-start gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                      <Lock className="w-4 h-4" />
                     </div>
-                    <div>
-                      <h4 className="text-sm font-black text-rose-950">
+                    <div className="min-w-0">
+                      <h4 className="text-xs sm:text-sm font-bold text-rose-950">
                         Check-In Window Locked ({windowStatus.windowCloseStr})
                       </h4>
-                      <p className="text-xs text-rose-800 mt-1 leading-relaxed">
-                        Today's daily standup check-in window closed at <strong>{windowStatus.windowCloseStr}</strong> (Meeting Start + 20 minutes). Since no attendance was recorded and no prior late notice was approved before cutoff, self check-in is now locked. You are finalized as <strong className="text-rose-950">ABSENT</strong> on the Director's Register.
+                      <p className="text-[11px] text-rose-800 mt-0.5 leading-snug">
+                        Check-in closed at <strong>{windowStatus.windowCloseStr}</strong>. Self check-in is now locked.
                       </p>
-                      <div className="mt-2 text-[11px] font-bold text-rose-900 bg-rose-100/80 px-2.5 py-1 rounded-xl inline-block">
-                        🔒 Please contact Web Administrator (Mr. Naman Mishra) for manual review.
+                      <div className="mt-1 text-[10px] font-bold text-rose-900 bg-rose-100/80 px-2 py-0.5 rounded-lg inline-block">
+                        🔒 Contact Web Administrator (Mr. Naman Mishra)
                       </div>
                     </div>
                   </div>
                 ) : (
-                  <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-2.5 text-rose-950 shadow-2xs">
+                  <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-2 text-rose-950 shadow-2xs">
                     <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-                    <div className="text-xs">
-                      <strong className="block font-bold">Daily Check-in Mandatory</strong>
-                      <span>
-                        Please submit your presence before {windowStatus.windowCloseStr}. Leaders without a recorded check-in or approved notice will be marked <strong>ABSENT (No Information)</strong> on the Hospital Director's 10:30 AM Audit Report.
-                      </span>
+                    <div className="text-[11px] leading-snug">
+                      <strong className="font-bold">Daily Check-in Mandatory: </strong>
+                      <span>Submit presence before {windowStatus.windowCloseStr} to prevent unexcused absence.</span>
                     </div>
                   </div>
                 )}
 
                 <div>
-                  <h4 className="text-xs font-bold text-slate-600 uppercase tracking-wider mb-3">
+                  <h4 className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
                     Confirm Today's DOM Presence
                   </h4>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  {/* Physical & Virtual Attendance Buttons - Side-by-Side Modern Mobile Layout */}
+                  <div className="grid grid-cols-2 gap-2 sm:gap-3.5">
                     {/* Mode 1: Physical Check-In (In-Room Camera Scanner) */}
                     <button
                       onClick={handleAttendPhysically}
                       disabled={isCheckInDisabled}
-                      className={`p-5 rounded-2xl border-2 text-left transition-all group shadow-xs ${
+                      className={`p-3 sm:p-4 rounded-2xl border-2 text-left transition-all relative overflow-hidden group shadow-2xs ${
                         isCheckInDisabled
-                          ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed opacity-60'
-                          : 'bg-white border-[#f0f1f8] hover:border-[#7065f0] text-slate-900 hover:shadow-md cursor-pointer'
+                          ? 'bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed opacity-60'
+                          : 'bg-gradient-to-br from-[#eff0fe]/80 via-white to-white border-purple-200 hover:border-[#7065f0] text-slate-900 hover:shadow-md cursor-pointer active:scale-[0.98]'
                       }`}
                     >
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 shadow-xs ${
-                        isCheckInDisabled ? 'bg-slate-200 text-slate-500' : 'bg-[#eff0fe] text-[#7065f0]'
-                      }`}>
-                        {isCheckInDisabled ? <Lock className="w-5 h-5" /> : <Camera className="w-5 h-5" />}
+                      <div className="flex items-center justify-between mb-2">
+                        <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shadow-2xs ${
+                          isCheckInDisabled ? 'bg-slate-200 text-slate-500' : 'bg-[#eff0fe] text-[#7065f0]'
+                        }`}>
+                          {isCheckInDisabled ? <Lock className="w-4 h-4 sm:w-5 sm:h-5" /> : <Camera className="w-4 h-4 sm:w-5 sm:h-5" />}
+                        </div>
+                        <span className="text-[9px] uppercase font-mono font-bold px-1.5 py-0.5 rounded bg-purple-100/80 text-[#7065f0] border border-purple-200/80">
+                          In-Person
+                        </span>
                       </div>
-                      <div className={`font-bold text-sm ${isCheckInDisabled ? 'text-slate-500' : 'text-[#232d42] group-hover:text-[#7065f0]'}`}>
+                      <div className={`font-bold text-xs sm:text-sm leading-tight ${isCheckInDisabled ? 'text-slate-500' : 'text-[#232d42] group-hover:text-[#7065f0]'}`}>
                         Attending In-Person
                       </div>
-                      <p className="text-[11px] text-slate-500 mt-1 font-medium">
+                      <p className="text-[10px] text-slate-500 mt-1 font-medium leading-snug line-clamp-2">
                         {isSundayOrHoliday
-                          ? 'Standup attendance is excused today (Sunday Weekly Off).'
+                          ? 'Sunday Off (Excused)'
                           : isOnLeave
-                            ? 'You are marked on Official Leave for today.'
+                            ? 'Marked on Official Leave'
                             : isCutoffLocked
-                              ? `Self check-in closed at ${windowStatus.windowCloseStr}.`
-                              : 'Opens live camera to scan Boardroom QR code in 5th Floor Conference Hall (GPS Verified).'}
+                              ? `Locked at ${windowStatus.windowCloseStr}`
+                              : 'Scan Boardroom QR (5th Flr)'}
                       </p>
                     </button>
 
@@ -1105,35 +1087,40 @@ export const LeaderPortal: React.FC = () => {
                     <button
                       onClick={handleJoinVirtually}
                       disabled={isCheckInDisabled}
-                      className={`p-5 rounded-2xl border-2 text-left transition-all group shadow-xs ${
+                      className={`p-3 sm:p-4 rounded-2xl border-2 text-left transition-all relative overflow-hidden group shadow-2xs ${
                         isCheckInDisabled
-                          ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed opacity-60'
-                          : 'bg-white border-[#f0f1f8] hover:border-[#3bb7b8] text-slate-900 hover:shadow-md cursor-pointer'
+                          ? 'bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed opacity-60'
+                          : 'bg-gradient-to-br from-teal-50/80 via-white to-white border-teal-200 hover:border-[#3bb7b8] text-slate-900 hover:shadow-md cursor-pointer active:scale-[0.98]'
                       }`}
                     >
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 shadow-xs ${
-                        isCheckInDisabled ? 'bg-slate-200 text-slate-500' : 'bg-teal-50 text-[#3bb7b8]'
-                      }`}>
-                        {isCheckInDisabled ? <Lock className="w-5 h-5" /> : <Video className="w-5 h-5" />}
+                      <div className="flex items-center justify-between mb-2">
+                        <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shadow-2xs ${
+                          isCheckInDisabled ? 'bg-slate-200 text-slate-500' : 'bg-teal-50 text-[#3bb7b8]'
+                        }`}>
+                          {isCheckInDisabled ? <Lock className="w-4 h-4 sm:w-5 sm:h-5" /> : <Video className="w-4 h-4 sm:w-5 sm:h-5" />}
+                        </div>
+                        <span className="text-[9px] uppercase font-mono font-bold px-1.5 py-0.5 rounded bg-teal-100/80 text-[#3bb7b8] border border-teal-200/80">
+                          Virtual
+                        </span>
                       </div>
-                      <div className={`font-bold text-sm ${isCheckInDisabled ? 'text-slate-500' : 'text-[#232d42] group-hover:text-[#3bb7b8]'}`}>
-                        Join Online (Google Meet)
+                      <div className={`font-bold text-xs sm:text-sm leading-tight ${isCheckInDisabled ? 'text-slate-500' : 'text-[#232d42] group-hover:text-[#3bb7b8]'}`}>
+                        Join Online
                       </div>
-                      <p className="text-[11px] text-slate-500 mt-1 font-medium">
+                      <p className="text-[10px] text-slate-500 mt-1 font-medium leading-snug line-clamp-2">
                         {isSundayOrHoliday
-                          ? 'Standup attendance is excused today (Sunday Weekly Off).'
+                          ? 'Sunday Off (Excused)'
                           : isOnLeave
-                            ? 'You are marked on Official Leave for today.'
+                            ? 'Marked on Official Leave'
                             : isCutoffLocked
-                              ? `Self check-in closed at ${windowStatus.windowCloseStr}.`
-                              : 'Opens official Google Meet. Records your login automatically as virtual attendee.'}
+                              ? `Locked at ${windowStatus.windowCloseStr}`
+                              : 'Official Google Meet'}
                       </p>
                     </button>
                   </div>
                 </div>
 
                 {/* Mode 3: Cannot Attend / Running Late? Submit Informed Notice */}
-                <div className="pt-2">
+                <div className="pt-1">
                   <button
                     onClick={() => {
                       if (isSundayOrHoliday) {
@@ -1147,14 +1134,14 @@ export const LeaderPortal: React.FC = () => {
                       setShowInformedModal(true);
                     }}
                     disabled={isSundayOrHoliday || isOnLeave}
-                    className={`w-full py-3 px-4 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 transition-all ${
+                    className={`w-full py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all ${
                       isSundayOrHoliday || isOnLeave
                         ? 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed opacity-60'
-                        : 'bg-[#fff7ed] hover:bg-[#ffedd5] border border-orange-200 text-orange-950 cursor-pointer'
+                        : 'bg-[#fff7ed] hover:bg-[#ffedd5] border border-orange-200 text-orange-950 cursor-pointer shadow-2xs'
                     }`}
                   >
-                    <HelpCircle className="w-4 h-4 text-orange-600" />
-                    <span>Running late or cannot attend? Submit notice (5–20 mins grace / leave)</span>
+                    <HelpCircle className="w-3.5 h-3.5 text-orange-600 shrink-0" />
+                    <span className="truncate">Running late or cannot attend? Submit notice (5–20m grace)</span>
                   </button>
                 </div>
               </div>
