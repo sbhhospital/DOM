@@ -366,6 +366,8 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const leadersRef = useRef<Leader[]>(leaders);
   const lastAttFingerprintRef = useRef<string>('');
+  const isRefreshingRef = useRef<boolean>(false);
+  const debounceSyncTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     leadersRef.current = leaders;
@@ -544,8 +546,12 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  // Live Real-Time Attendance Synchronizer (Invoked on Supabase Realtime event & smart polling)
+  // Live Real-Time Attendance Synchronizer (Invoked on Supabase Realtime event & smart visibility sync)
   const refreshLiveAttendance = async () => {
+    // Guard against concurrent overlapping fetches
+    if (isRefreshingRef.current) return;
+    isRefreshingRef.current = true;
+
     try {
       const { data: attLogs, error: attErr } = await supabase
         .from('admin_audit_logs')
@@ -606,15 +612,29 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
     } catch (err) {
       console.warn('Realtime live sync note:', err);
+    } finally {
+      isRefreshingRef.current = false;
     }
   };
 
+  // Debounced realtime synchronization helper (prevents UI freeze & network request flood)
+  const triggerDebouncedLiveSync = () => {
+    if (debounceSyncTimerRef.current) {
+      clearTimeout(debounceSyncTimerRef.current);
+    }
+    debounceSyncTimerRef.current = setTimeout(() => {
+      refreshLiveAttendance();
+    }, 600);
+  };
+
   useEffect(() => {
-    // Clean up local storage: do NOT store meeting schedules, attendance records, leaders, or departments in localStorage
+    // Clean up local storage: do NOT store meeting schedules, attendance records, leaders, departments, or passwords in localStorage
     localStorage.removeItem('sbh_meeting_schedules');
     localStorage.removeItem('sbh_real_attendance_records');
     localStorage.removeItem('sbh_hospital_departments');
     localStorage.removeItem('sbh_custom_leaders');
+    localStorage.removeItem('sbh_admin_password');
+    localStorage.removeItem('sbh_admin_profile');
     loadDataFromSupabase();
 
     // 1. Supabase Realtime Subscription for instantaneous attendance updates
@@ -624,37 +644,52 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         'postgres_changes',
         { event: '*', schema: 'public', table: 'admin_audit_logs' },
         (payload) => {
-          console.info('📡 Supabase Live Audit Event received:', payload.eventType);
-          refreshLiveAttendance();
+          // Only trigger sync if event relates to ATTENDANCE_RECORD
+          if (!payload.new || (payload.new as any).action === 'ATTENDANCE_RECORD') {
+            triggerDebouncedLiveSync();
+          }
         }
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'attendance_records' },
-        (payload) => {
-          console.info('📡 Supabase Live Attendance Records Event received:', payload.eventType);
-          refreshLiveAttendance();
+        () => {
+          triggerDebouncedLiveSync();
         }
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'attendance_events' },
-        (payload) => {
-          console.info('📡 Supabase Live Attendance Events Event received:', payload.eventType);
-          refreshLiveAttendance();
+        () => {
+          triggerDebouncedLiveSync();
         }
       )
       .subscribe();
 
-    // 2. High-reliability fallback polling interval (every 4 seconds)
-    // Ensures real-time updates even if WebSockets are dropped or filtered by hospital firewall
-    const pollInterval = setInterval(() => {
-      refreshLiveAttendance();
-    }, 4000);
+    // 2. Tab focus & visibility sync: Refresh live attendance immediately when admin returns to tab
+    const handleVisibilityOrFocus = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        triggerDebouncedLiveSync();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityOrFocus);
+    window.addEventListener('focus', handleVisibilityOrFocus);
+
+    // 3. Gentle background safety sync every 60 seconds (Only when tab is visible — 0 network spam)
+    const gentleSyncInterval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        refreshLiveAttendance();
+      }
+    }, 60000);
 
     return () => {
       supabase.removeChannel(channel);
-      clearInterval(pollInterval);
+      document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+      window.removeEventListener('focus', handleVisibilityOrFocus);
+      clearInterval(gentleSyncInterval);
+      if (debounceSyncTimerRef.current) {
+        clearTimeout(debounceSyncTimerRef.current);
+      }
     };
   }, []);
 

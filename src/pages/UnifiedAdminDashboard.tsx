@@ -1796,7 +1796,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
       )}
 
       {/* ================= RIGHT DASHBOARD CONTENT AREA ================= */}
-      <div className="flex-1 min-w-0 flex flex-col min-h-screen bg-[#f8fafc] pb-16">
+      <div className="flex-1 min-w-0 flex flex-col min-h-screen bg-[#f8fafc] pb-32 sm:pb-24 overflow-x-hidden">
         {/* Mobile Top Navbar (lg:hidden) */}
         <div className="lg:hidden sticky top-0 z-40 w-full bg-white border-b border-[#f0f1f8]/70 px-3.5 py-2.5 flex items-center justify-between shadow-xs">
           <div className="flex items-center gap-2.5">
@@ -1935,77 +1935,91 @@ export const UnifiedAdminDashboard: React.FC = () => {
               }}
             />
           </div>
-          <div className="px-4 sm:px-6 py-3.5 flex justify-between items-center gap-4">
-            <div className="flex items-center gap-3">
-              <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-[#232d42] tracking-tight flex items-center gap-3">
+          <div className="px-3 sm:px-6 py-2.5 sm:py-3.5 flex items-center justify-between gap-2 sm:gap-4 max-w-full">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-sm xs:text-base sm:text-2xl font-bold text-[#232d42] tracking-tight flex items-center gap-1.5 sm:gap-3 flex-wrap min-w-0">
                   {activeTab === 'attendance' && (
                     <>
-                      Daily Attendance <span className="text-[#7065f0]">Register ({currentCadence})</span>
-                      <span className="px-3 py-1 rounded-2xl bg-[#eff0fe] border border-purple-200/60 text-[10px] font-bold text-[#7065f0] tracking-wider whitespace-nowrap">
+                      <span className="truncate">
+                        Daily Attendance <span className="text-[#7065f0]">Register ({currentCadence})</span>
+                      </span>
+                      <span className="hidden sm:inline-flex px-3 py-1 rounded-2xl bg-[#eff0fe] border border-purple-200/60 text-[10px] font-bold text-[#7065f0] tracking-wider whitespace-nowrap">
                         Live Sync v2.1
                       </span>
                     </>
                   )}
                   {activeTab === 'links' && (
                     <>
-                      Daily Meeting <span className="text-[#7065f0]">Links & Tracker</span>
-                      <span className="px-3 py-1 rounded-2xl bg-[#eff0fe] border border-purple-200/60 text-[10px] font-bold text-[#7065f0] tracking-wider whitespace-nowrap font-mono">
+                      <span className="truncate">
+                        Daily Meeting <span className="text-[#7065f0]">Links & Tracker</span>
+                      </span>
+                      <span className="hidden sm:inline-flex px-3 py-1 rounded-2xl bg-[#eff0fe] border border-purple-200/60 text-[10px] font-bold text-[#7065f0] tracking-wider whitespace-nowrap font-mono">
                         {formatToIndianDate(selectedDate)}
                       </span>
                     </>
                   )}
                   {activeTab === 'geo-history' && (
                     <>
-                      Attendance <span className="text-[#7065f0]">Geo-History & Location Logs</span>
-                      <span className="px-3 py-1 rounded-2xl bg-[#eff0fe] border border-purple-200/60 text-[10px] font-bold text-[#7065f0] tracking-wider whitespace-nowrap">
+                      <span className="truncate">
+                        Attendance <span className="text-[#7065f0]">Geo-History & Location Logs</span>
+                      </span>
+                      <span className="hidden sm:inline-flex px-3 py-1 rounded-2xl bg-[#eff0fe] border border-purple-200/60 text-[10px] font-bold text-[#7065f0] tracking-wider whitespace-nowrap">
                         Live GPS Verification
                       </span>
                     </>
                   )}
                   {activeTab === 'calendar' && (
-                    <>
+                    <span className="truncate">
                       Cadence <span className="text-[#7065f0]">Calendar (DOM / WOM / MOM)</span>
-                    </>
+                    </span>
                   )}
                   {activeTab === 'reports' && (
-                    <>
+                    <span className="truncate">
                       Graphical <span className="text-[#7065f0]">Analytics & Absenteeism</span>
-                    </>
+                    </span>
                   )}
                   {activeTab === 'leaders' && (
                     <>
-                      Hospital Leaders <span className="text-[#7065f0]">Roster</span>
-                      <span className="px-3 py-1 rounded-2xl bg-[#eff0fe] border border-purple-200/60 text-[10px] font-bold text-[#7065f0] tracking-wider whitespace-nowrap">
+                      <span className="truncate">
+                        Hospital Leaders <span className="text-[#7065f0]">Roster</span>
+                      </span>
+                      <span className="hidden sm:inline-flex px-3 py-1 rounded-2xl bg-[#eff0fe] border border-purple-200/60 text-[10px] font-bold text-[#7065f0] tracking-wider whitespace-nowrap">
                         {leaders.length} Leaders
                       </span>
                     </>
                   )}
                   {activeTab === 'departments' && (
                     <>
-                      Hospital <span className="text-[#7065f0]">Departments Master</span>
-                      <span className="px-3 py-1 rounded-2xl bg-[#eff0fe] border border-purple-200/60 text-[10px] font-bold text-[#7065f0] tracking-wider whitespace-nowrap">
+                      <span className="truncate">
+                        Hospital <span className="text-[#7065f0]">Departments Master</span>
+                      </span>
+                      <span className="hidden sm:inline-flex px-3 py-1 rounded-2xl bg-[#eff0fe] border border-purple-200/60 text-[10px] font-bold text-[#7065f0] tracking-wider whitespace-nowrap">
                         {departments.length} Depts
                       </span>
                     </>
                   )}
                   {activeTab === 'settings' && (
-                    <>
+                    <span className="truncate">
                       WhatsApp Gateway <span className="text-[#7065f0]">& Settings</span>
-                    </>
+                    </span>
                   )}
                   {activeTab === 'late-audit' && (
                     <>
-                      Late Arrival <span className="text-[#7065f0]">Audit & Delay Reasons</span>
-                      <span className="px-3 py-1 rounded-2xl bg-amber-50 border border-amber-200 text-[10px] font-bold text-amber-800 tracking-wider whitespace-nowrap">
+                      <span className="truncate">
+                        Late Arrival <span className="text-[#7065f0]">Audit & Delay Reasons</span>
+                      </span>
+                      <span className="hidden sm:inline-flex px-3 py-1 rounded-2xl bg-amber-50 border border-amber-200 text-[10px] font-bold text-amber-800 tracking-wider whitespace-nowrap">
                         10:05 — 10:20 AM Window
                       </span>
                     </>
                   )}
                   {activeTab === 'compliance-audit' && (
                     <>
-                      Cadence Compliance <span className="text-[#7065f0]">& Absence Tracking</span>
-                      <span className="px-3 py-1 rounded-2xl bg-[#eff0fe] border border-purple-200/60 text-[10px] font-bold text-[#7065f0] tracking-wider whitespace-nowrap">
+                      <span className="truncate">
+                        Cadence Compliance <span className="text-[#7065f0]">& Absence Tracking</span>
+                      </span>
+                      <span className="hidden sm:inline-flex px-3 py-1 rounded-2xl bg-[#eff0fe] border border-purple-200/60 text-[10px] font-bold text-[#7065f0] tracking-wider whitespace-nowrap">
                         DOM • WOM • MOM
                       </span>
                     </>
@@ -2015,7 +2029,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
             </div>
 
             {/* Right Header: Date Selector, Conclude Meeting Button, and Google Meet button (Desktop, hidden on mobile to avoid duplication) */}
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
               {/* Executive Conclude Meeting Action Button (Red) in Top Header */}
               {!currentMeeting.is_completed ? (
                 <button
@@ -2032,28 +2046,31 @@ export const UnifiedAdminDashboard: React.FC = () => {
                     setShowMeetingClosureModal(true);
                   }}
                   disabled={isClosingMeeting}
-                  className={`h-9 px-3.5 bg-gradient-to-r from-rose-600 via-red-600 to-rose-700 hover:from-rose-700 hover:to-red-800 text-white rounded-xl text-xs font-bold shadow-sm shadow-rose-300/40 flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150 shrink-0 ${
+                  className={`h-8 sm:h-9 px-2.5 sm:px-3.5 bg-gradient-to-r from-rose-600 via-red-600 to-rose-700 hover:from-rose-700 hover:to-red-800 text-white rounded-xl text-[11px] sm:text-xs font-bold shadow-sm shadow-rose-300/40 flex items-center gap-1 sm:gap-1.5 cursor-pointer active:scale-95 transition-all duration-150 shrink-0 ${
                     isFutureDate ? 'opacity-50 cursor-not-allowed' : ''
                   }`}
                   title="Officially conclude today's DOM/WOM standup, lock check-ins, and dispatch audit reports to WhatsApp"
                 >
                   {isClosingMeeting ? (
                     <>
-                      <Loader2 className="w-3.5 h-3.5 text-white animate-spin" />
-                      <span>Closing...</span>
+                      <Loader2 className="w-3.5 h-3.5 text-white animate-spin shrink-0" />
+                      <span className="hidden sm:inline">Closing...</span>
+                      <span className="sm:hidden inline">...</span>
                     </>
                   ) : (
                     <>
-                      <Lock className="w-3.5 h-3.5 text-white" />
-                      <span>Conclude Meeting</span>
+                      <Lock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white shrink-0" />
+                      <span className="hidden sm:inline">Conclude Meeting</span>
+                      <span className="sm:hidden inline">Conclude</span>
                     </>
                   )}
                 </button>
               ) : (
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <div className="h-9 px-3 bg-rose-50 border border-rose-300 text-rose-800 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-2xs">
-                    <Lock className="w-3.5 h-3.5 text-rose-600" />
-                    <span>Meeting Concluded</span>
+                <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+                  <div className="h-8 sm:h-9 px-2 sm:px-3 bg-rose-50 border border-rose-300 text-rose-800 rounded-xl text-[11px] sm:text-xs font-bold flex items-center gap-1 sm:gap-1.5 shadow-2xs">
+                    <Lock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-rose-600 shrink-0" />
+                    <span className="hidden sm:inline">Meeting Concluded</span>
+                    <span className="sm:hidden inline">Concluded</span>
                   </div>
                   <button
                     type="button"
@@ -2070,7 +2087,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                         },
                       });
                     }}
-                    className="h-9 px-2 text-[11px] font-bold text-slate-500 hover:text-slate-800 bg-white hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer"
+                    className="h-8 sm:h-9 px-2 text-[10px] sm:text-[11px] font-bold text-slate-500 hover:text-slate-800 bg-white hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer"
                     title="Re-open this meeting session if concluded prematurely"
                   >
                     Re-open
@@ -2128,7 +2145,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
         </header>
 
         {/* Main Body Container Attached Directly to the Right of Sidebar */}
-        <div key={activeTab} className="flex-1 p-4 sm:p-6 space-y-6 max-w-[1600px] w-full mx-auto page-transition relative">
+        <div key={activeTab} className="flex-1 p-3 sm:p-6 space-y-4 sm:space-y-6 max-w-[1600px] w-full mx-auto page-transition relative overflow-x-hidden">
           {tabLoading && (
             <div className="fixed top-0 left-0 right-0 h-1 z-[99999] bg-gradient-to-r from-[#7065f0] via-[#8576f7] to-[#3bb7b8] animate-pulse" />
           )}

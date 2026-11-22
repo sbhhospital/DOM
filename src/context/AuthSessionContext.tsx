@@ -121,8 +121,9 @@ export const AuthSessionProvider: React.FC<{ children: React.ReactNode }> = ({ c
         setAdminProfile(profile);
         setAdminUsername(profile.username);
         setAdminName(profile.full_name);
-        localStorage.setItem('sbh_admin_profile', JSON.stringify(profile));
-        localStorage.setItem('sbh_admin_password', profile.password || 'Naman@123');
+        // Security: Plain password and profile password are NEVER persisted to browser localStorage
+        localStorage.removeItem('sbh_admin_profile');
+        localStorage.removeItem('sbh_admin_password');
         localStorage.setItem('sbh_admin_username', profile.username);
         localStorage.setItem('sbh_admin_fullname', profile.full_name);
         return profile;
@@ -136,13 +137,16 @@ export const AuthSessionProvider: React.FC<{ children: React.ReactNode }> = ({ c
       full_name: localStorage.getItem('sbh_admin_fullname') || 'Administrator',
       display_name: 'Administrator',
       email: 'it.head@sbhhospital.com',
-      password: localStorage.getItem('sbh_admin_password') || 'Naman@123',
+      password: 'Naman@123',
       role: 'ADMIN',
     };
     return fallback;
   };
 
   useEffect(() => {
+    // Proactive Security Cleanup: Clear any plain passwords from browser localStorage
+    localStorage.removeItem('sbh_admin_password');
+    localStorage.removeItem('sbh_admin_profile');
     fetchLiveAdminProfile();
   }, []);
 
@@ -228,6 +232,9 @@ export const AuthSessionProvider: React.FC<{ children: React.ReactNode }> = ({ c
     localStorage.removeItem('sbh_admin_logged_in');
     localStorage.removeItem('sbh_admin_login_time');
     localStorage.removeItem('sbh_admin_username');
+    localStorage.removeItem('sbh_admin_fullname');
+    localStorage.removeItem('sbh_admin_profile');
+    localStorage.removeItem('sbh_admin_password');
   };
 
   // Periodic Check for 2-Hour Auto-Logout
@@ -312,14 +319,15 @@ export const AuthSessionProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setAdminProfile(updatedProfile);
     setAdminUsername(nextUsername);
     setAdminName(nextFullName);
-    localStorage.setItem('sbh_admin_profile', JSON.stringify(updatedProfile));
-    localStorage.setItem('sbh_admin_password', nextPassword);
+    // Security: Do NOT save password or profile into localStorage
+    localStorage.removeItem('sbh_admin_profile');
+    localStorage.removeItem('sbh_admin_password');
     localStorage.setItem('sbh_admin_username', nextUsername);
     localStorage.setItem('sbh_admin_fullname', nextFullName);
 
     return {
       success: true,
-      message: 'Administrator account details and credentials updated securely!',
+      message: 'Administrator account details and credentials updated securely in Supabase SQL Database!',
     };
   };
 
