@@ -23,6 +23,28 @@ const AdminProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children
   return <>{children}</>;
 };
 
+// Root Smart Redirect Guard (Preserves OAuth tokens & routes to correct role)
+const RootRedirect: React.FC = () => {
+  const { isAdminAuthenticated, isUserAuthenticated } = useAuthSession();
+  const hash = typeof window !== 'undefined' ? window.location.hash : '';
+  const search = typeof window !== 'undefined' ? window.location.search : '';
+
+  // If OAuth tokens or errors returned in URL from Supabase Google Auth
+  if (hash.includes('access_token=') || search.includes('code=') || hash.includes('error=')) {
+    return <Navigate to={`/login${search}${hash}`} replace />;
+  }
+
+  if (isAdminAuthenticated) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  if (isUserAuthenticated) {
+    return <Navigate to="/portal" replace />;
+  }
+
+  return <Navigate to="/login" replace />;
+};
+
 export const App: React.FC = () => {
   return (
     <AuthSessionProvider>
@@ -54,8 +76,8 @@ export const App: React.FC = () => {
                 }
               />
 
-              {/* Default root redirects to Dashboard (or Login if not authenticated) */}
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              {/* Default root routes intelligently based on auth status & OAuth parameters */}
+              <Route path="/" element={<RootRedirect />} />
 
               {/* Dedicated Error Pages (Hope UI Architecture) */}
               <Route path="/404" element={<ErrorPage code={404} />} />

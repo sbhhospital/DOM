@@ -275,55 +275,104 @@ export function generateDirectorPdf(
       } catch {
         joinTime = rec.check_in_at;
       }
+    } else if ((rec as any).join_time) {
+      joinTime = (rec as any).join_time;
+    }
+
+    // Parse meeting scheduled start (default 10:00 AM = 600 mins)
+    let scheduledStartMinutes = 600;
+    try {
+      const sMatch = (meeting.scheduled_time || '10:00 AM').match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+      if (sMatch) {
+        let sh = parseInt(sMatch[1], 10);
+        const sm = parseInt(sMatch[2], 10);
+        const sMer = sMatch[3] ? sMatch[3].toUpperCase() : 'AM';
+        if (sMer === 'PM' && sh < 12) sh += 12;
+        if (sMer === 'AM' && sh === 12) sh = 0;
+        scheduledStartMinutes = sh * 60 + sm;
+      }
+    } catch {}
+
+    // Evaluate if leader's arrival time was late (> 5 mins past scheduled start)
+    let lateMinsCalculated = rec.late_minutes || 0;
+    if (joinTime && joinTime !== '—') {
+      const jMatch = joinTime.match(/(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)?/i);
+      if (jMatch) {
+        let jh = parseInt(jMatch[1], 10);
+        const jm = parseInt(jMatch[2], 10);
+        const jMer = jMatch[3] ? jMatch[3].toUpperCase() : null;
+        if (jMer === 'PM' && jh < 12) jh += 12;
+        if (jMer === 'AM' && jh === 12) jh = 0;
+        const totalMins = jh * 60 + jm;
+        
+        let diff = totalMins - scheduledStartMinutes;
+        if (totalMins < 540) {
+          // Check-in occurred after midnight / early morning hours (e.g. 12:04 AM)
+          diff = (1440 - scheduledStartMinutes) + totalMins;
+        }
+
+        if (diff > 5) {
+          if (lateMinsCalculated <= 0) {
+            lateMinsCalculated = diff;
+          }
+        }
+      }
     }
 
     const hasJoined =
       rec.status === 'PRESENT' ||
-      rec.status === 'INFORMED_LATE' ||
-      rec.selected_mode === 'PHYSICAL' ||
-      rec.selected_mode === 'VIRTUAL';
-    const isLate = (rec.late_minutes && rec.late_minutes > 0) || rec.status === 'INFORMED_LATE';
+      rec.admin_verified_attendance ||
+      Boolean(rec.check_in_at) ||
+      Boolean((rec as any).join_time);
 
-    let statusDisplay = 'Absent (Unreported)';
+    const isLateArrival =
+      lateMinsCalculated > 0 ||
+      (rec.late_minutes && rec.late_minutes > 0) ||
+      rec.status === 'INFORMED_LATE' ||
+      Boolean(rec.verification_note?.includes('Late'));
+
+    let statusDisplay = 'Absent (No Inform)';
     let auditDisplay = 'UNEXCUSED';
 
-    if (isMeetingOff && rec.status !== 'PRESENT') {
+    if (isMeetingOff && !hasJoined) {
       statusDisplay = rec.verification_note || (isSundayMeeting ? 'Sunday Weekly Off' : 'Holiday / No DOM');
       auditDisplay = 'EXCUSED';
-    } else if (rec.verification_status === 'REJECTED' || rec.verification_note?.includes('Disapproved') || rec.verification_note?.includes('No Inform')) {
-      statusDisplay = 'Absent (No Inform)';
-      auditDisplay = 'UNEXCUSED / REJECTED';
     } else if (rec.status === 'LEAVE' || (rec.status === 'INFORMED_ABSENT' && rec.informed_confirmed)) {
       statusDisplay = `Approved Leave (${rec.informed_to_person || 'Admin'})`;
       auditDisplay = 'EXCUSED';
-    } else if (rec.status === 'INFORMED_ABSENT') {
-      statusDisplay = `Informed (${rec.informed_to_person || 'HOD'})`;
-      auditDisplay = rec.informed_confirmed ? 'APPROVED' : 'PENDING';
+    } else if (rec.status === 'INFORMED_ABSENT' && !rec.informed_confirmed) {
+      statusDisplay = `Informed Leave (${rec.informed_to_person || 'Awaiting Admin'})`;
+      auditDisplay = 'PENDING APPROVAL';
     } else if (hasJoined) {
-      const lateStr = isLate ? ` (${formatLateDuration(rec.late_minutes)})` : '';
-      if (rec.admin_verified_attendance) {
-        const isAdminMarked = rec.evidence_source === 'ADMIN_MANUAL' || rec.verification_note?.includes('Marked Present by Admin');
-        if (isLate) {
-          statusDisplay = isAdminMarked
-            ? `Present (Admin Late: ${formatLateDuration(rec.late_minutes)})`
-            : `Present (Late: ${formatLateDuration(rec.late_minutes)})`;
-          auditDisplay = isAdminMarked ? 'ADMIN MANUAL' : 'APPROVED';
+      const isAdminMarked = rec.evidence_source === 'ADMIN_MANUAL' || rec.verification_note?.includes('Marked Present by Admin');
+      if (isLateArrival) {
+        const lateLabel =
+          lateMinsCalculated > 60
+            ? `+${Math.floor(lateMinsCalculated / 60)}h ${lateMinsCalculated % 60}m Late`
+            : lateMinsCalculated > 0
+              ? `+${lateMinsCalculated}m Late`
+              : 'Late';
+
+        if (rec.status === 'INFORMED_LATE' || rec.verification_note?.includes('Informed')) {
+          statusDisplay = `Present (Informed Late: ${lateLabel})`;
+        } else if (isAdminMarked) {
+          statusDisplay = `Present (Admin Late: ${lateLabel})`;
         } else {
-          statusDisplay = isAdminMarked ? 'Present (Admin Marked)' : 'Present';
-          auditDisplay = isAdminMarked ? 'ADMIN MANUAL' : 'APPROVED';
+          statusDisplay = `Present (Late: ${lateLabel})`;
         }
+        auditDisplay = isAdminMarked ? 'ADMIN MANUAL' : 'APPROVED';
       } else {
-        // ADMIN APPROVAL IS PENDING
-        if (isLate) {
-          statusDisplay = `Late${lateStr}`;
-          auditDisplay = 'PENDING';
-        } else {
-          statusDisplay = 'Present (Unverified)';
-          auditDisplay = 'PENDING';
-        }
+        statusDisplay = isAdminMarked ? 'Present (Admin Marked)' : 'Present (On-Time)';
+        auditDisplay = isAdminMarked ? 'ADMIN MANUAL' : 'APPROVED';
       }
+    } else if (rec.late_expired || (rec.status === 'INFORMED_LATE' && !hasJoined)) {
+      statusDisplay = `Absent (Promised +${rec.committed_late_minutes || rec.late_minutes || 10}m, Failed to Join)`;
+      auditDisplay = 'UNEXCUSED';
+    } else if (rec.verification_status === 'REJECTED' || rec.verification_note?.includes('Disapproved') || rec.verification_note?.includes('No Inform')) {
+      statusDisplay = 'Absent (No Inform)';
+      auditDisplay = 'UNEXCUSED / REJECTED';
     } else {
-      statusDisplay = 'Absent (Unreported)';
+      statusDisplay = 'Absent (No Inform)';
       auditDisplay = 'UNEXCUSED';
     }
 
@@ -366,7 +415,7 @@ export function generateDirectorPdf(
     },
     columnStyles: {
       0: { halign: 'center', cellWidth: 6 },
-      1: { fontStyle: 'bold', halign: 'left', cellWidth: 35, cellPadding: { top: 2, bottom: 2, left: 6, right: 1.5 } },
+      1: { fontStyle: 'bold', halign: 'left', cellWidth: 35, cellPadding: { top: 2, bottom: 2, left: 5.4, right: 1.5 } },
       2: { halign: 'left', cellWidth: 24 },
       3: { halign: 'center', cellWidth: 21, fontSize: 6.5 }, // Fits "PHYSICAL" on one line without any wrap
       4: { halign: 'center', cellWidth: 21 },
@@ -378,9 +427,9 @@ export function generateDirectorPdf(
       // Embed official circular leader profile logo in Leader Name column (centered vertically in every row)
       if (data.section === 'body' && data.column.index === 1) {
         try {
-          const iconSize = 3.6;
+          const iconSize = 3.2;
           const iconX = data.cell.x + 1.2;
-          const iconY = data.cell.y + (data.cell.height - iconSize) / 2;
+          const iconY = data.cell.y + Math.max(0.8, (data.cell.height - iconSize) / 2);
           doc.addImage(defaultLeaderAvatarBase64, 'JPEG', iconX, iconY, iconSize, iconSize);
         } catch {}
       }
@@ -390,49 +439,48 @@ export function generateDirectorPdf(
         const val = String(tableRows[data.row.index]?.[6] || '');
         const audit = String(tableRows[data.row.index]?.[7] || '');
 
-        // Row background tinting according to user rules
-        if (val.includes('Present') || audit === 'APPROVED' || audit === 'ADMIN MANUAL') {
-          data.cell.styles.fillColor = [240, 253, 244]; // Soft emerald tint
-        } else if (val.includes('Informed Late') || (val.includes('Late') && !val.includes('No Inform'))) {
-          data.cell.styles.fillColor = [254, 249, 195]; // Soft amber tint
-        } else if (val.includes('No Inform') || val.includes('Late (No Inform)')) {
-          data.cell.styles.fillColor = [255, 241, 242]; // Soft rose tint
-        } else if (val.includes('Absent') || audit.includes('UNEXCUSED')) {
-          data.cell.styles.fillColor = [254, 226, 226]; // Soft red alert tint
+        // 1. Row background tinting according to user rules
+        if (val.includes('Absent') || audit.includes('UNEXCUSED') || audit.includes('REJECTED') || val.includes('No Inform')) {
+          data.cell.styles.fillColor = [254, 226, 226]; // Soft red alert tint (#fee2e2)
         } else if (val.includes('Leave') || audit === 'EXCUSED') {
-          data.cell.styles.fillColor = [245, 243, 255]; // Soft purple tint
+          data.cell.styles.fillColor = [245, 243, 255]; // Soft purple tint (#faf5ff)
+        } else if (val.includes('Late') || val.includes('Informed Late')) {
+          data.cell.styles.fillColor = [254, 243, 199]; // Soft amber / orange tint (#fef3c7)
+        } else if (val.includes('Present') || audit === 'APPROVED' || audit === 'ADMIN MANUAL') {
+          data.cell.styles.fillColor = [240, 253, 244]; // Soft emerald green tint (#f0fdf4)
         } else if (val.includes('Weekly Off') || val.includes('Holiday')) {
           data.cell.styles.fillColor = [248, 250, 252]; // Soft slate
         }
 
-        // Leader Name text coloring
+        // 2. Leader Name text coloring (column 1)
         if (data.column.index === 1) {
-          if (val.includes('Absent') || audit.includes('UNEXCUSED')) {
-            data.cell.styles.textColor = [185, 28, 28]; // Red name for absent without info
-            data.cell.styles.fontStyle = 'bold';
+          data.cell.styles.fontStyle = 'bold';
+          if (val.includes('Absent') || audit.includes('UNEXCUSED') || audit.includes('REJECTED') || val.includes('No Inform')) {
+            data.cell.styles.textColor = [185, 28, 28]; // Red name for absent
+          } else if (val.includes('Leave') || audit === 'EXCUSED') {
+            data.cell.styles.textColor = [124, 58, 237]; // Purple name for leave
+          } else if (val.includes('Late') || val.includes('Informed Late')) {
+            data.cell.styles.textColor = [180, 83, 9]; // Amber Orange for late
           } else if (val.includes('Present') || audit === 'APPROVED' || audit === 'ADMIN MANUAL') {
-            data.cell.styles.textColor = [4, 120, 87]; // Green name for present
-            data.cell.styles.fontStyle = 'bold';
+            data.cell.styles.textColor = [4, 120, 87]; // Emerald green for on-time present
+          } else {
+            data.cell.styles.textColor = [100, 116, 139]; // Slate
           }
         }
 
-        // Status & Audit Status text coloring
+        // 3. Status & Audit Status text coloring (columns 6 and 7)
         if (data.column.index === 6 || data.column.index === 7) {
-          if (val.includes('Present') || audit === 'APPROVED' || audit === 'ADMIN MANUAL') {
-            data.cell.styles.textColor = [22, 163, 74]; // Emerald Green
-            data.cell.styles.fontStyle = 'bold';
-          } else if (val.includes('Informed Late')) {
-            data.cell.styles.textColor = [180, 83, 9]; // Amber Orange
-            data.cell.styles.fontStyle = 'bold';
-          } else if (val.includes('No Inform')) {
-            data.cell.styles.textColor = [190, 18, 60]; // Rose Red
-            data.cell.styles.fontStyle = 'bold';
-          } else if (val.includes('Absent') || audit.includes('UNEXCUSED')) {
+          data.cell.styles.fontStyle = 'bold';
+          if (val.includes('Absent') || audit.includes('UNEXCUSED') || audit.includes('REJECTED') || val.includes('No Inform')) {
             data.cell.styles.textColor = [185, 28, 28]; // Red
-            data.cell.styles.fontStyle = 'bold';
           } else if (val.includes('Leave') || audit === 'EXCUSED') {
             data.cell.styles.textColor = [124, 58, 237]; // Purple
-            data.cell.styles.fontStyle = 'bold';
+          } else if (val.includes('Late') || val.includes('Informed Late')) {
+            data.cell.styles.textColor = [180, 83, 9]; // Amber Orange
+          } else if (val.includes('Present') || audit === 'APPROVED' || audit === 'ADMIN MANUAL') {
+            data.cell.styles.textColor = [22, 163, 74]; // Emerald Green
+          } else {
+            data.cell.styles.textColor = [100, 116, 139]; // Slate
           }
         }
       }

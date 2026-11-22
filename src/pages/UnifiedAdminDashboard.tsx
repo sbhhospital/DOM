@@ -624,19 +624,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
         }
       }
 
-      // Stage 2: 10:30 AM Auto-Broadcast & Meeting Conclusion
-      if (h === 10 && m === 30) {
-        const key = `sbh_auto_group_1030_${todayDate}`;
-        if (!localStorage.getItem(key)) {
-          localStorage.setItem(key, 'dispatched');
-          concludeAndCloseMeeting(todayDate);
-          setToastAlert({
-            type: 'success',
-            text: '📊 10:30 AM Final Leadership Audit Report & Absentees Notice automatically dispatched to WhatsApp Group!',
-          });
-          setTimeout(() => setToastAlert(null), 8000);
-        }
-      }
+      // NOTE: 10:30 AM Auto-Broadcast removed by specification.
+      // Standups continue dynamically; meeting closure & reports dispatch ONLY when Admin presses [Conclude Meeting].
     }, 15000);
 
     return () => clearInterval(timer);
@@ -945,8 +934,9 @@ export const UnifiedAdminDashboard: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('ALL');
 
   // Helper functions for Attendance Classification (strictly mutually exclusive)
-  const isOffDate = currentMeeting.cadence === 'HOLIDAY' || Boolean(currentMeeting.is_holiday_or_shifted);
-  const isSundayDate = new Date(selectedDate).getDay() === 0 && isOffDate;
+  const isExplicitlyActive = (currentMeeting.cadence === 'DOM' || currentMeeting.cadence === 'WOM' || currentMeeting.cadence === 'MOM') && !currentMeeting.is_holiday_or_shifted;
+  const isOffDate = !isExplicitlyActive && (currentMeeting.cadence === 'HOLIDAY' || Boolean(currentMeeting.is_holiday_or_shifted) || new Date(selectedDate + 'T12:00:00').getDay() === 0);
+  const isSundayDate = new Date(selectedDate + 'T12:00:00').getDay() === 0 && isOffDate;
   const liveTodayDate = getLiveIndiaDateStr();
   const isFutureDate = selectedDate > liveTodayDate;
 
@@ -3056,18 +3046,18 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                     <span>{rec.verification_note || (isSundayDate ? 'Sunday Weekly Off' : 'Holiday / No DOM')}</span>
                                   </span>
                                 ) : rec.verification_status === 'REJECTED' || rec.verification_note?.includes('Disapproved') || rec.verification_note?.includes('No Inform') ? (
-                                  <span className="text-xs bg-rose-100 text-rose-800 font-bold px-2.5 py-1 rounded-lg border border-rose-300 inline-flex items-center gap-1.5">
+                                  <span className="text-xs bg-rose-50 text-rose-800 font-bold px-2.5 py-1 rounded-lg border border-rose-300 inline-flex items-center gap-1.5 shadow-2xs">
                                     <XCircle className="w-3.5 h-3.5 text-rose-600" />
                                     <span>ABSENT (No Inform)</span>
                                   </span>
                                 ) : rec.status === 'LEAVE' || (rec.status === 'INFORMED_ABSENT' && rec.informed_confirmed) ? (
-                                  <span className="text-xs bg-purple-100 text-purple-900 font-bold px-2.5 py-1 rounded-lg border border-purple-300 inline-flex items-center gap-1.5">
+                                  <span className="text-xs bg-purple-50 text-purple-900 font-bold px-2.5 py-1 rounded-lg border border-purple-300 inline-flex items-center gap-1.5 shadow-2xs">
                                     <CheckCircle2 className="w-3.5 h-3.5 text-purple-600" />
                                     <span>APPROVED LEAVE {rec.informed_to_person ? `(${rec.informed_to_person})` : ''}</span>
                                   </span>
                                 ) : rec.status === 'INFORMED_ABSENT' && !rec.informed_confirmed ? (
                                   <div className="flex flex-col items-center gap-0.5">
-                                    <span className="text-xs bg-amber-100 text-amber-900 font-bold px-2.5 py-1 rounded-lg border border-amber-300 inline-flex items-center gap-1.5 shadow-2xs">
+                                    <span className="text-xs bg-amber-50 text-amber-900 font-bold px-2.5 py-1 rounded-lg border border-amber-300 inline-flex items-center gap-1.5 shadow-2xs">
                                       <Clock className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
                                       <span>Informed Awaiting Approval</span>
                                     </span>
@@ -3076,13 +3066,13 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                     </span>
                                   </div>
                                 ) : (rec.late_expired || (rec.status === 'INFORMED_LATE' && !rec.check_in_at && !isFutureDate && rec.late_minutes && rec.late_minutes > 0)) ? (
-                                  <span className="text-xs bg-rose-100 text-rose-800 font-bold px-2.5 py-1 rounded-lg border border-rose-300 inline-flex items-center gap-1.5">
+                                  <span className="text-xs bg-rose-50 text-rose-800 font-bold px-2.5 py-1 rounded-lg border border-rose-300 inline-flex items-center gap-1.5 shadow-2xs">
                                     <XCircle className="w-3.5 h-3.5 text-rose-600" />
                                     <span>ABSENT (Promised +{rec.committed_late_minutes || rec.late_minutes || 10}m, Failed to Join)</span>
                                   </span>
                                 ) : (rec.status === 'INFORMED_LATE' && !rec.check_in_at) ? (
                                   <div className="flex flex-col items-center gap-0.5">
-                                    <span className="text-xs bg-amber-100 text-amber-900 font-bold px-2.5 py-1 rounded-lg border border-amber-300 inline-flex items-center gap-1.5 shadow-2xs">
+                                    <span className="text-xs bg-amber-50 text-amber-900 font-bold px-2.5 py-1 rounded-lg border border-amber-300 inline-flex items-center gap-1.5 shadow-2xs">
                                       <Clock className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
                                       <span>Informed Late (+{rec.committed_late_minutes || rec.late_minutes || 10}m)</span>
                                     </span>
@@ -3090,19 +3080,30 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                       Awaiting Check-in
                                     </span>
                                   </div>
+                                ) : (Boolean(rec.admin_verified_attendance || rec.verification_status === 'VERIFIED') || rec.status === 'PRESENT' || Boolean(rec.check_in_at)) && ((rec.late_minutes && rec.late_minutes > 0) || rec.status === 'INFORMED_LATE' || rec.verification_note?.includes('Late')) ? (
+                                  <span className="text-xs bg-amber-50 text-amber-900 font-bold px-2.5 py-1 rounded-lg border border-amber-300 inline-flex items-center gap-1.5 shadow-2xs">
+                                    <Clock className="w-3.5 h-3.5 text-amber-600" />
+                                    <span>
+                                      {rec.status === 'INFORMED_LATE' || rec.verification_note?.includes('Informed')
+                                        ? `PRESENT (Informed Late: +${rec.committed_late_minutes || rec.late_minutes || 10}m)`
+                                        : rec.evidence_source === 'ADMIN_MANUAL'
+                                          ? `PRESENT (Admin Late: +${rec.late_minutes || 15}m)`
+                                          : `PRESENT (Late: +${rec.late_minutes || 10}m)`}
+                                    </span>
+                                  </span>
                                 ) : (rec.admin_verified_attendance || rec.verification_status === 'VERIFIED') && rec.evidence_source === 'ADMIN_MANUAL' ? (
-                                  <span className="text-xs bg-emerald-100 text-emerald-950 font-bold px-2.5 py-1 rounded-lg border border-emerald-300 inline-flex items-center gap-1.5 shadow-2xs" title={rec.verification_note || 'Marked Present by Admin'}>
+                                  <span className="text-xs bg-emerald-50 text-emerald-900 font-bold px-2.5 py-1 rounded-lg border border-emerald-300 inline-flex items-center gap-1.5 shadow-2xs" title={rec.verification_note || 'Marked Present by Admin'}>
                                     <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
-                                    <span>PRESENT (Marked by Admin)</span>
+                                    <span>PRESENT (Admin Marked)</span>
                                   </span>
                                 ) : rec.admin_verified_attendance || rec.verification_status === 'VERIFIED' ? (
-                                  <span className="text-xs bg-emerald-100 text-emerald-900 font-bold px-2.5 py-1 rounded-lg border border-emerald-300 inline-flex items-center gap-1.5 shadow-2xs">
+                                  <span className="text-xs bg-emerald-50 text-emerald-900 font-bold px-2.5 py-1 rounded-lg border border-emerald-300 inline-flex items-center gap-1.5 shadow-2xs">
                                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                                    <span>PRESENT (Approved)</span>
+                                    <span>PRESENT (On-Time)</span>
                                   </span>
                                 ) : !rec.admin_verified_attendance &&
                                   (rec.status === 'PRESENT' || rec.status === 'INFORMED_LATE' || rec.selected_mode !== 'NONE') ? (
-                                  <span className="text-xs bg-amber-100 text-amber-900 font-bold px-2.5 py-1 rounded-lg border border-amber-300 inline-flex items-center gap-1.5 shadow-2xs">
+                                  <span className="text-xs bg-amber-50 text-amber-900 font-bold px-2.5 py-1 rounded-lg border border-amber-300 inline-flex items-center gap-1.5 shadow-2xs">
                                     <Clock className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
                                     <span>Approval Pending</span>
                                   </span>
@@ -3114,7 +3115,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                 ) : (
                                   <span className="text-xs bg-rose-50 text-rose-700 font-bold px-2.5 py-1 rounded-lg border border-rose-200 inline-flex items-center gap-1.5">
                                     <XCircle className="w-3.5 h-3.5 text-rose-600" />
-                                    <span>ABSENT</span>
+                                    <span>ABSENT (No Inform)</span>
                                   </span>
                                 )}
                               </td>
@@ -3181,9 +3182,21 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                       {/* Attendance locked once marked/verified: Cannot be marked again directly without Reset/Edit! */}
                                       {Boolean(rec.admin_verified_attendance || rec.verification_status === 'VERIFIED') ? (
                                         <div className="flex items-center justify-end gap-1.5">
-                                          <span className="px-2.5 py-1 bg-emerald-50 text-emerald-800 text-[10px] font-bold rounded-lg border border-emerald-300 inline-flex items-center gap-1 shadow-2xs">
-                                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                            <span>{rec.evidence_source === 'ADMIN_MANUAL' ? 'Admin Marked' : 'Verified'}</span>
+                                          <span className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border inline-flex items-center gap-1 shadow-2xs ${
+                                            (rec.late_minutes && rec.late_minutes > 0) || rec.status === 'INFORMED_LATE' || rec.verification_note?.includes('Late')
+                                              ? 'bg-amber-50 text-amber-900 border-amber-300'
+                                              : 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                                          }`}>
+                                            <CheckCircle2 className={`w-3 h-3 ${(rec.late_minutes && rec.late_minutes > 0) || rec.status === 'INFORMED_LATE' || rec.verification_note?.includes('Late') ? 'text-amber-600' : 'text-emerald-600'}`} />
+                                            <span>
+                                              {rec.evidence_source === 'ADMIN_MANUAL'
+                                                ? (rec.late_minutes && rec.late_minutes > 0)
+                                                  ? 'Admin Late'
+                                                  : 'Admin Marked'
+                                                : (rec.late_minutes && rec.late_minutes > 0) || rec.status === 'INFORMED_LATE'
+                                                  ? 'Late Verified'
+                                                  : 'Verified'}
+                                            </span>
                                           </span>
                                           <button
                                             type="button"

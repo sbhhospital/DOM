@@ -1006,30 +1006,40 @@ export const LeaderPortal: React.FC = () => {
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">
                     Select Notice Category <span className="text-rose-500">*</span>
                   </label>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                     <button
                       type="button"
                       onClick={() => setInformedNoticeType('LATE')}
-                      className={`p-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
+                      className={`p-3 rounded-2xl border text-left cursor-pointer transition-all ${
                         informedNoticeType === 'LATE'
-                          ? 'bg-[#eff0fe] text-[#7065f0] border-purple-300 shadow-xs'
+                          ? 'bg-[#eff0fe] text-[#7065f0] border-purple-400 shadow-xs ring-2 ring-[#7065f0]/20'
                           : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
                       }`}
                     >
-                      <Clock className="w-4 h-4" />
-                      <span>⏱️ Running Late</span>
+                      <div className="flex items-center gap-2 mb-1">
+                        <Clock className="w-4 h-4 text-[#7065f0]" />
+                        <span className="font-extrabold text-xs text-[#232d42]">⏱️ Joining Late</span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 font-semibold leading-snug">
+                        Committed arrival window (5–30 Mins). Must check in before deadline or status becomes Absent.
+                      </p>
                     </button>
                     <button
                       type="button"
                       onClick={() => setInformedNoticeType('LEAVE')}
-                      className={`p-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
+                      className={`p-3 rounded-2xl border text-left cursor-pointer transition-all ${
                         informedNoticeType === 'LEAVE'
-                          ? 'bg-amber-50 text-amber-900 border-amber-300 shadow-xs'
+                          ? 'bg-amber-50 text-amber-900 border-amber-400 shadow-xs ring-2 ring-amber-400/20'
                           : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
                       }`}
                     >
-                      <FileText className="w-4 h-4" />
-                      <span>🏖️ Full Leave</span>
+                      <div className="flex items-center gap-2 mb-1">
+                        <FileText className="w-4 h-4 text-amber-700" />
+                        <span className="font-extrabold text-xs text-[#232d42]">🚫 Unable to Attend DOM</span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 font-semibold leading-snug">
+                        Sanctioned Leave / Duty emergency. Submits request to Admin for Approved Leave.
+                      </p>
                     </button>
                   </div>
                 </div>
