@@ -379,6 +379,9 @@ export const UnifiedAdminDashboard: React.FC = () => {
     sendBulkLeaderCredentials,
     appSettings,
     updateAppSettings,
+    isTestMode,
+    toggleTestMode,
+    effectiveWhatsappGroup,
     latestLiveActivity,
     dismissLiveActivity,
   } = useDomApp();
@@ -1368,7 +1371,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
   // Direct PDF Sharing into WhatsApp Group (Exclusively sends signed PDF via CEOITBOX API without duplicate text)
   const handleSharePdfDirectly = async (date: string) => {
     try {
-      if (date > liveTodayDate) {
+      if (date > liveTodayDate && !isTestMode) {
         setToastAlert({
           type: 'error',
           text: `⚠️ Meeting has not started yet for ${formatToIndianDate(date)}. Future attendance reports cannot be generated or sent. Only meeting announcements can be broadcast for future dates.`,
@@ -1377,7 +1380,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
         return { success: false, message: 'Meeting has not started yet' };
       }
 
-      // 1. Direct Ceoitbox PDF Dispatch to WhatsApp Group (919977881452-1431506963@g.us) via /api/v1/message/create
+      // 1. Direct Ceoitbox PDF Dispatch to WhatsApp Group via /api/v1/message/create
       const dispatchPromise = sendDirectorPdfToWhatsappGroup(date);
       uploadReportToGoogleDriveAndSheet(date).catch((e) => console.warn('Background sync note:', e));
 
@@ -1385,7 +1388,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
       if (res.success) {
         setToastAlert({
           type: 'success',
-          text: `🎉 Official Signed PDF Report sent successfully to WhatsApp Group (${appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us'}) via Ceoitbox API!`,
+          text: `🎉 Official Signed PDF Report sent successfully to WhatsApp Group (${effectiveWhatsappGroup}) via Ceoitbox API!`,
         });
       } else {
         setToastAlert({
@@ -1450,7 +1453,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
     textMsg += `━━━━━━━━━━━━━━━━━━━━━━\n*Automated Reminder*`;
 
-    const groupJid = appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us';
+    const groupJid = effectiveWhatsappGroup;
     const res = await sendCeoitboxWhatsappMessage({
       mobileNo: groupJid,
       name: 'SBH DOM Official Group',
@@ -1462,7 +1465,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
   // Unified Handler for WhatsApp Group Dispatch Options (PDF, Roster Text, Both, or Unexcused Escalation)
   const handleGroupDispatchAction = async (action: 'pdf' | 'text' | 'both' | 'unexcused') => {
-    if (selectedDate > liveTodayDate) {
+    if (selectedDate > liveTodayDate && !isTestMode) {
       setToastAlert({
         type: 'error',
         text: `⚠️ Meeting has not started yet for ${formatToIndianDate(selectedDate)}. Attendance reports cannot be sent for future dates. You can broadcast meeting announcements only.`,
@@ -2264,6 +2267,43 @@ export const UnifiedAdminDashboard: React.FC = () => {
           {/* ================= TAB 1: ATTENDANCE REGISTER ================= */}
           {activeTab === 'attendance' && (
             <div className="space-y-4">
+              {/* Persistent Test Mode Banner */}
+              {isTestMode && (
+                <div className="bg-gradient-to-r from-purple-900 via-indigo-900 to-purple-950 text-white p-3.5 sm:p-4 rounded-3xl shadow-md border-2 border-purple-400 flex flex-col sm:flex-row items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-purple-500/30 border border-purple-300/40 flex items-center justify-center shrink-0">
+                      <Sparkles className="w-5 h-5 text-yellow-300 animate-pulse" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[11px] font-black uppercase tracking-wider bg-purple-400 text-purple-950 px-2 py-0.5 rounded-md">
+                          🧪 TEST MODE ACTIVE
+                        </span>
+                        <span className="text-xs text-purple-200 font-mono">
+                          Routing All Messages to: <strong className="text-white">120363432056023698@g.us</strong>
+                        </span>
+                      </div>
+                      <p className="text-xs text-purple-200 mt-0.5 leading-relaxed">
+                        Sunday off check, 10:20 AM cutoff window, and campus geofence restrictions are <strong>BYPASSED</strong>. You can test QR scan submissions, virtual joins, and report generation freely from anywhere.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      toggleTestMode(false);
+                      setToastAlert({
+                        type: 'info',
+                        text: '✅ Switched back to LIVE Production Mode (Group: 919977881452-1431506963@g.us). Normal restrictions active.',
+                      });
+                      setTimeout(() => setToastAlert(null), 5000);
+                    }}
+                    className="shrink-0 px-4 py-2 bg-white text-purple-950 hover:bg-purple-100 font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer whitespace-nowrap active:scale-95"
+                  >
+                    Switch to Live Mode
+                  </button>
+                </div>
+              )}
+
               {/* Executive Command Center */}
               <div className="bg-white rounded-3xl border border-[#f0f1f8]/80 shadow-xs relative overflow-hidden">
                 <div className="h-1.5 w-full bg-gradient-to-r from-[#7065f0] via-[#8576f7] to-[#45b7b8] absolute top-0 left-0" />
@@ -2384,6 +2424,38 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
                   {/* Right: Unified Executive Action Toolbar (Balanced Responsive Grid) */}
                   <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center justify-start xl:justify-end gap-2 pt-2 xl:pt-0 border-t xl:border-t-0 border-[#f0f1f8] w-full xl:w-auto">
+                    {/* Test Mode Toggle Button */}
+                    <button
+                      onClick={() => {
+                        const nextState = toggleTestMode();
+                        if (nextState) {
+                          setToastAlert({
+                            type: 'success',
+                            text: '🧪 Test Mode ENABLED: Sunday & cutoff restrictions bypassed. All group messages routed to Test Group (120363432056023698@g.us).',
+                          });
+                        } else {
+                          setToastAlert({
+                            type: 'info',
+                            text: '✅ Live Mode ACTIVATED: Normal hospital rules enforced. Messages routed to Official Group (919977881452-1431506963@g.us).',
+                          });
+                        }
+                        setTimeout(() => setToastAlert(null), 6000);
+                      }}
+                      className={`h-9 px-3.5 w-full sm:w-auto justify-center rounded-2xl text-xs font-bold shadow-2xs flex items-center gap-1.5 active:scale-95 transition-all duration-150 shrink-0 cursor-pointer ${
+                        isTestMode
+                          ? 'bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-800 text-white border-2 border-purple-400 shadow-md ring-2 ring-purple-400/50'
+                          : 'bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200'
+                      }`}
+                      title={
+                        isTestMode
+                          ? 'Test Mode is ACTIVE (Group: 120363432056023698@g.us). Click to switch to Live Mode.'
+                          : 'Click to Enable Test Mode (bypasses Sunday, cutoff & geofence restrictions and routes messages to test group)'
+                      }
+                    >
+                      <Sparkles className={`w-3.5 h-3.5 ${isTestMode ? 'text-yellow-300 animate-spin' : 'text-purple-600'}`} />
+                      <span>{isTestMode ? '🧪 Test Mode: ON' : 'Enable Test Mode'}</span>
+                    </button>
+
                     {/* 09:50 AM Broadcast Button */}
                     <button
                       onClick={() =>
@@ -4680,6 +4752,44 @@ export const UnifiedAdminDashboard: React.FC = () => {
                         >
                           Open in CEOITBOX ↗
                         </a>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Active WhatsApp Group Dispatch Routing
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-xs font-mono font-bold px-3 py-2 rounded-xl border flex-1 ${
+                          isTestMode
+                            ? 'bg-purple-50 text-purple-900 border-purple-300'
+                            : 'bg-emerald-50 text-emerald-900 border-emerald-300'
+                        }`}>
+                          {effectiveWhatsappGroup}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const next = toggleTestMode();
+                            setToastAlert({
+                              type: next ? 'success' : 'info',
+                              text: next
+                                ? '🧪 Test Mode ENABLED (120363432056023698@g.us)'
+                                : '✅ Live Production Mode ENABLED (919977881452-1431506963@g.us)',
+                            });
+                            setTimeout(() => setToastAlert(null), 5000);
+                          }}
+                          className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs ${
+                            isTestMode
+                              ? 'bg-gradient-to-r from-purple-700 to-indigo-700 text-white'
+                              : 'bg-slate-200 hover:bg-slate-300 text-slate-800'
+                          }`}
+                        >
+                          {isTestMode ? '🧪 Test Mode Active' : 'Enable Test Mode'}
+                        </button>
+                      </div>
+                      <div className="flex items-center justify-between mt-1 text-[11px] text-slate-500">
+                        <span>Live: <code>919977881452-1431506963@g.us</code> | Test: <code>120363432056023698@g.us</code></span>
                       </div>
                     </div>
                   </div>

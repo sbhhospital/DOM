@@ -161,8 +161,11 @@ interface DomAppContextType {
   uploadReportToGoogleDriveAndSheet: (
     date: string
   ) => Promise<{ success: boolean; message: string; driveUrl?: string }>;
-  // Settings
+  // Settings & Test Mode
   updateAppSettings: (newSettings: Partial<AppSettings>) => void;
+  isTestMode: boolean;
+  toggleTestMode: (force?: boolean) => boolean;
+  effectiveWhatsappGroup: string;
   latestLiveActivity: LiveActivityEvent | null;
   dismissLiveActivity: () => void;
   notifyLiveActivity: (event: Omit<LiveActivityEvent, 'id' | 'timestamp'>) => void;
@@ -174,6 +177,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   director_whatsapp: '9644404741',
   director_name: 'Director Sir',
   admin_whatsapp_group: '919977881452-1431506963@g.us',
+  test_whatsapp_group: '120363432056023698@g.us',
+  is_test_mode: false,
   google_meet_url: 'https://meet.google.com/jrz-jfku-gir',
   allowed_domain: 'sbhhospital.com',
   conference_room_name: 'Conference Room, 5th Floor',
@@ -1653,8 +1658,10 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       existingPrior?.check_in_at || existingPrior?.status === 'PRESENT' || existingPrior?.status === 'INFORMED_LATE'
     );
 
+    const isTestActive = Boolean(appSettings.is_test_mode || locationData?.isTestMode);
+
     // Meeting completed / closed check
-    if (meeting.is_completed) {
+    if (meeting.is_completed && !isTestActive) {
       return {
         success: false,
         meetUrl: meeting.google_meet_url || 'https://meet.google.com/jrz-jfku-gir',
@@ -1665,7 +1672,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     // Standup window & holiday check
     const windowStatus = checkStandupWindowStatus(targetDate, isAlreadyCheckedIn, meeting.cadence);
-    if (!windowStatus.allowed && !locationData?.isTestMode) {
+    if (!windowStatus.allowed && !isTestActive) {
       return {
         success: false,
         meetUrl: meeting.google_meet_url || 'https://meet.google.com/jrz-jfku-gir',
@@ -1945,8 +1952,10 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       existingRec?.check_in_at || existingRec?.status === 'PRESENT' || existingRec?.status === 'INFORMED_LATE'
     );
 
+    const isTestActive = Boolean(appSettings.is_test_mode || locationData?.isTestMode);
+
     // 0. Meeting completed / closed check
-    if (meeting.is_completed) {
+    if (meeting.is_completed && !isTestActive) {
       return {
         success: false,
         message: "Access Denied: Today's meeting session has officially concluded and been closed by Operations Command. Check-in is locked.",
@@ -1956,7 +1965,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     // 1. Standup Window Status & Holiday Check
     const windowStatus = checkStandupWindowStatus(selectedDate, isAlreadyRecordedPrior, meeting.cadence);
-    if (!windowStatus.allowed && !locationData?.isTestMode) {
+    if (!windowStatus.allowed && !isTestActive) {
       return {
         success: false,
         message: windowStatus.message,
@@ -1965,7 +1974,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
 
     // 2. Strict Hospital Geofence Check (SBH Hospital Campus & 5th Floor Conference Hall)
-    if (appSettings.hospital_geofence_enabled !== false && !locationData?.isTestMode) {
+    if (appSettings.hospital_geofence_enabled !== false && !isTestActive) {
       if (locationData?.latitude == null || locationData?.longitude == null) {
         return {
           success: false,
@@ -3000,10 +3009,12 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const isExplicitlyEnabled = (cadenceCode === 'DOM' || cadenceCode === 'WOM' || cadenceCode === 'MOM') && !meeting.is_holiday_or_shifted;
     const isHoliday = cadenceCode === 'HOLIDAY' || Boolean(meeting.is_holiday_or_shifted);
     const isOff = !isExplicitlyEnabled && (isSunday || isHoliday);
-    const targetGroup = appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us';
+    const targetGroup = appSettings.is_test_mode
+      ? (appSettings.test_whatsapp_group || '120363432056023698@g.us')
+      : (appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us');
 
-    // If day is marked as Holiday / Standing Off, suppress automated notice
-    if (isOff && isHoliday) {
+    // If day is marked as Holiday / Standing Off, suppress automated notice (unless in test mode)
+    if (isOff && isHoliday && !appSettings.is_test_mode) {
       return {
         success: true,
         sentCount: 0,
@@ -3114,7 +3125,9 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     scheduledTime: string,
     reason?: string
   ): Promise<{ success: boolean; message: string }> => {
-    const targetGroup = appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us';
+    const targetGroup = appSettings.is_test_mode
+      ? (appSettings.test_whatsapp_group || '120363432056023698@g.us')
+      : (appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us');
     let msg = `*SBH GROUP OF HOSPITALS, RAIPUR*\n`;
     msg += `📢 *OFFICIAL SCHEDULE UPDATE / CADENCE NOTICE*\n`;
     msg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
@@ -3359,6 +3372,18 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
   };
 
+  const isTestMode = Boolean(appSettings.is_test_mode);
+
+  const effectiveWhatsappGroup = isTestMode
+    ? (appSettings.test_whatsapp_group || '120363432056023698@g.us')
+    : (appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us');
+
+  const toggleTestMode = (force?: boolean): boolean => {
+    const nextMode = force !== undefined ? force : !appSettings.is_test_mode;
+    updateAppSettings({ is_test_mode: nextMode });
+    return nextMode;
+  };
+
   // ================= PDF EXPORTS =================
 
   const getFullRosterForDate = (date: string): AttendanceRecord[] => {
@@ -3523,7 +3548,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const sendDirectorPdfToWhatsappGroup = async (
     date: string
   ): Promise<{ success: boolean; message: string }> => {
-    if (date > getLiveIndiaDateStr()) {
+    if (date > getLiveIndiaDateStr() && !appSettings.is_test_mode) {
       return {
         success: false,
         message: `Meeting has not started yet for ${formatToIndianDate(date)}. Future attendance reports cannot be generated or sent. Only meeting announcements can be broadcast for future dates.`,
@@ -3540,7 +3565,9 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     // 2. Clean concise caption: PDF is dispatched exclusively without duplicate text
     const summaryMsg = `*SBH GROUP OF HOSPITALS, RAIPUR*\n📄 *OFFICIAL ${cadenceCode} SIGNED ATTENDANCE PDF REPORT (${formatToIndianDate(date)})*\n*Automated Reminder*`;
 
-    const targetGroup = appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us';
+    const targetGroup = appSettings.is_test_mode
+      ? (appSettings.test_whatsapp_group || '120363432056023698@g.us')
+      : (appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us');
 
     const res = await sendCeoitboxPdfAttachment({
       mobileNo: targetGroup,
@@ -3556,12 +3583,12 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
   };
 
-  // Stage 1: Send Personalized 09:50 AM Alerts to All Leaders (Mon-Sat, Sunday Paused)
+  // Stage 1: Send Personalized 09:50 AM Alerts to All Leaders (Mon-Sat, Sunday Paused unless Test Mode)
   const sendCeoitboxRemindersToAll = async (
     date: string
   ): Promise<{ success: boolean; count: number; message: string }> => {
-    // Sunday Rule: Automated reminders paused on Sunday
-    if (new Date(date).getDay() === 0) {
+    // Sunday Rule: Automated reminders paused on Sunday (unless in test mode)
+    if (new Date(date).getDay() === 0 && !appSettings.is_test_mode) {
       return { success: true, count: 0, message: 'Sunday is an official weekly off. Leader reminders skipped.' };
     }
 
@@ -3574,7 +3601,9 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       year: 'numeric',
     });
 
-    const targetGroup = appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us';
+    const targetGroup = appSettings.is_test_mode
+      ? (appSettings.test_whatsapp_group || '120363432056023698@g.us')
+      : (appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us');
 
     const cleanCadence = (cadenceCode || 'DOM').trim();
     const cleanMeetingTitle = (meeting.title || 'DAILY OPERATIONS MEETING')
@@ -3656,13 +3685,13 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
   };
 
-  // Automated 2-Stage Broadcast directly into official WhatsApp Group (120363432056023698@g.us) via CEOITBOX API (Mon-Sat, Sunday Paused)
+  // Automated 2-Stage Broadcast directly into official WhatsApp Group (Test: 120363432056023698@g.us / Live: 919977881452-1431506963@g.us)
   const sendCeoitboxGroupBroadcast = async (
     stage: '0950' | '1030',
     date: string
   ): Promise<{ success: boolean; message: string; url: string; payload: string }> => {
-    // Future Date Protection: 10:30 AM attendance audit cannot be dispatched for future dates
-    if (stage === '1030' && date > getLiveIndiaDateStr()) {
+    // Future Date Protection: 10:30 AM attendance audit cannot be dispatched for future dates (unless in test mode)
+    if (stage === '1030' && date > getLiveIndiaDateStr() && !appSettings.is_test_mode) {
       return {
         success: false,
         message: `Meeting has not started yet for ${formatToIndianDate(date)}. Final attendance reports cannot be generated or broadcast for future dates. Only 09:50 AM schedule announcements are permitted.`,
@@ -3701,7 +3730,9 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const totalCount = forDate.filter((r) => !isDir(r.leader || { id: r.leader_id })).length;
     const totalPresent = presentPhysical.length + presentVirtual.length;
     const complianceRate = totalCount > 0 ? Math.round(((totalPresent + informedLate.length + informedLeave.length) / totalCount) * 100) : 0;
-    const groupJid = appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us';
+    const groupJid = appSettings.is_test_mode
+      ? (appSettings.test_whatsapp_group || '120363432056023698@g.us')
+      : (appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us');
 
     let msg = '';
 
@@ -3898,7 +3929,9 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     msg += `*Hospital Operations & Management Command*\n`;
     msg += `*Automated Operational Compliance Notice*`;
 
-    const groupJid = appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us';
+    const groupJid = appSettings.is_test_mode
+      ? (appSettings.test_whatsapp_group || '120363432056023698@g.us')
+      : (appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us');
     const res = await sendCeoitboxWhatsappMessage({
       mobileNo: groupJid,
       name: 'SBH DOM Official Group',
@@ -3918,7 +3951,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     date: string
   ): Promise<{ success: boolean; message: string; driveUrl?: string }> => {
     try {
-      if (date > getLiveIndiaDateStr()) {
+      if (date > getLiveIndiaDateStr() && !appSettings.is_test_mode) {
         return {
           success: false,
           message: `Meeting has not started yet for ${formatToIndianDate(date)}. Attendance reports cannot be archived for future dates.`,
@@ -3927,6 +3960,10 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const meeting = getMeetingForDate(date);
       const forDate = attendanceRecords.filter((r) => r.meeting_date === date);
       const { base64, filename } = getDirectorPdfBase64(meeting, forDate, appSettings);
+
+      const targetWhatsappGroup = appSettings.is_test_mode
+        ? (appSettings.test_whatsapp_group || '120363432056023698@g.us')
+        : (appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us');
 
       const presentPhysical = forDate.filter(
         (r) => r.selected_mode === 'PHYSICAL' && (r.status === 'PRESENT' || r.admin_verified_attendance)
@@ -3959,7 +3996,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         complianceRate,
         pdfBase64: base64,
         pdfFileName: filename,
-        whatsappGroupId: appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us',
+        whatsappGroupId: targetWhatsappGroup,
         driveFolderId: appSettings.google_drive_folder_id || '1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD',
       };
 
@@ -3983,7 +4020,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
               leaveCount: informedLeave.length,
               complianceRate,
               pdfFileName: filename,
-              whatsappGroupId: appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us',
+              whatsappGroupId: targetWhatsappGroup,
               driveFolderUrl: appSettings.google_drive_folder_url || 'https://drive.google.com/drive/folders/1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD?usp=sharing',
               createdAt: new Date().toISOString(),
             },
@@ -4016,7 +4053,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       return {
         success: true,
-        message: `Official DOM Report successfully archived & sent to WhatsApp Group (${appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us'}) via CEOITBOX API!`,
+        message: `Official DOM Report successfully archived & sent to WhatsApp Group (${targetWhatsappGroup}) via CEOITBOX API!`,
         driveUrl: cloudDriveUrl,
       };
     } catch (err: any) {
@@ -4035,10 +4072,14 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     // 1. Dispatch Group Broadcast ONLY (No individual leader spam)
     await sendCeoitboxGroupBroadcast('0950', date);
 
+    const targetWhatsappGroup = appSettings.is_test_mode
+      ? (appSettings.test_whatsapp_group || '120363432056023698@g.us')
+      : (appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us');
+
     return {
       success: true,
       leadersCount: 1,
-      message: `09:50 AM Morning Notice successfully sent to Official WhatsApp Group (${appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us'})!`,
+      message: `09:50 AM Morning Notice successfully sent to Official WhatsApp Group (${targetWhatsappGroup})!`,
     };
   };
 
@@ -4046,7 +4087,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const concludeAndCloseMeeting = async (
     date: string
   ): Promise<{ success: boolean; message: string }> => {
-    if (date > getLiveIndiaDateStr()) {
+    if (date > getLiveIndiaDateStr() && !appSettings.is_test_mode) {
       return {
         success: false,
         message: `Cannot close future meeting scheduled for ${formatToIndianDate(date)}. Meeting closure can only be performed on or after meeting day.`,
@@ -4575,6 +4616,9 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         sendLeaderOnboardingCredentials,
         sendBulkLeaderCredentials,
         updateAppSettings,
+        isTestMode,
+        toggleTestMode,
+        effectiveWhatsappGroup,
         latestLiveActivity,
         dismissLiveActivity,
         notifyLiveActivity,

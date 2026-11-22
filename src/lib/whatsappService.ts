@@ -84,8 +84,18 @@ export async function sendCeoitboxWhatsappMessage({
     };
   }
 
-  // Official live group ID: 919977881452-1431506963@g.us
-  let cleanPhone = rawClean || (settings?.admin_whatsapp_group || '919977881452-1431506963@g.us');
+  const LIVE_WHATSAPP_GROUP = '919977881452-1431506963@g.us';
+  const TEST_WHATSAPP_GROUP = '120363432056023698@g.us';
+  const isTestActive = Boolean(settings?.is_test_mode);
+
+  // When Test Mode is active, all group broadcasts strictly go to Test Group (120363432056023698@g.us)
+  // When Test Mode is OFF (Live Mode), all group broadcasts go to Live Group (919977881452-1431506963@g.us)
+  let cleanPhone = rawClean;
+  if (isGroup) {
+    cleanPhone = isTestActive ? TEST_WHATSAPP_GROUP : (rawClean || (settings?.admin_whatsapp_group || LIVE_WHATSAPP_GROUP));
+  } else if (!cleanPhone) {
+    cleanPhone = isTestActive ? TEST_WHATSAPP_GROUP : (settings?.admin_whatsapp_group || LIVE_WHATSAPP_GROUP);
+  }
 
   if (!isGroup && (!cleanPhone || cleanPhone.length < 10)) {
     return {
@@ -135,6 +145,7 @@ export async function sendCeoitboxWhatsappMessage({
         audioBase64,
         audioFilename,
         filePathUrl,
+        isTestMode: isTestActive,
       }),
     });
 
@@ -206,7 +217,18 @@ export async function sendCeoitboxPdfAttachment({
   message,
   settings,
 }: CeoitboxPdfDispatchParams): Promise<{ success: boolean; status: string; id?: any }> {
-  const cleanPhone = cleanMobileNumber(mobileNo);
+  const LIVE_WHATSAPP_GROUP = '919977881452-1431506963@g.us';
+  const TEST_WHATSAPP_GROUP = '120363432056023698@g.us';
+  const isTestActive = Boolean(settings?.is_test_mode);
+
+  let cleanPhone = cleanMobileNumber(mobileNo);
+  const isGroup = cleanPhone.includes('@g.us');
+  if (isGroup) {
+    cleanPhone = isTestActive ? TEST_WHATSAPP_GROUP : (cleanPhone || (settings?.admin_whatsapp_group || LIVE_WHATSAPP_GROUP));
+  } else if (!cleanPhone) {
+    cleanPhone = isTestActive ? TEST_WHATSAPP_GROUP : (settings?.admin_whatsapp_group || LIVE_WHATSAPP_GROUP);
+  }
+
   const username = settings?.ceoitbox_username || 'SBH HOSPITAL';
   const password = settings?.ceoitbox_password || '123456789';
 
@@ -222,6 +244,7 @@ export async function sendCeoitboxPdfAttachment({
         message,
         username,
         password,
+        isTestMode: isTestActive,
       }),
     });
     const resultJson = await localRes.json().catch(() => ({}));

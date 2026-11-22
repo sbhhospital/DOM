@@ -27,8 +27,16 @@ export default async function handler(req, res) {
       filePathUrl,
     } = req.body || {};
 
-    let cleanPhone = (mobileNo || '919977881452-1431506963@g.us').trim();
+    const isTestActive = Boolean(req.body?.isTestMode || req.body?.is_test_mode);
+    const LIVE_GROUP = '919977881452-1431506963@g.us';
+    const TEST_GROUP = '120363432056023698@g.us';
+
+    let cleanPhone = (mobileNo || (isTestActive ? TEST_GROUP : LIVE_GROUP)).trim();
     const isGroup = cleanPhone.includes('@g.us');
+
+    if (isGroup && isTestActive) {
+      cleanPhone = TEST_GROUP;
+    }
 
     // Strict safety protection: NEVER message single contact 9977881452
     if (!isGroup && cleanPhone.replace(/\D/g, '').includes('9977881452')) {

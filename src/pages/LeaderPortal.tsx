@@ -46,6 +46,8 @@ export const LeaderPortal: React.FC = () => {
     getMeetingForDate,
     attendanceRecords,
     refreshLiveAttendance,
+    isTestMode,
+    resetAttendanceTime,
   } = useDomApp();
   const { currentUser, logoutUser, updateUserPassword, isUserAuthenticated } = useAuthSession();
 
@@ -316,7 +318,7 @@ export const LeaderPortal: React.FC = () => {
         (todayRecord.status === 'INFORMED_ABSENT' && todayRecord.informed_confirmed))
   );
 
-  const isCheckInDisabled = isCutoffLocked || isSundayOrHoliday || isOnLeave;
+  const isCheckInDisabled = !isTestMode && (isCutoffLocked || isSundayOrHoliday || isOnLeave);
 
   // Handle Boardroom Physical QR Scan Arrival (?action=room_qr)
   useEffect(() => {
@@ -363,7 +365,7 @@ export const LeaderPortal: React.FC = () => {
         const res = await markRoomQrCheckIn(activeLeader.id, {
           ...geoCoords,
           device: typeof navigator !== 'undefined' ? navigator.userAgent : 'Direct Boardroom Scan',
-          isTestMode: isSundayTest,
+          isTestMode: isTestMode || isSundayTest,
         });
 
         if (res.success) {
@@ -460,30 +462,30 @@ export const LeaderPortal: React.FC = () => {
 
   const handleAttendPhysically = () => {
     if (!activeLeader) return;
-    if (isSundayOrHoliday) {
+    if (isSundayOrHoliday && !isTestMode) {
       setActionMessage({
         success: false,
         text: '🏖️ Official Hospital Weekly Off (Sunday). Standup attendance is excused and check-in is closed.',
       });
       return;
     }
-    if (isOnLeave) {
+    if (isOnLeave && !isTestMode) {
       setActionMessage({
         success: false,
         text: '🏖️ You are currently marked on Official Leave for today. Attendance check-in is excused.',
       });
       return;
     }
-    if (currentMeeting.is_completed) {
+    if (currentMeeting.is_completed && !isTestMode) {
       setShowMeetingClosedModal(true);
       return;
     }
-    if (isCutoffLocked || isLateGraceExpired) {
+    if ((isCutoffLocked || isLateGraceExpired) && !isTestMode) {
       setShowExpiredAccessModal(true);
       return;
     }
     const { isLate, lateMinutes } = checkIsBetween1005And1020();
-    if (isLate && !lateReasonInput.trim()) {
+    if (isLate && !lateReasonInput.trim() && !isTestMode) {
       setCalculatedLateMinutes(lateMinutes);
       setPendingLateMode('PHYSICAL');
       setShowLateReasonModal(true);
@@ -507,6 +509,7 @@ export const LeaderPortal: React.FC = () => {
       accuracy: scanResult.accuracy,
       device: typeof navigator !== 'undefined' ? navigator.userAgent : 'Live Camera',
       lateReason: lateReasonInput.trim() || undefined,
+      isTestMode: isTestMode,
     });
 
     if (res.success) {
@@ -534,7 +537,7 @@ export const LeaderPortal: React.FC = () => {
     setIsVirtualSubmitting(true);
 
     // Acquire GPS location telemetry if permission granted
-    let geoCoords: { latitude?: number; longitude?: number; accuracy?: number; lateReason?: string } | undefined;
+    let geoCoords: { latitude?: number; longitude?: number; accuracy?: number; lateReason?: string; isTestMode?: boolean } | undefined;
     if (typeof navigator !== 'undefined' && 'geolocation' in navigator) {
       try {
         const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
@@ -545,13 +548,16 @@ export const LeaderPortal: React.FC = () => {
           longitude: pos.coords.longitude,
           accuracy: Math.round(pos.coords.accuracy),
           lateReason: reason,
+          isTestMode: isTestMode,
         };
       } catch (e) {
         console.warn('Geolocation not permitted for virtual join:', e);
       }
     }
-    if (!geoCoords && reason) {
-      geoCoords = { lateReason: reason };
+    if (!geoCoords) {
+      geoCoords = { lateReason: reason, isTestMode: isTestMode };
+    } else {
+      geoCoords.isTestMode = isTestMode;
     }
 
     const res = await markVirtualJoin(activeLeader.id, selectedDate, geoCoords);
@@ -583,30 +589,30 @@ export const LeaderPortal: React.FC = () => {
 
   const handleJoinVirtually = async () => {
     if (!activeLeader) return;
-    if (isSundayOrHoliday) {
+    if (isSundayOrHoliday && !isTestMode) {
       setActionMessage({
         success: false,
         text: '🏖️ Official Hospital Weekly Off (Sunday). Standup attendance is excused and check-in is closed.',
       });
       return;
     }
-    if (isOnLeave) {
+    if (isOnLeave && !isTestMode) {
       setActionMessage({
         success: false,
         text: '🏖️ You are currently marked on Official Leave for today. Attendance check-in is excused.',
       });
       return;
     }
-    if (currentMeeting.is_completed) {
+    if (currentMeeting.is_completed && !isTestMode) {
       setShowMeetingClosedModal(true);
       return;
     }
-    if (isCutoffLocked || isLateGraceExpired) {
+    if ((isCutoffLocked || isLateGraceExpired) && !isTestMode) {
       setShowExpiredAccessModal(true);
       return;
     }
     const { isLate, lateMinutes } = checkIsBetween1005And1020();
-    if (isLate && !lateReasonInput.trim()) {
+    if (isLate && !lateReasonInput.trim() && !isTestMode) {
       setCalculatedLateMinutes(lateMinutes);
       setPendingLateMode('VIRTUAL');
       setShowLateReasonModal(true);
@@ -891,6 +897,30 @@ export const LeaderPortal: React.FC = () => {
                     <span>Rejoin Official Meeting (Google Meet) &rarr;</span>
                   </button>
                 </div>
+
+                {/* Test Mode Re-Test Reset Action */}
+                {isTestMode && todayRecord && (
+                  <div className="p-3 bg-purple-50 border border-purple-200 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-2 shadow-2xs">
+                    <div className="flex items-center gap-2 text-purple-900 text-xs font-semibold">
+                      <Sparkles className="w-4 h-4 text-purple-600 shrink-0" />
+                      <span>Test Mode: Want to test QR scanning or submission again?</span>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        const res = await resetAttendanceTime(todayRecord.id);
+                        if (res.success) {
+                          setActionMessage({
+                            success: true,
+                            text: '🧪 Attendance reset! You can now scan QR or join online again to test.',
+                          });
+                        }
+                      }}
+                      className="w-full sm:w-auto px-3.5 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs shrink-0"
+                    >
+                      Reset for Re-Test
+                    </button>
+                  </div>
+                )}
               </div>
             ) : isInformedLatePending ? (
               /* State D: Informed Late Notice Active -> Live Countdown & Grace Window Check-In */
@@ -1049,6 +1079,22 @@ export const LeaderPortal: React.FC = () => {
                       </div>
                     </div>
                   </div>
+                ) : isTestMode ? (
+                  <div className="p-3 sm:p-3.5 rounded-2xl bg-gradient-to-r from-purple-100 via-indigo-50 to-purple-50 border-2 border-purple-400 text-purple-950 shadow-2xs">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-purple-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                        <Sparkles className="w-4 h-4 text-yellow-300" />
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="text-xs sm:text-sm font-bold text-purple-950 truncate">
+                          🧪 Test Mode Active — Attendance Restrictions Bypassed
+                        </h4>
+                        <p className="text-[11px] text-purple-800 font-medium sm:whitespace-normal leading-snug">
+                          Sunday off, cutoff time, and geofence checks are lifted. You can freely scan QR codes or join online to test. WhatsApp messages route to Test Group (<code className="font-mono">120363432056023698@g.us</code>).
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 ) : (currentMeeting.cadence === 'HOLIDAY' || currentMeeting.is_holiday_or_shifted) && currentMeeting.cadence !== 'DOM' && currentMeeting.cadence !== 'WOM' && currentMeeting.cadence !== 'MOM' ? (
                   <div className="p-3 sm:p-3.5 rounded-2xl bg-amber-50/90 border border-amber-300 text-amber-950 shadow-2xs">
                     <div className="flex items-center gap-2.5">
@@ -1123,13 +1169,15 @@ export const LeaderPortal: React.FC = () => {
                         Attending In-Person
                       </div>
                       <p className="text-[10px] text-slate-500 mt-1 font-medium leading-snug line-clamp-2">
-                        {isSundayOrHoliday
-                          ? 'Sunday Off (Excused)'
-                          : isOnLeave
-                            ? 'Marked on Official Leave'
-                            : isCutoffLocked
-                              ? `Locked at ${windowStatus.windowCloseStr}`
-                              : 'Scan Boardroom QR (5th Flr)'}
+                        {isTestMode
+                          ? 'Scan Boardroom QR (5th Flr)'
+                          : isSundayOrHoliday
+                            ? 'Sunday Off (Excused)'
+                            : isOnLeave
+                              ? 'Marked on Official Leave'
+                              : isCutoffLocked
+                                ? `Locked at ${windowStatus.windowCloseStr}`
+                                : 'Scan Boardroom QR (5th Flr)'}
                       </p>
                     </button>
 
@@ -1157,13 +1205,15 @@ export const LeaderPortal: React.FC = () => {
                         Join Online
                       </div>
                       <p className="text-[10px] text-slate-500 mt-1 font-medium leading-snug line-clamp-2">
-                        {isSundayOrHoliday
-                          ? 'Sunday Off (Excused)'
-                          : isOnLeave
-                            ? 'Marked on Official Leave'
-                            : isCutoffLocked
-                              ? `Locked at ${windowStatus.windowCloseStr}`
-                              : 'Official Google Meet'}
+                        {isTestMode
+                          ? 'Official Google Meet'
+                          : isSundayOrHoliday
+                            ? 'Sunday Off (Excused)'
+                            : isOnLeave
+                              ? 'Marked on Official Leave'
+                              : isCutoffLocked
+                                ? `Locked at ${windowStatus.windowCloseStr}`
+                                : 'Official Google Meet'}
                       </p>
                     </button>
                   </div>

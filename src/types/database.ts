@@ -124,4 +124,7 @@ export interface AppSettings {
   hospital_longitude?: number;
   hospital_radius_meters?: number;
   hospital_geofence_enabled?: boolean;
+  // Test Mode & Staging Simulation
+  is_test_mode?: boolean;
+  test_whatsapp_group?: string;
 }

@@ -35,13 +35,18 @@ function whatsappDispatchPlugin() {
               filePathUrl,
             } = data;
 
-            let cleanPhone = mobileNo || '120363432056023698@g.us';
-            if (cleanPhone === '919977881452-1431506963@g.us') {
-              cleanPhone = '120363432056023698@g.us';
+            const isTestActive = Boolean(data.isTestMode || data.is_test_mode);
+            const LIVE_GROUP = '919977881452-1431506963@g.us';
+            const TEST_GROUP = '120363432056023698@g.us';
+
+            let cleanPhone = (mobileNo || (isTestActive ? TEST_GROUP : LIVE_GROUP)).trim();
+            const isGroup = cleanPhone.includes('@g.us');
+
+            if (isGroup && isTestActive) {
+              cleanPhone = TEST_GROUP;
             }
             const user = username || 'SBH HOSPITAL';
             const pass = password || '123456789';
-            const isGroup = cleanPhone.includes('@g.us');
             const authHeader = 'Basic ' + Buffer.from(`${user}:${pass}`).toString('base64');
 
             const results: any = {};
