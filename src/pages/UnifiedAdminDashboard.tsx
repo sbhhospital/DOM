@@ -371,70 +371,78 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
   // Native Indian English Voice Synthesizer & Custom Audio Player
   const playStandupVoiceAnnouncement = (cadenceType: string) => {
-    // 1. First attempt: Play custom pre-recorded audio file if placed by user
-    const audioPath = `/audio/announcement-${cadenceType.toLowerCase()}.mp3`;
-    const audio = new Audio(audioPath);
+    // 1. First attempt: Play dedicated web boardroom audio file
+    const webAudioPath = `/audio/web-boardroom-${cadenceType.toLowerCase()}.mp3`;
+    const fallbackAudioPath = `/audio/announcement-${cadenceType.toLowerCase()}.mp3`;
+
+    const audio = new Audio(webAudioPath);
     audio.play().then(() => {
-      console.info('[Voice Announcement] Playing pre-recorded Indian audio file:', audioPath);
+      console.info('[Voice Announcement] Playing pre-recorded web boardroom audio file:', webAudioPath);
     }).catch(() => {
-      // 2. Fallback: Native Regional Indian English Web Speech Synthesis
-      if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
-      try {
-        window.speechSynthesis.cancel();
-        const meetingName =
-          cadenceType === 'WOM'
-            ? 'Weekly Operations Meeting'
-            : cadenceType === 'MOM'
-            ? 'Monthly Operations Meeting'
-            : 'Daily Operations Meeting';
-        const text = `Good morning leaders. Today's ${meetingName} has now started in the conference room. Please scan the QR code to check in and mark your attendance.`;
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.rate = 0.90;
-        utterance.pitch = 1.0;
+      // Try fallback pre-recorded audio file
+      const fallbackAudio = new Audio(fallbackAudioPath);
+      fallbackAudio.play().then(() => {
+        console.info('[Voice Announcement] Playing general pre-recorded audio file:', fallbackAudioPath);
+      }).catch(() => {
+        // 2. Fallback: Native Regional Indian English Web Speech Synthesis
+        if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+        try {
+          window.speechSynthesis.cancel();
+          const text =
+            cadenceType === 'WOM'
+              ? `Thank you for joining, department leaders. Our Weekly Operations Review is about to begin. If you haven't scanned the boardroom QR code yet, please do so right away. Thank you for your presence, and let's begin the review!`
+              : cadenceType === 'MOM'
+              ? `Thank you for joining, leadership team. Our Monthly Strategic Review is starting now. Please ensure your physical check-in is recorded by scanning the room QR code. Thank you everyone, and let's start the meeting!`
+              : `Thank you for joining, leaders. We are starting our Daily Operations Meeting in a few moments. If anyone has not scanned the conference room QR code yet, please scan it now to record your attendance. Thank you, and let's get started!`;
 
-        const speakWithIndianVoice = () => {
-          const voices = window.speechSynthesis.getVoices();
-          const indianVoice = voices.find(
-            (v) =>
-              v.lang === 'en-IN' ||
-              v.lang.startsWith('en-IN') ||
-              v.name.toLowerCase().includes('india') ||
-              v.name.toLowerCase().includes('heera') ||
-              v.name.toLowerCase().includes('neerja') ||
-              v.name.toLowerCase().includes('ravi') ||
-              v.name.toLowerCase().includes('veena') ||
-              v.name.toLowerCase().includes('prabhat')
-          );
-          if (indianVoice) {
-            utterance.voice = indianVoice;
-            utterance.lang = 'en-IN';
-          } else {
-            utterance.lang = 'en-IN';
-          }
-          window.speechSynthesis.speak(utterance);
-        };
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.rate = 0.90;
+          utterance.pitch = 1.0;
 
-        if (window.speechSynthesis.getVoices().length > 0) {
-          speakWithIndianVoice();
-        } else {
-          window.speechSynthesis.onvoiceschanged = () => {
-            speakWithIndianVoice();
-            window.speechSynthesis.onvoiceschanged = null;
+          const speakWithIndianVoice = () => {
+            const voices = window.speechSynthesis.getVoices();
+            const indianVoice = voices.find(
+              (v) =>
+                v.lang === 'en-IN' ||
+                v.lang.startsWith('en-IN') ||
+                v.name.toLowerCase().includes('india') ||
+                v.name.toLowerCase().includes('heera') ||
+                v.name.toLowerCase().includes('neerja') ||
+                v.name.toLowerCase().includes('ravi') ||
+                v.name.toLowerCase().includes('veena') ||
+                v.name.toLowerCase().includes('prabhat')
+            );
+            if (indianVoice) {
+              utterance.voice = indianVoice;
+              utterance.lang = 'en-IN';
+            } else {
+              utterance.lang = 'en-IN';
+            }
+            window.speechSynthesis.speak(utterance);
           };
+
+          if (window.speechSynthesis.getVoices().length > 0) {
+            speakWithIndianVoice();
+          } else {
+            window.speechSynthesis.onvoiceschanged = () => {
+              speakWithIndianVoice();
+              window.speechSynthesis.onvoiceschanged = null;
+            };
+          }
+        } catch (e) {
+          console.warn('Speech synthesis voice announcement error:', e);
         }
-      } catch (e) {
-        console.warn('Speech synthesis voice announcement error:', e);
-      }
+      });
     });
   };
 
-  // Test 10:00 AM Announcement Button Handler
+  // Test 10:00 AM Announcement Button Handler (10s Auto-Close)
   const triggerTestAnnouncement = () => {
     const curMeeting = getMeetingForDate(selectedDate);
     const cadence = curMeeting.cadence || (curMeeting.frequency === 'MONTHLY' ? 'MOM' : curMeeting.frequency === 'WEEKLY' ? 'WOM' : 'DOM');
     setStandupAnnouncement({
       active: true,
-      secondsLeft: 5,
+      secondsLeft: 10,
       cadence,
       title: curMeeting.title,
       meetUrl: curMeeting.google_meet_url || 'https://meet.google.com/jrz-jfku-gir',
@@ -442,10 +450,15 @@ export const UnifiedAdminDashboard: React.FC = () => {
     playStandupVoiceAnnouncement(cadence);
   };
 
-  // 1-second countdown ticker for standupAnnouncement
+  // 1-second countdown ticker for standupAnnouncement with 10s auto-dismiss
   useEffect(() => {
     if (!standupAnnouncement.active) return;
-    if (standupAnnouncement.secondsLeft <= 0) return;
+    if (standupAnnouncement.secondsLeft <= 0) {
+      const dismissTimer = setTimeout(() => {
+        setStandupAnnouncement((prev) => ({ ...prev, active: false }));
+      }, 1000);
+      return () => clearTimeout(dismissTimer);
+    }
 
     const timer = setTimeout(() => {
       setStandupAnnouncement((prev) => ({
@@ -500,8 +513,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
         }
       }
 
-      // Stage 1.5: 09:59 AM Standup Commencement Countdown & Web Speech Announcement
-      if (!isSundayToday && h === 9 && m === 59) {
+      // Stage 1.5: 09:55:50 AM to 10:00:00 AM Standup Commencement Countdown & Web Speech Announcement
+      if (!isSundayToday && h === 9 && (m === 55 || m === 59)) {
         const key = `sbh_standup_announced_${todayDate}`;
         if (!localStorage.getItem(key)) {
           localStorage.setItem(key, 'announced');
@@ -509,7 +522,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
           const cadence = curMeeting.cadence || 'DOM';
           setStandupAnnouncement({
             active: true,
-            secondsLeft: 5,
+            secondsLeft: 10,
             cadence,
             title: curMeeting.title,
             meetUrl: curMeeting.google_meet_url || 'https://meet.google.com/jrz-jfku-gir',
@@ -2495,7 +2508,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
               {/* Filter & Dispatch Action Bar */}
               <div className="bg-white p-3 sm:p-3.5 rounded-2xl border border-[#f0f1f8]/80 shadow-xs flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
-                <div className="flex items-center gap-2 flex-1">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-1">
                   <div className="relative flex-1 max-w-sm">
                     <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                     <input
@@ -2607,8 +2620,12 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
               {/* Attendance Register Table */}
               <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+                <div className="block lg:hidden px-3.5 py-1.5 bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 flex items-center justify-between">
+                  <span>👉 Swipe horizontally for all columns</span>
+                  <span className="font-mono text-[#7065f0]">7 Columns</span>
+                </div>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs border-collapse">
+                  <table className="w-full text-left text-xs border-collapse min-w-[850px]">
                     <thead>
                       <tr className="bg-slate-50/80 text-slate-500 font-bold border-b border-slate-200">
                         <th className="py-2.5 px-3 font-black text-[10px] uppercase tracking-wider">Leader Name</th>
@@ -4050,8 +4067,12 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
               {/* Table of Leaders & Individual Meeting Links */}
               <div className="fluent-card rounded-3xl overflow-hidden border border-slate-200 shadow-md">
+                <div className="block lg:hidden px-3.5 py-1.5 bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 flex items-center justify-between">
+                  <span>👉 Swipe horizontally for all links</span>
+                  <span className="font-mono text-[#7065f0]">Actions</span>
+                </div>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs border-collapse">
+                  <table className="w-full text-left text-xs border-collapse min-w-[750px]">
                     <thead>
                       <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-600 uppercase text-[10px] font-black tracking-wider">
                         <th className="py-3.5 px-4">Leader & Department</th>
@@ -4775,8 +4796,12 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
                 {/* Geo-History Table */}
                 <div className="bg-white rounded-2xl border border-[#dcdcdc] shadow-xs overflow-hidden">
+                  <div className="block lg:hidden px-3.5 py-1.5 bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 flex items-center justify-between">
+                    <span>👉 Swipe horizontally for GPS logs</span>
+                    <span className="font-mono text-[#7065f0]">Map Actions</span>
+                  </div>
                   <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs border-collapse">
+                    <table className="w-full text-left text-xs border-collapse min-w-[850px]">
                       <thead>
                         <tr className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
                           <th className="py-3 px-4 uppercase tracking-wider text-[11px]">Leader Name & Phone</th>
@@ -5053,8 +5078,12 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
                 {/* Late Arrival Audit Table */}
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+                  <div className="block lg:hidden px-3.5 py-1.5 bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 flex items-center justify-between">
+                    <span>👉 Swipe horizontally for late arrivals</span>
+                    <span className="font-mono text-[#7065f0]">Audit Log</span>
+                  </div>
                   <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs border-collapse">
+                    <table className="w-full text-left text-xs border-collapse min-w-[800px]">
                       <thead>
                         <tr className="bg-slate-50/80 text-slate-500 font-bold border-b border-slate-200">
                           <th className="py-2.5 px-3 font-black text-[10px] uppercase tracking-wider">Leader Profile</th>
@@ -5337,8 +5366,12 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
                 {/* Compliance Table */}
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+                  <div className="block lg:hidden px-3.5 py-1.5 bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 flex items-center justify-between">
+                    <span>👉 Swipe horizontally for compliance audit</span>
+                    <span className="font-mono text-[#7065f0]">Score Tier</span>
+                  </div>
                   <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs border-collapse">
+                    <table className="w-full text-left text-xs border-collapse min-w-[850px]">
                       <thead>
                         <tr className="bg-slate-50/80 text-slate-500 font-bold border-b border-slate-200">
                           <th className="py-2.5 px-3 font-black text-[10px] uppercase tracking-wider">Leader Profile</th>

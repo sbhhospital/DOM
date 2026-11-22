@@ -24,7 +24,8 @@ import {
   Copy,
 } from 'lucide-react';
 import { useAuthSession } from '../context/AuthSessionContext';
-import { useDomApp, INITIAL_LEADERS } from '../context/DomAppContext';
+import { useDomApp } from '../context/DomAppContext';
+import { INITIAL_LEADERS } from '../data/hospitalLeadersData';
 import { supabase } from '../lib/supabase';
 import { Leader } from '../types/database';
 import sbhLogo from '../assets/sbh-logo.png';

@@ -1,37 +1,37 @@
-# Audio Announcements for SBH DOM Portal
+# Audio System for SBH DOM Portal
 
-This directory holds studio-quality audio recordings generated via ElevenLabs (or any voice provider) for automated meeting announcements at 10:00 AM IST.
-
----
-
-## Supported File Names:
-1. `announcement-dom.mp3` - Daily Operations Meeting (DOM)
-2. `announcement-wom.mp3` - Weekly Operations Review (WOM)
-3. `announcement-mom.mp3` - Monthly Strategic Review (MOM)
+This directory holds studio-quality audio recordings generated via ElevenLabs for two distinct purposes:
 
 ---
 
-## Recommended Scripts for ElevenLabs:
+## 1. Group Announcement Audio (Sent with link to WhatsApp Group)
+These files are linked directly in WhatsApp 09:50 AM notices and 10:00 AM broadcasts:
+- `announcement-dom.mp3` — Daily Operations Standup (DOM)
+- `announcement-wom.mp3` — Weekly Operations Meeting (WOM)
+- `announcement-mom.mp3` — Monthly Strategic Review (MOM)
 
-### 1. DOM (Daily Operations Meeting):
-> "Good morning leaders. Today's Daily Operations Meeting has started in the conference room. Please scan your QR code and complete your check-in."
-
-### 2. WOM (Weekly Operations Review):
-> "Good morning leaders. Today's Weekly Operations Review has started in the conference room. Please scan your QR code and mark your attendance."
-
-### 3. MOM (Monthly Strategic Review):
-> "Good morning leaders. Today's Monthly Strategic Review has started in the conference room. Please scan your QR code and mark your attendance."
-
----
-
-## ElevenLabs Recommended Voice Settings:
-- **Search Voice:** Search for "Indian" under Community / Default voices (e.g., **Aarav**, **Aditi**, **Priya**, or **Dev**).
-- **Stability:** 55% - 65%
-- **Clarity + Similarity:** 75% - 85%
-- **Style Exaggeration:** 0% (Natural & professional)
+### Group Audio Scripts:
+- **DOM:** *"Good morning leaders. Today's Daily Operations Meeting has started in the conference room. Please scan your QR code and complete your check-in."*
+- **WOM:** *"Good morning leaders. Today's Weekly Operations Review has started in the conference room. Please scan your QR code and mark your attendance."*
+- **MOM:** *"Good morning leaders. Today's Monthly Strategic Review has started in the conference room. Please scan your QR code and mark your attendance."*
 
 ---
 
-## How It Works:
-- As soon as you save `announcement-dom.mp3`, `announcement-wom.mp3`, or `announcement-mom.mp3` inside this folder, the dashboard plays the pre-recorded audio automatically at 10:00 AM and when clicking "Test 10:00 AM Announcement".
-- If no MP3 file is placed, it seamlessly uses the native Indian English browser voice (`en-IN`).
+## 2. Webpage Boardroom Audio (Plays in portal during 09:55:50 AM to 10:00:00 AM countdown)
+These files play inside the portal during the 10-second visual countdown and auto-close after 10 seconds:
+- `web-boardroom-dom.mp3` — Daily Standup Boardroom Call
+- `web-boardroom-wom.mp3` — Weekly Review Boardroom Call
+- `web-boardroom-mom.mp3` — Monthly Review Boardroom Call
+
+### Webpage Boardroom Audio Scripts:
+- **Daily DOM:** *"Thank you for joining, leaders. We are starting our Daily Operations Meeting in a few moments. If anyone has not scanned the conference room QR code yet, please scan it now to record your attendance. Thank you, and let's get started!"*
+- **Weekly WOM:** *"Thank you for joining, department leaders. Our Weekly Operations Review is about to begin. If you haven't scanned the boardroom QR code yet, please do so right away. Thank you for your presence, and let's begin the review!"*
+- **Monthly MOM:** *"Thank you for joining, leadership team. Our Monthly Strategic Review is starting now. Please ensure your physical check-in is recorded by scanning the room QR code. Thank you everyone, and let's start the meeting!"*
+
+---
+
+## Recommended ElevenLabs Voice Settings:
+- **Voice Search:** Indian Accent (e.g., **Aarav**, **Aditi**, **Priya**, or **Dev**)
+- **Stability:** 60%
+- **Clarity / Similarity:** 80%
+- **Style:** 0% (Natural & professional)
