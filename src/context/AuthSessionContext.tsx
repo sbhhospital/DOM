@@ -272,13 +272,13 @@ export const AuthSessionProvider: React.FC<{ children: React.ReactNode }> = ({ c
     } catch {}
 
     try {
-      await supabase.auth.signOut({ scope: 'local' });
-      await supabase.auth.signOut();
+      supabase.auth.signOut({ scope: 'local' }).catch(() => {});
+      supabase.auth.signOut().catch(() => {});
     } catch (e) {
       console.warn('Error signing out Supabase auth session:', e);
     }
 
-    window.location.href = '/login';
+    window.location.replace('/login');
   };
 
   // Periodic Check for 2-Hour Auto-Logout
@@ -456,13 +456,13 @@ export const AuthSessionProvider: React.FC<{ children: React.ReactNode }> = ({ c
     } catch {}
 
     try {
-      await supabase.auth.signOut({ scope: 'local' });
-      await supabase.auth.signOut();
+      supabase.auth.signOut({ scope: 'local' }).catch(() => {});
+      supabase.auth.signOut().catch(() => {});
     } catch (e) {
       console.warn('Error signing out Supabase auth session:', e);
     }
 
-    window.location.href = '/login';
+    window.location.replace('/login');
   };
 
   const updateUserPassword = async (

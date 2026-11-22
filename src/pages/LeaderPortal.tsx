@@ -185,6 +185,7 @@ export const LeaderPortal: React.FC = () => {
   // Modals for Virtual Join Confirmation & Success Feedback
   const [showVirtualConfirmModal, setShowVirtualConfirmModal] = useState(false);
   const [isVirtualSubmitting, setIsVirtualSubmitting] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const [attendanceSuccessModal, setAttendanceSuccessModal] = useState<{
     isOpen: boolean;
     mode: 'PHYSICAL' | 'VIRTUAL';
@@ -193,6 +194,18 @@ export const LeaderPortal: React.FC = () => {
     joinTime: string;
     meetUrl?: string;
   } | null>(null);
+
+  const handleSignOut = async () => {
+    setIsSigningOut(true);
+    try {
+      localStorage.removeItem('sbh_active_user_session');
+      localStorage.removeItem('sbh_device_remembered_leader');
+      localStorage.removeItem('sbh_leader_id');
+      localStorage.removeItem('sbh_leader_name');
+      sessionStorage.clear();
+    } catch {}
+    await logoutUser();
+  };
 
   // Lock body scroll and keep view centered whenever any modal is opened
   useEffect(() => {
@@ -573,6 +586,22 @@ export const LeaderPortal: React.FC = () => {
     }
   };
 
+  if (isSigningOut) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#f4f5fa] via-[#f4f5fa] to-[#f4f5fa] flex items-center justify-center p-4">
+        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-xl flex flex-col items-center text-center max-w-sm w-full space-y-3 animate-in fade-in zoom-in duration-150">
+          <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center shadow-xs">
+            <LogOut className="w-6 h-6 animate-pulse" />
+          </div>
+          <div>
+            <h3 className="text-base font-bold text-slate-900">Signing Out...</h3>
+            <p className="text-xs text-slate-500 mt-1">Directly returning to login portal...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f4f5fa] via-[#f4f5fa] to-[#f4f5fa] text-[#232d42] flex flex-col font-sans p-2.5 sm:p-5 pb-16 items-center page-transition">
       <div className="w-full max-w-xl space-y-3 sm:space-y-4">
@@ -765,15 +794,13 @@ export const LeaderPortal: React.FC = () => {
                 )}
                 <button
                   type="button"
-                  onClick={async () => {
-                    setSelectedLeader(null);
-                    await logoutUser();
-                  }}
-                  className="px-2.5 py-1 sm:px-3 sm:py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+                  disabled={isSigningOut}
+                  onClick={handleSignOut}
+                  className="px-2.5 py-1 sm:px-3 sm:py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs disabled:opacity-60"
                   title="Sign out from this leader account"
                 >
                   <LogOut className="w-3.5 h-3.5 text-rose-600" />
-                  <span>Sign Out</span>
+                  <span>{isSigningOut ? 'Signing Out...' : 'Sign Out'}</span>
                 </button>
               </div>
             </div>
