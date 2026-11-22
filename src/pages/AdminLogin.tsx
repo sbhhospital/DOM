@@ -429,15 +429,46 @@ export const AdminLogin: React.FC = () => {
 
     const trimmedUser = usernameInput.trim();
     if (!trimmedUser) {
-      showToast('⚠️ Please select your Name from the dropdown list!');
+      showToast('⚠️ Please select or type your Name / Email from the list!');
       setIsDropdownOpen(true);
       return;
     }
 
+    let activeAdminSelected = isAdminSelected;
+    let activeLeaderSelected = selectedLeader;
+
     if (!isUserSelectedFromList) {
-      showToast('⚠️ Please click and select your name from the dropdown list!');
-      setIsDropdownOpen(true);
-      return;
+      const q = trimmedUser.toLowerCase();
+      const adminMatch =
+        (adminProfile.username && adminProfile.username.toLowerCase() === q) ||
+        (adminProfile.email && adminProfile.email.toLowerCase() === q) ||
+        (adminProfile.full_name && adminProfile.full_name.toLowerCase() === q) ||
+        q === 'admin' ||
+        q === 'administrator';
+
+      if (adminMatch) {
+        activeAdminSelected = true;
+        setIsAdminSelected(true);
+        setIsUserSelectedFromList(true);
+      } else {
+        const found =
+          activeLeaders.find(
+            (l) =>
+              l.full_name.toLowerCase() === q ||
+              (l.email && l.email.toLowerCase() === q)
+          ) ||
+          activeLeaders.find((l) => l.full_name.toLowerCase().includes(q));
+
+        if (found) {
+          activeLeaderSelected = found;
+          setSelectedLeader(found);
+          setIsUserSelectedFromList(true);
+        } else {
+          showToast('⚠️ Please select or type your registered Name or Email from the list!');
+          setIsDropdownOpen(true);
+          return;
+        }
+      }
     }
 
     if (parseInt(captchaInput, 10) !== captcha.answer) {
@@ -453,7 +484,7 @@ export const AdminLogin: React.FC = () => {
 
     setLoading(true);
 
-    if (isAdminSelected) {
+    if (activeAdminSelected) {
       // 1. Admin Login with live SQL credentials
       const res = await loginAdmin(usernameInput, password);
       setLoading(false);
@@ -467,13 +498,13 @@ export const AdminLogin: React.FC = () => {
         setErrorMsg(res.message);
         generateCaptcha();
       }
-    } else if (selectedLeader) {
+    } else if (activeLeaderSelected) {
       // 2. Leader Login
-      const res = await loginLeaderDirect(selectedLeader, password);
+      const res = await loginLeaderDirect(activeLeaderSelected, password);
       setLoading(false);
       if (res.success) {
-        localStorage.setItem('sbh_device_remembered_leader', JSON.stringify(selectedLeader));
-        setLoggedInName(selectedLeader.full_name);
+        localStorage.setItem('sbh_device_remembered_leader', JSON.stringify(activeLeaderSelected));
+        setLoggedInName(activeLeaderSelected.full_name);
         setShowSuccessPopup(true);
         const params = new URLSearchParams(window.location.search);
         const targetPath = params.get('mode') === 'room_qr' ? '/boardroom-checkin' : '/portal';
@@ -724,7 +755,7 @@ export const AdminLogin: React.FC = () => {
                           <div className="truncate">
                             <span className="font-bold text-slate-900">{lead.full_name}</span>
                             <span className="text-[10px] text-slate-500 font-normal ml-2">
-                              ({lead.department?.name || 'Department'} • {lead.employee_code})
+                              ({lead.department?.name || 'Department'} • {lead.email})
                             </span>
                           </div>
                           {isSelected && <span className="text-[#7065f0] font-bold ml-2">✓ Selected</span>}
