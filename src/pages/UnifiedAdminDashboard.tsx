@@ -164,42 +164,53 @@ const LiveIndiaClockAndCountdown: React.FC<{ currentCadence: string }> = React.m
   return (
     <>
       {/* Card 1: Live India Time (IST) */}
-      <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center shrink-0">
-          <Clock className="w-5 h-5 text-[#2e7d32]" />
+      <div className="bg-white p-3 sm:p-3.5 rounded-2xl border border-slate-200/90 shadow-xs flex items-center gap-3">
+        <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-200/70 flex items-center justify-center shrink-0">
+          <Clock className="w-5 h-5 text-emerald-600" />
         </div>
-        <div>
-          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+        <div className="min-w-0">
+          <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
             <span>Live India Time (IST)</span>
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
           </div>
-          <div className="text-lg font-black font-mono text-[#1f2d2a] leading-tight">
+          <div className="text-base sm:text-lg font-black font-mono text-slate-900 leading-tight mt-0.5">
             {countdown.liveIndiaTime}
           </div>
-          <div className="text-[11px] text-slate-500 font-medium">
+          <div className="text-[11px] text-slate-500 font-semibold truncate">
             {time.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
           </div>
         </div>
       </div>
 
       {/* Card 2: Next Standup Countdown */}
-      <div className="bg-[#1f2d2a] p-3 rounded-xl border border-black/40 shadow-2xs text-white flex items-center justify-between">
-        <div>
-          <div className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
-            {countdown.stageTitle}
+      <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 p-3 sm:p-3.5 rounded-2xl border border-indigo-900/40 shadow-sm text-white flex flex-col justify-between">
+        <div className="flex items-center justify-between gap-2 mb-1.5">
+          <div className="text-[10px] font-black text-indigo-300 uppercase tracking-wider truncate flex items-center gap-1">
+            <Sparkles className="w-3 h-3 text-amber-300 shrink-0" />
+            <span>{countdown.stageTitle}</span>
           </div>
-          <div className="text-xl font-black font-mono tracking-tight flex items-center gap-1 text-emerald-300 mt-0.5">
-            <span>{countdown.hoursStr}</span><span className="text-slate-400 text-xs font-normal">HRS</span>
-            <span className="text-slate-600">:</span>
-            <span>{countdown.minsStr}</span><span className="text-slate-400 text-xs font-normal">MIN</span>
-            <span className="text-slate-600">:</span>
-            <span className="text-white">{countdown.secsStr}</span><span className="text-slate-400 text-xs font-normal">SEC</span>
-          </div>
-        </div>
-        <div className="text-right">
-          <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-white/10 text-slate-200">
-            Target: {countdown.targetMilestone}
+          <span className="text-[9px] font-bold uppercase px-2 py-0.5 rounded-full bg-white/10 text-indigo-200 border border-white/10 shrink-0">
+            {countdown.targetMilestone}
           </span>
+        </div>
+        <div className="flex items-center gap-1 sm:gap-1.5">
+          <div className="flex items-baseline gap-1 bg-white/10 px-2 py-0.5 rounded-lg border border-white/10">
+            <span className="text-base font-black font-mono text-white">{countdown.hoursStr}</span>
+            <span className="text-[9px] font-black text-indigo-300">HRS</span>
+          </div>
+          <span className="text-indigo-400 font-black text-sm">:</span>
+          <div className="flex items-baseline gap-1 bg-white/10 px-2 py-0.5 rounded-lg border border-white/10">
+            <span className="text-base font-black font-mono text-white">{countdown.minsStr}</span>
+            <span className="text-[9px] font-black text-indigo-300">MIN</span>
+          </div>
+          <span className="text-indigo-400 font-black text-sm">:</span>
+          <div className="flex items-baseline gap-1 bg-emerald-500/20 px-2 py-0.5 rounded-lg border border-emerald-400/30">
+            <span className="text-base font-black font-mono text-emerald-300">{countdown.secsStr}</span>
+            <span className="text-[9px] font-black text-emerald-300">SEC</span>
+          </div>
         </div>
       </div>
     </>
@@ -1441,9 +1452,9 @@ export const UnifiedAdminDashboard: React.FC = () => {
   );
 
   return (
-    <div className="min-h-screen bg-[#f8faf9] flex font-sans antialiased text-[#1f2d2a]">
+    <div className="min-h-screen bg-[#f6f8fd] flex font-sans antialiased text-[#1f2d2a]">
       {/* Desktop Fixed Left Sidebar */}
-      <aside className="hidden lg:flex w-68 xl:w-72 bg-slate-50 text-[#1f2d2a] shrink-0 sticky top-0 h-[calc(100vh-2.5rem)] flex-col border-r border-[#dcdcdc] z-30 shadow-sm overflow-hidden">
+      <aside className="hidden lg:flex w-68 xl:w-72 bg-white text-[#1f2d2a] shrink-0 sticky top-0 h-[calc(100vh-2.5rem)] flex-col border-r border-slate-200/90 z-30 shadow-xs overflow-hidden">
         {renderSidebarNav(false)}
       </aside>
 
@@ -1454,26 +1465,26 @@ export const UnifiedAdminDashboard: React.FC = () => {
             className="fixed inset-0 modal-backdrop transition-opacity"
             onClick={() => setIsMobileMenuOpen(false)}
           />
-          <aside className="fixed inset-y-0 left-0 w-72 max-w-[85vw] bg-slate-50 flex flex-col border-r border-[#dcdcdc] shadow-2xl overflow-hidden z-10 animate-in slide-in-from-left duration-200">
+          <aside className="fixed inset-y-0 left-0 w-72 max-w-[85vw] bg-white flex flex-col border-r border-slate-200 shadow-2xl overflow-hidden z-10 animate-in slide-in-from-left duration-200">
             {renderSidebarNav(true)}
           </aside>
         </div>
       )}
 
       {/* ================= RIGHT DASHBOARD CONTENT AREA ================= */}
-      <div className="flex-1 min-w-0 flex flex-col min-h-screen bg-[#f8faf9] pb-16">
+      <div className="flex-1 min-w-0 flex flex-col min-h-screen bg-[#f6f8fd] pb-16">
         {/* Mobile Top Navbar (lg:hidden) */}
-        <div className="lg:hidden sticky top-0 z-40 w-full bg-white border-b border-[#dcdcdc] px-3.5 py-2.5 flex items-center justify-between shadow-xs">
+        <div className="lg:hidden sticky top-0 z-40 w-full bg-white border-b border-slate-200 px-3.5 py-2.5 flex items-center justify-between shadow-xs">
           <div className="flex items-center gap-2.5">
             <button
               onClick={() => setIsMobileMenuOpen(true)}
-              className="p-2 rounded-xl text-[#1f2d2a] hover:bg-slate-100 border border-[#dcdcdc] cursor-pointer"
+              className="p-2 rounded-xl text-[#1f2d2a] hover:bg-slate-100 border border-slate-200 cursor-pointer"
               title="Open Navigation Menu"
             >
               <Menu size={20} />
             </button>
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-white rounded-lg p-1 border border-[#dcdcdc] shadow-2xs">
+              <div className="w-8 h-8 bg-white rounded-lg p-1 border border-slate-200 shadow-2xs">
                 <img src={sbhLogo} alt="Logo" className="w-full h-full object-contain" />
               </div>
               <div>
@@ -1534,7 +1545,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
         )}
 
         {/* Top Header Bar Attached to Dashboard */}
-        <header className="sticky top-0 z-[100] w-full bg-white border-b border-[#dcdcdc] shadow-sm">
+        <header className="sticky top-0 z-[100] w-full bg-white border-b border-slate-200/90 shadow-2xs">
           <div className="px-4 sm:px-6 py-3.5 flex justify-between items-center gap-4">
             <div className="flex items-center gap-3">
               <div>
@@ -1603,25 +1614,25 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
             {/* Right Header: Date Selector and Google Meet button */}
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 bg-slate-50 px-3.5 py-2 rounded-xl border border-[#dcdcdc] shadow-xs">
-                <Calendar className="w-4 h-4 text-orange-600" />
-                <span className="text-[11px] font-bold text-slate-600">Date:</span>
+              <div className="relative flex items-center gap-2 bg-white hover:bg-slate-50 px-3.5 py-2 rounded-2xl border border-slate-200 shadow-xs transition-all cursor-pointer group">
+                <Calendar className="w-4 h-4 text-emerald-600 group-hover:scale-110 transition-transform shrink-0" />
+                <span className="text-xs font-black text-slate-800 font-mono tracking-tight">
+                  {formatToIndianDate(selectedDate)}
+                </span>
                 <input
                   type="date"
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
-                  className="bg-transparent text-[#1f2d2a] text-xs font-mono font-bold focus:outline-none cursor-pointer"
+                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                  title="Click to select date"
                 />
-                <span className="text-[11px] font-mono font-black text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300">
-                  {formatToIndianDate(selectedDate)}
-                </span>
               </div>
 
               <a
                 href={currentMeeting.google_meet_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-6 py-2.5 bg-[#2e7d32] hover:bg-[#256628] text-white rounded-2xl text-[10px] font-black tracking-[0.2em] shadow-none transition-all active:scale-[0.98] flex items-center justify-center gap-2 uppercase cursor-pointer"
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-bold shadow-sm transition-all active:scale-[0.98] flex items-center justify-center gap-1.5 cursor-pointer"
                 title="Open Google Meet"
               >
                 <Video className="w-4 h-4" />
@@ -1695,14 +1706,14 @@ export const UnifiedAdminDashboard: React.FC = () => {
           {activeTab === 'attendance' && (
             <div className="space-y-4">
               {/* Executive Command Center */}
-              <div className="bg-white rounded-2xl border border-[#dcdcdc] shadow-xs relative overflow-hidden">
+              <div className="bg-white rounded-3xl border border-slate-200/90 shadow-xs relative overflow-hidden">
                 <div className="h-1.5 w-full bg-gradient-to-r from-emerald-500 via-teal-500 to-indigo-600 absolute top-0 left-0" />
 
                 {/* Row 1: Meeting Cadence, Title, Time, Meet Link & Header Actions */}
-                <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-                  <div className="flex items-center gap-3.5">
+                <div className="p-3.5 sm:p-4 border-b border-slate-100 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
                     <div
-                      className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-white shadow-sm text-sm shrink-0 ${currentCadence === 'MOM'
+                      className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-white shadow-xs text-xs shrink-0 ${currentCadence === 'MOM'
                           ? 'bg-purple-600'
                           : currentCadence === 'WOM'
                             ? 'bg-blue-600'
@@ -1714,7 +1725,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                       {currentCadence}
                     </div>
                     <div>
-                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <div className="flex items-center gap-2 flex-wrap mb-0.5">
                         <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 bg-[#cfead6] border border-[#2e7d32]/25 px-2.5 py-0.5 rounded-full">
                           {currentCadence === 'MOM' && 'MOM Strategic'}
                           {currentCadence === 'WOM' && 'WOM Review'}
@@ -1727,9 +1738,9 @@ export const UnifiedAdminDashboard: React.FC = () => {
                           </span>
                         )}
                       </div>
-                      <h2 className="text-lg sm:text-xl font-black text-[#1f2d2a] tracking-tight">{currentMeeting.title}</h2>
-                      <div className="flex items-center gap-2.5 mt-1 text-xs text-slate-500 flex-wrap">
-                        <span className="inline-flex items-center gap-1 font-bold text-[#1f2d2a] font-mono text-xs">
+                      <h2 className="text-base sm:text-lg font-black text-slate-800 tracking-tight">{currentMeeting.title}</h2>
+                      <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-500 flex-wrap">
+                        <span className="inline-flex items-center gap-1 font-bold text-slate-700 font-mono text-xs">
                           <Clock className="w-3.5 h-3.5 text-[#2e7d32]" />
                           Scheduled: {currentMeeting.scheduled_time}
                         </span>
@@ -1763,7 +1774,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                         });
                         setShowScheduleEditModal(true);
                       }}
-                      className="px-3 py-1.5 bg-white hover:bg-slate-50 text-[#1f2d2a] border border-[#dcdcdc] rounded-xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150"
+                      className="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150"
                     >
                       <Settings2 className="w-3.5 h-3.5 text-slate-600" />
                       <span>Modify Date / Cadence</span>
@@ -1802,7 +1813,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 </div>
 
                 {/* Row 2: Live India Time (IST), Countdown, and Daily Operations Action Bar */}
-                <div className="p-3.5 sm:p-4 bg-slate-50/70 border-t border-slate-100 grid grid-cols-1 md:grid-cols-3 gap-3 items-center">
+                <div className="p-3 sm:p-3.5 bg-slate-50/60 border-t border-slate-100 grid grid-cols-1 md:grid-cols-3 gap-2.5 items-center">
                   {/* Isolated Live India Time & Standup Countdown (Zero re-renders on parent dashboard) */}
                   <LiveIndiaClockAndCountdown currentCadence={currentCadence} />
 
@@ -1977,160 +1988,153 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 </div>
               )}
 
-              {/* 7 Colorful Enterprise Matrix Cards */}
+              {/* 7 Colorful Modern SaaS Matrix Cards */}
               <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
                 {/* 1. Scheduled Today */}
                 <div
                   onClick={() => setStatusFilter('ALL')}
-                  className={`p-3 rounded-2xl border transition-all cursor-pointer group relative overflow-hidden ${statusFilter === 'ALL'
-                      ? 'bg-gradient-to-br from-indigo-50 to-white border-indigo-500 ring-2 ring-indigo-500/30 shadow-md scale-[1.02]'
-                      : 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-sm'
+                  className={`p-2.5 sm:p-3 rounded-2xl border transition-all cursor-pointer group relative overflow-hidden shadow-2xs ${statusFilter === 'ALL'
+                      ? 'bg-gradient-to-br from-indigo-50 to-white border-indigo-500 ring-2 ring-indigo-500/25 shadow-sm scale-[1.01]'
+                      : 'bg-gradient-to-br from-indigo-50/60 via-white to-indigo-50/20 border-indigo-200/80 hover:border-indigo-400 hover:shadow-xs'
                     }`}
                 >
-                  <div className="flex items-center justify-between mb-1.5">
-                    <div className={`p-1.5 rounded-lg transition-transform group-hover:scale-110 duration-200 ${statusFilter === 'ALL' ? 'bg-indigo-600 text-white' : 'bg-indigo-100 text-indigo-700'
-                      }`}>
-                      <Users className="w-4 h-4" />
+                  <div className="flex items-center justify-between mb-1">
+                    <div className={`p-1.5 rounded-xl transition-transform group-hover:scale-105 duration-200 ${statusFilter === 'ALL' ? 'bg-indigo-600 text-white' : 'bg-indigo-100 text-indigo-700'}`}>
+                      <Users className="w-3.5 h-3.5" />
                     </div>
-                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-indigo-100 text-indigo-800 uppercase tracking-wider font-mono">
+                    <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 uppercase tracking-wider font-mono">
                       Roster
                     </span>
                   </div>
-                  <div className="text-2xl sm:text-3xl font-black text-[#1f2d2a] leading-none mb-0.5 tracking-tight">{totalLeaders}</div>
-                  <div className="text-[10px] font-bold text-indigo-900 tracking-wider uppercase">Scheduled</div>
-                  <div className="text-[9px] text-slate-500 font-medium mt-0.5">Total Registered</div>
+                  <div className="text-xl sm:text-2xl font-black text-slate-900 leading-tight tracking-tight">{totalLeaders}</div>
+                  <div className="text-[10px] font-bold text-indigo-900 tracking-wider uppercase mt-0.5">Scheduled</div>
+                  <div className="text-[9px] text-slate-400 font-medium truncate">Total Registered</div>
                 </div>
 
                 {/* 2. Total Joined (Turnout Recorded) */}
                 <div
                   onClick={() => setStatusFilter(statusFilter === 'PRESENT' ? 'ALL' : 'PRESENT')}
-                  className={`p-3 rounded-2xl border transition-all cursor-pointer group relative overflow-hidden ${statusFilter === 'PRESENT'
-                      ? 'bg-gradient-to-br from-emerald-50 to-white border-emerald-600 ring-2 ring-emerald-600/30 shadow-md scale-[1.02]'
-                      : 'bg-white border-slate-200 hover:border-emerald-300 hover:shadow-sm'
+                  className={`p-2.5 sm:p-3 rounded-2xl border transition-all cursor-pointer group relative overflow-hidden shadow-2xs ${statusFilter === 'PRESENT'
+                      ? 'bg-gradient-to-br from-emerald-50 to-white border-emerald-600 ring-2 ring-emerald-600/25 shadow-sm scale-[1.01]'
+                      : 'bg-gradient-to-br from-emerald-50/60 via-white to-emerald-50/20 border-emerald-200/80 hover:border-emerald-400 hover:shadow-xs'
                     }`}
                 >
-                  <div className="flex items-center justify-between mb-1.5">
-                    <div className={`p-1.5 rounded-lg transition-transform group-hover:scale-110 duration-200 ${statusFilter === 'PRESENT' ? 'bg-[#2e7d32] text-white' : 'bg-[#cfead6] text-[#2e7d32]'
-                      }`}>
-                      <CheckCircle2 className="w-4 h-4" />
+                  <div className="flex items-center justify-between mb-1">
+                    <div className={`p-1.5 rounded-xl transition-transform group-hover:scale-105 duration-200 ${statusFilter === 'PRESENT' ? 'bg-[#2e7d32] text-white' : 'bg-[#cfead6] text-[#2e7d32]'}`}>
+                      <CheckCircle2 className="w-3.5 h-3.5" />
                     </div>
-                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 uppercase tracking-wider font-mono">
+                    <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 uppercase tracking-wider font-mono">
                       {turnoutPercent}%
                     </span>
                   </div>
-                  <div className="text-2xl sm:text-3xl font-black text-emerald-700 leading-none mb-0.5 tracking-tight">{countPresent}</div>
-                  <div className="text-[10px] font-bold text-emerald-800 tracking-wider uppercase">Total Joined</div>
-                  <div className="text-[9px] text-emerald-600 font-bold mt-0.5">Turnout Recorded</div>
+                  <div className="text-xl sm:text-2xl font-black text-emerald-700 leading-tight tracking-tight">{countPresent}</div>
+                  <div className="text-[10px] font-bold text-emerald-800 tracking-wider uppercase mt-0.5">Total Joined</div>
+                  <div className="text-[9px] text-emerald-600 font-semibold truncate">Turnout Recorded</div>
                 </div>
 
                 {/* 3. In-Person (Physical Room) */}
                 <div
                   onClick={() => setStatusFilter(statusFilter === 'PHYSICAL' ? 'ALL' : 'PHYSICAL')}
-                  className={`p-3 rounded-2xl border transition-all cursor-pointer group relative overflow-hidden ${statusFilter === 'PHYSICAL'
-                      ? 'bg-gradient-to-br from-amber-50 to-white border-amber-600 ring-2 ring-amber-500/30 shadow-md scale-[1.02]'
-                      : 'bg-white border-slate-200 hover:border-amber-300 hover:shadow-sm'
+                  className={`p-2.5 sm:p-3 rounded-2xl border transition-all cursor-pointer group relative overflow-hidden shadow-2xs ${statusFilter === 'PHYSICAL'
+                      ? 'bg-gradient-to-br from-amber-50 to-white border-amber-600 ring-2 ring-amber-500/25 shadow-sm scale-[1.01]'
+                      : 'bg-gradient-to-br from-amber-50/60 via-white to-amber-50/20 border-amber-200/80 hover:border-amber-400 hover:shadow-xs'
                     }`}
                 >
-                  <div className="flex items-center justify-between mb-1.5">
-                    <div className={`p-1.5 rounded-lg transition-transform group-hover:scale-110 duration-200 ${statusFilter === 'PHYSICAL' ? 'bg-amber-600 text-white' : 'bg-amber-100 text-amber-800'
-                      }`}>
-                      <Building className="w-4 h-4" />
+                  <div className="flex items-center justify-between mb-1">
+                    <div className={`p-1.5 rounded-xl transition-transform group-hover:scale-105 duration-200 ${statusFilter === 'PHYSICAL' ? 'bg-amber-600 text-white' : 'bg-amber-100 text-amber-800'}`}>
+                      <Building className="w-3.5 h-3.5" />
                     </div>
-                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-800 uppercase tracking-wider font-mono">
+                    <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 uppercase tracking-wider font-mono">
                       5th Flr
                     </span>
                   </div>
-                  <div className="text-2xl sm:text-3xl font-black text-amber-700 leading-none mb-0.5 tracking-tight">{countPhysical}</div>
-                  <div className="text-[10px] font-bold text-amber-800 tracking-wider uppercase">In-Person</div>
-                  <div className="text-[9px] text-slate-500 font-medium mt-0.5">Conference Room</div>
+                  <div className="text-xl sm:text-2xl font-black text-amber-700 leading-tight tracking-tight">{countPhysical}</div>
+                  <div className="text-[10px] font-bold text-amber-800 tracking-wider uppercase mt-0.5">In-Person</div>
+                  <div className="text-[9px] text-slate-400 font-medium truncate">Conference Room</div>
                 </div>
 
                 {/* 4. Virtual (Meet) */}
                 <div
                   onClick={() => setStatusFilter(statusFilter === 'VIRTUAL' ? 'ALL' : 'VIRTUAL')}
-                  className={`p-3 rounded-2xl border transition-all cursor-pointer group relative overflow-hidden ${statusFilter === 'VIRTUAL'
-                      ? 'bg-gradient-to-br from-sky-50 to-white border-sky-600 ring-2 ring-sky-500/30 shadow-md scale-[1.02]'
-                      : 'bg-white border-slate-200 hover:border-sky-300 hover:shadow-sm'
+                  className={`p-2.5 sm:p-3 rounded-2xl border transition-all cursor-pointer group relative overflow-hidden shadow-2xs ${statusFilter === 'VIRTUAL'
+                      ? 'bg-gradient-to-br from-sky-50 to-white border-sky-600 ring-2 ring-sky-500/25 shadow-sm scale-[1.01]'
+                      : 'bg-gradient-to-br from-sky-50/60 via-white to-sky-50/20 border-sky-200/80 hover:border-sky-400 hover:shadow-xs'
                     }`}
                 >
-                  <div className="flex items-center justify-between mb-1.5">
-                    <div className={`p-1.5 rounded-lg transition-transform group-hover:scale-110 duration-200 ${statusFilter === 'VIRTUAL' ? 'bg-sky-600 text-white' : 'bg-sky-100 text-sky-800'
-                      }`}>
-                      <Video className="w-4 h-4" />
+                  <div className="flex items-center justify-between mb-1">
+                    <div className={`p-1.5 rounded-xl transition-transform group-hover:scale-105 duration-200 ${statusFilter === 'VIRTUAL' ? 'bg-sky-600 text-white' : 'bg-sky-100 text-sky-800'}`}>
+                      <Video className="w-3.5 h-3.5" />
                     </div>
-                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-sky-100 text-sky-800 uppercase tracking-wider font-mono">
+                    <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 uppercase tracking-wider font-mono">
                       Online
                     </span>
                   </div>
-                  <div className="text-2xl sm:text-3xl font-black text-sky-700 leading-none mb-0.5 tracking-tight">{countVirtual}</div>
-                  <div className="text-[10px] font-bold text-sky-800 tracking-wider uppercase">Virtual</div>
-                  <div className="text-[9px] text-slate-500 font-medium mt-0.5">Google Meet</div>
+                  <div className="text-xl sm:text-2xl font-black text-sky-700 leading-tight tracking-tight">{countVirtual}</div>
+                  <div className="text-[10px] font-bold text-sky-800 tracking-wider uppercase mt-0.5">Virtual</div>
+                  <div className="text-[9px] text-slate-400 font-medium truncate">Google Meet</div>
                 </div>
 
                 {/* 5. Late (Approved) */}
                 <div
                   onClick={() => setStatusFilter(statusFilter === 'INFORMED_LATE' ? 'ALL' : 'INFORMED_LATE')}
-                  className={`p-3 rounded-2xl border transition-all cursor-pointer group relative overflow-hidden ${statusFilter === 'INFORMED_LATE'
-                      ? 'bg-gradient-to-br from-yellow-50 to-white border-yellow-600 ring-2 ring-yellow-500/30 shadow-md scale-[1.02]'
-                      : 'bg-white border-slate-200 hover:border-yellow-300 hover:shadow-sm'
+                  className={`p-2.5 sm:p-3 rounded-2xl border transition-all cursor-pointer group relative overflow-hidden shadow-2xs ${statusFilter === 'INFORMED_LATE'
+                      ? 'bg-gradient-to-br from-yellow-50 to-white border-yellow-600 ring-2 ring-yellow-500/25 shadow-sm scale-[1.01]'
+                      : 'bg-gradient-to-br from-yellow-50/60 via-white to-yellow-50/20 border-yellow-200/80 hover:border-yellow-400 hover:shadow-xs'
                     }`}
                 >
-                  <div className="flex items-center justify-between mb-1.5">
-                    <div className={`p-1.5 rounded-lg transition-transform group-hover:scale-110 duration-200 ${statusFilter === 'INFORMED_LATE' ? 'bg-yellow-600 text-white' : 'bg-yellow-100 text-yellow-800'
-                      }`}>
-                      <Clock className="w-4 h-4" />
+                  <div className="flex items-center justify-between mb-1">
+                    <div className={`p-1.5 rounded-xl transition-transform group-hover:scale-105 duration-200 ${statusFilter === 'INFORMED_LATE' ? 'bg-yellow-600 text-white' : 'bg-yellow-100 text-yellow-800'}`}>
+                      <Clock className="w-3.5 h-3.5" />
                     </div>
-                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-yellow-100 text-yellow-800 uppercase tracking-wider font-mono">
+                    <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 uppercase tracking-wider font-mono">
                       Delay
                     </span>
                   </div>
-                  <div className="text-2xl sm:text-3xl font-black text-yellow-700 leading-none mb-0.5 tracking-tight">{countLate}</div>
-                  <div className="text-[10px] font-bold text-yellow-800 tracking-wider uppercase">Informed Late</div>
-                  <div className="text-[9px] text-slate-500 font-medium mt-0.5">Admin Approved</div>
+                  <div className="text-xl sm:text-2xl font-black text-yellow-700 leading-tight tracking-tight">{countLate}</div>
+                  <div className="text-[10px] font-bold text-yellow-800 tracking-wider uppercase mt-0.5">Informed Late</div>
+                  <div className="text-[9px] text-slate-400 font-medium truncate">Admin Approved</div>
                 </div>
 
                 {/* 6. Approved Leave */}
                 <div
                   onClick={() => setStatusFilter(statusFilter === 'LEAVE' ? 'ALL' : 'LEAVE')}
-                  className={`p-3 rounded-2xl border transition-all cursor-pointer group relative overflow-hidden ${statusFilter === 'LEAVE'
-                      ? 'bg-gradient-to-br from-purple-50 to-white border-purple-600 ring-2 ring-purple-500/30 shadow-md scale-[1.02]'
-                      : 'bg-white border-slate-200 hover:border-purple-300 hover:shadow-sm'
+                  className={`p-2.5 sm:p-3 rounded-2xl border transition-all cursor-pointer group relative overflow-hidden shadow-2xs ${statusFilter === 'LEAVE'
+                      ? 'bg-gradient-to-br from-purple-50 to-white border-purple-600 ring-2 ring-purple-500/25 shadow-sm scale-[1.01]'
+                      : 'bg-gradient-to-br from-purple-50/60 via-white to-purple-50/20 border-purple-200/80 hover:border-purple-400 hover:shadow-xs'
                     }`}
                 >
-                  <div className="flex items-center justify-between mb-1.5">
-                    <div className={`p-1.5 rounded-lg transition-transform group-hover:scale-110 duration-200 ${statusFilter === 'LEAVE' ? 'bg-purple-600 text-white' : 'bg-purple-100 text-purple-800'
-                      }`}>
-                      <HelpCircle className="w-4 h-4" />
+                  <div className="flex items-center justify-between mb-1">
+                    <div className={`p-1.5 rounded-xl transition-transform group-hover:scale-105 duration-200 ${statusFilter === 'LEAVE' ? 'bg-purple-600 text-white' : 'bg-purple-100 text-purple-800'}`}>
+                      <HelpCircle className="w-3.5 h-3.5" />
                     </div>
-                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-purple-100 text-purple-800 uppercase tracking-wider font-mono">
+                    <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 uppercase tracking-wider font-mono">
                       Leave
                     </span>
                   </div>
-                  <div className="text-2xl sm:text-3xl font-black text-purple-700 leading-none mb-0.5 tracking-tight">{countInformed}</div>
-                  <div className="text-[10px] font-bold text-purple-800 tracking-wider uppercase">On Leave</div>
-                  <div className="text-[9px] text-slate-500 font-medium mt-0.5">Official Sanction</div>
+                  <div className="text-xl sm:text-2xl font-black text-purple-700 leading-tight tracking-tight">{countInformed}</div>
+                  <div className="text-[10px] font-bold text-purple-800 tracking-wider uppercase mt-0.5">On Leave</div>
+                  <div className="text-[9px] text-slate-400 font-medium truncate">Official Sanction</div>
                 </div>
 
                 {/* 7. Absent */}
                 <div
                   onClick={() => setStatusFilter(statusFilter === 'ABSENT' ? 'ALL' : 'ABSENT')}
-                  className={`p-3 rounded-2xl border transition-all cursor-pointer group relative overflow-hidden ${statusFilter === 'ABSENT'
-                      ? 'bg-gradient-to-br from-rose-50 to-white border-rose-600 ring-2 ring-rose-500/30 shadow-md scale-[1.02]'
-                      : 'bg-white border-slate-200 hover:border-rose-300 hover:shadow-sm'
+                  className={`p-2.5 sm:p-3 rounded-2xl border transition-all cursor-pointer group relative overflow-hidden shadow-2xs ${statusFilter === 'ABSENT'
+                      ? 'bg-gradient-to-br from-rose-50 to-white border-rose-600 ring-2 ring-rose-500/25 shadow-sm scale-[1.01]'
+                      : 'bg-gradient-to-br from-rose-50/60 via-white to-rose-50/20 border-rose-200/80 hover:border-rose-400 hover:shadow-xs'
                     }`}
                 >
-                  <div className="flex items-center justify-between mb-1.5">
-                    <div className={`p-1.5 rounded-lg transition-transform group-hover:scale-110 duration-200 ${statusFilter === 'ABSENT' ? 'bg-rose-600 text-white' : 'bg-rose-100 text-rose-700'
-                      }`}>
-                      <XCircle className="w-4 h-4" />
+                  <div className="flex items-center justify-between mb-1">
+                    <div className={`p-1.5 rounded-xl transition-transform group-hover:scale-105 duration-200 ${statusFilter === 'ABSENT' ? 'bg-rose-600 text-white' : 'bg-rose-100 text-rose-700'}`}>
+                      <XCircle className="w-3.5 h-3.5" />
                     </div>
-                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-rose-100 text-rose-800 uppercase tracking-wider font-mono">
+                    <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 uppercase tracking-wider font-mono">
                       {countAbsent > 0 ? 'Action' : 'Zero'}
                     </span>
                   </div>
-                  <div className="text-2xl sm:text-3xl font-black text-rose-600 leading-none mb-0.5 tracking-tight">{countAbsent}</div>
-                  <div className="text-[10px] font-bold text-rose-700 tracking-wider uppercase">Absent</div>
-                  <div className="text-[9px] text-rose-500 font-semibold mt-0.5">{countAbsent > 0 ? 'Unexcused' : 'Full Attendance'}</div>
+                  <div className="text-xl sm:text-2xl font-black text-rose-600 leading-tight tracking-tight">{countAbsent}</div>
+                  <div className="text-[10px] font-bold text-rose-700 tracking-wider uppercase mt-0.5">Absent</div>
+                  <div className="text-[9px] text-rose-500 font-semibold truncate">{countAbsent > 0 ? 'Unexcused' : 'Full Attendance'}</div>
                 </div>
               </div>
 
@@ -2160,7 +2164,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
               )}
 
               {/* Filter & Dispatch Action Bar */}
-              <div className="bg-white p-3 sm:p-3.5 rounded-2xl border border-[#dcdcdc] shadow-xs flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
+              <div className="bg-white p-3 sm:p-3.5 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
                 <div className="flex items-center gap-2 flex-1">
                   <div className="relative flex-1 max-w-sm">
                     <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
@@ -2169,13 +2173,13 @@ export const UnifiedAdminDashboard: React.FC = () => {
                       placeholder="Search leader by name, department, or code..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-[#dcdcdc] rounded-xl text-xs text-[#1f2d2a] placeholder-slate-400 font-semibold focus:outline-none focus:border-[#2e7d32] focus:ring-1 focus:ring-[#2e7d32]"
+                      className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-[#1f2d2a] placeholder-slate-400 font-semibold focus:outline-none focus:border-[#2e7d32] focus:ring-1 focus:ring-[#2e7d32]"
                     />
                   </div>
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
-                    className="bg-slate-50 border border-[#dcdcdc] text-[#1f2d2a] text-xs px-3 py-2 rounded-xl focus:outline-none focus:border-[#2e7d32] font-bold cursor-pointer"
+                    className="bg-slate-50 border border-slate-200 text-[#1f2d2a] text-xs px-3 py-2 rounded-xl focus:outline-none focus:border-[#2e7d32] font-bold cursor-pointer"
                   >
                     <option value="ALL">All Leaders ({totalLeaders})</option>
                     <option value="PRESENT">Total Joined / Present ({countPresent})</option>
@@ -2272,63 +2276,63 @@ export const UnifiedAdminDashboard: React.FC = () => {
               </div>
 
               {/* Attendance Register Table */}
-              <div className="bg-white rounded-2xl border border-[#dcdcdc] shadow-sm overflow-hidden">
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
-                      <tr className="bg-slate-50 text-[#1f2d2a] font-bold border-b border-[#dcdcdc]">
-                        <th className="py-3.5 px-4 font-bold text-[11px] uppercase tracking-wider">Leader Name</th>
-                        <th className="py-3.5 px-4 font-bold text-[11px] uppercase tracking-wider">Department</th>
-                        <th className="py-3.5 px-4 text-center font-bold text-[11px] uppercase tracking-wider">Expected Mode</th>
-                        <th className="py-3.5 px-4 text-center font-bold text-[11px] uppercase tracking-wider">Actual Join Mode</th>
-                        <th className="py-3.5 px-4 text-center font-bold text-[11px] uppercase tracking-wider">Accurate Join Time</th>
-                        <th className="py-3.5 px-4 text-center font-bold text-[11px] uppercase tracking-wider">Status</th>
-                        <th className="py-3.5 px-4 text-right font-bold text-[11px] uppercase tracking-wider">Verification Action</th>
+                      <tr className="bg-slate-50/80 text-slate-500 font-bold border-b border-slate-200">
+                        <th className="py-2.5 px-3 font-black text-[10px] uppercase tracking-wider">Leader Name</th>
+                        <th className="py-2.5 px-3 font-black text-[10px] uppercase tracking-wider">Department</th>
+                        <th className="py-2.5 px-3 text-center font-black text-[10px] uppercase tracking-wider">Expected Mode</th>
+                        <th className="py-2.5 px-3 text-center font-black text-[10px] uppercase tracking-wider">Actual Join Mode</th>
+                        <th className="py-2.5 px-3 text-center font-black text-[10px] uppercase tracking-wider">Accurate Join Time</th>
+                        <th className="py-2.5 px-3 text-center font-black text-[10px] uppercase tracking-wider">Status</th>
+                        <th className="py-2.5 px-3 text-right font-black text-[10px] uppercase tracking-wider">Verification Action</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {filteredRecords.length === 0 ? (
                         <tr>
-                          <td colSpan={7} className="py-10 text-center text-slate-500 font-semibold text-sm">
+                          <td colSpan={7} className="py-8 text-center text-slate-400 font-medium text-xs">
                             No leaders match the current search or filters.
                           </td>
                         </tr>
                       ) : (
                         filteredRecords.map((rec) => (
-                          <tr key={rec.id} className="hover:bg-[#f0f9f1] transition-colors border-b border-slate-100">
-                            <td className="py-3.5 px-4">
-                              <div className="font-bold text-[#1f2d2a] text-sm">{rec.leader?.full_name}</div>
-                              <div className="text-[11px] text-slate-500 font-mono font-medium">{rec.leader?.employee_code}</div>
+                          <tr key={rec.id} className="hover:bg-slate-50/70 transition-colors border-b border-slate-100">
+                            <td className="py-2.5 px-3">
+                              <div className="font-bold text-slate-900 text-xs sm:text-sm">{rec.leader?.full_name}</div>
+                              <div className="text-[10px] text-slate-400 font-mono font-medium">{rec.leader?.employee_code}</div>
                             </td>
-                            <td className="py-3.5 px-4 text-slate-700 font-semibold text-xs">
+                            <td className="py-2.5 px-3 text-slate-600 font-semibold text-xs">
                               {rec.leader?.department?.name || 'Department'}
                             </td>
-                            <td className="py-3.5 px-4 text-center">
-                              <span className="text-[10px] font-mono bg-slate-100 text-slate-800 px-2 py-0.5 rounded font-bold border border-slate-200">
+                            <td className="py-2.5 px-3 text-center">
+                              <span className="text-[10px] font-mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-bold border border-slate-200">
                                 {rec.leader?.expected_mode || 'PHYSICAL'}
                               </span>
                             </td>
-                            <td className="py-3.5 px-4 text-center">
+                            <td className="py-2.5 px-3 text-center">
                               {rec.evidence_source === 'ADMIN_MANUAL' ? (
-                                <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-300 inline-flex items-center gap-1 shadow-2xs">
-                                  <Shield className="w-3.5 h-3.5 text-emerald-700" /> Admin Manual (In-Person)
+                                <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-300 inline-flex items-center gap-1 shadow-2xs">
+                                  <Shield className="w-3 h-3 text-emerald-700" /> Admin Manual
                                 </span>
                               ) : rec.selected_mode === 'PHYSICAL' ? (
-                                <span className="text-[11px] font-bold text-[#2e7d32] bg-[#cfead6] px-2.5 py-0.5 rounded-full border border-[#2e7d32]/20 inline-flex items-center gap-1 shadow-2xs">
-                                  <CheckCircle2 className="w-3.5 h-3.5 text-[#2e7d32]" />
+                                <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-300 inline-flex items-center gap-1 shadow-2xs">
+                                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                                   {rec.evidence_source === 'ROOM_STATIC_QR' || rec.evidence_source === 'VIRTUAL_QR_VERIFIED' || rec.qr_scanned_at
                                     ? 'Physical (QR Verified)'
                                     : 'Physical (5th Flr)'}
                                 </span>
                               ) : rec.selected_mode === 'VIRTUAL' ? (
-                                <span className="text-[11px] font-bold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200 inline-flex items-center gap-1">
-                                  <Video className="w-3.5 h-3.5 text-blue-600" /> Virtual (Meet)
+                                <span className="text-[10px] font-bold text-sky-800 bg-sky-50 px-2 py-0.5 rounded-full border border-sky-200 inline-flex items-center gap-1">
+                                  <Video className="w-3 h-3 text-sky-600" /> Virtual (Meet)
                                 </span>
                               ) : (
                                 <span className="text-xs text-slate-400 font-semibold">—</span>
                               )}
                             </td>
-                            <td className="py-3.5 px-4 text-center font-mono text-xs text-[#1f2d2a] font-bold">
+                            <td className="py-2.5 px-3 text-center font-mono text-xs text-slate-800 font-bold">
                               {rec.check_in_at ? (
                                 new Date(rec.check_in_at).toLocaleTimeString('en-IN', {
                                   hour: '2-digit',
@@ -2340,74 +2344,74 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                 <span className="text-slate-400 font-semibold">—</span>
                               )}
                             </td>
-                            <td className="py-3.5 px-4 text-center">
+                            <td className="py-2.5 px-3 text-center">
                               {rec.status === 'EXCUSED' || rec.verification_note?.includes('Weekly Off') || rec.verification_note?.includes('Sunday') || (isOffDate && rec.status !== 'PRESENT') ? (
-                                <span className="text-[11px] bg-slate-100 text-slate-700 font-bold px-2.5 py-1 rounded-full border border-slate-300 inline-flex items-center gap-1 shadow-2xs">
-                                  <Calendar className="w-3.5 h-3.5 text-slate-500" />
+                                <span className="text-[10px] bg-slate-100 text-slate-700 font-bold px-2 py-0.5 rounded-full border border-slate-300 inline-flex items-center gap-1 shadow-2xs">
+                                  <Calendar className="w-3 h-3 text-slate-500" />
                                   <span>{rec.verification_note || (isSundayDate ? 'Sunday Weekly Off' : 'Holiday / No DOM')}</span>
                                 </span>
                               ) : rec.verification_status === 'REJECTED' || rec.verification_note?.includes('Disapproved') || rec.verification_note?.includes('No Inform') ? (
-                                <span className="text-[11px] bg-rose-100 text-rose-800 font-bold px-2.5 py-1 rounded-full border border-rose-300 inline-flex items-center gap-1">
-                                  <XCircle className="w-3.5 h-3.5 text-rose-600" />
+                                <span className="text-[10px] bg-rose-100 text-rose-800 font-bold px-2 py-0.5 rounded-full border border-rose-300 inline-flex items-center gap-1">
+                                  <XCircle className="w-3 h-3 text-rose-600" />
                                   <span>ABSENT (No Inform)</span>
                                 </span>
                               ) : rec.status === 'LEAVE' || (rec.status === 'INFORMED_ABSENT' && rec.informed_confirmed) ? (
-                                <span className="text-[11px] bg-purple-100 text-purple-900 font-bold px-2.5 py-1 rounded-full border border-purple-300 inline-flex items-center gap-1">
-                                  <CheckCircle2 className="w-3.5 h-3.5 text-purple-600" />
+                                <span className="text-[10px] bg-purple-100 text-purple-900 font-bold px-2 py-0.5 rounded-full border border-purple-300 inline-flex items-center gap-1">
+                                  <CheckCircle2 className="w-3 h-3 text-purple-600" />
                                   <span>APPROVED LEAVE {rec.informed_to_person ? `(${rec.informed_to_person})` : ''}</span>
                                 </span>
                               ) : rec.status === 'INFORMED_ABSENT' && !rec.informed_confirmed ? (
                                 <div className="flex flex-col items-center gap-0.5">
-                                  <span className="text-[11px] bg-amber-100 text-amber-900 font-bold px-2.5 py-0.5 rounded-full border border-amber-300 inline-flex items-center gap-1 shadow-2xs">
-                                    <Clock className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
+                                  <span className="text-[10px] bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded-full border border-amber-300 inline-flex items-center gap-1 shadow-2xs">
+                                    <Clock className="w-3 h-3 text-amber-600 animate-pulse" />
                                     <span>Informed Awaiting Approval</span>
                                   </span>
-                                  <span className="text-[10px] text-amber-800 font-medium">
+                                  <span className="text-[9px] text-amber-800 font-medium">
                                     To: {rec.informed_to_person || 'Authority'}
                                   </span>
                                 </div>
                               ) : (rec.admin_verified_attendance || rec.verification_status === 'VERIFIED') && rec.evidence_source === 'ADMIN_MANUAL' ? (
-                                <span className="text-[11px] bg-emerald-100 text-emerald-950 font-bold px-2.5 py-1 rounded-full border border-emerald-300 inline-flex items-center gap-1 shadow-2xs" title={rec.verification_note || 'Marked Present by Admin'}>
-                                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
+                                <span className="text-[10px] bg-emerald-100 text-emerald-950 font-bold px-2 py-0.5 rounded-full border border-emerald-300 inline-flex items-center gap-1 shadow-2xs" title={rec.verification_note || 'Marked Present by Admin'}>
+                                  <ShieldCheck className="w-3 h-3 text-emerald-700" />
                                   <span>PRESENT (Marked by Admin)</span>
                                   {rec.late_minutes && rec.late_minutes > 0 ? (
-                                    <span className="text-[10px] bg-emerald-700 text-white px-1.5 py-0.5 rounded font-black tracking-wide">
+                                    <span className="text-[9px] bg-emerald-700 text-white px-1.5 py-0.2 rounded font-black tracking-wide ml-1">
                                       {formatLateDuration(rec.late_minutes)}
                                     </span>
                                   ) : null}
                                 </span>
                               ) : rec.admin_verified_attendance || rec.verification_status === 'VERIFIED' ? (
-                                <span className="text-[11px] bg-[#cfead6] text-[#2e7d32] font-bold px-2.5 py-1 rounded-full border border-[#2e7d32]/30 inline-flex items-center gap-1">
-                                  <CheckCircle2 className="w-3.5 h-3.5 text-[#2e7d32]" />
+                                <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-300 inline-flex items-center gap-1">
+                                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                                   <span>PRESENT (Approved)</span>
                                   {rec.late_minutes && rec.late_minutes > 0 ? (
-                                    <span className="text-[10px] bg-[#2e7d32] text-white px-1.5 py-0.5 rounded font-black tracking-wide">
+                                    <span className="text-[9px] bg-emerald-700 text-white px-1.5 py-0.2 rounded font-black tracking-wide ml-1">
                                       {formatLateDuration(rec.late_minutes)}
                                     </span>
                                   ) : null}
                                 </span>
                               ) : !rec.admin_verified_attendance &&
                                 (rec.status === 'PRESENT' || rec.status === 'INFORMED_LATE' || rec.selected_mode !== 'NONE') ? (
-                                <span className="text-[11px] bg-amber-100 text-amber-900 font-bold px-2.5 py-1 rounded-full border border-amber-300 inline-flex items-center gap-1 shadow-2xs">
-                                  <Clock className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
+                                <span className="text-[10px] bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded-full border border-amber-300 inline-flex items-center gap-1 shadow-2xs">
+                                  <Clock className="w-3 h-3 text-amber-600 animate-pulse" />
                                   <span>Approval Pending</span>
                                   {rec.late_minutes && rec.late_minutes > 0 ? (
-                                    <span className="text-[10px] bg-amber-200 text-amber-950 px-1.5 py-0.5 rounded font-black tracking-wide">
+                                    <span className="text-[9px] bg-amber-200 text-amber-950 px-1 py-0.2 rounded font-black tracking-wide ml-1">
                                       {formatLateDuration(rec.late_minutes)}
                                     </span>
                                   ) : null}
                                 </span>
                               ) : (
-                                <span className="text-[11px] bg-rose-50 text-rose-700 font-bold px-2.5 py-1 rounded-full border border-rose-200 inline-flex items-center gap-1">
+                                <span className="text-[10px] bg-rose-50 text-rose-700 font-bold px-2 py-0.5 rounded-full border border-rose-200 inline-flex items-center gap-1">
                                   <span>ABSENT</span>
                                 </span>
                               )}
                             </td>
-                            <td className="py-3.5 px-4 text-right">
+                            <td className="py-2.5 px-3 text-right">
                               <div className="flex items-center justify-end gap-1.5">
                                 {isOffDate ? (
-                                  <span className="px-2.5 py-1 bg-slate-100 text-slate-500 text-xs font-bold rounded-xl border border-slate-200 inline-flex items-center gap-1">
-                                    <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                                  <span className="px-2 py-0.5 bg-slate-100 text-slate-500 text-[10px] font-bold rounded-lg border border-slate-200 inline-flex items-center gap-1">
+                                    <Calendar className="w-3 h-3 text-slate-400" />
                                     <span>Weekly Off</span>
                                   </span>
                                 ) : (
@@ -2429,10 +2433,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                           },
                                         })
                                       }
-                                      className="px-2.5 py-1.5 bg-[#2e7d32] hover:bg-[#256628] text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer flex items-center gap-1 transition-all"
+                                      className="px-2 py-1 bg-[#2e7d32] hover:bg-[#256628] text-white rounded-lg text-[10px] font-bold shadow-2xs cursor-pointer flex items-center gap-1 transition-all"
                                       title="Confirm & Approve Leave"
                                     >
-                                      <CheckCircle2 className="w-3.5 h-3.5" />
+                                      <CheckCircle2 className="w-3 h-3" />
                                       <span>Approve Leave</span>
                                     </button>
                                     <button
@@ -2449,10 +2453,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                           },
                                         })
                                       }
-                                      className="px-2.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer flex items-center gap-1 transition-all"
+                                      className="px-2 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-[10px] font-bold shadow-2xs cursor-pointer flex items-center gap-1 transition-all"
                                       title="Admin Disapproves: Did not inform"
                                     >
-                                      <XCircle className="w-3.5 h-3.5" />
+                                      <XCircle className="w-3 h-3" />
                                       <span>No Inform</span>
                                     </button>
                                   </>
@@ -2460,8 +2464,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
                                 {/* Attendance locked once marked/verified: Cannot be marked again! */}
                                 {(rec.status === 'PRESENT' || rec.admin_verified_attendance || rec.verification_status === 'VERIFIED') ? (
-                                  <span className="px-2.5 py-1 bg-emerald-50 text-emerald-800 text-xs font-bold rounded-xl border border-emerald-300 inline-flex items-center gap-1 shadow-2xs">
-                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                  <span className="px-2 py-0.5 bg-emerald-50 text-emerald-800 text-[10px] font-bold rounded-lg border border-emerald-300 inline-flex items-center gap-1 shadow-2xs">
+                                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                                     <span>{rec.evidence_source === 'ADMIN_MANUAL' ? 'Admin Marked (Locked)' : 'Verified (Locked)'}</span>
                                   </span>
                                 ) : (
@@ -2483,10 +2487,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                               },
                                             })
                                           }
-                                          className="px-3 py-1.5 bg-[#2e7d32] hover:bg-[#256628] text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer flex items-center gap-1 transition-all active:scale-95"
+                                          className="px-2.5 py-1 bg-[#2e7d32] hover:bg-[#256628] text-white rounded-lg text-[10px] font-bold shadow-2xs cursor-pointer flex items-center gap-1 transition-all active:scale-95"
                                           title="Approve Leader Attendance"
                                         >
-                                          <CheckCircle2 className="w-3.5 h-3.5" />
+                                          <CheckCircle2 className="w-3 h-3" />
                                           <span>Approve</span>
                                         </button>
                                       )}
@@ -2512,16 +2516,16 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                               },
                                             })
                                           }
-                                          className="px-3 py-1.5 bg-[#2e7d32] hover:bg-[#256628] text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer transition-all active:scale-95 flex items-center gap-1"
+                                          className="px-2.5 py-1 bg-[#2e7d32] hover:bg-[#256628] text-white rounded-lg text-[10px] font-bold shadow-2xs cursor-pointer transition-all active:scale-95 flex items-center gap-1"
                                           title="Mark Present & Verified by Admin"
                                         >
-                                          <ShieldCheck className="w-3.5 h-3.5" />
+                                          <ShieldCheck className="w-3 h-3" />
                                           <span>Mark Present</span>
                                         </button>
                                       ) : (
                                         <button
                                           disabled
-                                          className="px-2.5 py-1.5 bg-slate-100 text-slate-400 rounded-xl text-xs font-semibold border border-slate-200 cursor-not-allowed flex items-center gap-1 opacity-75"
+                                          className="px-2 py-0.5 bg-slate-100 text-slate-400 rounded-lg text-[10px] font-semibold border border-slate-200 cursor-not-allowed flex items-center gap-1 opacity-75"
                                           title={
                                             !isSelectedDateToday
                                               ? `Mark Present is only allowed on today's date (${todayIST})`
@@ -2532,7 +2536,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                                   : 'Mark Present unlocks at 09:30 AM IST on DOM standup day.'
                                           }
                                         >
-                                          <Lock className="w-3.5 h-3.5 text-slate-400" />
+                                          <Lock className="w-3 h-3 text-slate-400" />
                                           <span>
                                             {!isSelectedDateToday
                                               ? 'Today Only'
@@ -2561,10 +2565,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                             adminApproved: true,
                                           });
                                         }}
-                                        className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer flex items-center gap-1 transition-all active:scale-95"
+                                        className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[10px] font-bold shadow-2xs cursor-pointer flex items-center gap-1 transition-all active:scale-95"
                                         title="Document Late Arrival (Admin Approval Required)"
                                       >
-                                        <Clock className="w-3.5 h-3.5" />
+                                        <Clock className="w-3 h-3" />
                                         <span>Informed Late</span>
                                       </button>
                                     )}
@@ -2581,7 +2585,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                             reason: rec.informed_reason || 'Emergency Hospital Duty',
                                           });
                                         }}
-                                        className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer flex items-center gap-1 transition-all active:scale-95"
+                                        className="px-2.5 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-[10px] font-bold shadow-2xs cursor-pointer flex items-center gap-1 transition-all active:scale-95"
                                         title="Mark Informed Leave (Admin Verified)"
                                       >
                                         Leave
@@ -2605,7 +2609,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                         },
                                       })
                                     }
-                                    className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold cursor-pointer transition-all"
+                                    className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-[10px] font-bold cursor-pointer transition-all"
                                     title="Reject Attendance / Mark Absent"
                                   >
                                     Mark Absent
