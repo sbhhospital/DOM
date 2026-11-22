@@ -7,6 +7,7 @@ import { UnifiedAdminDashboard } from './pages/UnifiedAdminDashboard';
 import { LeaderPortal } from './pages/LeaderPortal';
 import { BoardroomCheckin } from './pages/BoardroomCheckin';
 import { JoinMeetingRedirect } from './pages/JoinMeetingRedirect';
+import { ErrorPage } from './pages/ErrorPage';
 import { HospitalFooter } from './components/HospitalFooter';
 import { PageLoadingBar } from './components/PageLoadingBar';
 
@@ -59,7 +60,15 @@ export const App: React.FC = () => {
 
               {/* Default root redirects to Dashboard (or Login if not authenticated) */}
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+
+              {/* Dedicated Error Pages (Hope UI Architecture) */}
+              <Route path="/404" element={<ErrorPage code={404} />} />
+              <Route path="/403" element={<ErrorPage code={403} />} />
+              <Route path="/500" element={<ErrorPage code={500} />} />
+              <Route path="/501" element={<ErrorPage code={501} />} />
+
+              {/* Catch-all 404 Not Found route */}
+              <Route path="*" element={<ErrorPage code={404} />} />
             </Routes>
 
             {/* Globally Fixed Footer across all pages */}

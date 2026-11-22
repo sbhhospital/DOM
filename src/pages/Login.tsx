@@ -125,7 +125,7 @@ export const Login: React.FC = () => {
 
         {/* Security Footer */}
         <div className="p-4 bg-slate-50 border-t border-slate-100 text-center text-[11px] text-slate-400">
-          SBH Group of Hospital • Protected by Supabase Row Level Security
+          SBH Group of Hospital • Secure Enterprise Access
         </div>
       </div>
     </div>

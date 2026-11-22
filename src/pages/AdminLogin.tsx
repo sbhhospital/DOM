@@ -793,11 +793,41 @@ export const AdminLogin: React.FC = () => {
                   <span>Verifying Credentials...</span>
                 </>
               ) : isAdminSelected ? (
-                'Authorize & Open Dashboard →'
+                <span className="flex items-center justify-center gap-2">
+                  <img
+                    src="/images/icons/submit-check.png"
+                    alt="Submit"
+                    className="w-4 h-4 object-contain brightness-0 invert"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLElement).style.display = 'none';
+                    }}
+                  />
+                  <span>Authorize & Open Dashboard →</span>
+                </span>
               ) : selectedLeader ? (
-                'Login to Attendance Portal →'
+                <span className="flex items-center justify-center gap-2">
+                  <img
+                    src="/images/icons/submit-check.png"
+                    alt="Submit"
+                    className="w-4 h-4 object-contain brightness-0 invert"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLElement).style.display = 'none';
+                    }}
+                  />
+                  <span>Login to Attendance Portal →</span>
+                </span>
               ) : (
-                'LOGIN →'
+                <span className="flex items-center justify-center gap-2">
+                  <img
+                    src="/images/icons/submit-check.png"
+                    alt="Submit"
+                    className="w-4 h-4 object-contain brightness-0 invert"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLElement).style.display = 'none';
+                    }}
+                  />
+                  <span>LOGIN →</span>
+                </span>
               )}
             </button>
           </form>

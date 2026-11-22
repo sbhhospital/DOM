@@ -122,7 +122,7 @@ export const Sidebar: React.FC = () => {
       <div className="p-3 border-t border-slate-800 text-[11px] text-slate-500 flex justify-between items-center px-4">
         <span>SBH Raipur v1.0.0</span>
         <span className="text-emerald-500 flex items-center gap-1 font-medium">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Supabase Live
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Live Sync Active
         </span>
       </div>
     </aside>

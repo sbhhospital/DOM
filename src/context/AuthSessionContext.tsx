@@ -319,7 +319,7 @@ export const AuthSessionProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
     return {
       success: true,
-      message: 'Administrator account details and credentials updated in Supabase SQL successfully!',
+      message: 'Administrator account details and credentials updated securely!',
     };
   };
 

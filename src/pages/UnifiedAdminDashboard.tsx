@@ -1372,7 +1372,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
     setIsSyncingDrive(true);
     setToastAlert({
       type: 'info',
-      text: 'Generating official PDF report & archiving to Supabase database...',
+      text: 'Generating official signed PDF report and archiving record securely...',
     });
     try {
       const res = await uploadReportToGoogleDriveAndSheet(selectedDate);
@@ -1725,12 +1725,12 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
       {/* Mobile Drawer Navigation (Slide-in) */}
       {isMobileMenuOpen && (
-        <div className="fixed inset-0 z-[200] lg:hidden">
+        <div className="fixed inset-0 z-[10050] lg:hidden">
           <div
-            className="fixed inset-0 modal-backdrop transition-opacity"
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
             onClick={() => setIsMobileMenuOpen(false)}
           />
-          <aside className="fixed inset-y-0 left-0 w-72 max-w-[85vw] bg-white flex flex-col border-r border-[#f0f1f8]/70 shadow-2xl overflow-hidden z-10 animate-in slide-in-from-left duration-200">
+          <aside className="fixed inset-y-0 left-0 w-72 max-w-[85vw] bg-white flex flex-col border-r border-[#f0f1f8] shadow-2xl overflow-hidden z-20 animate-in slide-in-from-left duration-200">
             {renderSidebarNav(true)}
           </aside>
         </div>
@@ -1854,8 +1854,19 @@ export const UnifiedAdminDashboard: React.FC = () => {
           </div>
         )}
 
-        {/* Top Header Bar Attached to Dashboard */}
-        <header className="sticky top-0 z-[100] w-full bg-white/95 backdrop-blur-md border-b border-[#f0f1f8]/60 shadow-2xs">
+        {/* Top Header Bar Attached to Dashboard with Hope UI Executive Banner */}
+        <header className="sticky top-0 z-[100] w-full bg-white/95 backdrop-blur-md border-b border-[#f0f1f8]/60 shadow-2xs relative overflow-hidden">
+          {/* Hope UI Style Subtle Background Pattern */}
+          <div className="absolute right-0 top-0 bottom-0 w-80 pointer-events-none opacity-20 overflow-hidden hidden md:block">
+            <img
+              src="/images/dashboard/top-header1.png"
+              alt="Hope UI Header"
+              className="w-full h-full object-cover object-right"
+              onError={(e) => {
+                (e.currentTarget as HTMLElement).style.display = 'none';
+              }}
+            />
+          </div>
           <div className="px-4 sm:px-6 py-3.5 flex justify-between items-center gap-4">
             <div className="flex items-center gap-3">
               <div>
@@ -2274,7 +2285,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                           const restoreTitle = `${restoreCadence} — ${restoreCadence === 'MOM' ? 'Monthly Strategic Review' : restoreCadence === 'WOM' ? 'Weekly Operations Meeting (Weekly Review)' : 'Daily Operations Meeting'}`;
                           openConfirm({
                             title: `Re-instate / Enable ${restoreCadence}`,
-                            message: `Re-instate ${restoreTitle} for ${selectedDate}?\n\n• Leaders will be scheduled for attendance standup.\n• Change is saved directly into Supabase SQL database.`,
+                            message: `Re-instate ${restoreTitle} for ${selectedDate}?\n\n• Leaders will be scheduled for attendance standup.\n• Attendance tracking and records will be active.`,
                             type: 'success',
                             confirmText: `Enable ${restoreCadence}`,
                             onConfirm: () => {
@@ -2283,7 +2294,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                 title: restoreTitle,
                                 is_holiday_or_shifted: false,
                               });
-                              setToastAlert({ type: 'success', text: `${restoreCadence} Standup enabled for ${selectedDate} in Supabase SQL!` });
+                              setToastAlert({ type: 'success', text: `✅ ${restoreCadence} Standup enabled for ${selectedDate}!` });
                               setTimeout(() => setToastAlert(null), 4000);
                             },
                           });
@@ -2299,7 +2310,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                         onClick={() =>
                           openConfirm({
                             title: `Remove ${currentCadence} for this Date`,
-                            message: `Remove ${currentMeeting.title || currentCadence} for ${selectedDate}?\n\n• No leaders will be penalized or marked absent.\n• Absentees count will be 0.\n• Change is saved directly in Supabase SQL database.`,
+                            message: `Remove ${currentMeeting.title || currentCadence} for ${selectedDate}?\n\n• No leaders will be penalized or marked absent.\n• Absentees count will be 0.`,
                             type: 'danger',
                             confirmText: `Remove ${currentCadence}`,
                             onConfirm: () => {
@@ -2309,7 +2320,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                 is_holiday_or_shifted: true,
                                 shift_reason: `${currentCadence} Removed by Admin`,
                               });
-                              setToastAlert({ type: 'info', text: `${currentCadence} removed for ${selectedDate} (Saved to Supabase SQL)!` });
+                              setToastAlert({ type: 'info', text: `${currentCadence} removed for ${selectedDate}!` });
                               setTimeout(() => setToastAlert(null), 4000);
                             },
                           })
@@ -2731,7 +2742,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
               </div>
 
               {/* Attendance Register Table */}
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+              <div id="attendance-register-table" className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden scroll-mt-20">
                 <div className="block lg:hidden px-3.5 py-1.5 bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 flex items-center justify-between">
                   <span>👉 Swipe horizontally for all columns</span>
                   <span className="font-mono text-[#7065f0]">7 Columns</span>
@@ -6066,7 +6077,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
               Administrator Profile & Security
             </h3>
             <p className="text-xs text-slate-500 mb-4">
-              Stored 100% in Supabase SQL database. Update your admin username, name and security password.
+              Update your administrator profile, display name, and login security credentials.
             </p>
 
             {passMsg && (
@@ -6901,7 +6912,17 @@ function doPost(e) {
                     <span>Processing...</span>
                   </>
                 ) : (
-                  <span>{confirmModal.confirmText || 'Confirm'}</span>
+                  <span className="flex items-center gap-1.5">
+                    <img
+                      src="/images/icons/submit-check.png"
+                      alt="Submit"
+                      className="w-3.5 h-3.5 object-contain brightness-0 invert"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLElement).style.display = 'none';
+                      }}
+                    />
+                    <span>{confirmModal.confirmText || 'Confirm'}</span>
+                  </span>
                 )}
               </button>
             </div>
@@ -7488,6 +7509,29 @@ function doPost(e) {
           </div>
         </div>
       )}
+      {/* Floating Scroll-Down Helper Button (Hope UI / User Icon) */}
+      <button
+        type="button"
+        onClick={() => {
+          const tableElem = document.getElementById('attendance-register-table');
+          if (tableElem) {
+            tableElem.scrollIntoView({ behavior: 'smooth' });
+          } else {
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+          }
+        }}
+        className="fixed bottom-14 right-5 z-40 p-2.5 bg-white/95 hover:bg-white text-slate-700 hover:text-[#7065f0] rounded-full shadow-lg border border-purple-200/80 transition-all hover:scale-110 active:scale-95 cursor-pointer flex items-center justify-center group"
+        title="Scroll Down to Attendance Table"
+      >
+        <img
+          src="/images/icons/scroll-down.png"
+          alt="Scroll Down"
+          className="w-5 h-5 object-contain group-hover:translate-y-0.5 transition-transform"
+          onError={(e) => {
+            (e.currentTarget as HTMLImageElement).src = '/images/down-aerrow.gif';
+          }}
+        />
+      </button>
     </div>
   );
 };

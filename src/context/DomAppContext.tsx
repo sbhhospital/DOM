@@ -730,7 +730,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     return {
       success: true,
-      message: `Meeting schedule for ${date} updated to ${resolvedCadence} (${resolvedFrequency}) in Supabase database!`,
+      message: `Meeting schedule for ${date} updated to ${resolvedCadence} (${resolvedFrequency}) successfully!`,
     };
   };
 
@@ -3223,7 +3223,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       return {
         success: true,
-        message: `Official DOM Report successfully archived to Supabase database & sent to WhatsApp Group (${appSettings.admin_whatsapp_group || '120363432056023698@g.us'}) via CEOITBOX API!`,
+        message: `Official DOM Report successfully archived & sent to WhatsApp Group (${appSettings.admin_whatsapp_group || '120363432056023698@g.us'}) via CEOITBOX API!`,
         driveUrl: cloudDriveUrl,
       };
     } catch (err: any) {
