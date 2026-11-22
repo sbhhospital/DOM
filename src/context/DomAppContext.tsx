@@ -3570,16 +3570,16 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     msg += `Welcome to the SBH Operations Leadership Team. Your secure login credentials for the Daily Operations Meeting (DOM / WOM / MOM) Attendance Portal have been provisioned:\n\n`;
     msg += `🌐 *Portal Login URL:* https://sbhdom.vercel.app/login\n`;
     msg += `👤 *Username:* ${leader.full_name}\n`;
-    msg += `✉️ *Email ID:* ${leader.email}\n`;
-    msg += `📱 *Registered Mobile:* ${leader.phone}\n`;
     if (assignedPassword) {
       msg += `🔑 *Password:* ${assignedPassword}\n`;
     }
+    msg += `✉️ *Email ID:* ${leader.email} (For Google Authentication)\n`;
+    msg += `📱 *Registered Mobile:* ${leader.phone}\n`;
     msg += `🏢 *Department:* ${deptName}\n\n`;
     msg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
     msg += `📌 *QUICK START LOGIN & CHECK-IN GUIDE:*\n`;
     msg += `1️⃣ Open the official portal link: https://sbhdom.vercel.app/login\n`;
-    msg += `2️⃣ Select or type your Username (*${leader.full_name}*) or Email and enter your password provided above.\n`;
+    msg += `2️⃣ Select your Username (*${leader.full_name}*) from the dropdown and enter your password provided above (OR click "Sign in with Google" using your registered email).\n`;
     msg += `3️⃣ *Daily Check-In Window:* Daily between *09:50 AM to 10:20 AM IST*.\n`;
     msg += `4️⃣ *Physical Attendance:* Scan the official QR code in the 5th Floor Conference Hall. (Live GPS verification inside hospital premises is mandatory).\n`;
     msg += `5️⃣ *Virtual Attendance:* Click "Join Online" to record your virtual attendance.\n`;

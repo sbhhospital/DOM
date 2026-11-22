@@ -754,9 +754,11 @@ export const AdminLogin: React.FC = () => {
                         >
                           <div className="truncate">
                             <span className="font-bold text-slate-900">{lead.full_name}</span>
-                            <span className="text-[10px] text-slate-500 font-normal ml-2">
-                              ({lead.department?.name || 'Department'} • {lead.email})
-                            </span>
+                            {lead.department?.name && (
+                              <span className="text-[10px] text-slate-500 font-normal ml-2">
+                                ({lead.department.name})
+                              </span>
+                            )}
                           </div>
                           {isSelected && <span className="text-[#7065f0] font-bold ml-2">✓ Selected</span>}
                         </button>
