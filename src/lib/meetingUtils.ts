@@ -226,7 +226,10 @@ export function checkStandupWindowStatus(
   isSundayOrHoliday: boolean;
 } {
   const isSunday = new Date(dateStr + 'T00:00:00').getDay() === 0;
-  if (isSunday || cadence === 'HOLIDAY') {
+  const isExplicitlyEnabled = cadence === 'DOM' || cadence === 'WOM' || cadence === 'MOM';
+  const isOffDay = cadence === 'HOLIDAY' || (isSunday && !isExplicitlyEnabled);
+
+  if (isOffDay) {
     return {
       allowed: false,
       code: 'HOLIDAY_OFF',

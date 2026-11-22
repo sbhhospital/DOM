@@ -139,29 +139,34 @@ const SidebarSystemClock: React.FC<{ currentCadence?: string }> = React.memo(({ 
 
   return (
     <div className="w-full select-none">
-      <div className="flex items-center justify-between mb-1">
+      <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center gap-1.5">
-          <div className="p-1 rounded-lg bg-[#7065f0] text-white shadow-2xs">
-            <Clock size={11} strokeWidth={3} />
+          <div className="p-1 rounded-lg bg-gradient-to-br from-[#7065f0] to-[#513ed8] text-white shadow-2xs">
+            <Clock size={12} strokeWidth={2.5} />
           </div>
-          <span className="text-[10px] font-black uppercase tracking-widest text-[#7065f0]">System Clock</span>
+          <span className="text-[11px] font-black uppercase tracking-wider text-[#7065f0]">System Clock</span>
         </div>
-        <span className="relative flex h-2 w-2">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
-          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-        </span>
+        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+          <span className="text-[9px] font-bold text-emerald-700 uppercase">Live</span>
+        </div>
       </div>
-      <div className="flex items-baseline justify-between mt-1.5">
-        <div className="text-xl sm:text-[22px] font-black font-mono text-slate-900 tracking-tight leading-none tabular-nums drop-shadow-2xs">
+      <div className="flex items-baseline justify-between mt-2">
+        <div className="text-2xl sm:text-[26px] font-black font-mono text-slate-900 tracking-tight leading-none tabular-nums drop-shadow-2xs">
           {timeStr}
         </div>
-        <span className="text-[9px] font-black text-[#7065f0] uppercase tracking-wider bg-purple-100/90 border border-purple-200/60 px-1.5 py-0.5 rounded-md">
+        <span className="text-[10px] font-black text-[#7065f0] uppercase tracking-wider bg-purple-100/90 border border-purple-200/80 px-2 py-0.5 rounded-lg shadow-2xs">
           IST
         </span>
       </div>
-      <div className="mt-2 pt-1.5 border-t border-purple-200/60 flex items-center justify-between text-[10px]">
+      <div className="mt-2.5 pt-2 border-t border-purple-200/60 flex items-center justify-between text-[11px]">
         <span className="text-slate-600 font-bold">{dateStr}</span>
-        <span className="text-[#7065f0] font-black font-mono tracking-tight">{countdownText}</span>
+        <span className="text-[#7065f0] font-black font-mono tracking-tight bg-white px-2 py-0.5 rounded-md border border-purple-200/60 shadow-2xs">
+          ⏳ {countdownText}
+        </span>
       </div>
     </div>
   );
@@ -3208,7 +3213,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                       )}
 
                                       {/* Attendance locked once marked/verified: Cannot be marked again directly without Reset/Edit! */}
-                                      {(rec.status === 'PRESENT' || rec.admin_verified_attendance || rec.verification_status === 'VERIFIED') ? (
+                                      {Boolean(rec.admin_verified_attendance || rec.verification_status === 'VERIFIED') ? (
                                         <div className="flex items-center justify-end gap-1.5">
                                           <span className="px-2.5 py-1 bg-emerald-50 text-emerald-800 text-[10px] font-bold rounded-lg border border-emerald-300 inline-flex items-center gap-1 shadow-2xs">
                                             <CheckCircle2 className="w-3 h-3 text-emerald-600" />
@@ -3241,7 +3246,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                         <>
                                           {/* Admin Direct Approval Button for pending attendance */}
                                           {!rec.admin_verified_attendance &&
-                                            (rec.status === 'INFORMED_LATE' || (rec.selected_mode !== 'NONE' && rec.status !== 'LEAVE')) && (
+                                            (rec.status === 'PRESENT' || rec.status === 'INFORMED_LATE' || (rec.selected_mode !== 'NONE' && rec.status !== 'LEAVE')) && (
                                               <button
                                                 onClick={() =>
                                                   openConfirm({

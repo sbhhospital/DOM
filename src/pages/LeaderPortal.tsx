@@ -217,7 +217,7 @@ export const LeaderPortal: React.FC = () => {
   // Calculates remaining seconds until the leader's committed late arrival deadline
   const getLateGraceSecondsLeft = () => {
     if (!todayRecord || todayRecord.status !== 'INFORMED_LATE' || todayRecord.check_in_at) return 0;
-    const clampedLate = Math.min(Math.max(todayRecord.late_minutes || 10, 5), 20);
+    const clampedLate = Math.min(Math.max(todayRecord.late_minutes || 10, 5), 30);
 
     let h = 10;
     let m = 0;
@@ -976,7 +976,7 @@ export const LeaderPortal: React.FC = () => {
                 {informedNoticeType === 'LATE' && (
                   <div className="p-3.5 bg-purple-50/70 border border-purple-200 rounded-2xl space-y-2">
                     <label className="block text-xs font-bold text-slate-900">
-                      Committed Late Arrival Time (Max 20 Mins):
+                      Committed Late Arrival Time (Max 30 Mins):
                     </label>
                     <select
                       value={informedLateMinutes}
@@ -986,7 +986,8 @@ export const LeaderPortal: React.FC = () => {
                       <option value={5}>5 Minutes Late (Expected Deadline: 10:05 AM IST)</option>
                       <option value={10}>10 Minutes Late (Expected Deadline: 10:10 AM IST)</option>
                       <option value={15}>15 Minutes Late (Expected Deadline: 10:15 AM IST)</option>
-                      <option value={20}>20 Minutes Late (Maximum Standup Cutoff: 10:20 AM IST)</option>
+                      <option value={20}>20 Minutes Late (Standard Standup Cutoff: 10:20 AM IST)</option>
+                      <option value={30}>30 Minutes Late (Extended Standup Window: 10:30 AM IST)</option>
                     </select>
                     <div className="text-[10px] text-purple-900 font-semibold leading-relaxed">
                       ⚠️ <strong>Strict Rule:</strong> You must check in before your committed time expires. If you fail to join within this window, the system will automatically record you as <strong>ABSENT</strong> and further entry will be blocked.

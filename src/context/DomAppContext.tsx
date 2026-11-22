@@ -391,13 +391,14 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       await supabase.from('admin_audit_logs').insert([
         {
           actor_id: null,
-          action: isByAdmin ? 'ADMIN_MANUAL_ACTION' : 'ATTENDANCE_RECORD',
+          action: 'ATTENDANCE_RECORD',
           entity_type: 'ATTENDANCE',
           entity_id: record.id,
           reason: reason || (isByAdmin ? `Marked by Admin: ${record.leader?.full_name || record.leader_id}` : `Self check-in: ${record.leader?.full_name || record.leader_id}`),
           after_data: {
             ...record,
             actor_type: isByAdmin ? 'ADMIN' : 'USER',
+            action_subtype: isByAdmin ? 'ADMIN_MANUAL_ACTION' : 'SELF_CHECKIN',
             audit_timestamp: new Date().toISOString(),
           },
         },
@@ -512,7 +513,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const { data: attLogs, error: attErr } = await supabase
         .from('admin_audit_logs')
         .select('*')
-        .eq('action', 'ATTENDANCE_RECORD')
+        .or('action.eq.ATTENDANCE_RECORD,action.eq.ADMIN_MANUAL_ACTION,entity_type.eq.ATTENDANCE')
         .order('created_at', { ascending: true });
 
       if (!attErr && attLogs && attLogs.length > 0) {
@@ -524,15 +525,21 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             const isApproved = Boolean(rawRec.admin_verified_attendance || rawRec.verification_status === 'VERIFIED');
             const isRejected = rawRec.verification_status === 'REJECTED';
 
-            let resolvedStatus: AttendanceStatus = rawRec.status;
-            if (rawRec.status === 'LEAVE' || rawRec.status === 'INFORMED_LATE') {
-              resolvedStatus = rawRec.status;
+            let resolvedStatus: AttendanceStatus = rawRec.status || 'ABSENT';
+            if (rawRec.status === 'LEAVE' || (rawRec.status === 'INFORMED_ABSENT' && rawRec.informed_confirmed)) {
+              resolvedStatus = 'LEAVE';
+            } else if (rawRec.status === 'INFORMED_ABSENT' && !rawRec.informed_confirmed) {
+              resolvedStatus = 'INFORMED_ABSENT';
+            } else if (rawRec.status === 'INFORMED_LATE') {
+              resolvedStatus = 'INFORMED_LATE';
+            } else if (rawRec.status === 'ABSENT' || isRejected) {
+              resolvedStatus = 'ABSENT';
+            } else if (rawRec.status === 'PRESENT') {
+              resolvedStatus = 'PRESENT';
+            } else if (rawRec.status === 'EXCUSED') {
+              resolvedStatus = 'EXCUSED';
             } else if (rawRec.status === 'PENDING') {
               resolvedStatus = isApproved ? 'PRESENT' : isRejected ? 'ABSENT' : 'PENDING';
-            } else if (isRejected) {
-              resolvedStatus = 'ABSENT';
-            } else if (isApproved) {
-              resolvedStatus = 'PRESENT';
             }
 
             const cleanRec: AttendanceRecord = {
@@ -540,7 +547,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
               leader_id: matchedLeader ? matchedLeader.id : rawRec.leader_id,
               leader: matchedLeader || rawRec.leader,
               status: resolvedStatus,
-              verification_status: isApproved ? 'VERIFIED' : isRejected ? 'REJECTED' : rawRec.verification_status,
+              verification_status: isApproved ? 'VERIFIED' : isRejected ? 'REJECTED' : (rawRec.verification_status || 'PENDING'),
               admin_verified_attendance: isApproved,
             };
             attMap.set(cleanRec.id, cleanRec);
@@ -565,7 +572,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const { data: attLogs, error: attErr } = await supabase
         .from('admin_audit_logs')
         .select('*')
-        .eq('action', 'ATTENDANCE_RECORD')
+        .or('action.eq.ATTENDANCE_RECORD,action.eq.ADMIN_MANUAL_ACTION,entity_type.eq.ATTENDANCE')
         .order('created_at', { ascending: true });
 
       if (!attErr && attLogs && attLogs.length > 0) {
@@ -594,15 +601,21 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
               const isApproved = Boolean(rawRec.admin_verified_attendance || rawRec.verification_status === 'VERIFIED');
               const isRejected = rawRec.verification_status === 'REJECTED';
 
-              let resolvedStatus: AttendanceStatus = rawRec.status;
-              if (rawRec.status === 'LEAVE' || rawRec.status === 'INFORMED_LATE') {
-                resolvedStatus = rawRec.status;
+              let resolvedStatus: AttendanceStatus = rawRec.status || 'ABSENT';
+              if (rawRec.status === 'LEAVE' || (rawRec.status === 'INFORMED_ABSENT' && rawRec.informed_confirmed)) {
+                resolvedStatus = 'LEAVE';
+              } else if (rawRec.status === 'INFORMED_ABSENT' && !rawRec.informed_confirmed) {
+                resolvedStatus = 'INFORMED_ABSENT';
+              } else if (rawRec.status === 'INFORMED_LATE') {
+                resolvedStatus = 'INFORMED_LATE';
+              } else if (rawRec.status === 'ABSENT' || isRejected) {
+                resolvedStatus = 'ABSENT';
+              } else if (rawRec.status === 'PRESENT') {
+                resolvedStatus = 'PRESENT';
+              } else if (rawRec.status === 'EXCUSED') {
+                resolvedStatus = 'EXCUSED';
               } else if (rawRec.status === 'PENDING') {
                 resolvedStatus = isApproved ? 'PRESENT' : isRejected ? 'ABSENT' : 'PENDING';
-              } else if (isRejected) {
-                resolvedStatus = 'ABSENT';
-              } else if (isApproved) {
-                resolvedStatus = 'PRESENT';
               }
 
               const cleanRec: AttendanceRecord = {
@@ -610,7 +623,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 leader_id: matchedLeader ? matchedLeader.id : rawRec.leader_id,
                 leader: matchedLeader || rawRec.leader,
                 status: resolvedStatus,
-                verification_status: isApproved ? 'VERIFIED' : isRejected ? 'REJECTED' : rawRec.verification_status,
+                verification_status: isApproved ? 'VERIFIED' : isRejected ? 'REJECTED' : (rawRec.verification_status || 'PENDING'),
                 admin_verified_attendance: isApproved,
               };
               attMap.set(cleanRec.id, cleanRec);
@@ -663,7 +676,12 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 [schedDate]: newSched,
               }));
             }
-          } else if (!payload.new || (payload.new as any).action === 'ATTENDANCE_RECORD') {
+          } else if (
+            !payload.new ||
+            (payload.new as any).action === 'ATTENDANCE_RECORD' ||
+            (payload.new as any).action === 'ADMIN_MANUAL_ACTION' ||
+            (payload.new as any).entity_type === 'ATTENDANCE'
+          ) {
             triggerDebouncedLiveSync();
           }
         }
@@ -830,7 +848,20 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           if (matchedLead) {
             const isApproved = Boolean(r.admin_verified_attendance || r.verification_status === 'VERIFIED');
             const isRejected = r.verification_status === 'REJECTED';
-            const expectedStatus = isApproved ? 'PRESENT' : isRejected ? 'ABSENT' : r.status;
+            let expectedStatus = r.status || 'ABSENT';
+            if (r.status === 'LEAVE' || (r.status === 'INFORMED_ABSENT' && r.informed_confirmed)) {
+              expectedStatus = 'LEAVE';
+            } else if (r.status === 'INFORMED_LATE') {
+              expectedStatus = 'INFORMED_LATE';
+            } else if (r.status === 'ABSENT' || isRejected) {
+              expectedStatus = 'ABSENT';
+            } else if (r.status === 'PRESENT') {
+              expectedStatus = 'PRESENT';
+            } else if (r.status === 'EXCUSED') {
+              expectedStatus = 'EXCUSED';
+            } else if (r.status === 'PENDING') {
+              expectedStatus = isApproved ? 'PRESENT' : isRejected ? 'ABSENT' : 'PENDING';
+            }
             const expectedVerif = isApproved ? 'VERIFIED' : isRejected ? 'REJECTED' : r.verification_status;
             if (
               r.leader_id !== matchedLead.id ||
@@ -1385,15 +1416,16 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const nowIso = new Date().toISOString();
     const lateMinutes = calculateLateMinutes(targetDate, meeting.scheduled_time, new Date());
 
-    // Strict Late Grace Tracking Check (Max 20 mins from meeting start)
+    // Strict Late Grace Tracking Check (Up to 30 mins committed deadline)
     if (existingPrior?.status === 'INFORMED_LATE' && existingPrior.late_minutes && !existingPrior.check_in_at) {
-      const allowedLateLimit = Math.min(existingPrior.late_minutes, 20);
+      const allowedLateLimit = Math.min(existingPrior.late_minutes, 30);
       if (lateMinutes > allowedLateLimit) {
         const expiredNote = `Absent: Promised to join within ${existingPrior.late_minutes}m (by ${existingPrior.expected_arrival_time || 'deadline'}), but failed to join in time`;
         const updatedRec: AttendanceRecord = {
           ...existingPrior,
           status: 'ABSENT',
           late_expired: true,
+          verification_status: 'REJECTED',
           verification_note: expiredNote,
           updated_at: nowIso,
         };
@@ -1406,12 +1438,44 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           message: `Access Denied: Meeting Check-In Closed. You committed to join within ${existingPrior.late_minutes} minutes (${existingPrior.expected_arrival_time}), but the deadline has expired. You are recorded as ABSENT for today's session. Entry is not permitted.`,
         };
       }
-    } else if (!existingPrior?.check_in_at && lateMinutes > 20) {
+    } else if (!existingPrior?.check_in_at && lateMinutes > 5 && existingPrior?.status !== 'INFORMED_LATE') {
+      const unexcusedNote = `Absent: Joined late (+${lateMinutes}m) without prior inform. Unexcused late check-in rejected.`;
+      const leadObj = leaders.find((l) => l.id === leaderId);
+      const updatedRec: AttendanceRecord = {
+        ...(existingPrior || {
+          id: `att-${targetDate}-${leaderId}`,
+          meeting_id: meeting.id,
+          meeting_date: targetDate,
+          meeting_frequency: meeting.frequency,
+          cadence: meeting.cadence,
+          leader_id: leaderId,
+          leader: leadObj,
+          selected_mode: 'NONE',
+          created_at: nowIso,
+        }),
+        status: 'ABSENT',
+        verification_status: 'REJECTED',
+        late_expired: true,
+        verification_note: unexcusedNote,
+        updated_at: nowIso,
+      };
+      setAttendanceRecords((prev) => {
+        const has = prev.some((r) => r.id === updatedRec.id);
+        return has ? prev.map((r) => (r.id === updatedRec.id ? updatedRec : r)) : [...prev, updatedRec];
+      });
+      syncAttendanceRecordToSupabase(updatedRec, unexcusedNote);
       return {
         success: false,
         meetUrl: '',
         clicksCount: existingPrior?.virtual_clicks_count || 0,
-        message: `Access Denied: Meeting check-in window closed at 10:20 AM IST (+20 minutes limit exceeded). You are recorded as ABSENT for today's session. Entry is not permitted.`,
+        message: `Access Denied: You are ${lateMinutes} minutes late and did not inform prior to standup. Only leaders with approved inform notices can join late. You are recorded as ABSENT.`,
+      };
+    } else if (!existingPrior?.check_in_at && lateMinutes > 30) {
+      return {
+        success: false,
+        meetUrl: '',
+        clicksCount: existingPrior?.virtual_clicks_count || 0,
+        message: `Access Denied: Meeting check-in window closed (+30 minutes limit exceeded). You are recorded as ABSENT for today's session. Entry is not permitted.`,
       };
     }
 
@@ -1692,15 +1756,16 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const nowIso = new Date().toISOString();
     const lateMinutes = calculateLateMinutes(selectedDate, meeting.scheduled_time, new Date());
 
-    // Strict Late Grace Tracking Check (Max 20 mins from meeting start)
+    // Strict Late Grace Tracking Check (Up to 30 mins committed deadline)
     if (existingRec?.status === 'INFORMED_LATE' && existingRec.late_minutes && !existingRec.check_in_at) {
-      const allowedLateLimit = Math.min(existingRec.late_minutes, 20);
+      const allowedLateLimit = Math.min(existingRec.late_minutes, 30);
       if (lateMinutes > allowedLateLimit) {
         const expiredNote = `Absent: Promised to join within ${existingRec.late_minutes}m (by ${existingRec.expected_arrival_time || 'deadline'}), but failed to join in time`;
         const updatedRec: AttendanceRecord = {
           ...existingRec,
           status: 'ABSENT',
           late_expired: true,
+          verification_status: 'REJECTED',
           verification_note: expiredNote,
           updated_at: nowIso,
         };
@@ -1711,10 +1776,40 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           message: `Access Denied: Meeting Check-In Closed. You committed to join within ${existingRec.late_minutes} minutes (${existingRec.expected_arrival_time}), but the deadline has expired. You are recorded as ABSENT for today's session. Entry is not permitted.`,
         };
       }
-    } else if (!existingRec?.check_in_at && lateMinutes > 20) {
+    } else if (!existingRec?.check_in_at && lateMinutes > 5 && existingRec?.status !== 'INFORMED_LATE') {
+      const unexcusedNote = `Absent: Scanned physical QR late (+${lateMinutes}m) without prior inform. Unexcused late check-in rejected.`;
+      const leadObj = leaders.find((l) => l.id === leaderId);
+      const updatedRec: AttendanceRecord = {
+        ...(existingRec || {
+          id: `att-${selectedDate}-${leaderId}`,
+          meeting_id: meeting.id,
+          meeting_date: selectedDate,
+          meeting_frequency: meeting.frequency,
+          cadence: meeting.cadence,
+          leader_id: leaderId,
+          leader: leadObj,
+          selected_mode: 'NONE',
+          created_at: nowIso,
+        }),
+        status: 'ABSENT',
+        verification_status: 'REJECTED',
+        late_expired: true,
+        verification_note: unexcusedNote,
+        updated_at: nowIso,
+      };
+      setAttendanceRecords((prev) => {
+        const has = prev.some((r) => r.id === updatedRec.id);
+        return has ? prev.map((r) => (r.id === updatedRec.id ? updatedRec : r)) : [...prev, updatedRec];
+      });
+      syncAttendanceRecordToSupabase(updatedRec, unexcusedNote);
       return {
         success: false,
-        message: `Access Denied: Meeting check-in window closed at 10:20 AM IST (+20 minutes limit exceeded). You are recorded as ABSENT for today's session. Entry is not permitted.`,
+        message: `Access Denied: You are ${lateMinutes} minutes late and did not inform prior to standup. Only leaders with approved inform notices can join late. You are recorded as ABSENT.`,
+      };
+    } else if (!existingRec?.check_in_at && lateMinutes > 30) {
+      return {
+        success: false,
+        message: `Access Denied: Meeting check-in window closed (+30 minutes limit exceeded). You are recorded as ABSENT for today's session. Entry is not permitted.`,
       };
     }
 
@@ -2070,7 +2165,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const nowIso = new Date().toISOString();
     let recordToSave: AttendanceRecord | null = null;
     const isLateNotice = noticeType === 'LATE';
-    const clampedLate = Math.min(Math.max(lateMinutes, 5), 20); // 5 to 20 minutes limit
+    const clampedLate = Math.min(Math.max(lateMinutes, 5), 30); // 5 to 30 minutes limit
 
     // Calculate arrival deadline time based on scheduled meeting time (e.g. 10:00 AM + 15m = 10:15 AM)
     let arrivalTimeStr = '10:10 AM';
@@ -2192,16 +2287,12 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           message: `Mark Present is strictly allowed only on today's date (${todayIST}). Past or future dates cannot be marked manually.`,
         };
       }
-      if (isSunday) {
+      const isExplicitlyEnabled = (meeting.cadence === 'DOM' || meeting.cadence === 'WOM' || meeting.cadence === 'MOM') && !meeting.is_holiday_or_shifted;
+      const isOff = !isExplicitlyEnabled && (isSunday || isHolidayOrRemovedDom);
+      if (isOff) {
         return {
           success: false,
-          message: 'Cannot mark attendance on Sunday (official weekly off).',
-        };
-      }
-      if (isHolidayOrRemovedDom) {
-        return {
-          success: false,
-          message: 'Cannot mark attendance: DOM meeting is not scheduled or has been removed for this date.',
+          message: isSunday ? 'Cannot mark attendance on Sunday (official weekly off).' : 'Cannot mark attendance: DOM meeting is not scheduled or has been removed for this date.',
         };
       }
       if (!isAfter0930Am) {
@@ -2499,7 +2590,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // Stage 2: 10:30 AM Final Leadership Audit Report
   const sendDailyWhatsappReport = (date: string) => {
     const meeting = getMeetingForDate(date);
-    const forDate = attendanceRecords.filter((r) => r.meeting_date === date);
+    const forDate = getFullRosterForDate(date);
     const presentPhysical = forDate.filter(
       (r) => r.selected_mode === 'PHYSICAL' && (r.status === 'PRESENT' || r.admin_verified_attendance)
     );
@@ -2511,7 +2602,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       (r) => r.status === 'LEAVE' || (r.status === 'INFORMED_ABSENT' && (r.informed_confirmed || r.admin_verified_attendance))
     );
     const absent = forDate.filter(
-      (r) => r.status === 'ABSENT' || (r.status === 'PENDING' && r.selected_mode === 'NONE')
+      (r) => r.status === 'ABSENT' || (r.status === 'PENDING' && r.selected_mode === 'NONE') || r.verification_status === 'REJECTED'
     );
 
     const cadenceCode = meeting.cadence || 'DOM';
@@ -2540,9 +2631,11 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     msg += `🎯 Total Compliance Rate: *${complianceRate}%*\n\n`;
 
     if (absent.length > 0) {
-      msg += `❌ *FINAL ABSENT LEADERS (Action Required):*\n`;
+      msg += `🚨 *ABSENT LEADERS LIST — NO INFORMATION / REASON REQUIRED:*\n`;
+      msg += `Aap aaj ki meeting me upasthit nahi hue hain aur koi prior information nahi mili hai. Kripya management ko reason batayein ki aap meeting me kyu nahi aaye:\n\n`;
       absent.forEach((p, idx) => {
-        msg += `❌ ${idx + 1}. *${p.leader?.full_name}* (${p.leader?.department?.name || 'Dept'})\n`;
+        const note = p.verification_note ? ` (${p.verification_note})` : ' (No Prior Information)';
+        msg += `❌ ${idx + 1}. *${p.leader?.full_name}* (${p.leader?.department?.name || 'Dept'})${note}\n`;
       });
       msg += `\n`;
     } else {
@@ -2956,10 +3049,12 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const existingForDate = attendanceRecords.filter((r) => r.meeting_date === date);
 
     // SUNDAY & CANCELLED / REMOVED DOM RULES:
-    // Sunday is an official weekly off; never counted in DOM. If date is Sunday or Holiday/Removed,
-    // all 22 leaders are included in roster and marked EXCUSED (Weekly Off).
-    const isSunday = new Date(date).getDay() === 0;
-    const isOff = isSunday || meeting.cadence === 'HOLIDAY' || meeting.is_holiday_or_shifted;
+    // Sunday is an official weekly off; never counted in DOM unless explicitly enabled.
+    // If date is Sunday (un-enabled) or Holiday/Removed, leaders without manual status are EXCUSED.
+    const dateDay = new Date(date + 'T12:00:00').getDay();
+    const isSunday = dateDay === 0;
+    const isExplicitlyEnabled = (meeting.cadence === 'DOM' || meeting.cadence === 'WOM' || meeting.cadence === 'MOM') && !meeting.is_holiday_or_shifted;
+    const isOff = !isExplicitlyEnabled && (isSunday || meeting.cadence === 'HOLIDAY' || Boolean(meeting.is_holiday_or_shifted));
 
     const existingMap = new Map<string, AttendanceRecord>();
     existingForDate.forEach((r) => existingMap.set(r.leader_id, r));
@@ -3219,7 +3314,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
 
     const meeting = getMeetingForDate(date);
-    const forDate = attendanceRecords.filter((r) => r.meeting_date === date);
+    const forDate = getFullRosterForDate(date);
     const cadenceCode = meeting.cadence || 'DOM';
     const formattedDate = new Date(date).toLocaleDateString('en-IN', {
       weekday: 'long',
@@ -3239,7 +3334,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       (r) => r.status === 'LEAVE' || (r.status === 'INFORMED_ABSENT' && (r.informed_confirmed || r.admin_verified_attendance))
     );
     const absent = forDate.filter(
-      (r) => r.status === 'ABSENT' || (r.status === 'PENDING' && r.selected_mode === 'NONE')
+      (r) => r.status === 'ABSENT' || (r.status === 'PENDING' && r.selected_mode === 'NONE') || r.verification_status === 'REJECTED'
     );
 
     const totalCount = forDate.length || leaders.length;
@@ -3286,9 +3381,11 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       msg += `🎯 Overall Compliance: *${complianceRate}%*\n\n`;
 
       if (absent.length > 0) {
-        msg += `❌ *FINAL ABSENT LEADERS (Action Required):*\n`;
+        msg += `🚨 *ABSENT LEADERS LIST — NO INFORMATION / REASON REQUIRED:*\n`;
+        msg += `Aap aaj ki meeting me upasthit nahi hue hain aur koi prior information nahi mili hai. Kripya management ko reason batayein ki aap meeting me kyu nahi aaye:\n\n`;
         absent.forEach((p, idx) => {
-          msg += `❌ ${idx + 1}. *${p.leader?.full_name}* (${p.leader?.department?.name || 'Dept'})\n`;
+          const note = p.verification_note ? ` (${p.verification_note})` : ' (No Prior Information)';
+          msg += `❌ ${idx + 1}. *${p.leader?.full_name}* (${p.leader?.department?.name || 'Dept'})${note}\n`;
         });
         msg += `\n`;
       } else {
@@ -3621,35 +3718,21 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         };
         updatedRecords.push(lockedRec);
 
-        // Update in Supabase
+        // Persist directly into Supabase SQL database (admin_audit_logs)
         try {
-          supabase
-            .from('attendance_records')
-            .update({
-              status: 'ABSENT',
-              verification_status: 'REJECTED',
-              verification_note: lockedRec.verification_note,
-              late_expired: lockedRec.late_expired,
-              updated_at: lockedRec.updated_at,
-            })
-            .eq('id', rec.id)
-            .then(() => {});
+          await syncAttendanceRecordToSupabase(lockedRec, lockedRec.verification_note);
         } catch (e) {
-          console.warn('Supabase update note on meeting closure:', e);
+          console.warn('Supabase sync note on meeting closure:', e);
         }
       }
     }
 
     if (updatedRecords.length > 0) {
       setAttendanceRecords((prev) => {
-        const next = prev.map((r) => {
-          const match = updatedRecords.find((u) => u.id === r.id);
-          return match || r;
-        });
-        try {
-          localStorage.setItem('sbh_attendance_records', JSON.stringify(next));
-        } catch (e) {}
-        return next;
+        const nextMap = new Map<string, AttendanceRecord>();
+        prev.forEach((r) => nextMap.set(r.id, r));
+        updatedRecords.forEach((u) => nextMap.set(u.id, u));
+        return Array.from(nextMap.values());
       });
     }
 
