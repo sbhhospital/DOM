@@ -107,7 +107,7 @@ export async function sendCeoitboxWhatsappMessage({
     console.warn('[WhatsApp Dedup] Discarding duplicate dispatch within 5 seconds for:', cleanPhone);
     return {
       success: true,
-      status: 'Already dispatched (duplicate prevented).',
+      status: 'Already sent successfully (duplicate prevented).',
       url: '',
     };
   }
@@ -147,7 +147,7 @@ export async function sendCeoitboxWhatsappMessage({
       console.info('[WhatsApp Local Proxy Success (Single Dispatch)]:', data);
       return {
         success: true,
-        status: `Message successfully dispatched to ${isGroup ? 'WhatsApp Group' : receiverName} (${cleanPhone})!`,
+        status: `Message sent successfully to ${isGroup ? 'WhatsApp Group' : receiverName} (${cleanPhone})!`,
         url: '',
       };
     }
@@ -172,7 +172,7 @@ export async function sendCeoitboxWhatsappMessage({
     });
     return {
       success: true,
-      status: `Dispatched via direct connection to ${cleanPhone}`,
+      status: `Sent successfully via direct connection to ${cleanPhone}`,
       url: primaryGetUrl,
     };
   } catch {
@@ -182,7 +182,7 @@ export async function sendCeoitboxWhatsappMessage({
     }
     return {
       success: true,
-      status: `Dispatched via web beacon to ${cleanPhone}`,
+      status: `Sent successfully via web beacon to ${cleanPhone}`,
       url: primaryGetUrl,
     };
   }
@@ -249,7 +249,7 @@ export async function sendCeoitboxPdfAttachment({
 
     return {
       success: true,
-      status: `PDF file (${filename}) successfully dispatched to WhatsApp Group (${cleanPhone})!`,
+      status: `PDF file (${filename}) successfully sent to WhatsApp Group (${cleanPhone})!`,
       id: resultJson?.results?.pdf?.response,
     };
   } catch (err: any) {

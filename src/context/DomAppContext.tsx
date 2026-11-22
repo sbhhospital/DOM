@@ -2360,7 +2360,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       navigator.clipboard.writeText(msg).catch(() => {});
     }
 
-    return { success: true, message: 'Final 10:30 AM WhatsApp Audit Report automatically dispatched & logged in Google Sheet!', payload: msg };
+    return { success: true, message: 'Final 10:30 AM WhatsApp Audit Report automatically sent & logged in Google Sheet!', payload: msg };
   };
 
   // Stage 1: 09:50 AM Morning Notice with Meeting Link (or Holiday / Sunday Weekly Off notice)
@@ -2459,8 +2459,8 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       success: res.success,
       sentCount: leaders.length,
       message: isSunday || isHoliday
-        ? `✅ Official ${isSunday ? 'Sunday Weekly Off' : 'Holiday'} Notice dispatched to WhatsApp Group!`
-        : `✅ 09:50 AM ${cadenceCode} Notice dispatched to WhatsApp Group!`,
+        ? `✅ Official ${isSunday ? 'Sunday Weekly Off' : 'Holiday'} Notice sent successfully to WhatsApp Group!`
+        : `✅ 09:50 AM ${cadenceCode} Notice sent successfully to WhatsApp Group!`,
     };
   };
 
@@ -2513,7 +2513,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     return {
       success: res.success,
-      message: `✅ Schedule change broadcast dispatched to WhatsApp Group (${targetGroup})!`,
+      message: `✅ Schedule change notice sent successfully to WhatsApp Group (${targetGroup})!`,
     };
   };
 
@@ -2625,7 +2625,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     return {
       count: uninformedAbsentees.length,
-      message: `Escalation notice for ${uninformedAbsentees.length} absent leader(s) successfully dispatched to WhatsApp Group!`,
+      message: `Escalation notice for ${uninformedAbsentees.length} absent leader(s) successfully sent to WhatsApp Group!`,
       payload: msg,
     };
   };
@@ -2824,7 +2824,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     return {
       success: res.success,
-      message: `Official ${cadenceCode} Report dispatched to Director Sir (${appSettings.director_whatsapp}) via CEOITBOX WhatsApp API!`,
+      message: `Official ${cadenceCode} Report sent successfully to Director Sir (${appSettings.director_whatsapp}) via CEOITBOX WhatsApp API!`,
       url: res.url,
     };
   };
@@ -2836,7 +2836,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (date > getLiveIndiaDateStr()) {
       return {
         success: false,
-        message: `Meeting has not started yet for ${formatToIndianDate(date)}. Future attendance reports cannot be generated or dispatched. Only meeting announcements can be broadcast for future dates.`,
+        message: `Meeting has not started yet for ${formatToIndianDate(date)}. Future attendance reports cannot be generated or sent. Only meeting announcements can be broadcast for future dates.`,
       };
     }
 
@@ -2953,7 +2953,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return {
       success: true,
       count: sent,
-      message: `Urgent Kindly Join alert dispatched to ${sent} non-attendees via CEOITBOX!`,
+      message: `Urgent Kindly Join alert sent to ${sent} non-attendees via CEOITBOX!`,
     };
   };
 
@@ -3114,7 +3114,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     return {
       success: true,
-      message: `Stage ${stage === '0950' ? '09:50 AM Notice' : '10:30 AM Final Audit'} automatically dispatched to WhatsApp Group (${groupJid}) & logged in Google Sheet!`,
+      message: `Stage ${stage === '0950' ? '09:50 AM Notice' : '10:30 AM Final Audit'} automatically sent to WhatsApp Group (${groupJid}) & logged in Google Sheet!`,
       url: res.url,
       payload: msg,
     };
@@ -3223,7 +3223,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       return {
         success: true,
-        message: `Official DOM Report successfully archived to Supabase database & dispatched to WhatsApp Group (${appSettings.admin_whatsapp_group || '120363432056023698@g.us'}) via CEOITBOX API!`,
+        message: `Official DOM Report successfully archived to Supabase database & sent to WhatsApp Group (${appSettings.admin_whatsapp_group || '120363432056023698@g.us'}) via CEOITBOX API!`,
         driveUrl: cloudDriveUrl,
       };
     } catch (err: any) {
@@ -3245,7 +3245,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return {
       success: true,
       leadersCount: 1,
-      message: `09:50 AM Morning Notice successfully dispatched to Official WhatsApp Group (${appSettings.admin_whatsapp_group || '120363432056023698@g.us'})!`,
+      message: `09:50 AM Morning Notice successfully sent to Official WhatsApp Group (${appSettings.admin_whatsapp_group || '120363432056023698@g.us'})!`,
     };
   };
 
@@ -3382,9 +3382,9 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         message: msg,
         settings: appSettings,
       });
-      return { success: true, message: `Login credentials & guide successfully dispatched to ${leader.full_name} (${leader.phone})!` };
+      return { success: true, message: `Login credentials & guide successfully sent to ${leader.full_name} (${leader.phone})!` };
     } catch (e: any) {
-      return { success: false, message: `Failed to dispatch credentials to ${leader.full_name}: ${e?.message || 'Network error'}` };
+      return { success: false, message: `Failed to send credentials to ${leader.full_name}: ${e?.message || 'Network error'}` };
     }
   };
 
@@ -3404,7 +3404,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return {
       success: successCount > 0,
       successCount,
-      message: `Dispatched login credentials to ${successCount} of ${leaderIds.length} selected leaders!`,
+      message: `Sent login credentials to ${successCount} of ${leaderIds.length} selected leaders!`,
     };
   };
 

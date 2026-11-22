@@ -524,13 +524,13 @@ export const UnifiedAdminDashboard: React.FC = () => {
             sendMeetingReminderNotice(todayDate);
             setToastAlert({
               type: 'success',
-              text: '🔔 09:50 AM Automated Transmission: Sunday Weekly Off Notice dispatched to WhatsApp Group!',
+              text: '🔔 09:50 AM Automated Notice: Sunday Weekly Off Notice sent to WhatsApp Group!',
             });
           } else {
             triggerAutomated0950Transmission(todayDate);
             setToastAlert({
               type: 'success',
-              text: '🔔 09:50 AM Automated Transmission: DOM Standup Notice broadcast to WhatsApp Group!',
+              text: '🔔 09:50 AM Automated Notice: DOM Standup Notice sent to WhatsApp Group!',
             });
           }
           setTimeout(() => setToastAlert(null), 8000);
@@ -563,7 +563,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
           sendCeoitboxGroupBroadcast('1030', todayDate);
           setToastAlert({
             type: 'success',
-            text: '📊 10:30 AM Final Leadership Audit Report automatically dispatched to WhatsApp Group!',
+            text: '📊 10:30 AM Final Leadership Audit Report automatically sent to WhatsApp Group!',
           });
           setTimeout(() => setToastAlert(null), 8000);
         }
@@ -914,7 +914,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
               department: departments.find((d) => d.id === leaderForm.department_id) || editingLeader.department,
             });
           }
-          setFormSuccess(res.message + (sendCredentialsOnSave ? ' • WhatsApp credentials dispatched!' : ''));
+          setFormSuccess(res.message + (sendCredentialsOnSave ? ' • WhatsApp credentials sent!' : ''));
           setTimeout(() => {
             setShowAddLeaderModal(false);
             setEditingLeader(null);
@@ -941,7 +941,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
             } as any;
             sendLeaderOnboardingCredentials(createdLeader);
           }
-          setFormSuccess(res.message + (sendCredentialsOnSave ? ' • WhatsApp credentials dispatched!' : ''));
+          setFormSuccess(res.message + (sendCredentialsOnSave ? ' • WhatsApp credentials sent!' : ''));
           setTimeout(() => {
             setShowAddLeaderModal(false);
             setLeaderForm({
@@ -1128,7 +1128,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
         );
         setToastAlert({
           type: 'success',
-          text: `✅ Schedule update notice dispatched to WhatsApp Group for ${formatToIndianDate(selectedDate)}!`,
+          text: `✅ Schedule update notice sent successfully to WhatsApp Group for ${formatToIndianDate(selectedDate)}!`,
         });
         setTimeout(() => setToastAlert(null), 6000);
       } catch (err) {
@@ -1155,13 +1155,13 @@ export const UnifiedAdminDashboard: React.FC = () => {
       const res = await sendMeetingReminderNotice(selectedDate);
       setToastAlert({
         type: 'success',
-        text: res.message || `✅ ${currentCadence} WhatsApp Notice dispatched to WhatsApp Group!`,
+        text: res.message || `✅ ${currentCadence} WhatsApp Notice sent successfully to WhatsApp Group!`,
       });
       setTimeout(() => setToastAlert(null), 5000);
     } catch (err: any) {
       setToastAlert({
         type: 'error',
-        text: '❌ Notice dispatch failed: ' + (err?.message || 'Network error'),
+        text: '❌ Notice sending failed: ' + (err?.message || 'Network error'),
       });
       setTimeout(() => setToastAlert(null), 5000);
     } finally {
@@ -1239,7 +1239,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
       if (date > liveTodayDate) {
         setToastAlert({
           type: 'error',
-          text: `⚠️ Meeting has not started yet for ${formatToIndianDate(date)}. Future attendance reports cannot be generated or dispatched. Only meeting announcements can be broadcast for future dates.`,
+          text: `⚠️ Meeting has not started yet for ${formatToIndianDate(date)}. Future attendance reports cannot be generated or sent. Only meeting announcements can be broadcast for future dates.`,
         });
         setTimeout(() => setToastAlert(null), 6000);
         return { success: false, message: 'Meeting has not started yet' };
@@ -1253,12 +1253,12 @@ export const UnifiedAdminDashboard: React.FC = () => {
       if (res.success) {
         setToastAlert({
           type: 'success',
-          text: `🎉 Official Signed PDF Report directly dispatched to WhatsApp Group (${appSettings.admin_whatsapp_group || '120363432056023698@g.us'}) via Ceoitbox API!`,
+          text: `🎉 Official Signed PDF Report sent successfully to WhatsApp Group (${appSettings.admin_whatsapp_group || '120363432056023698@g.us'}) via Ceoitbox API!`,
         });
       } else {
         setToastAlert({
           type: 'info',
-          text: `PDF dispatched: ${res.message}`,
+          text: `PDF notification: ${res.message}`,
         });
       }
       setTimeout(() => setToastAlert(null), 6000);
@@ -1333,7 +1333,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
     if (selectedDate > liveTodayDate) {
       setToastAlert({
         type: 'error',
-        text: `⚠️ Meeting has not started yet for ${formatToIndianDate(selectedDate)}. Attendance reports cannot be dispatched for future dates. You can broadcast meeting announcements only.`,
+        text: `⚠️ Meeting has not started yet for ${formatToIndianDate(selectedDate)}. Attendance reports cannot be sent for future dates. You can broadcast meeting announcements only.`,
       });
       setShowGroupDispatchModal(false);
       setTimeout(() => setToastAlert(null), 6000);
@@ -1351,10 +1351,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
       setToastAlert({
         type: 'success',
         text: action === 'pdf'
-          ? '🎉 Official Signed PDF Report dispatched successfully to WhatsApp Group!'
+          ? '🎉 Official Signed PDF Report sent successfully to WhatsApp Group!'
           : action === 'text'
-            ? '🎉 Absentee Text Report dispatched successfully to WhatsApp Group!'
-            : '🎉 PDF Report & Absentee Text Summary dispatched successfully to WhatsApp Group!',
+            ? '🎉 Absentee Text Report sent successfully to WhatsApp Group!'
+            : '🎉 PDF Report & Absentee Text Summary sent successfully to WhatsApp Group!',
       });
       setTimeout(() => setToastAlert(null), 5000);
     } catch (err: any) {
@@ -2193,7 +2193,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                               await handleTriggerAutomatedTransmission();
                               setToastAlert({
                                 type: 'success',
-                                text: '✅ 09:50 AM Morning Notice successfully dispatched to WhatsApp Group!',
+                                text: '✅ 09:50 AM Morning Notice successfully sent to WhatsApp Group!',
                               });
                               setTimeout(() => setToastAlert(null), 5000);
                             } finally {
@@ -2252,7 +2252,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                         if (isFutureDate) {
                           setToastAlert({
                             type: 'info',
-                            text: `⚠️ Meeting has not started yet for ${formatToIndianDate(selectedDate)}! Future attendance reports cannot be dispatched. You can only send Pre-Meeting Announcements.`,
+                            text: `⚠️ Meeting has not started yet for ${formatToIndianDate(selectedDate)}! Future attendance reports cannot be sent. You can only send Pre-Meeting Announcements.`,
                           });
                           setTimeout(() => setToastAlert(null), 5000);
                           return;
@@ -2636,7 +2636,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                       if (isFutureDate) {
                         setToastAlert({
                           type: 'info',
-                          text: `⚠️ Meeting has not started yet for ${formatToIndianDate(selectedDate)}! Future attendance reports cannot be dispatched. You can only send Pre-Meeting Announcements.`,
+                          text: `⚠️ Meeting has not started yet for ${formatToIndianDate(selectedDate)}! Future attendance reports cannot be sent. You can only send Pre-Meeting Announcements.`,
                         });
                         setTimeout(() => setToastAlert(null), 5000);
                         return;
@@ -4556,7 +4556,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                     <div className="text-[11px] font-mono text-slate-700 truncate bg-slate-50 p-2 rounded-lg border border-slate-200 font-bold">
                       {appSettings.admin_whatsapp_group || '120363432056023698@g.us'}
                     </div>
-                    <p className="text-[11px] text-slate-500">09:50 AM notice & 10:30 AM final PDF report are dispatched to this group.</p>
+                    <p className="text-[11px] text-slate-500">09:50 AM notice & 10:30 AM final PDF report are sent to this group.</p>
                   </div>
                 </div>
 
@@ -7105,7 +7105,7 @@ function doPost(e) {
                 <div>
                   <div className="font-bold">Meeting Has Not Started Yet ({formatToIndianDate(selectedDate)})</div>
                   <div className="text-[11px] text-amber-800 mt-0.5">
-                    Attendance reports cannot be dispatched for future dates. You can broadcast advance schedule announcements instead.
+                    Attendance reports cannot be sent for future dates. You can broadcast advance schedule announcements instead.
                   </div>
                 </div>
               </div>
@@ -7220,7 +7220,7 @@ function doPost(e) {
                       await handleTriggerAutomatedTransmission();
                       setToastAlert({
                         type: 'success',
-                        text: `✅ Pre-Meeting Announcement notice & audio briefing successfully dispatched to WhatsApp Group for ${formatToIndianDate(selectedDate)}!`,
+                        text: `✅ Pre-Meeting Announcement notice & audio briefing successfully sent to WhatsApp Group for ${formatToIndianDate(selectedDate)}!`,
                       });
                       setTimeout(() => setToastAlert(null), 5000);
                     } finally {
