@@ -130,6 +130,7 @@ interface DomAppContextType {
   sendDirectorPdfToWhatsappGroup: (date: string) => Promise<{ success: boolean; message: string }>;
   sendCeoitboxRemindersToAll: (date: string) => Promise<{ success: boolean; count: number; message: string }>;
   sendCeoitboxEscalationToNonAttendees: (date: string) => Promise<{ success: boolean; count: number; message: string }>;
+  sendCeoitboxUnexcusedAbsenteeNotice: (date: string) => Promise<{ success: boolean; count: number; message: string }>;
   sendCeoitboxGroupBroadcast: (
     stage: '0950' | '1030',
     date: string
@@ -2387,13 +2388,19 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       reminderMsg += `Next DOM Standup will resume on Monday at 10:00 AM IST.\n`;
       reminderMsg += `━━━━━━━━━━━━━━━━━━━━━━\n*Automated Reminder*`;
     } else {
+      const cleanCadence = (cadenceCode || 'DOM').trim();
+      const cleanMeetingTitle = (meeting.title || 'DAILY OPERATIONS MEETING')
+        .replace(new RegExp(`^${cleanCadence}\\s*[-—–:]*\\s*`, 'i'), '')
+        .trim()
+        .toUpperCase();
+      let cleanTime = (meeting.scheduled_time || '10:00 AM').replace(/\s*IST\s*/gi, '').trim();
+
       reminderMsg = `*SBH GROUP OF HOSPITALS, RAIPUR*\n`;
-      reminderMsg += `🔔 *09:50 AM NOTICE: ${cadenceCode} — ${meeting.title.toUpperCase()}*\n`;
+      reminderMsg += `🔔 *09:50 AM NOTICE: ${cleanCadence} — ${cleanMeetingTitle}*\n`;
       reminderMsg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
       reminderMsg += `📅 *Date:* ${formatToIndianDate(date)}\n`;
-      reminderMsg += `⏰ *Start Time:* ${meeting.scheduled_time || '10:00 AM'} IST (Sharp)\n`;
-      reminderMsg += `📍 *Venue:* ${appSettings.conference_room_name || 'Conference Room, 5th Floor'}\n`;
-      reminderMsg += `💻 *Google Meet:* ${meeting.google_meet_url || 'https://meet.google.com/jrz-jfku-gir'}\n\n`;
+      reminderMsg += `⏰ *Start Time:* ${cleanTime} IST (Sharp)\n`;
+      reminderMsg += `📍 *Venue:* ${appSettings.conference_room_name || 'Conference Room, 5th Floor'}\n\n`;
       reminderMsg += `📌 *MANDATORY CHECK-IN INSTRUCTION:*\n`;
       reminderMsg += `QR Code scanning at the 5th Floor Conference Room is MANDATORY for physical attendance. Physical attendance will not be counted without scanning the room QR code.\n\n`;
       reminderMsg += `✅ *Direct Attendance Link:* https://sbhdom.vercel.app/boardroom-checkin\n`;
@@ -2886,17 +2893,23 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     const targetGroup = appSettings.admin_whatsapp_group || '120363432056023698@g.us';
 
+    const cleanCadence = (cadenceCode || 'DOM').trim();
+    const cleanMeetingTitle = (meeting.title || 'DAILY OPERATIONS MEETING')
+      .replace(new RegExp(`^${cleanCadence}\\s*[-—–:]*\\s*`, 'i'), '')
+      .trim()
+      .toUpperCase();
+    let cleanTime = (meeting.scheduled_time || '10:00 AM').replace(/\s*IST\s*/gi, '').trim();
+
     let reminderText = `*SBH GROUP OF HOSPITALS, RAIPUR*\n`;
-    reminderText += `🔔 *OFFICIAL 09:50 AM ${cadenceCode} NOTICE — ${meeting.title.toUpperCase()}*\n`;
+    reminderText += `🔔 *OFFICIAL 09:50 AM ${cleanCadence} NOTICE — ${cleanMeetingTitle}*\n`;
     reminderText += `━━━━━━━━━━━━━━━━━━━━━━\n`;
     reminderText += `📅 *Date:* ${formattedDate}\n`;
-    reminderText += `⏰ *Start Time:* 10:00 AM IST (Sharp)\n`;
-    reminderText += `📍 *Venue:* ${appSettings.conference_room_name || 'Conference Room, 5th Floor'}\n`;
-    reminderText += `🔗 *Google Meet URL:* ${meeting.google_meet_url || appSettings.google_meet_url || 'https://meet.google.com/jrz-jfku-gir'}\n\n`;
+    reminderText += `⏰ *Start Time:* ${cleanTime} IST (Sharp)\n`;
+    reminderText += `📍 *Venue:* ${appSettings.conference_room_name || 'Conference Room, 5th Floor'}\n\n`;
     reminderText += `✅ *ATTENDANCE & CHECK-IN LINK:*\n`;
     reminderText += `👉 https://sbhdom.vercel.app/boardroom-checkin\n\n`;
     reminderText += `⚠️ *MANDATORY INSTRUCTION:*\n`;
-    reminderText += `All leaders are requested to assemble in the Conference Room (5th Floor) or join Google Meet before 10:00 AM IST sharp. Physical check-in requires in-person QR code verification.\n`;
+    reminderText += `All leaders are requested to assemble in the Conference Room (5th Floor) and complete check-in before 10:00 AM IST sharp. Physical check-in requires in-person QR code verification.\n`;
     reminderText += `━━━━━━━━━━━━━━━━━━━━━━\n`;
     reminderText += `*Automated Reminder*\n`;
     reminderText += `Clinical Governance & Hospital Operations Command\n`;
@@ -3003,9 +3016,15 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     let msg = '';
 
+    const cleanCadence = (cadenceCode || 'DOM').trim();
+    const cleanMeetingTitle = (meeting.title || 'DAILY OPERATIONS MEETING')
+      .replace(new RegExp(`^${cleanCadence}\\s*[-—–:]*\\s*`, 'i'), '')
+      .trim()
+      .toUpperCase();
+
     if (stage === '0950') {
       msg = `*SBH GROUP OF HOSPITALS, RAIPUR*\n`;
-      msg += `🔔 *09:50 AM NOTICE: ${cadenceCode} — ${meeting.title.toUpperCase()}*\n`;
+      msg += `🔔 *09:50 AM NOTICE: ${cleanCadence} — ${cleanMeetingTitle}*\n`;
       msg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
       msg += `📅 *Date:* ${formattedDate}\n`;
       msg += `⏰ *Start Time:* 10:00 AM IST (Sharp)\n`;
@@ -3019,15 +3038,15 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     } else {
       // 10:30 AM
       msg = `*SBH GROUP OF HOSPITALS, RAIPUR*\n`;
-      msg += `📊 *FINAL 10:30 AM ${cadenceCode} ATTENDANCE AUDIT REPORT*\n`;
+      msg += `📊 *FINAL 10:30 AM ${cleanCadence} ATTENDANCE AUDIT REPORT*\n`;
       msg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
-      msg += `📅 *Date:* ${formattedDate} | *Meeting:* ${cadenceCode} (${meeting.frequency})\n`;
+      msg += `📅 *Date:* ${formattedDate} | *Meeting:* ${cleanCadence} (${meeting.frequency})\n`;
       msg += `⏰ *Audit Frozen:* 10:30 AM IST | *Venue:* ${appSettings.conference_room_name}\n`;
       msg += `📄 *Official Signed Director Attendance PDF Report Attached*\n\n`;
       msg += `📈 *HOSPITAL OPERATIONS AUDIT SUMMARY:*\n`;
       msg += `👥 Total Expected Leaders: ${totalCount}\n`;
       msg += `🏢 In-Person (Conference Room): ${presentPhysical.length}\n`;
-      msg += `💻 Virtual (Google Meet): ${presentVirtual.length}\n`;
+      msg += `💻 Virtual (Online): ${presentVirtual.length}\n`;
       msg += `⏱️ Approved Late Arrivals: ${informedLate.length}\n`;
       msg += `⚠️ Approved Leave / Excused: ${informedLeave.length}\n`;
       msg += `❌ Final Absentees: ${absent.length}\n`;
@@ -3112,6 +3131,86 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       message: `Stage ${stage === '0950' ? '09:50 AM Notice' : '10:30 AM Final Audit'} automatically sent to WhatsApp Group (${groupJid}) & logged in Google Sheet!`,
       url: res.url,
       payload: msg,
+    };
+  };
+
+  // Dedicated Unexcused Absenteeism Notice (Kripaya Karan Bataye / Management Team Action)
+  const sendCeoitboxUnexcusedAbsenteeNotice = async (
+    date: string
+  ): Promise<{ success: boolean; count: number; message: string }> => {
+    if (date > getLiveIndiaDateStr()) {
+      return {
+        success: false,
+        count: 0,
+        message: `Meeting has not started yet for ${formatToIndianDate(date)}. Absentee notices cannot be sent for future dates.`,
+      };
+    }
+
+    const meeting = getMeetingForDate(date);
+    const cadenceCode = (meeting.cadence || 'DOM').trim();
+    const forDate = getFullRosterForDate(date);
+    const isSundayMeeting = new Date(date).getDay() === 0;
+    const isMeetingOff = isSundayMeeting || meeting.cadence === 'HOLIDAY' || meeting.is_holiday_or_shifted;
+
+    if (isMeetingOff) {
+      return {
+        success: true,
+        count: 0,
+        message: `Today is an official hospital off day / holiday. Zero absentees recorded.`,
+      };
+    }
+
+    // Strictly unexcused absentees (exclude sanctioned leave and approved late)
+    const unexcusedAbsentees = forDate.filter(
+      (r) =>
+        r.status === 'ABSENT' ||
+        (r.status === 'PENDING' && r.selected_mode === 'NONE' && !r.informed_confirmed && !r.late_approved_by_admin)
+    );
+
+    if (unexcusedAbsentees.length === 0) {
+      return {
+        success: true,
+        count: 0,
+        message: `🎉 All leaders are present or officially excused! No unexcused absentees recorded.`,
+      };
+    }
+
+    const formattedDate = new Date(date).toLocaleDateString('en-IN', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+
+    let msg = `*SBH GROUP OF HOSPITALS, RAIPUR*\n`;
+    msg += `⚠️ *URGENT COMPLIANCE NOTICE: UNEXCUSED ABSENTEEISM*\n`;
+    msg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
+    msg += `📅 *Date:* ${formattedDate} | *Meeting:* ${cadenceCode}\n`;
+    msg += `⏰ *Scheduled Time:* 10:00 AM IST | *Venue:* ${appSettings.conference_room_name || 'Conference Room, 5th Floor'}\n\n`;
+    msg += `📢 *To All Unexcused Absent Leaders:*\n`;
+    msg += `Aap aaj bina kisi purva suchna (prior sanction) ke ${cadenceCode} meeting me upasthit nahi hue hain. Kripaya turant apna karan spasht karein ki aap meeting me kyu nahi aaye.\n\n`;
+    msg += `📌 *Dear Management Team:*\n`;
+    msg += `Kripaya ispar turant dhyan dein evam uchit administrative action lein.\n\n`;
+    msg += `❌ *UNEXCUSED ABSENT LEADERS LIST (${unexcusedAbsentees.length}):*\n`;
+    unexcusedAbsentees.forEach((p, idx) => {
+      msg += `${idx + 1}. *${p.leader?.full_name}* — ${p.leader?.department?.name || 'Department'}\n`;
+    });
+    msg += `\n━━━━━━━━━━━━━━━━━━━━━━\n`;
+    msg += `*Clinical Governance & Operations Command*\n`;
+    msg += `*Automated Operational Compliance Notice*`;
+
+    const groupJid = appSettings.admin_whatsapp_group || '120363432056023698@g.us';
+    const res = await sendCeoitboxWhatsappMessage({
+      mobileNo: groupJid,
+      name: 'SBH DOM Official Group',
+      message: msg,
+      settings: appSettings,
+    });
+
+    return {
+      success: res.success,
+      count: unexcusedAbsentees.length,
+      message: `Unexcused absentee escalation notice sent for ${unexcusedAbsentees.length} leaders to WhatsApp Group!`,
     };
   };
 
@@ -3454,6 +3553,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         sendDirectorPdfToWhatsappGroup,
         sendCeoitboxRemindersToAll,
         sendCeoitboxEscalationToNonAttendees,
+        sendCeoitboxUnexcusedAbsenteeNotice,
         sendCeoitboxGroupBroadcast,
         triggerAutomated0950Transmission,
         uploadReportToGoogleDriveAndSheet,

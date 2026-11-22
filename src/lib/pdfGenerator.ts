@@ -243,7 +243,7 @@ export function generateDirectorPdf(
     let actualMode = '—';
     if (rec.evidence_source === 'ADMIN_MANUAL') actualMode = 'In-Person (Admin)';
     else if (rec.selected_mode === 'PHYSICAL') actualMode = 'In-Person (Room)';
-    else if (rec.selected_mode === 'VIRTUAL') actualMode = 'Virtual (Meet)';
+    else if (rec.selected_mode === 'VIRTUAL') actualMode = 'Virtual (Online)';
 
     let joinTime = '—';
     if (rec.check_in_at) {

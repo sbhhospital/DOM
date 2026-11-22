@@ -304,6 +304,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
     sendDirectorPdfToWhatsappGroup,
     sendCeoitboxRemindersToAll,
     sendCeoitboxEscalationToNonAttendees,
+    sendCeoitboxUnexcusedAbsenteeNotice,
     sendCeoitboxGroupBroadcast,
     triggerAutomated0950Transmission,
     broadcastScheduleChange,
@@ -368,7 +369,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
   // Group Dispatch Modal & Button Loaders
   const [showGroupDispatchModal, setShowGroupDispatchModal] = useState<boolean>(false);
-  const [isDispatchingGroup, setIsDispatchingGroup] = useState<'pdf' | 'text' | 'both' | null>(null);
+  const [isDispatchingGroup, setIsDispatchingGroup] = useState<'pdf' | 'text' | 'both' | 'unexcused' | null>(null);
   const [isBroadcasting0950, setIsBroadcasting0950] = useState<boolean>(false);
   const [isSendingNotice, setIsSendingNotice] = useState<boolean>(false);
   const [isEscalating, setIsEscalating] = useState<boolean>(false);
@@ -1328,8 +1329,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
     return res;
   };
 
-  // Unified Handler for the 3 WhatsApp Group Dispatch Options
-  const handleGroupDispatchAction = async (action: 'pdf' | 'text' | 'both') => {
+  // Unified Handler for WhatsApp Group Dispatch Options (PDF, Roster Text, Both, or Unexcused Escalation)
+  const handleGroupDispatchAction = async (action: 'pdf' | 'text' | 'both' | 'unexcused') => {
     if (selectedDate > liveTodayDate) {
       setToastAlert({
         type: 'error',
@@ -1341,6 +1342,16 @@ export const UnifiedAdminDashboard: React.FC = () => {
     }
     setIsDispatchingGroup(action);
     try {
+      if (action === 'unexcused') {
+        const res = await sendCeoitboxUnexcusedAbsenteeNotice(selectedDate);
+        setShowGroupDispatchModal(false);
+        setToastAlert({
+          type: res.success ? 'success' : 'info',
+          text: res.message,
+        });
+        setTimeout(() => setToastAlert(null), 5000);
+        return;
+      }
       if (action === 'pdf' || action === 'both') {
         await handleSharePdfDirectly(selectedDate);
       }
@@ -1406,7 +1417,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
   );
 
   const renderSidebarNav = (isMobile: boolean = false) => (
-    <>
+    <div className="w-full h-full flex flex-col bg-white">
       {/* Sidebar Header: Hospital Emblem & Title */}
       <div className="h-20 flex items-center justify-between px-5 border-b border-[#f0f1f8]/60 bg-white shrink-0">
         <div className="flex items-center gap-3">
@@ -1713,7 +1724,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
           <span>Sign Out</span>
         </button>
       </div>
-    </>
+    </div>
   );
 
   return (
@@ -1725,12 +1736,12 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
       {/* Mobile Drawer Navigation (Slide-in) */}
       {isMobileMenuOpen && (
-        <div className="fixed inset-0 z-[10050] lg:hidden">
+        <div className="fixed inset-0 z-[10050] lg:hidden flex">
           <div
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+            className="fixed inset-0 bg-slate-900/60 transition-opacity z-10"
             onClick={() => setIsMobileMenuOpen(false)}
           />
-          <aside className="fixed inset-y-0 left-0 w-72 max-w-[85vw] bg-white flex flex-col border-r border-[#f0f1f8] shadow-2xl overflow-hidden z-20 animate-in slide-in-from-left duration-200">
+          <aside className="relative z-20 w-72 max-w-[85vw] h-full bg-white flex flex-col border-r border-[#f0f1f8] shadow-2xl overflow-hidden animate-in slide-in-from-left duration-200">
             {renderSidebarNav(true)}
           </aside>
         </div>
@@ -1835,13 +1846,11 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
               <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
                 <a
-                  href={standupAnnouncement.meetUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href="/boardroom-checkin"
                   className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-[#7065f0] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7065f0] text-white font-bold rounded-2xl text-xs uppercase tracking-wider shadow-md hover:shadow-lg active:scale-95 flex items-center justify-center gap-2 transition-all cursor-pointer"
                 >
-                  <Video className="w-4 h-4 text-white" />
-                  <span>Launch Google Meet</span>
+                  <QrCode className="w-4 h-4 text-white" />
+                  <span>Open Boardroom Check-in</span>
                 </a>
                 <button
                   onClick={() => setStandupAnnouncement((prev) => ({ ...prev, active: false }))}
@@ -6647,7 +6656,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
 const DRIVE_FOLDER_ID = "1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD";
 const WHATSAPP_GROUP_ID = "120363432056023698@g.us";
-const GOOGLE_MEET_URL = "https://meet.google.com/jrz-jfku-gir";
+const CHECKIN_PORTAL_URL = "https://sbhdom.vercel.app/boardroom-checkin";
 
 /**
  * 1. Webhook Endpoint: Receives PDF & Attendance from DOM Portal
@@ -6735,8 +6744,8 @@ function sendDaily0950Notice() {
               "📅 *Date:* " + todayStr + "\\n" +
               "⏰ *Time:* Sharp 10:00 AM IST\\n" +
               "📍 *Venue:* Conference Room, 5th Floor\\n" +
-              "💻 *Google Meet Link:* " + GOOGLE_MEET_URL + "\\n\\n" +
-              "⚠️ All department leaders please assemble in-person or join Google Meet before 10:00 AM sharp.\\n" +
+              "✅ *Direct Attendance Link:* " + CHECKIN_PORTAL_URL + "\\n\\n" +
+              "⚠️ All department leaders please assemble in-person and complete check-in before 10:00 AM sharp.\\n" +
               "DOM Operations Command | SBH Raipur";
               
   Logger.log("Notice: " + msg);
@@ -6749,7 +6758,7 @@ function sendDaily0950Notice() {
                 onClick={() => {
                   const codeToCopy = `const DRIVE_FOLDER_ID = "1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD";
 const WHATSAPP_GROUP_ID = "120363432056023698@g.us";
-const GOOGLE_MEET_URL = "https://meet.google.com/jrz-jfku-gir";
+const CHECKIN_PORTAL_URL = "https://sbhdom.vercel.app/boardroom-checkin";
 
 function doPost(e) {
   try {
@@ -7227,6 +7236,38 @@ function doPost(e) {
                 <span className={`text-xs font-bold px-3 py-1 rounded-lg shrink-0 ${isFutureDate ? 'bg-slate-200 text-slate-500' : 'text-purple-700 bg-purple-100'
                   }`}>
                   {isFutureDate ? 'Locked' : isDispatchingGroup === 'both' ? 'Sending...' : 'Send Both'}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                disabled={isDispatchingGroup !== null || isFutureDate}
+                onClick={() => handleGroupDispatchAction('unexcused')}
+                className={`w-full p-4 rounded-2xl border bg-white flex items-center justify-between transition-all text-left shadow-2xs ${isFutureDate
+                  ? 'border-slate-200 opacity-50 cursor-not-allowed bg-slate-50'
+                  : 'border-rose-200 hover:border-rose-500 hover:bg-rose-50/50 group cursor-pointer hover:shadow-xs'
+                  }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
+                    {isDispatchingGroup === 'unexcused' ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <AlertTriangle className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                    )}
+                  </div>
+                  <div>
+                    <div className="text-xs font-black text-slate-900 group-hover:text-rose-800">
+                      ⚠️ Send Unexcused Absentee Escalation
+                    </div>
+                    <div className="text-[11px] text-slate-500">
+                      {isFutureDate ? 'Locked — Zero absentees for unstarted meeting' : 'Kripaya Karan Bataye notice to unexcused absentees & Management Action template'}
+                    </div>
+                  </div>
+                </div>
+                <span className={`text-xs font-bold px-3 py-1 rounded-lg shrink-0 ${isFutureDate ? 'bg-slate-200 text-slate-500' : 'text-rose-700 bg-rose-100'
+                  }`}>
+                  {isFutureDate ? 'Locked' : isDispatchingGroup === 'unexcused' ? 'Sending...' : 'Send Notice'}
                 </span>
               </button>
 
