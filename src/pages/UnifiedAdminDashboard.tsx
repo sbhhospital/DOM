@@ -70,22 +70,99 @@ import { BoardroomQrPosterModal } from '../components/BoardroomQrPosterModal';
 import { generateDirectorPdf } from '../lib/pdfGenerator';
 import { sendCeoitboxWhatsappMessage } from '../lib/whatsappService';
 
-const SidebarSystemClock: React.FC = React.memo(() => {
-  const [timeStr, setTimeStr] = useState<string>(() =>
-    new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-  );
+const SidebarSystemClock: React.FC<{ currentCadence?: string }> = React.memo(({ currentCadence = 'DOM' }) => {
+  const { getMeetingForDate } = useDomApp();
+  const [time, setTime] = useState<Date>(() => new Date());
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setTimeStr(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+      setTime(new Date());
     }, 1000);
     return () => clearInterval(timer);
   }, []);
 
+  const timeStr = time.toLocaleTimeString('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true,
+  });
+
+  const dateStr = time.toLocaleDateString('en-IN', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  });
+
+  // Calculate live countdown to next standup (09:50 AM, 10:00 AM, or tomorrow/Monday)
+  const countdownText = useMemo(() => {
+    const h = time.getHours();
+    const m = time.getMinutes();
+    const s = time.getSeconds();
+    const nowSecs = h * 3600 + m * 60 + s;
+    const target0950 = 9 * 3600 + 50 * 60;
+    const target1000 = 10 * 3600;
+    const dayOfWeek = time.getDay();
+    const isTodaySunday = dayOfWeek === 0;
+
+    let diff = 0;
+    let label = 'Starts in';
+
+    if (isTodaySunday) {
+      diff = (24 * 3600 - nowSecs) + target1000;
+      label = 'WOM in';
+    } else if (nowSecs < target0950) {
+      diff = target0950 - nowSecs;
+      label = `${currentCadence} in`;
+    } else if (nowSecs < target1000) {
+      diff = target1000 - nowSecs;
+      label = 'Starts in';
+    } else {
+      if (dayOfWeek === 6) {
+        diff = (24 * 3600 - nowSecs) + (24 * 3600) + target1000;
+        label = 'Mon WOM in';
+      } else {
+        diff = (24 * 3600 - nowSecs) + target1000;
+        label = 'Next in';
+      }
+    }
+
+    const hours = Math.floor(diff / 3600);
+    const mins = Math.floor((diff % 3600) / 60);
+    const secs = diff % 60;
+    const pad = (n: number) => n.toString().padStart(2, '0');
+
+    return `${label} ${hours > 0 ? `${hours}h ` : ''}${pad(mins)}m ${pad(secs)}s`;
+  }, [time, currentCadence]);
+
   return (
-    <span className="text-[12px] font-black font-mono text-[#1f2d2a]">
-      {timeStr}
-    </span>
+    <div className="w-full select-none">
+      <div className="flex items-center justify-between mb-1">
+        <div className="flex items-center gap-1.5">
+          <div className="p-1 rounded-lg bg-[#7065f0] text-white shadow-2xs">
+            <Clock size={11} strokeWidth={3} />
+          </div>
+          <span className="text-[10px] font-black uppercase tracking-widest text-[#7065f0]">System Clock</span>
+        </div>
+        <span className="relative flex h-2 w-2">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+        </span>
+      </div>
+      <div className="flex items-baseline justify-between mt-1.5">
+        <div className="text-xl sm:text-[22px] font-black font-mono text-slate-900 tracking-tight leading-none tabular-nums drop-shadow-2xs">
+          {timeStr}
+        </div>
+        <span className="text-[9px] font-black text-[#7065f0] uppercase tracking-wider bg-purple-100/90 border border-purple-200/60 px-1.5 py-0.5 rounded-md">
+          IST
+        </span>
+      </div>
+      <div className="mt-2 pt-1.5 border-t border-purple-200/60 flex items-center justify-between text-[10px]">
+        <span className="text-slate-600 font-bold">{dateStr}</span>
+        <span className="text-[#7065f0] font-black font-mono tracking-tight">{countdownText}</span>
+      </div>
+    </div>
   );
 });
 
@@ -187,58 +264,33 @@ const LiveIndiaClockAndCountdown: React.FC<{ currentCadence: string }> = React.m
   }, [time, currentCadence]);
 
   return (
-    <>
-      {/* Card 1: Live India Time (IST) - High Contrast & Sharp Typography */}
-      <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3">
-        <div className="w-9 h-9 rounded-xl bg-[#eff0fe] border border-indigo-200/80 flex items-center justify-center shrink-0">
-          <Clock className="w-4 h-4 text-[#7065f0]" />
+    <div className="bg-gradient-to-r from-[#7065f0] via-[#7d6ff5] to-[#8c7ff8] p-3 rounded-2xl shadow-xs text-white flex flex-col justify-between overflow-hidden">
+      <div className="flex items-center justify-between gap-1.5 mb-1.5 min-w-0">
+        <div className="text-[10px] font-black text-amber-200 uppercase tracking-wider truncate flex items-center gap-1 min-w-0">
+          <Sparkles className="w-3 h-3 text-amber-200 shrink-0" />
+          <span className="truncate">{countdown.stageTitle}</span>
         </div>
-        <div className="min-w-0">
-          <div className="text-[10px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
-            <span>Live India Time (IST)</span>
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#7065f0] opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#7065f0]"></span>
-            </span>
-          </div>
-          <div className="text-base sm:text-lg font-black font-mono text-slate-900 leading-tight mt-0.5">
-            {countdown.liveIndiaTime}
-          </div>
-          <div className="text-[11px] text-slate-600 font-bold truncate">
-            {time.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
-          </div>
+        <span className="text-[8px] font-bold uppercase px-2 py-0.5 rounded-full bg-white/20 text-white shrink-0 whitespace-nowrap">
+          {countdown.targetMilestone}
+        </span>
+      </div>
+      <div className="flex items-center gap-1.5 flex-nowrap">
+        <div className="flex items-baseline gap-0.5 bg-black/15 px-2.5 py-0.5 rounded-xl border border-white/20 shrink-0">
+          <span className="text-sm sm:text-base font-black font-mono text-white leading-none">{countdown.hoursStr}</span>
+          <span className="text-[8px] font-bold text-white/80">h</span>
+        </div>
+        <span className="text-white/70 font-black text-xs shrink-0">:</span>
+        <div className="flex items-baseline gap-0.5 bg-black/15 px-2.5 py-0.5 rounded-xl border border-white/20 shrink-0">
+          <span className="text-sm sm:text-base font-black font-mono text-white leading-none">{countdown.minsStr}</span>
+          <span className="text-[8px] font-bold text-white/80">m</span>
+        </div>
+        <span className="text-white/70 font-black text-xs shrink-0">:</span>
+        <div className="flex items-baseline gap-0.5 bg-amber-400/25 px-2.5 py-0.5 rounded-xl border border-amber-300/40 text-amber-200 shrink-0">
+          <span className="text-sm sm:text-base font-black font-mono text-amber-200 leading-none">{countdown.secsStr}</span>
+          <span className="text-[8px] font-bold text-amber-200">s</span>
         </div>
       </div>
-
-      {/* Card 2: Next Standup Countdown - Hope UI Styling */}
-      <div className="bg-gradient-to-r from-[#7065f0] via-[#7d6ff5] to-[#8c7ff8] p-3 rounded-2xl shadow-xs text-white flex flex-col justify-between overflow-hidden">
-        <div className="flex items-center justify-between gap-1.5 mb-1.5 min-w-0">
-          <div className="text-[10px] font-black text-amber-200 uppercase tracking-wider truncate flex items-center gap-1 min-w-0">
-            <Sparkles className="w-3 h-3 text-amber-200 shrink-0" />
-            <span className="truncate">{countdown.stageTitle}</span>
-          </div>
-          <span className="text-[8px] font-bold uppercase px-2 py-0.5 rounded-full bg-white/20 text-white shrink-0 whitespace-nowrap">
-            {countdown.targetMilestone}
-          </span>
-        </div>
-        <div className="flex items-center gap-1.5 flex-nowrap">
-          <div className="flex items-baseline gap-0.5 bg-black/15 px-2.5 py-0.5 rounded-xl border border-white/20 shrink-0">
-            <span className="text-sm sm:text-base font-black font-mono text-white leading-none">{countdown.hoursStr}</span>
-            <span className="text-[8px] font-bold text-white/80">h</span>
-          </div>
-          <span className="text-white/70 font-black text-xs shrink-0">:</span>
-          <div className="flex items-baseline gap-0.5 bg-black/15 px-2.5 py-0.5 rounded-xl border border-white/20 shrink-0">
-            <span className="text-sm sm:text-base font-black font-mono text-white leading-none">{countdown.minsStr}</span>
-            <span className="text-[8px] font-bold text-white/80">m</span>
-          </div>
-          <span className="text-white/70 font-black text-xs shrink-0">:</span>
-          <div className="flex items-baseline gap-0.5 bg-amber-400/25 px-2.5 py-0.5 rounded-xl border border-amber-300/40 text-amber-200 shrink-0">
-            <span className="text-sm sm:text-base font-black font-mono text-amber-200 leading-none">{countdown.secsStr}</span>
-            <span className="text-[8px] font-bold text-amber-200">s</span>
-          </div>
-        </div>
-      </div>
-    </>
+    </div>
   );
 });
 
@@ -1447,17 +1499,9 @@ export const UnifiedAdminDashboard: React.FC = () => {
         )}
       </div>
 
-      {/* Live Clock Pill inside Sidebar */}
-      <div className="p-3 mx-2 my-2 rounded-2xl bg-[#eff0fe]/50 border border-purple-200/50 shadow-xs shrink-0">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            <div className="p-1 rounded-lg bg-[#7065f0] text-white">
-              <Clock size={11} strokeWidth={3} />
-            </div>
-            <span className="text-[9px] font-black uppercase tracking-widest text-[#7065f0]">System Clock</span>
-          </div>
-          <SidebarSystemClock />
-        </div>
+      {/* Live Clock Card inside Sidebar */}
+      <div className="p-3 mx-2.5 my-2 rounded-2xl bg-[#eff0fe]/60 border border-purple-200/70 shadow-xs shrink-0">
+        <SidebarSystemClock currentCadence={currentCadence} />
       </div>
 
       {/* Sidebar Navigation Menu */}
@@ -2266,10 +2310,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Row 2: Live India Time (IST), Countdown, and Daily Operations Action Bar */}
+                {/* Row 2: Standup Countdown and Daily Operations Action Bar */}
                 <div className="p-3 sm:p-3.5 bg-slate-50/50 border-t border-[#f0f1f8] flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-3">
-                  {/* Left: Isolated Live India Time & Standup Countdown */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 flex-1 max-w-2xl">
+                  {/* Left: Next Standup Countdown */}
+                  <div className="w-full xl:w-auto min-w-[280px] sm:min-w-[320px] max-w-sm">
                     <LiveIndiaClockAndCountdown currentCadence={currentCadence} />
                   </div>
 
