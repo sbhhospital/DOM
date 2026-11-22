@@ -1970,8 +1970,70 @@ export const UnifiedAdminDashboard: React.FC = () => {
               </div>
             </div>
 
-            {/* Right Header: Date Selector and Google Meet button (Desktop, hidden on mobile to avoid duplication) */}
+            {/* Right Header: Date Selector, Conclude Meeting Button, and Google Meet button (Desktop, hidden on mobile to avoid duplication) */}
             <div className="flex items-center gap-2 sm:gap-3">
+              {/* Executive Conclude Meeting Action Button (Red) in Top Header */}
+              {!currentMeeting.is_completed ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (isFutureDate) {
+                      setToastAlert({
+                        type: 'info',
+                        text: `⚠️ Cannot close future meeting scheduled for ${formatToIndianDate(selectedDate)}! Meeting closure can only be performed on or after meeting day.`,
+                      });
+                      setTimeout(() => setToastAlert(null), 5000);
+                      return;
+                    }
+                    setShowMeetingClosureModal(true);
+                  }}
+                  disabled={isClosingMeeting}
+                  className={`h-9 px-3.5 bg-gradient-to-r from-rose-600 via-red-600 to-rose-700 hover:from-rose-700 hover:to-red-800 text-white rounded-xl text-xs font-bold shadow-sm shadow-rose-300/40 flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150 shrink-0 ${
+                    isFutureDate ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                  title="Officially conclude today's DOM/WOM standup, lock check-ins, and dispatch audit reports to WhatsApp"
+                >
+                  {isClosingMeeting ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 text-white animate-spin" />
+                      <span>Closing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="w-3.5 h-3.5 text-white" />
+                      <span>Conclude Meeting</span>
+                    </>
+                  )}
+                </button>
+              ) : (
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <div className="h-9 px-3 bg-rose-50 border border-rose-300 text-rose-800 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-2xs">
+                    <Lock className="w-3.5 h-3.5 text-rose-600" />
+                    <span>Meeting Concluded</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      openConfirm({
+                        title: 'Re-open Meeting Session',
+                        message: `Re-open meeting session for ${selectedDate}?\n\n• Leaders will be permitted to check in again.\n• Meeting completed lock will be lifted.`,
+                        type: 'primary',
+                        confirmText: 'Re-open Session',
+                        onConfirm: () => {
+                          reopenMeeting(selectedDate);
+                          setToastAlert({ type: 'success', text: `Meeting session re-opened for ${selectedDate}.` });
+                          setTimeout(() => setToastAlert(null), 4000);
+                        },
+                      });
+                    }}
+                    className="h-9 px-2 text-[11px] font-bold text-slate-500 hover:text-slate-800 bg-white hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer"
+                    title="Re-open this meeting session if concluded prematurely"
+                  >
+                    Re-open
+                  </button>
+                </div>
+              )}
+
               <div
                 onClick={() => {
                   try {
@@ -2281,7 +2343,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                       <span>Approve Joined</span>
                     </button>
 
-                    {/* Today Meeting Has Been Completed Button */}
+                    {/* Conclude Meeting Button (Red) */}
                     {!currentMeeting.is_completed ? (
                       <button
                         onClick={() => {
@@ -2296,7 +2358,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                           setShowMeetingClosureModal(true);
                         }}
                         disabled={isClosingMeeting}
-                        className={`h-9 px-3.5 w-full sm:w-auto justify-center bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-2xl text-xs font-bold shadow-sm shadow-emerald-200/50 flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150 shrink-0 ${
+                        className={`h-9 px-3.5 w-full sm:w-auto justify-center bg-gradient-to-r from-rose-600 via-red-600 to-rose-700 hover:from-rose-700 hover:to-red-800 text-white rounded-2xl text-xs font-bold shadow-sm shadow-rose-300/40 flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150 shrink-0 ${
                           isFutureDate ? 'opacity-50 cursor-not-allowed' : ''
                         }`}
                         title="Officially conclude today's DOM/WOM meeting, lock check-ins, and dispatch audit reports to WhatsApp"
@@ -2308,16 +2370,16 @@ export const UnifiedAdminDashboard: React.FC = () => {
                           </>
                         ) : (
                           <>
-                            <CheckCircle2 className="w-3.5 h-3.5 text-white" />
-                            <span>Today Meeting Has Been Completed</span>
+                            <Lock className="w-3.5 h-3.5 text-white" />
+                            <span>Conclude Meeting</span>
                           </>
                         )}
                       </button>
                     ) : (
                       <div className="flex items-center gap-1.5 shrink-0">
-                        <div className="h-9 px-3 bg-emerald-50 border border-emerald-300 text-emerald-800 rounded-2xl text-xs font-bold flex items-center gap-1.5 shadow-2xs">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                          <span>🔒 Meeting Completed (Closed)</span>
+                        <div className="h-9 px-3 bg-rose-50 border border-rose-300 text-rose-800 rounded-2xl text-xs font-bold flex items-center gap-1.5 shadow-2xs">
+                          <Lock className="w-3.5 h-3.5 text-rose-600" />
+                          <span>🔒 Meeting Concluded</span>
                         </div>
                         <button
                           onClick={() => {
@@ -7404,8 +7466,8 @@ function doPost(e) {
             {/* Header */}
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
-                  <CheckCircle2 className="w-5 h-5" />
+                <div className="w-10 h-10 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center">
+                  <Lock className="w-5 h-5" />
                 </div>
                 <div>
                   <h3 className="text-base font-black text-slate-900 leading-tight">
@@ -7499,7 +7561,7 @@ function doPost(e) {
                     setIsClosingMeeting(false);
                   }
                 }}
-                className="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-2xl text-xs font-bold shadow-md shadow-emerald-200 flex items-center gap-2 cursor-pointer transition-all active:scale-95 disabled:opacity-50"
+                className="px-5 py-2.5 bg-gradient-to-r from-rose-600 via-red-600 to-rose-700 hover:from-rose-700 hover:to-red-800 text-white rounded-2xl text-xs font-bold shadow-md shadow-rose-200 flex items-center gap-2 cursor-pointer transition-all active:scale-95 disabled:opacity-50"
               >
                 {isClosingMeeting ? (
                   <>
@@ -7508,7 +7570,7 @@ function doPost(e) {
                   </>
                 ) : (
                   <>
-                    <CheckCircle2 className="w-4 h-4" />
+                    <Lock className="w-4 h-4" />
                     <span>Confirm & Conclude Meeting</span>
                   </>
                 )}
