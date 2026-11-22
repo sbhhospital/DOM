@@ -136,6 +136,37 @@ export const LeaderPortal: React.FC = () => {
   // Status feedback
   const [actionMessage, setActionMessage] = useState<{ success: boolean; text: string } | null>(null);
 
+  // 10:05 AM to 10:20 AM Late Arrival Reason State
+  const [showLateReasonModal, setShowLateReasonModal] = useState<boolean>(false);
+  const [pendingLateMode, setPendingLateMode] = useState<'PHYSICAL' | 'VIRTUAL' | null>(null);
+  const [lateReasonInput, setLateReasonInput] = useState<string>('');
+  const [calculatedLateMinutes, setCalculatedLateMinutes] = useState<number>(0);
+
+  const checkIsBetween1005And1020 = () => {
+    let h = 0;
+    let m = 0;
+    try {
+      const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Kolkata',
+        hour: 'numeric',
+        minute: 'numeric',
+        hour12: false,
+      }).formatToParts(new Date());
+      h = parseInt(parts.find((p) => p.type === 'hour')?.value || '0', 10);
+      m = parseInt(parts.find((p) => p.type === 'minute')?.value || '0', 10);
+    } catch {
+      const d = new Date();
+      h = d.getHours();
+      m = d.getMinutes();
+    }
+    const totalMins = h * 60 + m;
+    // 10:05 AM is 605, 10:20 AM is 620
+    if (totalMins >= 605 && totalMins <= 620) {
+      return { isLate: true, lateMinutes: totalMins - 600 };
+    }
+    return { isLate: false, lateMinutes: 0 };
+  };
+
   const activeLeader = currentUser || selectedLeader;
 
   const [showScannerModal, setShowScannerModal] = useState(false);
@@ -178,6 +209,13 @@ export const LeaderPortal: React.FC = () => {
 
   const handleAttendPhysically = () => {
     if (!activeLeader) return;
+    const { isLate, lateMinutes } = checkIsBetween1005And1020();
+    if (isLate && !lateReasonInput.trim()) {
+      setCalculatedLateMinutes(lateMinutes);
+      setPendingLateMode('PHYSICAL');
+      setShowLateReasonModal(true);
+      return;
+    }
     setShowScannerModal(true);
   };
 
@@ -195,6 +233,7 @@ export const LeaderPortal: React.FC = () => {
       longitude: scanResult.longitude,
       accuracy: scanResult.accuracy,
       device: typeof navigator !== 'undefined' ? navigator.userAgent : 'Live Camera',
+      lateReason: lateReasonInput.trim() || undefined,
     });
 
     setActionMessage({
@@ -203,11 +242,11 @@ export const LeaderPortal: React.FC = () => {
     });
   };
 
-  const handleJoinVirtually = async () => {
+  const executeVirtualJoin = async (reason?: string) => {
     if (!activeLeader) return;
 
     // Acquire GPS location telemetry if permission granted
-    let geoCoords: { latitude?: number; longitude?: number; accuracy?: number } | undefined;
+    let geoCoords: { latitude?: number; longitude?: number; accuracy?: number; lateReason?: string } | undefined;
     if (typeof navigator !== 'undefined' && 'geolocation' in navigator) {
       try {
         const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
@@ -217,18 +256,36 @@ export const LeaderPortal: React.FC = () => {
           latitude: pos.coords.latitude,
           longitude: pos.coords.longitude,
           accuracy: Math.round(pos.coords.accuracy),
+          lateReason: reason,
         };
       } catch (e) {
         console.warn('Geolocation not permitted for virtual join:', e);
       }
     }
+    if (!geoCoords && reason) {
+      geoCoords = { lateReason: reason };
+    }
 
     const res = await markVirtualJoin(activeLeader.id, selectedDate, geoCoords);
     setActionMessage({
-      success: true,
-      text: `Virtual attendance recorded! Launching official Google Meet: ${res.meetUrl}`,
+      success: res.success,
+      text: res.message || `Virtual attendance recorded! Launching official Google Meet: ${res.meetUrl}`,
     });
-    window.open(res.meetUrl, '_blank');
+    if (res.meetUrl) {
+      window.open(res.meetUrl, '_blank');
+    }
+  };
+
+  const handleJoinVirtually = async () => {
+    if (!activeLeader) return;
+    const { isLate, lateMinutes } = checkIsBetween1005And1020();
+    if (isLate && !lateReasonInput.trim()) {
+      setCalculatedLateMinutes(lateMinutes);
+      setPendingLateMode('VIRTUAL');
+      setShowLateReasonModal(true);
+      return;
+    }
+    await executeVirtualJoin(lateReasonInput.trim() || undefined);
   };
 
   const handleRejoinMeeting = async () => {
@@ -763,6 +820,70 @@ export const LeaderPortal: React.FC = () => {
                     className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer"
                   >
                     Save Password
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Modal: 10:05 AM to 10:20 AM Mandatory Late Arrival Reason */}
+        {showLateReasonModal && (
+          <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border-2 border-amber-300">
+              <div className="flex items-center gap-2 mb-2 text-amber-700">
+                <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
+                <h3 className="text-base font-bold text-slate-900">
+                  Late Attendance Notice (+{calculatedLateMinutes}m Late)
+                </h3>
+              </div>
+              <p className="text-xs text-slate-600 mb-3">
+                Today's <strong>{currentMeeting.title}</strong> standup commenced sharp at 10:00 AM IST. Since you are checking in between 10:05 AM and 10:20 AM, please provide your reason for late arrival:
+              </p>
+
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!lateReasonInput.trim()) return;
+                  setShowLateReasonModal(false);
+                  if (pendingLateMode === 'PHYSICAL') {
+                    setShowScannerModal(true);
+                  } else if (pendingLateMode === 'VIRTUAL') {
+                    executeVirtualJoin(lateReasonInput.trim());
+                  }
+                }}
+                className="space-y-3"
+              >
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Reason for Late Arrival <span className="text-rose-500">*</span>
+                  </label>
+                  <textarea
+                    rows={3}
+                    required
+                    placeholder="e.g. Traffic delay / Emergency patient consultation in OPD / Ward handover"
+                    value={lateReasonInput}
+                    onChange={(e) => setLateReasonInput(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-amber-500 font-medium"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowLateReasonModal(false);
+                      setPendingLateMode(null);
+                    }}
+                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs rounded-xl font-bold cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white text-xs font-bold rounded-xl shadow-md cursor-pointer"
+                  >
+                    Confirm & Proceed ({pendingLateMode === 'PHYSICAL' ? 'Scan QR' : 'Join Meet'})
                   </button>
                 </div>
               </form>

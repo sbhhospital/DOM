@@ -52,6 +52,8 @@ import {
   MapPin,
   Navigation,
   Volume2,
+  RotateCcw,
+  Award,
 } from 'lucide-react';
 import { useDomApp } from '../context/DomAppContext';
 import { useAuthSession } from '../context/AuthSessionContext';
@@ -286,6 +288,11 @@ export const UnifiedAdminDashboard: React.FC = () => {
     uploadReportToGoogleDriveAndSheet,
     getFullRosterForDate,
     generateNonAttendeesEscalationEmail,
+    overrideAttendanceTime,
+    resetAttendanceTime,
+    deleteAttendanceRecordById,
+    sendLeaderOnboardingCredentials,
+    sendBulkLeaderCredentials,
     appSettings,
     updateAppSettings,
   } = useDomApp();
@@ -360,7 +367,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
     meetUrl: '',
   });
 
-  // Native Web Speech API Voice Synthesizer
+  // Native Web Speech API Voice Synthesizer (Indian English, Professional Cadence)
   const playStandupVoiceAnnouncement = (cadenceType: string) => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
     try {
@@ -371,11 +378,21 @@ export const UnifiedAdminDashboard: React.FC = () => {
           : cadenceType === 'MOM'
           ? 'Monthly Operations Meeting'
           : 'Daily Operations Meeting';
-      const text = `Welcome dear leaders. Today's ${meetingName} has now commenced. Please join the conference hall or Google Meet.`;
+      const text = `Welcome dear leaders. Today's ${meetingName} has now commenced.`;
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 0.95;
+      utterance.rate = 0.92;
       utterance.pitch = 1.0;
-      utterance.lang = 'en-US';
+
+      const voices = window.speechSynthesis.getVoices();
+      const indianVoice = voices.find(
+        (v) => v.lang === 'en-IN' || v.lang.startsWith('en-IN') || v.name.toLowerCase().includes('india')
+      );
+      if (indianVoice) {
+        utterance.voice = indianVoice;
+        utterance.lang = 'en-IN';
+      } else {
+        utterance.lang = 'en-US';
+      }
       window.speechSynthesis.speak(utterance);
     } catch (e) {
       console.warn('Speech synthesis voice announcement error:', e);
@@ -528,9 +545,9 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
   const canMarkPresent = isSelectedDateToday && !isSunday && !isHolidayOrRemovedDom && isAfter0930Am;
 
-  // Active Tab: 'attendance' | 'calendar' | 'reports' | 'leaders' | 'departments' | 'settings' | 'links' | 'geo-history'
+  // Active Tab: 'attendance' | 'calendar' | 'reports' | 'leaders' | 'departments' | 'settings' | 'links' | 'geo-history' | 'late-audit' | 'compliance-audit'
   const [activeTab, setActiveTab] = useState<
-    'attendance' | 'calendar' | 'reports' | 'leaders' | 'departments' | 'settings' | 'links' | 'geo-history'
+    'attendance' | 'calendar' | 'reports' | 'leaders' | 'departments' | 'settings' | 'links' | 'geo-history' | 'late-audit' | 'compliance-audit'
   >('attendance');
   const datePickerInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -617,6 +634,32 @@ export const UnifiedAdminDashboard: React.FC = () => {
     reason: 'Ward Rounds / Patient Emergency',
     adminApproved: true,
   });
+
+  // Multi-Select and Bulk Credentials Dispatch in HospitalLeadersRoster
+  const [selectedLeaderIds, setSelectedLeaderIds] = useState<string[]>([]);
+  const [isSendingBulk, setIsSendingBulk] = useState<boolean>(false);
+  const [sendCredentialsOnSave, setSendCredentialsOnSave] = useState<boolean>(true);
+
+  // Admin Check-in Time Override Modal
+  const [editTimeModal, setEditTimeModal] = useState<{
+    isOpen: boolean;
+    record: AttendanceRecord | null;
+    timeStr: string;
+    status: AttendanceStatus;
+  }>({
+    isOpen: false,
+    record: null,
+    timeStr: '',
+    status: 'PRESENT',
+  });
+
+  // Cadence Compliance & Absence Tracking Filter States
+  const [complianceBaseline, setComplianceBaseline] = useState<'TOMORROW' | 'ALL'>('TOMORROW');
+  const [complianceSearchTerm, setComplianceSearchTerm] = useState<string>('');
+
+  // Late Arrival Audit Filter States
+  const [lateAuditDateFilter, setLateAuditDateFilter] = useState<string>(selectedDate);
+  const [lateAuditSearchTerm, setLateAuditSearchTerm] = useState<string>('');
 
   // Form states for Leader Add/Edit
   const [leaderForm, setLeaderForm] = useState<{
@@ -779,7 +822,15 @@ export const UnifiedAdminDashboard: React.FC = () => {
         const res = await editLeader(editingLeader.id, leaderForm);
         setIsSavingLeader(false);
         if (res.success) {
-          setFormSuccess(res.message);
+          if (sendCredentialsOnSave && leaderForm.phone) {
+            sendLeaderOnboardingCredentials({
+              ...editingLeader,
+              ...leaderForm,
+              password: editingLeader.password || leaderForm.initialPassword || '123456',
+              department: departments.find((d) => d.id === leaderForm.department_id) || editingLeader.department,
+            });
+          }
+          setFormSuccess(res.message + (sendCredentialsOnSave ? ' • WhatsApp credentials dispatched!' : ''));
           setTimeout(() => {
             setShowAddLeaderModal(false);
             setEditingLeader(null);
@@ -791,7 +842,22 @@ export const UnifiedAdminDashboard: React.FC = () => {
         const res = await addLeader(leaderForm, leaderForm.initialPassword);
         setIsSavingLeader(false);
         if (res.success) {
-          setFormSuccess(res.message);
+          if (sendCredentialsOnSave && leaderForm.phone) {
+            const createdLeader = {
+              id: 'new',
+              full_name: leaderForm.full_name,
+              email: leaderForm.email,
+              phone: leaderForm.phone,
+              employee_code: leaderForm.employee_code,
+              department: departments.find((d) => d.id === leaderForm.department_id),
+              password: leaderForm.initialPassword || '123456',
+              expected_mode: leaderForm.expected_mode,
+              role: leaderForm.role,
+              is_active: leaderForm.is_active,
+            } as any;
+            sendLeaderOnboardingCredentials(createdLeader);
+          }
+          setFormSuccess(res.message + (sendCredentialsOnSave ? ' • WhatsApp credentials dispatched!' : ''));
           setTimeout(() => {
             setShowAddLeaderModal(false);
             setLeaderForm({
@@ -1451,6 +1517,46 @@ export const UnifiedAdminDashboard: React.FC = () => {
           </span>
         </button>
 
+        {/* ⏱️ Late Arrival Audit Button */}
+        <button
+          onClick={() => {
+            setActiveTab('late-audit');
+            if (isMobile) setIsMobileMenuOpen(false);
+          }}
+          className={`relative flex items-center justify-between w-full transition-all duration-200 font-semibold tracking-wide text-[13px] px-3.5 py-2.5 rounded-2xl cursor-pointer ${activeTab === 'late-audit'
+              ? 'bg-[#eff0fe] text-[#7065f0] font-bold shadow-xs transform scale-[1.01]'
+              : 'text-slate-600 hover:bg-[#f5f3ff] hover:text-[#7065f0]'
+            }`}
+        >
+          <div className="flex items-center gap-3">
+            <Clock size={18} strokeWidth={activeTab === 'late-audit' ? 2.5 : 2} className={activeTab === 'late-audit' ? 'text-[#7065f0]' : 'text-slate-400 flex-shrink-0'} />
+            <span className="truncate">Late Arrival Audit</span>
+          </div>
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${activeTab === 'late-audit' ? 'bg-amber-500 text-white' : 'bg-slate-200/60 text-slate-700'}`}>
+            Late Log
+          </span>
+        </button>
+
+        {/* 🏆 Cadence Compliance Audit Button */}
+        <button
+          onClick={() => {
+            setActiveTab('compliance-audit');
+            if (isMobile) setIsMobileMenuOpen(false);
+          }}
+          className={`relative flex items-center justify-between w-full transition-all duration-200 font-semibold tracking-wide text-[13px] px-3.5 py-2.5 rounded-2xl cursor-pointer ${activeTab === 'compliance-audit'
+              ? 'bg-[#eff0fe] text-[#7065f0] font-bold shadow-xs transform scale-[1.01]'
+              : 'text-slate-600 hover:bg-[#f5f3ff] hover:text-[#7065f0]'
+            }`}
+        >
+          <div className="flex items-center gap-3">
+            <Award size={18} strokeWidth={activeTab === 'compliance-audit' ? 2.5 : 2} className={activeTab === 'compliance-audit' ? 'text-[#7065f0]' : 'text-slate-400 flex-shrink-0'} />
+            <span className="truncate">Cadence Compliance Audit</span>
+          </div>
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${activeTab === 'compliance-audit' ? 'bg-[#7065f0] text-white' : 'bg-slate-200/60 text-slate-700'}`}>
+            DOM/WOM/MOM
+          </span>
+        </button>
+
         {/* PDF Reports Section */}
         <div className="pt-3 pb-1 px-3">
           <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
@@ -1627,45 +1733,45 @@ export const UnifiedAdminDashboard: React.FC = () => {
           </div>
         )}
 
-        {/* 10:00 AM Standup Meeting Live Dropdown Banner */}
+        {/* 10:00 AM Standup Meeting Big Center Countdown Modal Window */}
         {standupAnnouncement.active && (
-          <div className="sticky top-0 z-[200] w-full bg-gradient-to-r from-[#7065f0] via-[#8577ff] to-[#45b7b8] text-white shadow-xl border-b-2 border-white/30 px-4 sm:px-6 py-3 animate-slide-down">
-            <div className="max-w-[1600px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-white text-[#7065f0] font-black flex items-center justify-center text-sm shadow-md shrink-0 animate-pulse">
-                  {standupAnnouncement.secondsLeft > 0 ? `${standupAnnouncement.secondsLeft}s` : 'LIVE'}
-                </div>
-                <div>
-                  <div className="text-[10px] font-black uppercase tracking-wider text-amber-200 flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-200" />
-                    <span>Official Standup Meeting Active</span>
-                    <span className="bg-white/20 px-2 py-0.5 rounded-full text-white text-[9px] font-mono">10:00 AM IST</span>
-                  </div>
-                  <div className="text-sm sm:text-base font-extrabold text-white">
-                    Welcome Dear Leaders • {standupAnnouncement.title}
-                  </div>
-                  <div className="text-[11px] text-white/80">
-                    Venue: {appSettings.conference_room_name || 'Conference Room, 5th Floor'} • Mode: In-Person Boardroom & Google Meet
-                  </div>
-                </div>
+          <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+            <div className="bg-white rounded-3xl p-8 max-w-lg w-full text-center shadow-2xl border-2 border-purple-200/80 relative overflow-hidden page-transition">
+              <div className="h-2 w-full bg-gradient-to-r from-[#7065f0] via-[#8577ff] to-[#45b7b8] absolute top-0 left-0" />
+
+              {/* Big Bold Animated Countdown Circle */}
+              <div className="w-28 h-28 rounded-full bg-[#eff0fe] border-4 border-[#7065f0]/30 mx-auto flex items-center justify-center mb-4 shadow-inner">
+                <span className="text-6xl font-black text-[#7065f0] tracking-tighter animate-pulse">
+                  {standupAnnouncement.secondsLeft > 0 ? standupAnnouncement.secondsLeft : 'GO'}
+                </span>
               </div>
 
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-black bg-[#eff0fe] text-[#7065f0] border border-purple-200/60 uppercase tracking-wider mb-2">
+                <Sparkles className="w-3.5 h-3.5 text-[#7065f0]" /> Official Standup Announcement
+              </div>
+
+              <h3 className="text-2xl font-black text-[#232d42] tracking-tight">
+                {standupAnnouncement.title}
+              </h3>
+              <p className="text-xs text-slate-500 font-semibold mt-1.5">
+                Venue: {appSettings.conference_room_name || 'Conference Room, 5th Floor'} • Sharp 10:00 AM IST
+              </p>
+
+              <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
                 <a
                   href={standupAnnouncement.meetUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-4 py-2 bg-white text-[#7065f0] hover:bg-slate-50 font-bold rounded-xl text-xs flex items-center gap-2 shadow-md transition-all active:scale-95 cursor-pointer"
+                  className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-[#7065f0] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7065f0] text-white font-bold rounded-2xl text-xs uppercase tracking-wider shadow-md hover:shadow-lg active:scale-95 flex items-center justify-center gap-2 transition-all cursor-pointer"
                 >
-                  <Video className="w-4 h-4 text-[#7065f0]" />
-                  <span>Join Google Meet Now</span>
+                  <Video className="w-4 h-4 text-white" />
+                  <span>Launch Google Meet</span>
                 </a>
                 <button
                   onClick={() => setStandupAnnouncement((prev) => ({ ...prev, active: false }))}
-                  className="p-2 rounded-xl bg-white/20 hover:bg-white/30 text-white transition-colors cursor-pointer"
-                  title="Dismiss banner"
+                  className="w-full sm:w-auto px-5 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl text-xs uppercase tracking-wider transition-all cursor-pointer"
                 >
-                  <X className="w-4 h-4" />
+                  Dismiss Window
                 </button>
               </div>
             </div>
@@ -1731,6 +1837,22 @@ export const UnifiedAdminDashboard: React.FC = () => {
                   {activeTab === 'settings' && (
                     <>
                       WhatsApp Gateway <span className="text-[#7065f0]">& Settings</span>
+                    </>
+                  )}
+                  {activeTab === 'late-audit' && (
+                    <>
+                      Late Arrival <span className="text-[#7065f0]">Audit & Delay Reasons</span>
+                      <span className="px-3 py-1 rounded-2xl bg-amber-50 border border-amber-200 text-[10px] font-bold text-amber-800 tracking-wider whitespace-nowrap">
+                        10:05 — 10:20 AM Window
+                      </span>
+                    </>
+                  )}
+                  {activeTab === 'compliance-audit' && (
+                    <>
+                      Cadence Compliance <span className="text-[#7065f0]">& Absence Tracking</span>
+                      <span className="px-3 py-1 rounded-2xl bg-[#eff0fe] border border-purple-200/60 text-[10px] font-bold text-[#7065f0] tracking-wider whitespace-nowrap">
+                        DOM • WOM • MOM
+                      </span>
                     </>
                   )}
                 </h1>
@@ -2767,6 +2889,73 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                     Mark Absent
                                   </button>
                                 )}
+
+                                {/* Admin Action: ⏱️ Override Time, 🔄 Reset Time, 🗑️ Delete Record */}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const existingTime = rec.check_in_at
+                                      ? new Date(rec.check_in_at).toLocaleTimeString('en-IN', {
+                                          hour: '2-digit',
+                                          minute: '2-digit',
+                                          second: '2-digit',
+                                          hour12: true,
+                                        })
+                                      : '10:00:00 AM';
+                                    setEditTimeModal({
+                                      isOpen: true,
+                                      record: rec,
+                                      timeStr: existingTime,
+                                      status: rec.status === 'ABSENT' ? 'PRESENT' : rec.status,
+                                    });
+                                  }}
+                                  className="p-1 text-slate-500 hover:text-[#7065f0] hover:bg-[#eff0fe] rounded-lg transition-colors cursor-pointer border border-transparent hover:border-purple-200"
+                                  title="Edit / Override Check-in Time"
+                                >
+                                  <Clock size={13} />
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    openConfirm({
+                                      title: 'Reset Attendance Time',
+                                      message: `Reset check-in time and attendance status for ${rec.leader?.full_name}? Status will return to unrecorded.`,
+                                      type: 'warning',
+                                      confirmText: 'Reset Time',
+                                      onConfirm: async () => {
+                                        await resetAttendanceTime(rec.id);
+                                        setToastAlert({ type: 'info', text: `Attendance reset for ${rec.leader?.full_name}!` });
+                                        setTimeout(() => setToastAlert(null), 3000);
+                                      },
+                                    });
+                                  }}
+                                  className="p-1 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer border border-transparent hover:border-amber-200"
+                                  title="Reset Check-in Time"
+                                >
+                                  <RotateCcw size={13} />
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    openConfirm({
+                                      title: 'Delete Attendance Record',
+                                      message: `Permanently delete today's attendance record for ${rec.leader?.full_name}?`,
+                                      type: 'danger',
+                                      confirmText: 'Delete Record',
+                                      onConfirm: async () => {
+                                        await deleteAttendanceRecordById(rec.id);
+                                        setToastAlert({ type: 'info', text: `Attendance record deleted for ${rec.leader?.full_name}!` });
+                                        setTimeout(() => setToastAlert(null), 3000);
+                                      },
+                                    });
+                                  }}
+                                  className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer border border-transparent hover:border-rose-200"
+                                  title="Delete Attendance Record"
+                                >
+                                  <Trash2 size={13} />
+                                </button>
                               </>
                             )}
                               </div>
@@ -3017,13 +3206,80 @@ export const UnifiedAdminDashboard: React.FC = () => {
                   </div>
                 )}
 
+                {/* Bulk WhatsApp Credentials Dispatch Toolbar */}
+                {selectedLeaderIds.length > 0 && (
+                  <div className="bg-[#eff0fe] border border-purple-200 p-3.5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs animate-in fade-in">
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-7 h-7 rounded-xl bg-[#7065f0] text-white font-black text-xs flex items-center justify-center shadow-xs">
+                        {selectedLeaderIds.length}
+                      </span>
+                      <div>
+                        <span className="text-xs font-black text-[#232d42] block">
+                          {selectedLeaderIds.length} Leaders Selected
+                        </span>
+                        <span className="text-[10px] text-slate-500 font-medium">
+                          Dispatch official portal login credentials and user guide to WhatsApp
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          setIsSendingBulk(true);
+                          try {
+                            const res = await sendBulkLeaderCredentials(selectedLeaderIds);
+                            setToastAlert({
+                              type: res.success ? 'success' : 'error',
+                              text: res.message,
+                            });
+                            setSelectedLeaderIds([]);
+                            setTimeout(() => setToastAlert(null), 5000);
+                          } finally {
+                            setIsSendingBulk(false);
+                          }
+                        }}
+                        disabled={isSendingBulk}
+                        className="px-4 py-2 bg-gradient-to-r from-[#7065f0] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7065f0] text-white rounded-xl text-xs font-bold shadow-xs active:scale-95 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-60"
+                      >
+                        {isSendingBulk ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                        <span>📱 Send WhatsApp Credentials to Selected ({selectedLeaderIds.length})</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setSelectedLeaderIds([])}
+                        className="px-3 py-2 bg-white text-slate-600 hover:bg-slate-100 rounded-xl text-xs font-bold border border-slate-200 cursor-pointer"
+                      >
+                        Deselect All
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {/* View 1: Detailed List / Table View (Crisp, High-Legibility) */}
                 {leaderViewMode === 'list' && filteredLeaders.length > 0 && (
                   <div className="bg-white rounded-2xl border border-[#dcdcdc] shadow-sm overflow-hidden">
                     <div className="w-full overflow-x-auto custom-scrollbar">
-                      <table className="w-full text-left border-collapse min-w-[760px]">
+                      <table className="w-full text-left border-collapse min-w-[800px]">
                         <thead>
                           <tr className="bg-slate-50/80 border-b border-[#dcdcdc] text-[10px] font-black uppercase tracking-wider text-slate-500">
+                            <th className="py-3 px-3 w-10 text-center">
+                              <input
+                                type="checkbox"
+                                checked={filteredLeaders.length > 0 && selectedLeaderIds.length === filteredLeaders.length}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedLeaderIds(filteredLeaders.map((l) => l.id));
+                                  } else {
+                                    setSelectedLeaderIds([]);
+                                  }
+                                }}
+                                className="w-4 h-4 rounded text-[#7065f0] border-slate-300 focus:ring-[#7065f0] cursor-pointer"
+                                title="Select All Leaders"
+                              />
+                            </th>
                             <th className="py-3 px-4">Leader Profile</th>
                             <th className="py-3 px-4">Department Master</th>
                             <th className="py-3 px-4">Contact (Email & WhatsApp)</th>
@@ -3040,6 +3296,21 @@ export const UnifiedAdminDashboard: React.FC = () => {
                               className={`transition-colors hover:bg-slate-50/60 ${lead.is_active === false ? 'opacity-65 bg-slate-50/40' : ''
                                 }`}
                             >
+                              {/* Row Checkbox */}
+                              <td className="py-3.5 px-3 text-center">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedLeaderIds.includes(lead.id)}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setSelectedLeaderIds((prev) => [...prev, lead.id]);
+                                    } else {
+                                      setSelectedLeaderIds((prev) => prev.filter((id) => id !== lead.id));
+                                    }
+                                  }}
+                                  className="w-4 h-4 rounded text-[#7065f0] border-slate-300 focus:ring-[#7065f0] cursor-pointer"
+                                />
+                              </td>
                               {/* Leader Name, Role, Employee ID */}
                               <td className="py-3.5 px-4">
                                 <div className="flex items-center gap-3">
@@ -3149,6 +3420,21 @@ export const UnifiedAdminDashboard: React.FC = () => {
                               <td className="py-3.5 px-4 text-right">
                                 <div className="flex items-center justify-end gap-1.5">
                                   <button
+                                    type="button"
+                                    onClick={async () => {
+                                      const res = await sendLeaderOnboardingCredentials(lead);
+                                      setToastAlert({
+                                        type: res.success ? 'success' : 'error',
+                                        text: res.message,
+                                      });
+                                      setTimeout(() => setToastAlert(null), 5000);
+                                    }}
+                                    className="p-1.5 text-[#7065f0] hover:text-[#513ed8] hover:bg-[#eff0fe] rounded-lg transition-colors cursor-pointer border border-transparent hover:border-purple-200"
+                                    title="Send WhatsApp Login Credentials & Guide"
+                                  >
+                                    <Send size={14} />
+                                  </button>
+                                  <button
                                     onClick={() => openEditLeaderModal(lead)}
                                     className="p-1.5 text-slate-600 hover:text-[#2e7d32] hover:bg-[#cfead6]/30 rounded-lg transition-colors cursor-pointer border border-transparent hover:border-[#2e7d32]/20"
                                     title="Edit Leader Profile"
@@ -3249,6 +3535,21 @@ export const UnifiedAdminDashboard: React.FC = () => {
                           </span>
                           <div className="flex items-center gap-1">
                             <button
+                              type="button"
+                              onClick={async () => {
+                                const res = await sendLeaderOnboardingCredentials(lead);
+                                setToastAlert({
+                                  type: res.success ? 'success' : 'error',
+                                  text: res.message,
+                                });
+                                setTimeout(() => setToastAlert(null), 5000);
+                              }}
+                              className="p-1.5 rounded-lg text-[#7065f0] hover:text-[#513ed8] hover:bg-[#eff0fe] transition-colors cursor-pointer"
+                              title="Send WhatsApp Credentials & Guide"
+                            >
+                              <Send className="w-4 h-4" />
+                            </button>
+                            <button
                               onClick={() => handleToggleLeaderStatus(lead)}
                               className={`p-1.5 rounded-lg transition-colors cursor-pointer ${lead.is_active !== false
                                   ? 'text-slate-400 hover:text-amber-600 hover:bg-amber-50'
@@ -3281,7 +3582,6 @@ export const UnifiedAdminDashboard: React.FC = () => {
               </div>
             );
           })()}
-
           {/* ================= TAB 5: DEPARTMENTS MASTER (24 OFFICIAL DEPARTMENTS) ================= */}
           {activeTab === 'departments' && (
             <div className="space-y-6">
@@ -4501,6 +4801,523 @@ export const UnifiedAdminDashboard: React.FC = () => {
             );
           })()}
 
+          {/* ================= TAB: LATE ARRIVAL AUDIT & REASON LOG ================= */}
+          {activeTab === 'late-audit' && (() => {
+            const lateRecords = attendanceRecords.filter((rec) => {
+              if (lateAuditDateFilter !== 'ALL') {
+                const recDate = rec.meeting_date || (rec as any).date;
+                if (recDate && recDate !== lateAuditDateFilter) return false;
+              }
+              const isLate =
+                rec.is_late ||
+                (rec.late_minutes && rec.late_minutes > 0) ||
+                rec.status === 'INFORMED_LATE' ||
+                Boolean(rec.late_reason) ||
+                (rec.check_in_at && (() => {
+                  const d = new Date(rec.check_in_at);
+                  return d.getHours() * 60 + d.getMinutes() > 600;
+                })());
+              if (!isLate) return false;
+
+              if (lateAuditSearchTerm.trim()) {
+                const q = lateAuditSearchTerm.toLowerCase();
+                const name = rec.leader?.full_name?.toLowerCase() || '';
+                const dept = rec.leader?.department?.name?.toLowerCase() || '';
+                const code = rec.leader?.employee_code?.toLowerCase() || '';
+                const reason = (rec.late_reason || rec.informed_reason || '').toLowerCase();
+                if (!name.includes(q) && !dept.includes(q) && !code.includes(q) && !reason.includes(q)) return false;
+              }
+              return true;
+            });
+
+            const avgLateMins = lateRecords.length > 0
+              ? Math.round(lateRecords.reduce((acc, r) => acc + (r.late_minutes || 5), 0) / lateRecords.length)
+              : 0;
+            const maxLateMins = lateRecords.reduce((max, r) => Math.max(max, r.late_minutes || 0), 0);
+
+            return (
+              <div className="space-y-5">
+                {/* KPI Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                  <div className="bg-white p-4 rounded-2xl border border-amber-200/80 shadow-xs flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold shrink-0">
+                      <Clock className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Late Arrivals Logged</div>
+                      <div className="text-xl font-black text-amber-900">{lateRecords.length}</div>
+                      <div className="text-[10px] text-amber-700 font-semibold">{lateAuditDateFilter === 'ALL' ? 'All Recorded Dates' : formatToIndianDate(lateAuditDateFilter)}</div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-purple-100 text-[#7065f0] flex items-center justify-center font-bold shrink-0">
+                      <TrendingUp className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Average Delay</div>
+                      <div className="text-xl font-black text-[#232d42]">+{avgLateMins} min</div>
+                      <div className="text-[10px] text-slate-500 font-semibold">Post-10:00 AM Start</div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center font-bold shrink-0">
+                      <AlertTriangle className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Longest Delay</div>
+                      <div className="text-xl font-black text-rose-900">+{maxLateMins} min</div>
+                      <div className="text-[10px] text-rose-600 font-semibold">Requires Review</div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold shrink-0">
+                      <ShieldCheck className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Late Window Gate</div>
+                      <div className="text-xs font-black text-emerald-900 font-mono">10:05 — 10:20 AM</div>
+                      <div className="text-[10px] text-emerald-700 font-semibold">Mandatory Reason Enforced</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Filter Toolbar */}
+                <div className="bg-white p-4 rounded-2xl border border-[#f0f1f8] shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-2.5 flex-1">
+                    <div className="relative flex-1 min-w-[220px] max-w-sm">
+                      <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                      <input
+                        type="text"
+                        placeholder="Filter by leader name, department, or reason..."
+                        value={lateAuditSearchTerm}
+                        onChange={(e) => setLateAuditSearchTerm(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-[#232d42] placeholder-slate-400 font-semibold focus:outline-none focus:border-[#7065f0]"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-1.5 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
+                      <Calendar className="w-3.5 h-3.5 text-[#7065f0]" />
+                      <span className="text-[11px] font-bold text-slate-500">Date:</span>
+                      <input
+                        type="date"
+                        value={lateAuditDateFilter === 'ALL' ? '' : lateAuditDateFilter}
+                        onChange={(e) => setLateAuditDateFilter(e.target.value || 'ALL')}
+                        className="bg-transparent text-xs font-bold text-slate-800 focus:outline-none cursor-pointer"
+                      />
+                      {lateAuditDateFilter !== 'ALL' ? (
+                        <button
+                          type="button"
+                          onClick={() => setLateAuditDateFilter('ALL')}
+                          className="text-[10px] font-bold text-[#7065f0] hover:underline ml-1 cursor-pointer"
+                        >
+                          All Dates
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setLateAuditDateFilter(selectedDate)}
+                          className="text-[10px] font-bold text-emerald-600 hover:underline ml-1 cursor-pointer"
+                        >
+                          Today
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => window.print()}
+                      className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Printer className="w-3.5 h-3.5" />
+                      <span>Print Audit</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Late Arrival Audit Table */}
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-slate-50/80 text-slate-500 font-bold border-b border-slate-200">
+                          <th className="py-2.5 px-3 font-black text-[10px] uppercase tracking-wider">Leader Profile</th>
+                          <th className="py-2.5 px-3 font-black text-[10px] uppercase tracking-wider">Department</th>
+                          <th className="py-2.5 px-3 text-center font-black text-[10px] uppercase tracking-wider">Date & Cadence</th>
+                          <th className="py-2.5 px-3 text-center font-black text-[10px] uppercase tracking-wider">Actual Check-in Time</th>
+                          <th className="py-2.5 px-3 text-center font-black text-[10px] uppercase tracking-wider">Delay Duration</th>
+                          <th className="py-2.5 px-3 text-center font-black text-[10px] uppercase tracking-wider">Mode</th>
+                          <th className="py-2.5 px-3 font-black text-[10px] uppercase tracking-wider">Stated Late Reason</th>
+                          <th className="py-2.5 px-3 text-right font-black text-[10px] uppercase tracking-wider">Audit Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {lateRecords.length === 0 ? (
+                          <tr>
+                            <td colSpan={8} className="py-10 text-center text-slate-400 font-medium">
+                              <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
+                              <span>No late arrivals recorded for the selected filter! Standup discipline maintained.</span>
+                            </td>
+                          </tr>
+                        ) : (
+                          lateRecords.map((rec) => (
+                            <tr key={rec.id} className="hover:bg-amber-50/20 transition-colors">
+                              <td className="py-2.5 px-3">
+                                <div className="font-bold text-slate-900 text-xs sm:text-sm">{rec.leader?.full_name}</div>
+                                <div className="text-[10px] text-slate-400 font-mono">{rec.leader?.employee_code}</div>
+                              </td>
+                              <td className="py-2.5 px-3 text-slate-600 font-semibold text-xs">
+                                {rec.leader?.department?.name || 'Department'}
+                              </td>
+                              <td className="py-2.5 px-3 text-center font-mono text-xs">
+                                <div className="font-bold text-slate-800">{formatToIndianDate(rec.meeting_date || (rec as any).date || selectedDate)}</div>
+                                <span className="text-[9px] font-bold uppercase text-[#7065f0] bg-[#eff0fe] px-1.5 py-0.2 rounded border border-purple-200">
+                                  {rec.cadence || 'DOM'}
+                                </span>
+                              </td>
+                              <td className="py-2.5 px-3 text-center font-mono text-xs font-bold text-slate-800">
+                                {rec.check_in_at ? new Date(rec.check_in_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }) : '10:07 AM'}
+                              </td>
+                              <td className="py-2.5 px-3 text-center">
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-900 border border-amber-300">
+                                  +{rec.late_minutes || 5} min
+                                </span>
+                              </td>
+                              <td className="py-2.5 px-3 text-center">
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+                                  {rec.selected_mode === 'PHYSICAL' ? 'Physical' : 'Virtual'}
+                                </span>
+                              </td>
+                              <td className="py-2.5 px-3 max-w-xs">
+                                <div className="p-2 bg-amber-50 border border-amber-200/80 rounded-xl text-xs text-amber-950 font-medium flex items-start gap-1.5">
+                                  <MessageSquare className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+                                  <span className="leading-snug">
+                                    {rec.late_reason || rec.informed_reason || 'Joined between 10:05 - 10:20 AM standup window'}
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="py-2.5 px-3 text-right">
+                                <div className="flex items-center justify-end gap-1.5">
+                                  {rec.admin_verified_attendance ? (
+                                    <span className="px-2 py-0.5 bg-emerald-50 text-emerald-800 text-[10px] font-bold rounded-lg border border-emerald-300">
+                                      Approved
+                                    </span>
+                                  ) : (
+                                    <button
+                                      onClick={async () => {
+                                        await approveAttendanceRecord(rec.id);
+                                        setToastAlert({ type: 'success', text: `Delay approved for ${rec.leader?.full_name}!` });
+                                        setTimeout(() => setToastAlert(null), 3000);
+                                      }}
+                                      className="px-2.5 py-1 bg-[#2e7d32] hover:bg-[#256628] text-white rounded-lg text-[10px] font-bold shadow-2xs cursor-pointer"
+                                    >
+                                      Approve Delay
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* ================= TAB: CADENCE COMPLIANCE & ABSENCE TRACKING ================= */}
+          {activeTab === 'compliance-audit' && (() => {
+            const baselineDate = complianceBaseline === 'TOMORROW' ? '2026-11-23' : '2026-01-01';
+
+            const complianceData = leaders.filter((l) => l.is_active !== false).map((leader) => {
+              const leaderRecords = attendanceRecords.filter((rec) => {
+                const recDate = rec.meeting_date || (rec as any).date;
+                return rec.leader_id === leader.id && (!recDate || recDate >= baselineDate);
+              });
+
+              const domRecords = leaderRecords.filter((r) => r.cadence === 'DOM' || (!r.cadence && r.meeting_frequency !== 'WEEKLY' && r.meeting_frequency !== 'MONTHLY'));
+              const womRecords = leaderRecords.filter((r) => r.cadence === 'WOM' || r.meeting_frequency === 'WEEKLY');
+              const momRecords = leaderRecords.filter((r) => r.cadence === 'MOM' || r.meeting_frequency === 'MONTHLY');
+
+              const domMissed = domRecords.filter((r) => r.status === 'ABSENT' || r.verification_status === 'REJECTED').length;
+              const womMissed = womRecords.filter((r) => r.status === 'ABSENT' || r.verification_status === 'REJECTED').length;
+              const momMissed = momRecords.filter((r) => r.status === 'ABSENT' || r.verification_status === 'REJECTED').length;
+
+              const approvedLeaves = leaderRecords.filter((r) => r.status === 'LEAVE' || (r.status === 'INFORMED_ABSENT' && r.informed_confirmed)).length;
+              const unexcusedAbsences = leaderRecords.filter((r) => r.status === 'ABSENT' || r.verification_status === 'REJECTED' || (r.status === 'INFORMED_ABSENT' && !r.informed_confirmed)).length;
+
+              const sortedRecords = [...leaderRecords].sort((a, b) => {
+                const dateA = a.meeting_date || (a as any).date || '';
+                const dateB = b.meeting_date || (b as any).date || '';
+                return dateB.localeCompare(dateA);
+              });
+
+              let consecutiveDaysAbsent = 0;
+              let absentSinceDate: string | null = null;
+              for (const rec of sortedRecords) {
+                if (rec.status === 'ABSENT' || rec.verification_status === 'REJECTED' || rec.status === 'INFORMED_ABSENT') {
+                  consecutiveDaysAbsent++;
+                  absentSinceDate = rec.meeting_date || (rec as any).date || null;
+                } else if (rec.status === 'PRESENT' || rec.admin_verified_attendance || rec.verification_status === 'VERIFIED') {
+                  break;
+                }
+              }
+
+              const totalEligible = leaderRecords.length;
+              const attendedCount = leaderRecords.filter((r) => r.status === 'PRESENT' || r.admin_verified_attendance || r.verification_status === 'VERIFIED').length;
+              const score = totalEligible > 0 ? Math.round(((attendedCount + approvedLeaves) / totalEligible) * 100) : 100;
+
+              return {
+                leader,
+                totalEligible,
+                attendedCount,
+                domMissed,
+                womMissed,
+                momMissed,
+                approvedLeaves,
+                unexcusedAbsences,
+                consecutiveDaysAbsent,
+                absentSinceDate,
+                score,
+              };
+            });
+
+            const filteredCompliance = complianceData.filter((item) => {
+              if (!complianceSearchTerm.trim()) return true;
+              const q = complianceSearchTerm.toLowerCase();
+              return (
+                item.leader.full_name.toLowerCase().includes(q) ||
+                item.leader.employee_code?.toLowerCase().includes(q) ||
+                item.leader.department?.name?.toLowerCase().includes(q)
+              );
+            });
+
+            const highRiskCount = filteredCompliance.filter((i) => i.score < 75 || i.consecutiveDaysAbsent >= 3).length;
+            const avgComplianceScore = filteredCompliance.length > 0
+              ? Math.round(filteredCompliance.reduce((acc, i) => acc + i.score, 0) / filteredCompliance.length)
+              : 100;
+
+            return (
+              <div className="space-y-5">
+                {/* Top Banner & Baseline Selector */}
+                <div className="bg-white rounded-3xl p-5 border border-[#f0f1f8] shadow-xs flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                  <div>
+                    <h3 className="text-lg font-bold text-[#232d42] flex items-center gap-2 uppercase tracking-tight">
+                      <Award className="w-5 h-5 text-[#7065f0]" />
+                      <span>Cadence Compliance & <span className="text-[#7065f0]">Absence Tracking</span></span>
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Cross-cadence accountability for DOM (Daily), WOM (Weekly), and MOM (Monthly) Standups.
+                    </p>
+                  </div>
+
+                  {/* Baseline Toggle Button */}
+                  <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-2xl border border-slate-200">
+                    <button
+                      type="button"
+                      onClick={() => setComplianceBaseline('TOMORROW')}
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        complianceBaseline === 'TOMORROW'
+                          ? 'bg-[#7065f0] text-white shadow-xs'
+                          : 'text-slate-600 hover:text-[#7065f0]'
+                      }`}
+                    >
+                      Starting Tomorrow (23-11-2026)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setComplianceBaseline('ALL')}
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        complianceBaseline === 'ALL'
+                          ? 'bg-[#7065f0] text-white shadow-xs'
+                          : 'text-slate-600 hover:text-[#7065f0]'
+                      }`}
+                    >
+                      All-Time Historic Baseline
+                    </button>
+                  </div>
+                </div>
+
+                {/* KPI Stats */}
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                  <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-purple-100 text-[#7065f0] flex items-center justify-center font-bold shrink-0">
+                      <TrendingUp className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Avg Compliance Score</div>
+                      <div className="text-2xl font-black text-[#232d42]">{avgComplianceScore}%</div>
+                      <div className="text-[10px] text-emerald-600 font-semibold">Active Leaders Baseline</div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-4 rounded-2xl border border-rose-200 shadow-xs flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center font-bold shrink-0">
+                      <AlertTriangle className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">High Risk Leaders</div>
+                      <div className="text-2xl font-black text-rose-800">{highRiskCount}</div>
+                      <div className="text-[10px] text-rose-600 font-semibold">&lt;75% Attendance or &gt;3d Absent</div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold shrink-0">
+                      <Calendar className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Cadence Breakdown</div>
+                      <div className="text-xs font-black text-slate-800 font-mono">DOM • WOM • MOM</div>
+                      <div className="text-[10px] text-slate-500 font-semibold">Individual Missed Tracking</div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold shrink-0">
+                      <ShieldCheck className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Leave Policy</div>
+                      <div className="text-xs font-black text-emerald-800">Approved vs Unexcused</div>
+                      <div className="text-[10px] text-emerald-700 font-semibold">Separately Audited</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Search & Export Toolbar */}
+                <div className="bg-white p-4 rounded-2xl border border-[#f0f1f8] shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+                  <div className="relative flex-1 max-w-md">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                    <input
+                      type="text"
+                      placeholder="Search by leader name, employee code, or department..."
+                      value={complianceSearchTerm}
+                      onChange={(e) => setComplianceSearchTerm(e.target.value)}
+                      className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-[#232d42] placeholder-slate-400 font-semibold focus:outline-none focus:border-[#7065f0]"
+                    />
+                  </div>
+
+                  <button
+                    onClick={() => window.print()}
+                    className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Printer className="w-3.5 h-3.5" />
+                    <span>Print Compliance Audit</span>
+                  </button>
+                </div>
+
+                {/* Compliance Table */}
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-slate-50/80 text-slate-500 font-bold border-b border-slate-200">
+                          <th className="py-2.5 px-3 font-black text-[10px] uppercase tracking-wider">Leader Profile</th>
+                          <th className="py-2.5 px-3 font-black text-[10px] uppercase tracking-wider">Department</th>
+                          <th className="py-2.5 px-3 text-center font-black text-[10px] uppercase tracking-wider">Consecutive Days Absent</th>
+                          <th className="py-2.5 px-3 text-center font-black text-[10px] uppercase tracking-wider">Missing DOMs</th>
+                          <th className="py-2.5 px-3 text-center font-black text-[10px] uppercase tracking-wider">Missing WOMs</th>
+                          <th className="py-2.5 px-3 text-center font-black text-[10px] uppercase tracking-wider">Missing MOMs</th>
+                          <th className="py-2.5 px-3 text-center font-black text-[10px] uppercase tracking-wider">Approved Leave</th>
+                          <th className="py-2.5 px-3 text-center font-black text-[10px] uppercase tracking-wider">Unexcused Absent</th>
+                          <th className="py-2.5 px-3 text-center font-black text-[10px] uppercase tracking-wider">Compliance Score</th>
+                          <th className="py-2.5 px-3 text-right font-black text-[10px] uppercase tracking-wider">Status Tier</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {filteredCompliance.map((item) => (
+                          <tr key={item.leader.id} className="hover:bg-slate-50/70 transition-colors">
+                            <td className="py-2.5 px-3">
+                              <div className="font-bold text-slate-900 text-xs sm:text-sm">{item.leader.full_name}</div>
+                              <div className="text-[10px] text-slate-400 font-mono">{item.leader.employee_code}</div>
+                            </td>
+                            <td className="py-2.5 px-3 text-slate-600 font-semibold text-xs">
+                              {item.leader.department?.name || 'Department'}
+                            </td>
+                            <td className="py-2.5 px-3 text-center">
+                              {item.consecutiveDaysAbsent > 0 ? (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-800 border border-rose-300">
+                                  {item.consecutiveDaysAbsent} Days {item.absentSinceDate ? `(Since ${formatToIndianDate(item.absentSinceDate)})` : ''}
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-300">
+                                  0 Days (Active)
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-2.5 px-3 text-center font-mono font-bold text-slate-700">
+                              {item.domMissed > 0 ? (
+                                <span className="text-rose-600 font-black">{item.domMissed} missed</span>
+                              ) : (
+                                <span className="text-emerald-600">0</span>
+                              )}
+                            </td>
+                            <td className="py-2.5 px-3 text-center font-mono font-bold text-slate-700">
+                              {item.womMissed > 0 ? (
+                                <span className="text-amber-600 font-black">{item.womMissed} missed</span>
+                              ) : (
+                                <span className="text-emerald-600">0</span>
+                              )}
+                            </td>
+                            <td className="py-2.5 px-3 text-center font-mono font-bold text-slate-700">
+                              {item.momMissed > 0 ? (
+                                <span className="text-purple-600 font-black">{item.momMissed} missed</span>
+                              ) : (
+                                <span className="text-emerald-600">0</span>
+                              )}
+                            </td>
+                            <td className="py-2.5 px-3 text-center">
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                                {item.approvedLeaves} leaves
+                              </span>
+                            </td>
+                            <td className="py-2.5 px-3 text-center">
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                item.unexcusedAbsences > 0 ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-slate-50 text-slate-500'
+                              }`}>
+                                {item.unexcusedAbsences} unexcused
+                              </span>
+                            </td>
+                            <td className="py-2.5 px-3 text-center">
+                              <div className="flex items-center justify-center gap-2">
+                                <div className="w-16 bg-slate-200 rounded-full h-2 overflow-hidden">
+                                  <div
+                                    className={`h-2 rounded-full ${
+                                      item.score >= 90 ? 'bg-[#2e7d32]' : item.score >= 75 ? 'bg-amber-500' : 'bg-rose-500'
+                                    }`}
+                                    style={{ width: `${item.score}%` }}
+                                  />
+                                </div>
+                                <span className="font-mono font-black text-xs text-slate-800">{item.score}%</span>
+                              </div>
+                            </td>
+                            <td className="py-2.5 px-3 text-right">
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                                item.score >= 90
+                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                                  : item.score >= 75
+                                  ? 'bg-amber-50 text-amber-800 border-amber-300'
+                                  : 'bg-rose-50 text-rose-800 border-rose-300'
+                              }`}>
+                                {item.score >= 90 ? 'Excellent' : item.score >= 75 ? 'Moderate' : 'High Risk'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
         </div>
       </div>
 
@@ -4838,6 +5655,23 @@ export const UnifiedAdminDashboard: React.FC = () => {
                       }`}
                   />
                 </button>
+              </div>
+
+              {/* WhatsApp Onboarding & Credentials Dispatch Option */}
+              <div className="p-3 bg-[#eff0fe] border border-purple-200/80 rounded-2xl flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  id="sendWhatsAppCredentialsCheckbox"
+                  checked={sendCredentialsOnSave}
+                  onChange={(e) => setSendCredentialsOnSave(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 text-[#7065f0] rounded border-purple-300 focus:ring-[#7065f0] cursor-pointer"
+                />
+                <label htmlFor="sendWhatsAppCredentialsCheckbox" className="text-xs text-[#232d42] cursor-pointer">
+                  <span className="font-bold block text-[#7065f0]">📱 Send WhatsApp Credentials & Login Guide</span>
+                  <span className="text-[11px] text-slate-500 block leading-tight">
+                    Dispatches login link (https://sbhdom.vercel.app/login), username, password, and quick-start instructions to leader's WhatsApp immediately on save.
+                  </span>
+                </label>
               </div>
 
               <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
@@ -6052,6 +6886,116 @@ function doPost(e) {
                 <span className="text-xs font-bold text-purple-700 px-3 py-1 bg-purple-100 rounded-lg shrink-0">
                   {isDispatchingGroup === 'both' ? 'Sending...' : 'Send Both'}
                 </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= MODAL: ADMIN ATTENDANCE TIME OVERRIDE ================= */}
+      {editTimeModal.isOpen && editTimeModal.record && (
+        <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-[9999] p-4 overflow-y-auto animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-[#eff0fe] text-[#7065f0] flex items-center justify-center font-bold">
+                  <Clock className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-900">Modify Check-in Time</h3>
+                  <p className="text-[11px] text-slate-500">Manual Admin Time Override & Status Modification</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditTimeModal({ isOpen: false, record: null, timeStr: '', status: 'PRESENT' })}
+                className="text-slate-400 hover:text-slate-600 font-bold text-sm cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="py-4 space-y-4">
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Leader</span>
+                <span className="text-xs font-black text-slate-900 block mt-0.5">{editTimeModal.record.leader?.full_name}</span>
+                <span className="text-[11px] text-slate-500 block">
+                  Department: {editTimeModal.record.leader?.department?.name} • Code: {editTimeModal.record.leader?.employee_code}
+                </span>
+                <span className="text-[11px] text-[#7065f0] font-semibold block mt-0.5">
+                  Date: {formatToIndianDate(editTimeModal.record.meeting_date || (editTimeModal.record as any).date || selectedDate)}
+                </span>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Check-in Time String (IST)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. 10:02:15 AM or 09:55:00 AM"
+                  value={editTimeModal.timeStr}
+                  onChange={(e) => setEditTimeModal((prev) => ({ ...prev, timeStr: e.target.value }))}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-[#7065f0]"
+                />
+                <span className="text-[10px] text-slate-400 mt-1 block">Enter time string (format: HH:MM:SS AM/PM)</span>
+              </div>
+
+              {/* Quick Preset Buttons */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[10px] text-slate-400 font-bold">Presets:</span>
+                {['09:55:00 AM', '10:00:00 AM', '10:05:00 AM', '10:10:00 AM', '10:15:00 AM'].map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setEditTimeModal((prev) => ({ ...prev, timeStr: t }))}
+                    className="px-2 py-0.5 rounded-lg text-[10px] font-mono font-bold bg-slate-100 hover:bg-purple-50 text-slate-700 hover:text-[#7065f0] border border-slate-200 cursor-pointer"
+                  >
+                    {t.slice(0, 5)}
+                  </button>
+                ))}
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Attendance Status
+                </label>
+                <select
+                  value={editTimeModal.status}
+                  onChange={(e) => setEditTimeModal((prev) => ({ ...prev, status: e.target.value as AttendanceStatus }))}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#7065f0] cursor-pointer"
+                >
+                  <option value="PRESENT">PRESENT (Approved)</option>
+                  <option value="INFORMED_LATE">INFORMED_LATE (Late Arrival)</option>
+                  <option value="LEAVE">LEAVE (Approved Leave)</option>
+                  <option value="ABSENT">ABSENT</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setEditTimeModal({ isOpen: false, record: null, timeStr: '', status: 'PRESENT' })}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!editTimeModal.record) return;
+                  await overrideAttendanceTime(editTimeModal.record.id, editTimeModal.timeStr, editTimeModal.status);
+                  setToastAlert({
+                    type: 'success',
+                    text: `Time overridden to ${editTimeModal.timeStr} for ${editTimeModal.record.leader?.full_name}!`,
+                  });
+                  setEditTimeModal({ isOpen: false, record: null, timeStr: '', status: 'PRESENT' });
+                  setTimeout(() => setToastAlert(null), 3000);
+                }}
+                className="px-5 py-2 bg-gradient-to-r from-[#7065f0] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7065f0] text-white rounded-xl text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer"
+              >
+                Save Modified Time
               </button>
             </div>
           </div>

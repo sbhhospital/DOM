@@ -59,8 +59,8 @@ interface DomAppContextType {
   markVirtualJoin: (
     leaderId: string,
     customDate?: string,
-    locationData?: { latitude?: number; longitude?: number; accuracy?: number; device?: string }
-  ) => Promise<{ success: boolean; meetUrl: string; clicksCount: number }>;
+    locationData?: { latitude?: number; longitude?: number; accuracy?: number; device?: string; lateReason?: string }
+  ) => Promise<{ success: boolean; meetUrl: string; clicksCount: number; message?: string }>;
   verifyVirtualMeetingQr: (
     leaderId: string,
     dateStr: string,
@@ -68,8 +68,15 @@ interface DomAppContextType {
   ) => Promise<{ success: boolean; message: string }>;
   markRoomQrCheckIn: (
     leaderId: string,
-    locationData?: { latitude?: number; longitude?: number; accuracy?: number; device?: string }
+    locationData?: { latitude?: number; longitude?: number; accuracy?: number; device?: string; lateReason?: string }
   ) => Promise<{ success: boolean; message: string; alreadyRecorded?: boolean; timeStr?: string }>;
+  // Manual Override, Time Reset & Record Deletion
+  overrideAttendanceTime: (recordId: string, customTimeStr: string, status?: AttendanceStatus) => Promise<{ success: boolean; message: string }>;
+  resetAttendanceTime: (recordId: string) => Promise<{ success: boolean; message: string }>;
+  deleteAttendanceRecordById: (recordId: string) => Promise<{ success: boolean; message: string }>;
+  // WhatsApp Onboarding & Credentials
+  sendLeaderOnboardingCredentials: (leader: Leader) => Promise<{ success: boolean; message: string }>;
+  sendBulkLeaderCredentials: (leaderIds: string[]) => Promise<{ success: boolean; successCount: number; message: string }>;
   logMeetingRejoin: (leaderId: string, meetUrl: string) => Promise<void>;
   submitInformedAbsence: (leaderId: string, informedTo: string, reason: string) => Promise<{ success: boolean; message: string }>;
   markLeaderInformedLeave: (leaderId: string, date: string, informedTo: string, reason: string) => Promise<void>;
@@ -3434,6 +3441,157 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
   };
 
+  // Manual Override Check-in Time & Reset & Delete Operations
+  const overrideAttendanceTime = async (
+    recordId: string,
+    customTimeStr: string,
+    status: AttendanceStatus = 'PRESENT'
+  ): Promise<{ success: boolean; message: string }> => {
+    let targetRec: AttendanceRecord | null = null;
+    const nowIso = new Date().toISOString();
+
+    setAttendanceRecords((prev) =>
+      prev.map((r) => {
+        if (r.id === recordId) {
+          const updated: AttendanceRecord = {
+            ...r,
+            check_in_at: nowIso,
+            status,
+            verification_status: 'VERIFIED',
+            admin_verified_attendance: true,
+            verification_note: `Manual Time Override by Admin (${customTimeStr})`,
+            updated_at: nowIso,
+          };
+          (updated as any).join_time = customTimeStr;
+          targetRec = updated;
+          return updated;
+        }
+        return r;
+      })
+    );
+
+    if (targetRec) {
+      await syncAttendanceRecordToSupabase(targetRec, `Admin Manual Override Time: ${customTimeStr}`);
+    }
+    return { success: true, message: `Check-in time updated to ${customTimeStr} successfully!` };
+  };
+
+  const resetAttendanceTime = async (recordId: string): Promise<{ success: boolean; message: string }> => {
+    let targetRec: AttendanceRecord | null = null;
+    const nowIso = new Date().toISOString();
+
+    setAttendanceRecords((prev) =>
+      prev.map((r) => {
+        if (r.id === recordId) {
+          const updated: AttendanceRecord = {
+            ...r,
+            check_in_at: undefined,
+            status: 'ABSENT',
+            verification_status: 'PENDING',
+            admin_verified_attendance: false,
+            verification_note: 'Time Reset by Admin',
+            updated_at: nowIso,
+          };
+          delete (updated as any).join_time;
+          targetRec = updated;
+          return updated;
+        }
+        return r;
+      })
+    );
+
+    if (targetRec) {
+      await syncAttendanceRecordToSupabase(targetRec, 'Admin Time Reset to Absent');
+    }
+    return { success: true, message: 'Attendance time reset to absent successfully.' };
+  };
+
+  const deleteAttendanceRecordById = async (recordId: string): Promise<{ success: boolean; message: string }> => {
+    setAttendanceRecords((prev) => prev.filter((r) => r.id !== recordId));
+    try {
+      await supabase.from('attendance_records').delete().eq('id', recordId);
+      await supabase.from('admin_audit_logs').insert([
+        {
+          actor_id: null,
+          action: 'DELETE_ATTENDANCE_RECORD',
+          entity_type: 'ATTENDANCE',
+          entity_id: recordId,
+          reason: 'Record deleted by Administrator',
+          after_data: { deleted_at: new Date().toISOString() },
+        },
+      ]);
+    } catch (e) {
+      console.warn('Supabase delete record error:', e);
+    }
+    return { success: true, message: 'Attendance record deleted successfully.' };
+  };
+
+  // WhatsApp Leader Credentials & Onboarding Dispatch (Single & Bulk)
+  const sendLeaderOnboardingCredentials = async (leader: Leader): Promise<{ success: boolean; message: string }> => {
+    if (!leader.phone || leader.phone.trim().length < 10) {
+      return { success: false, message: `Leader ${leader.full_name} does not have a valid registered WhatsApp number.` };
+    }
+
+    const assignedPassword = leader.password || localStorage.getItem(`sbh_user_pass_${leader.id}`) || '123456';
+    const deptName = leader.department?.name || 'Hospital Operations';
+
+    let msg = `🏥 *SBH GROUP OF HOSPITALS, RAIPUR*\n`;
+    msg += `🔐 *OFFICIAL LEADER PORTAL CREDENTIALS & LOGIN GUIDE*\n`;
+    msg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
+    msg += `Dear *${leader.full_name}*,\n\n`;
+    msg += `Welcome to the SBH Operations Leadership Team. Your secure login credentials for the Daily Operations Meeting (DOM / WOM / MOM) Attendance Portal have been provisioned:\n\n`;
+    msg += `🌐 *Portal Login URL:* https://sbhdom.vercel.app/login\n`;
+    msg += `👤 *Username / Email:* ${leader.email}\n`;
+    msg += `📱 *Registered Mobile:* ${leader.phone}\n`;
+    msg += `🔑 *Password:* ${assignedPassword}\n`;
+    msg += `🏢 *Department:* ${deptName}\n`;
+    msg += `🆔 *Leader Code:* ${leader.employee_code || 'SBH-LEADER'}\n\n`;
+    msg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
+    msg += `📌 *QUICK START LOGIN & CHECK-IN GUIDE:*\n`;
+    msg += `1️⃣ Open the official portal link: https://sbhdom.vercel.app/login\n`;
+    msg += `2️⃣ Sign in using your registered email and password provided above.\n`;
+    msg += `3️⃣ *Daily Check-In Window:* Daily between *09:50 AM to 10:20 AM IST*.\n`;
+    msg += `4️⃣ *Physical Attendance:* Scan the official QR code in the 5th Floor Conference Hall. (Live GPS verification inside hospital premises is mandatory).\n`;
+    msg += `5️⃣ *Virtual Attendance:* Click "Join Online" to launch Google Meet directly.\n`;
+    msg += `6️⃣ *Unforeseen Absence / Late:* If delayed or on leave, submit prior notice via the portal before 10:00 AM IST to avoid being marked absent.\n\n`;
+    msg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
+    msg += `*Automated Reminder*\n`;
+    msg += `Clinical Governance & Hospital Operations Command\n`;
+    msg += `SBH Group of Hospitals, Raipur`;
+
+    try {
+      await sendCeoitboxWhatsappMessage({
+        mobileNo: leader.phone,
+        name: leader.full_name,
+        message: msg,
+        settings: appSettings,
+      });
+      return { success: true, message: `Login credentials & guide successfully dispatched to ${leader.full_name} (${leader.phone})!` };
+    } catch (e: any) {
+      return { success: false, message: `Failed to dispatch credentials to ${leader.full_name}: ${e?.message || 'Network error'}` };
+    }
+  };
+
+  const sendBulkLeaderCredentials = async (
+    leaderIds: string[]
+  ): Promise<{ success: boolean; successCount: number; message: string }> => {
+    let successCount = 0;
+    for (const id of leaderIds) {
+      const leader = leaders.find((l) => l.id === id);
+      if (leader && leader.phone && leader.phone.trim().length >= 10) {
+        const res = await sendLeaderOnboardingCredentials(leader);
+        if (res.success) {
+          successCount++;
+        }
+      }
+    }
+    return {
+      success: successCount > 0,
+      successCount,
+      message: `Dispatched login credentials to ${successCount} of ${leaderIds.length} selected leaders!`,
+    };
+  };
+
   return (
     <DomAppContext.Provider
       value={{
@@ -3483,6 +3641,11 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         sendCeoitboxGroupBroadcast,
         triggerAutomated0950Transmission,
         uploadReportToGoogleDriveAndSheet,
+        overrideAttendanceTime,
+        resetAttendanceTime,
+        deleteAttendanceRecordById,
+        sendLeaderOnboardingCredentials,
+        sendBulkLeaderCredentials,
         updateAppSettings,
       }}
     >
