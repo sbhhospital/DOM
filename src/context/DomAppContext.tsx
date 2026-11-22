@@ -169,9 +169,9 @@ const DEFAULT_SETTINGS: AppSettings = {
   google_drive_folder_id: '1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD',
   google_drive_folder_url: 'https://drive.google.com/drive/folders/1spy873NXbS_tP-aLSNfHYjAS3Ws4k9VD?usp=sharing',
   google_sheet_webhook_url: 'https://script.google.com/macros/s/AKfycbyp3qzrQkP29pHmpz1bmcuwMYNSEncexZ6UE-Wr_1719eFiLvgUh7ETE0iexN4rGqvabw/exec',
-  hospital_latitude: 21.2514,
-  hospital_longitude: 81.6296,
-  hospital_radius_meters: 50,
+  hospital_latitude: 21.22528,
+  hospital_longitude: 81.65921,
+  hospital_radius_meters: 200,
   hospital_geofence_enabled: true,
 };
 
@@ -357,6 +357,15 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
       if (!parsed.google_sheet_webhook_url) {
         parsed.google_sheet_webhook_url = 'https://script.google.com/macros/s/AKfycbyp3qzrQkP29pHmpz1bmcuwMYNSEncexZ6UE-Wr_1719eFiLvgUh7ETE0iexN4rGqvabw/exec';
+      }
+      if (!parsed.hospital_latitude || parsed.hospital_latitude === 21.2514) {
+        parsed.hospital_latitude = 21.22528;
+      }
+      if (!parsed.hospital_longitude || parsed.hospital_longitude === 81.6296) {
+        parsed.hospital_longitude = 81.65921;
+      }
+      if (!parsed.hospital_radius_meters || parsed.hospital_radius_meters === 50) {
+        parsed.hospital_radius_meters = 200;
       }
       return parsed;
     }
@@ -1621,18 +1630,18 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       };
     }
 
-    // 2. Strict Hospital Geofence Check (Conference Room, 5th Floor)
+    // 2. Strict Hospital Geofence Check (SBH Hospital Campus & 5th Floor Conference Hall)
     if (appSettings.hospital_geofence_enabled !== false) {
       if (locationData?.latitude == null || locationData?.longitude == null) {
         return {
           success: false,
           message:
-            '🚫 Location Permission Required: Physical attendance requires GPS verification. Please allow location access on your mobile device to verify presence inside the 5th Floor Conference Hall.',
+            '🚫 Location Permission Required: Physical attendance requires live GPS verification. Please allow location permissions in Chrome/browser to verify presence inside the SBH Hospital Campus.',
         };
       }
-      const hospitalLat = appSettings.hospital_latitude || 21.2514;
-      const hospitalLng = appSettings.hospital_longitude || 81.6296;
-      const allowedRadius = appSettings.hospital_radius_meters || 50;
+      const hospitalLat = appSettings.hospital_latitude || 21.22528;
+      const hospitalLng = appSettings.hospital_longitude || 81.65921;
+      const allowedRadius = appSettings.hospital_radius_meters || 200;
       const distance = calculateDistanceInMeters(
         locationData.latitude,
         locationData.longitude,
@@ -1640,9 +1649,42 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         hospitalLng
       );
       if (distance > allowedRadius) {
+        // Log rejected geofence violation directly into Supabase SQL database (admin_audit_logs)
+        const lead = leadersRef.current.find((l) => l.id === leaderId);
+        try {
+          supabase.from('admin_audit_logs').insert([
+            {
+              actor_id: leaderId,
+              action: 'GEO_VIOLATION',
+              entity_type: 'ATTENDANCE_SECURITY',
+              entity_id: leaderId,
+              reason: `Rejected Physical Attendance: Outside SBH Hospital campus (~${distance}m away, allowed: ${allowedRadius}m)`,
+              after_data: {
+                leader_id: leaderId,
+                leader_name: lead?.full_name || 'Leader',
+                employee_code: lead?.employee_code || '',
+                phone: lead?.phone || '',
+                department_name: lead?.department?.name || 'Department',
+                meeting_date: selectedDate,
+                attempt_time: new Date().toISOString(),
+                latitude: locationData.latitude,
+                longitude: locationData.longitude,
+                accuracy: locationData.accuracy,
+                distance_meters: distance,
+                allowed_radius_meters: allowedRadius,
+                google_maps_url: `https://www.google.com/maps?q=${locationData.latitude},${locationData.longitude}`,
+                device: locationData.device || (typeof navigator !== 'undefined' ? navigator.userAgent : 'Mobile Browser'),
+                status: 'REJECTED_GEOFENCE_BREACH',
+              },
+            },
+          ]).then();
+        } catch (auditErr) {
+          console.warn('Failed to insert geo violation audit log:', auditErr);
+        }
+
         return {
           success: false,
-          message: `🚫 Location Restriction: You are approximately ${distance}m away from SBH Hospital. Physical attendance can ONLY be verified inside the 5th Floor Conference Hall (Allowed radius: ${allowedRadius}m).`,
+          message: `🚫 Physical Attendance Rejected: You are approximately ${distance}m away from SBH Hospital. Physical attendance can ONLY be verified inside SBH Hospital Campus (Allowed radius: ${allowedRadius}m). Your attempt and location have been recorded in the security audit log.`,
         };
       }
     }

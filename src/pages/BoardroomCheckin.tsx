@@ -169,10 +169,10 @@ export const BoardroomCheckin: React.FC = () => {
         return;
       }
 
-      // Hospital 5th Floor Geofence check
-      const hospitalLat = appSettings.hospital_latitude || 21.2514;
-      const hospitalLng = appSettings.hospital_longitude || 81.6296;
-      const allowedRadius = appSettings.hospital_radius_meters || 50;
+      // Hospital Campus Geofence check (SBH Hospital, New Rajendra Nagar, Raipur)
+      const hospitalLat = appSettings.hospital_latitude || 21.22528;
+      const hospitalLng = appSettings.hospital_longitude || 81.65921;
+      const allowedRadius = appSettings.hospital_radius_meters || 200;
 
       const distance = calculateDistanceInMeters(
         locData.latitude,
@@ -182,8 +182,11 @@ export const BoardroomCheckin: React.FC = () => {
       );
 
       if (appSettings.hospital_geofence_enabled !== false && distance > allowedRadius) {
+        // Trigger markRoomQrCheckIn so the breach is officially logged into Supabase SQL database (admin_audit_logs)
+        const checkinRes = await markRoomQrCheckIn(selectedLeader.id, locData);
         setErrorMessage(
-          `⚠️ Location Restriction: Please check in from inside the Hospital 5th Floor Conference Room. You are currently approximately ${distance}m away (Allowed radius: ${allowedRadius}m).`
+          checkinRes.message ||
+          `🚫 Location Restriction: Physical check-in is ONLY permitted inside SBH Hospital campus (Allowed radius: ${allowedRadius}m). You are currently approximately ${distance}m away. Your location attempt has been recorded in the security audit log.`
         );
         setIsSubmitting(false);
         return;

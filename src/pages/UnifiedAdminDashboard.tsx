@@ -69,6 +69,7 @@ import defaultLeaderAvatar from '../assets/default-leader-avatar.png';
 import { BoardroomQrPosterModal } from '../components/BoardroomQrPosterModal';
 import { generateDirectorPdf } from '../lib/pdfGenerator';
 import { sendCeoitboxWhatsappMessage } from '../lib/whatsappService';
+import { supabase } from '../lib/supabase';
 
 const SidebarSystemClock: React.FC<{ currentCadence?: string }> = React.memo(({ currentCadence = 'DOM' }) => {
   const { getMeetingForDate } = useDomApp();
@@ -294,11 +295,11 @@ const LiveIndiaClockAndCountdown: React.FC<{ currentCadence: string }> = React.m
   );
 });
 
-// Haversine formula: Computes distance in meters from SBH Group of Hospital, Raipur (21.2514° N, 81.6296° E)
+// Haversine formula: Computes distance in meters from SBH Hospital, New Rajendra Nagar, Raipur (21.22528° N, 81.65921° E)
 const calculateCampusDistanceMeters = (lat?: number, lon?: number): number | null => {
   if (typeof lat !== 'number' || typeof lon !== 'number' || isNaN(lat) || isNaN(lon)) return null;
-  const hospitalLat = 21.2514;
-  const hospitalLon = 81.6296;
+  const hospitalLat = 21.22528;
+  const hospitalLon = 81.65921;
   const R = 6371e3; // Earth radius in metres
   const φ1 = (lat * Math.PI) / 180;
   const φ2 = (hospitalLat * Math.PI) / 180;
@@ -677,8 +678,9 @@ export const UnifiedAdminDashboard: React.FC = () => {
   // Attendance Geo-History Filter States
   const [geoSearchTerm, setGeoSearchTerm] = useState<string>('');
   const [geoModeFilter, setGeoModeFilter] = useState<'ALL' | 'PHYSICAL' | 'VIRTUAL'>('ALL');
-  const [geoCampusFilter, setGeoCampusFilter] = useState<'ALL' | 'ON_CAMPUS' | 'REMOTE'>('ALL');
+  const [geoCampusFilter, setGeoCampusFilter] = useState<'ALL' | 'ON_CAMPUS' | 'REMOTE' | 'VIOLATION'>('ALL');
   const [geoDateFilter, setGeoDateFilter] = useState<string>(selectedDate);
+  const [geoViolationLogs, setGeoViolationLogs] = useState<any[]>([]);
 
   // Daily Meeting Links state
   const [copiedLeaderId, setCopiedLeaderId] = useState<string | null>(null);
@@ -789,6 +791,51 @@ export const UnifiedAdminDashboard: React.FC = () => {
     const t = setTimeout(() => setTabLoading(false), 200);
     return () => clearTimeout(t);
   }, [activeTab]);
+
+  // Live Geo-Violation security logs fetch & Supabase Realtime subscription
+  useEffect(() => {
+    let isMounted = true;
+    const fetchGeoViolations = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('admin_audit_logs')
+          .select('*')
+          .eq('action', 'GEO_VIOLATION')
+          .order('created_at', { ascending: false })
+          .limit(150);
+        if (!error && data && isMounted) {
+          setGeoViolationLogs(data);
+        }
+      } catch (e) {
+        console.warn('Error fetching geo violations from Supabase:', e);
+      }
+    };
+    fetchGeoViolations();
+
+    const channel = supabase
+      .channel('realtime_geo_violations')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'admin_audit_logs', filter: 'action=eq.GEO_VIOLATION' },
+        (payload) => {
+          if (payload.new && isMounted) {
+            setGeoViolationLogs((prev) => [payload.new, ...prev]);
+            const actor = payload.new.after_data?.leader_name || 'A leader';
+            const dist = payload.new.after_data?.distance_meters;
+            setToastAlert({
+              type: 'error',
+              text: `🚨 Geofence Breach: ${actor} attempted physical check-in from ~${dist ? Math.round(dist) : ''}m away (outside hospital)!`,
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      isMounted = false;
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   // Cadence Compliance & Absence Tracking Filter States
   const [complianceBaseline, setComplianceBaseline] = useState<'TOMORROW' | 'ALL'>('TOMORROW');
@@ -2959,6 +3006,51 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                 ) : (
                                   <span className="text-xs text-slate-400 font-semibold">—</span>
                                 )}
+
+                                {/* GPS See Location Pin Link */}
+                                {rec.latitude && rec.longitude && (
+                                  <div className="mt-1 flex items-center justify-center">
+                                    <a
+                                      href={`https://www.google.com/maps?q=${rec.latitude},${rec.longitude}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-[10px] font-bold shadow-2xs transition-all cursor-pointer active:scale-95"
+                                      title={`View check-in pin on Google Maps (~${calculateCampusDistanceMeters(rec.latitude, rec.longitude) ?? '?'}m from SBH Hospital)`}
+                                    >
+                                      <MapPin className="w-3 h-3 text-emerald-600" />
+                                      <span>See Location</span>
+                                      <ExternalLink className="w-2.5 h-2.5 text-emerald-500" />
+                                    </a>
+                                  </div>
+                                )}
+
+                                {/* Off-Campus Geofence Breach Attempt Warning & Google Maps Link */}
+                                {(() => {
+                                  const vLog = geoViolationLogs.find(
+                                    (v) =>
+                                      (v.actor_id === rec.leader_id || v.after_data?.leader_id === rec.leader_id) &&
+                                      (v.after_data?.meeting_date === selectedDate || v.created_at?.startsWith(selectedDate))
+                                  );
+                                  if (!vLog) return null;
+                                  const vLat = vLog.after_data?.latitude;
+                                  const vLng = vLog.after_data?.longitude;
+                                  const vDist = vLog.after_data?.distance_meters;
+                                  return (
+                                    <div className="mt-1 flex items-center justify-center">
+                                      <a
+                                        href={vLat && vLng ? `https://www.google.com/maps?q=${vLat},${vLng}` : undefined}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1 px-2 py-0.5 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-300 rounded-lg text-[10px] font-bold shadow-2xs transition-all cursor-pointer active:scale-95"
+                                        title={`Geofence breach attempt: User tried to check in from ~${vDist ? Math.round(vDist) : ''}m away. Click to view location on Google Maps.`}
+                                      >
+                                        <AlertTriangle className="w-3 h-3 text-rose-600" />
+                                        <span>Breach: ~{vDist ? `${Math.round(vDist)}m` : 'Remote'}</span>
+                                        <ExternalLink className="w-2.5 h-2.5 text-rose-500" />
+                                      </a>
+                                    </div>
+                                  );
+                                })()}
                               </td>
                               <td className="py-2.5 px-3 text-center font-mono text-xs text-slate-800 font-bold">
                                 {rec.check_in_at ? (
@@ -4795,7 +4887,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 </div>
               </div>
 
-              {/* Hospital 5th Floor Conference Room Geofence & Location Control */}
+              {/* Hospital Campus & Conference Room Geofence & Location Control */}
               <div className="fluent-card p-6 rounded-2xl space-y-4 border border-emerald-300 bg-gradient-to-br from-emerald-50/40 via-white to-teal-50/30">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
@@ -4803,14 +4895,26 @@ export const UnifiedAdminDashboard: React.FC = () => {
                       <MapPin className="w-5 h-5" />
                     </div>
                     <div>
-                      <h3 className="text-base font-black text-slate-900">Hospital 5th Floor Geofence & Location Control</h3>
-                      <p className="text-xs text-slate-500">Enforce physical QR scan strictly within Conference Room perimeter (5m - 50m)</p>
+                      <h3 className="text-base font-black text-slate-900">SBH Hospital Campus Geofence & Location Verification</h3>
+                      <p className="text-xs text-slate-500">SBH Hospital | Eye & Women's Hospital, Opp. Vijeta Complex, New Rajendra Nagar, Raipur (Allowed radius: 200m)</p>
                     </div>
                   </div>
 
-                  <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${appSettings.hospital_geofence_enabled !== false ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-slate-100 text-slate-600 border-slate-300'}`}>
-                    {appSettings.hospital_geofence_enabled !== false ? '🛡️ Geofence Active' : 'Off'}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <a
+                      href="https://www.google.com/maps?q=21.22528,81.65921"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1 bg-white hover:bg-slate-50 text-emerald-800 border border-emerald-300 rounded-full text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer transition-all"
+                    >
+                      <MapPin className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>View Hospital on Google Maps</span>
+                      <ExternalLink className="w-3 h-3 text-emerald-600" />
+                    </a>
+                    <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${appSettings.hospital_geofence_enabled !== false ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-slate-100 text-slate-600 border-slate-300'}`}>
+                      {appSettings.hospital_geofence_enabled !== false ? '🛡️ Geofence Active' : 'Off'}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
@@ -4819,8 +4923,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                     <input
                       type="number"
                       step="any"
-                      value={appSettings.hospital_latitude ?? 21.2514}
-                      onChange={(e) => updateAppSettings({ hospital_latitude: parseFloat(e.target.value) || 21.2514 })}
+                      value={appSettings.hospital_latitude ?? 21.22528}
+                      onChange={(e) => updateAppSettings({ hospital_latitude: parseFloat(e.target.value) || 21.22528 })}
                       className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 font-mono focus:outline-none focus:border-emerald-600"
                     />
                   </div>
@@ -4830,8 +4934,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                     <input
                       type="number"
                       step="any"
-                      value={appSettings.hospital_longitude ?? 81.6296}
-                      onChange={(e) => updateAppSettings({ hospital_longitude: parseFloat(e.target.value) || 81.6296 })}
+                      value={appSettings.hospital_longitude ?? 81.65921}
+                      onChange={(e) => updateAppSettings({ hospital_longitude: parseFloat(e.target.value) || 81.65921 })}
                       className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 font-mono focus:outline-none focus:border-emerald-600"
                     />
                   </div>
@@ -4840,8 +4944,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                     <label className="block text-xs font-bold text-slate-700 mb-1">Allowed Radius (Meters)</label>
                     <input
                       type="number"
-                      value={appSettings.hospital_radius_meters ?? 50}
-                      onChange={(e) => updateAppSettings({ hospital_radius_meters: parseInt(e.target.value, 10) || 50 })}
+                      value={appSettings.hospital_radius_meters ?? 200}
+                      onChange={(e) => updateAppSettings({ hospital_radius_meters: parseInt(e.target.value, 10) || 200 })}
                       className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 font-mono focus:outline-none focus:border-emerald-600"
                     />
                   </div>
@@ -4903,56 +5007,109 @@ export const UnifiedAdminDashboard: React.FC = () => {
           {/* ================= TAB: ATTENDANCE GEO-HISTORY ================= */}
           {activeTab === 'geo-history' && (() => {
             const targetDate = geoDateFilter;
+            const allowedRadius = appSettings.hospital_radius_meters || 200;
+
+            // 1. Map recorded attendance with GPS
             const recordsList = targetDate === 'ALL'
               ? attendanceRecords
               : attendanceRecords.filter((r) => r.meeting_date === (targetDate || selectedDate));
 
-            let totalWithGps = 0;
-            let onCampusCount = 0;
-            let offCampusCount = 0;
-            let qrVerifiedCount = 0;
-
-            recordsList.forEach((r) => {
-              if (typeof r.latitude === 'number' && typeof r.longitude === 'number') {
-                totalWithGps++;
+            const attEntries = recordsList
+              .filter((r) => typeof r.latitude === 'number' && typeof r.longitude === 'number')
+              .map((r) => {
+                const leader = leaders.find((l) => l.id === r.leader_id);
+                const dept = leader?.department || departments.find((d) => d.id === leader?.department_id);
                 const dist = calculateCampusDistanceMeters(r.latitude, r.longitude);
-                if (dist !== null && dist <= 350) {
-                  onCampusCount++;
-                } else if (dist !== null) {
-                  offCampusCount++;
-                }
-              }
-              if (r.evidence_source === 'ROOM_STATIC_QR' || r.qr_scanned_at) {
-                qrVerifiedCount++;
-              }
-            });
+                const isPhysical = r.evidence_source === 'ROOM_STATIC_QR' || r.selected_mode === 'PHYSICAL';
+                const timeStr = r.check_in_at
+                  ? new Date(r.check_in_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                  : r.first_event_at || '—';
 
-            const filteredGeoRecords = recordsList.filter((r) => {
-              const leader = leaders.find((l) => l.id === r.leader_id);
-              const dept = leader?.department || departments.find((d) => d.id === leader?.department_id);
+                return {
+                  id: r.id,
+                  leaderId: r.leader_id,
+                  leaderName: leader?.full_name || r.leader?.full_name || 'Leader ' + r.leader_id.slice(0, 8),
+                  phone: leader?.phone || '—',
+                  deptName: dept?.name || 'Hospital Leader',
+                  date: r.meeting_date,
+                  timeStr,
+                  mode: (isPhysical ? 'PHYSICAL' : 'VIRTUAL') as 'PHYSICAL' | 'VIRTUAL',
+                  isViolation: false,
+                  latitude: r.latitude as number,
+                  longitude: r.longitude as number,
+                  accuracy: r.accuracy,
+                  distance: dist,
+                  device: (r as any).device_fingerprint || 'Mobile Browser',
+                };
+              });
+
+            // 2. Map rejected geofence violation attempts from Supabase SQL (admin_audit_logs)
+            const violationEntries = geoViolationLogs
+              .filter((log) => {
+                const after = log.after_data || {};
+                const logDate = after.meeting_date || (log.created_at ? log.created_at.split('T')[0] : '');
+                if (targetDate !== 'ALL' && logDate !== (targetDate || selectedDate)) {
+                  return false;
+                }
+                return true;
+              })
+              .map((log) => {
+                const after = log.after_data || {};
+                const leader = leaders.find((l) => l.id === log.actor_id || l.id === after.leader_id);
+                const dept = leader?.department || departments.find((d) => d.id === leader?.department_id);
+                const dist = after.distance_meters ?? calculateCampusDistanceMeters(after.latitude, after.longitude);
+                const timeStr = after.attempt_time
+                  ? new Date(after.attempt_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                  : new Date(log.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+                return {
+                  id: log.id,
+                  leaderId: log.actor_id || after.leader_id || '',
+                  leaderName: after.leader_name || leader?.full_name || 'Leader',
+                  phone: after.phone || leader?.phone || '—',
+                  deptName: after.department_name || dept?.name || 'Department',
+                  date: after.meeting_date || (log.created_at ? log.created_at.split('T')[0] : selectedDate),
+                  timeStr,
+                  mode: 'PHYSICAL' as 'PHYSICAL' | 'VIRTUAL',
+                  isViolation: true,
+                  latitude: after.latitude as number,
+                  longitude: after.longitude as number,
+                  accuracy: after.accuracy,
+                  distance: dist,
+                  device: after.device || 'Mobile Browser',
+                };
+              });
+
+            // Combine all geo entries (both verified and rejected attempts)
+            const unifiedList = [...violationEntries, ...attEntries];
+
+            // KPI Counts
+            const totalWithGps = unifiedList.length;
+            const onCampusCount = unifiedList.filter((e) => !e.isViolation && e.distance !== null && e.distance <= allowedRadius).length;
+            const offCampusCount = unifiedList.filter((e) => !e.isViolation && (e.distance === null || e.distance > allowedRadius)).length;
+            const violationsCount = unifiedList.filter((e) => e.isViolation).length;
+
+            // Filter logic
+            const filteredGeoRecords = unifiedList.filter((entry) => {
               const q = geoSearchTerm.toLowerCase();
               const matchSearch =
                 !geoSearchTerm ||
-                (leader?.full_name && leader.full_name.toLowerCase().includes(q)) ||
-                (dept?.name && dept.name.toLowerCase().includes(q)) ||
-                (leader?.employee_code && leader.employee_code.toLowerCase().includes(q)) ||
-                (leader?.phone && leader.phone.includes(q));
-
-              const isPhysical = r.evidence_source === 'ROOM_STATIC_QR' || r.selected_mode === 'PHYSICAL';
-              const isVirtual = r.evidence_source === 'GOOGLE_MEET_REDIRECT' || r.selected_mode === 'VIRTUAL';
+                entry.leaderName.toLowerCase().includes(q) ||
+                entry.deptName.toLowerCase().includes(q) ||
+                entry.phone.includes(q);
 
               const matchMode =
                 geoModeFilter === 'ALL' ||
-                (geoModeFilter === 'PHYSICAL' && isPhysical) ||
-                (geoModeFilter === 'VIRTUAL' && isVirtual);
+                entry.mode === geoModeFilter;
 
               let matchCampus = true;
               if (geoCampusFilter !== 'ALL') {
-                const dist = calculateCampusDistanceMeters(r.latitude, r.longitude);
                 if (geoCampusFilter === 'ON_CAMPUS') {
-                  matchCampus = dist !== null && dist <= 350;
+                  matchCampus = !entry.isViolation && entry.distance !== null && entry.distance <= allowedRadius;
                 } else if (geoCampusFilter === 'REMOTE') {
-                  matchCampus = dist !== null && dist > 350;
+                  matchCampus = !entry.isViolation && entry.distance !== null && entry.distance > allowedRadius;
+                } else if (geoCampusFilter === 'VIOLATION') {
+                  matchCampus = entry.isViolation;
                 }
               }
 
@@ -4965,9 +5122,9 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
                     <div>
-                      <div className="text-xs text-slate-500 font-bold uppercase tracking-wider">Total Check-In Logs</div>
-                      <div className="text-2xl font-black text-slate-800 mt-1">{recordsList.length}</div>
-                      <div className="text-[11px] text-slate-500 mt-0.5">{totalWithGps} with GPS Coordinates</div>
+                      <div className="text-xs text-slate-500 font-bold uppercase tracking-wider">Total GPS Activity</div>
+                      <div className="text-2xl font-black text-slate-800 mt-1">{totalWithGps}</div>
+                      <div className="text-[11px] text-slate-500 mt-0.5">Check-ins & attempts logged</div>
                     </div>
                     <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-700">
                       <MapPin className="w-6 h-6 text-emerald-600" />
@@ -4978,32 +5135,32 @@ export const UnifiedAdminDashboard: React.FC = () => {
                     <div>
                       <div className="text-xs text-emerald-800 font-bold uppercase tracking-wider">On-Campus Verified</div>
                       <div className="text-2xl font-black text-emerald-700 mt-1">{onCampusCount}</div>
-                      <div className="text-[11px] text-emerald-600 font-medium mt-0.5">Within 350m of SBH Hospital</div>
+                      <div className="text-[11px] text-emerald-600 font-medium mt-0.5">Within {allowedRadius}m of SBH Hospital</div>
                     </div>
                     <div className="w-12 h-12 rounded-2xl bg-emerald-100 flex items-center justify-center text-emerald-700">
                       <CheckCircle2 className="w-6 h-6 text-emerald-600" />
                     </div>
                   </div>
 
-                  <div className="bg-white p-4 rounded-2xl border border-amber-200 shadow-xs flex items-center justify-between">
+                  <div className="bg-white p-4 rounded-2xl border border-sky-200 shadow-xs flex items-center justify-between">
                     <div>
-                      <div className="text-xs text-amber-800 font-bold uppercase tracking-wider">Remote / Off-Campus</div>
-                      <div className="text-2xl font-black text-amber-600 mt-1">{offCampusCount}</div>
-                      <div className="text-[11px] text-amber-700 font-medium mt-0.5">Outside Hospital Geofence</div>
+                      <div className="text-xs text-sky-800 font-bold uppercase tracking-wider">Virtual / Remote</div>
+                      <div className="text-2xl font-black text-sky-600 mt-1">{offCampusCount}</div>
+                      <div className="text-[11px] text-sky-700 font-medium mt-0.5">Google Meet joins</div>
                     </div>
-                    <div className="w-12 h-12 rounded-2xl bg-amber-100 flex items-center justify-center text-amber-700">
-                      <Navigation className="w-6 h-6 text-amber-600" />
+                    <div className="w-12 h-12 rounded-2xl bg-sky-100 flex items-center justify-center text-sky-700">
+                      <Video className="w-6 h-6 text-sky-600" />
                     </div>
                   </div>
 
-                  <div className="bg-white p-4 rounded-2xl border border-teal-200 shadow-xs flex items-center justify-between">
+                  <div className="bg-white p-4 rounded-2xl border border-rose-300 shadow-xs flex items-center justify-between">
                     <div>
-                      <div className="text-xs text-teal-800 font-bold uppercase tracking-wider">Room QR Scans</div>
-                      <div className="text-2xl font-black text-teal-700 mt-1">{qrVerifiedCount}</div>
-                      <div className="text-[11px] text-teal-600 font-medium mt-0.5">5th Floor Conference Room</div>
+                      <div className="text-xs text-rose-800 font-bold uppercase tracking-wider">Geofence Violations</div>
+                      <div className="text-2xl font-black text-rose-700 mt-1">{violationsCount}</div>
+                      <div className="text-[11px] text-rose-600 font-medium mt-0.5">Physical attempts outside campus</div>
                     </div>
-                    <div className="w-12 h-12 rounded-2xl bg-teal-100 flex items-center justify-center text-teal-700">
-                      <QrCode className="w-6 h-6 text-teal-600" />
+                    <div className="w-12 h-12 rounded-2xl bg-rose-100 flex items-center justify-center text-rose-700">
+                      <AlertTriangle className="w-6 h-6 text-rose-600" />
                     </div>
                   </div>
                 </div>
@@ -5064,14 +5221,15 @@ export const UnifiedAdminDashboard: React.FC = () => {
                       onChange={(e) => setGeoCampusFilter(e.target.value as any)}
                       className="bg-slate-50 border border-[#dcdcdc] text-xs font-bold text-[#1f2d2a] px-3 py-2 rounded-xl focus:outline-none cursor-pointer"
                     >
-                      <option value="ALL">All Locations</option>
-                      <option value="ON_CAMPUS">On-Campus Only (Within 350m)</option>
-                      <option value="REMOTE">Remote / Off-Campus Only</option>
+                      <option value="ALL">All Locations (Verified & Breaches)</option>
+                      <option value="ON_CAMPUS">On-Campus Verified (Within {allowedRadius}m)</option>
+                      <option value="REMOTE">Remote Virtual Joins</option>
+                      <option value="VIOLATION">🚨 Geofence Breach Attempts Only</option>
                     </select>
                   </div>
 
                   <div className="text-xs font-bold text-slate-500 self-end md:self-center">
-                    Showing <span className="text-slate-900 font-black">{filteredGeoRecords.length}</span> log records
+                    Showing <span className="text-slate-900 font-black">{filteredGeoRecords.length}</span> GPS records
                   </div>
                 </div>
 
@@ -5079,7 +5237,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                 <div className="bg-white rounded-2xl border border-[#dcdcdc] shadow-xs overflow-hidden">
                   <div className="block lg:hidden px-3.5 py-1.5 bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 flex items-center justify-between">
                     <span>👉 Swipe horizontally for GPS logs</span>
-                    <span className="font-mono text-[#7065f0]">Map Actions</span>
+                    <span className="font-mono text-[#7065f0]">Google Maps Pin</span>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs border-collapse min-w-[850px]">
@@ -5099,52 +5257,59 @@ export const UnifiedAdminDashboard: React.FC = () => {
                           <tr>
                             <td colSpan={7} className="text-center py-12 text-slate-400">
                               <MapPin className="w-10 h-10 mx-auto text-slate-300 mb-2" />
-                              <div className="text-sm font-bold text-slate-600">No Check-in Geolocation Logs Found</div>
+                              <div className="text-sm font-bold text-slate-600">No Geolocation Records Found</div>
                               <div className="text-xs text-slate-400 mt-1">Try selecting a different date or clearing your search filters.</div>
                             </td>
                           </tr>
                         ) : (
-                          filteredGeoRecords.map((rec) => {
-                            const leader = leaders.find((l) => l.id === rec.leader_id);
-                            const dept = leader?.department || departments.find((d) => d.id === leader?.department_id);
-                            const dist = calculateCampusDistanceMeters(rec.latitude, rec.longitude);
-                            const hasCoords = typeof rec.latitude === 'number' && typeof rec.longitude === 'number';
-                            const isPhysical = rec.evidence_source === 'ROOM_STATIC_QR' || rec.selected_mode === 'PHYSICAL';
+                          filteredGeoRecords.map((entry) => {
+                            const hasCoords = typeof entry.latitude === 'number' && typeof entry.longitude === 'number';
+                            const dist = entry.distance;
 
                             return (
-                              <tr key={rec.id} className="hover:bg-slate-50/80 transition-colors">
+                              <tr
+                                key={entry.id}
+                                className={`transition-colors ${
+                                  entry.isViolation
+                                    ? 'bg-rose-50/50 hover:bg-rose-50/80 border-l-4 border-l-rose-500'
+                                    : 'hover:bg-slate-50/80'
+                                }`}
+                              >
                                 <td className="py-3 px-4">
-                                  <div className="font-bold text-slate-900 text-[13px]">
-                                    {leader?.full_name || 'Leader ' + rec.leader_id.slice(0, 8)}
+                                  <div className="flex items-center gap-2">
+                                    <div className="font-bold text-slate-900 text-[13px]">
+                                      {entry.leaderName}
+                                    </div>
+                                    {entry.isViolation && (
+                                      <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-rose-100 text-rose-700 border border-rose-300 animate-pulse">
+                                        Attempt Rejected
+                                      </span>
+                                    )}
                                   </div>
                                   <div className="text-[11px] text-slate-500 font-medium">
-                                    {leader?.phone || '—'}
+                                    {entry.phone}
                                   </div>
                                 </td>
 
                                 <td className="py-3 px-4">
                                   <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-bold text-[11px]">
-                                    {dept?.name || 'Hospital Leader'}
+                                    {entry.deptName}
                                   </span>
                                 </td>
 
                                 <td className="py-3 px-4 text-center font-mono">
-                                  <div className="font-bold text-slate-800 text-xs">{rec.meeting_date}</div>
-                                  <div className="text-[11px] text-slate-500">
-                                    {rec.check_in_at
-                                      ? new Date(rec.check_in_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-                                      : rec.first_event_at || '—'}
-                                  </div>
+                                  <div className="font-bold text-slate-800 text-xs">{entry.date}</div>
+                                  <div className="text-[11px] text-slate-500">{entry.timeStr}</div>
                                 </td>
 
                                 <td className="py-3 px-4 text-center">
-                                  {rec.evidence_source === 'ADMIN_MANUAL' ? (
-                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">
-                                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
-                                      <span>Admin Manual</span>
+                                  {entry.isViolation ? (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800 border border-rose-300 shadow-2xs">
+                                      <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
+                                      <span>Physical (Blocked)</span>
                                     </span>
-                                  ) : isPhysical ? (
-                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                  ) : entry.mode === 'PHYSICAL' ? (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">
                                       <QrCode className="w-3.5 h-3.5 text-emerald-700" />
                                       <span>In-Person (Room QR)</span>
                                     </span>
@@ -5160,11 +5325,11 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                   {hasCoords ? (
                                     <div>
                                       <span className="font-bold text-slate-800">
-                                        {rec.latitude!.toFixed(5)}, {rec.longitude!.toFixed(5)}
+                                        {entry.latitude.toFixed(5)}, {entry.longitude.toFixed(5)}
                                       </span>
-                                      {rec.accuracy && (
+                                      {entry.accuracy && (
                                         <span className="text-[10px] text-slate-400 block">
-                                          Accuracy: ±{rec.accuracy}m
+                                          Accuracy: ±{entry.accuracy}m
                                         </span>
                                       )}
                                     </div>
@@ -5174,15 +5339,20 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                 </td>
 
                                 <td className="py-3 px-4 text-center">
-                                  {dist !== null ? (
-                                    dist <= 350 ? (
+                                  {entry.isViolation ? (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-black bg-rose-100 text-rose-800 border border-rose-300 shadow-2xs">
+                                      <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
+                                      <span>Rejected: ~{dist ? (dist > 1000 ? `${(dist / 1000).toFixed(1)} km` : `${dist}m`) : 'Remote'}</span>
+                                    </span>
+                                  ) : dist !== null ? (
+                                    dist <= allowedRadius ? (
                                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300">
                                         <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
                                         <span>On-Campus (~{dist}m)</span>
                                       </span>
                                     ) : (
-                                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-black bg-amber-100 text-amber-800 border border-amber-300">
-                                        <Navigation className="w-3.5 h-3.5 text-amber-700" />
+                                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-black bg-sky-100 text-sky-800 border border-sky-300">
+                                        <Navigation className="w-3.5 h-3.5 text-sky-700" />
                                         <span>Remote (~{(dist / 1000).toFixed(1)} km)</span>
                                       </span>
                                     )
@@ -5194,14 +5364,18 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                 <td className="py-3 px-4 text-center">
                                   {hasCoords ? (
                                     <a
-                                      href={`https://www.google.com/maps?q=${rec.latitude},${rec.longitude}`}
+                                      href={`https://www.google.com/maps?q=${entry.latitude},${entry.longitude}`}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white rounded-xl text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer"
-                                      title="Open coordinates in Google Maps"
+                                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer text-white ${
+                                        entry.isViolation
+                                          ? 'bg-gradient-to-r from-rose-600 to-red-700 hover:from-rose-700 hover:to-red-800 shadow-rose-200'
+                                          : 'bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800'
+                                      }`}
+                                      title={`Open coordinates (${entry.latitude.toFixed(5)}, ${entry.longitude.toFixed(5)}) in Google Maps`}
                                     >
                                       <MapPin className="w-3.5 h-3.5" />
-                                      <span>View on Google Maps</span>
+                                      <span>See Location</span>
                                       <ExternalLink className="w-3 h-3 opacity-80" />
                                     </a>
                                   ) : (

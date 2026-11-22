@@ -273,10 +273,10 @@ export const JoinMeetingRedirect: React.FC = () => {
       return;
     }
 
-    // 2. Hospital 5th Floor Geofence check
-    const hospitalLat = appSettings.hospital_latitude || 21.2514;
-    const hospitalLng = appSettings.hospital_longitude || 81.6296;
-    const allowedRadius = appSettings.hospital_radius_meters || 50;
+    // 2. Hospital Campus Geofence check (SBH Hospital, New Rajendra Nagar, Raipur)
+    const hospitalLat = appSettings.hospital_latitude || 21.22528;
+    const hospitalLng = appSettings.hospital_longitude || 81.65921;
+    const allowedRadius = appSettings.hospital_radius_meters || 200;
 
     const distance = calculateDistanceInMeters(
       geoCoords.latitude,
@@ -286,8 +286,10 @@ export const JoinMeetingRedirect: React.FC = () => {
     );
 
     if (appSettings.hospital_geofence_enabled !== false && distance > allowedRadius) {
+      // Trigger markRoomQrCheckIn so the breach attempt is logged in Supabase SQL database (admin_audit_logs)
+      markRoomQrCheckIn(leader.id, geoCoords);
       setScannerError(
-        `⚠️ Location Restriction: Please scan the QR code from inside the Hospital 5th Floor Conference Room. You are currently approximately ${distance}m away (Allowed radius: ${allowedRadius}m).`
+        `🚫 Location Restriction: Physical QR scan is ONLY permitted inside SBH Hospital campus (Allowed radius: ${allowedRadius}m). You are currently approximately ${distance}m away. Your location attempt has been recorded in the security audit log.`
       );
       return;
     }
