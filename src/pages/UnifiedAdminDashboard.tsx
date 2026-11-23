@@ -66,6 +66,7 @@ import { AnalyticsReportsView } from '../components/AnalyticsReportsView';
 import { generateDailyMeetingLink } from '../lib/meetingLinks';
 import sbhLogo from '../assets/sbh-logo.png';
 import defaultLeaderAvatar from '../assets/default-leader-avatar.png';
+import scrollDownIcon from '../assets/scroll-down.png';
 import { BoardroomQrPosterModal } from '../components/BoardroomQrPosterModal';
 import { generateDirectorPdf } from '../lib/pdfGenerator';
 import { sendCeoitboxWhatsappMessage } from '../lib/whatsappService';
@@ -8372,10 +8373,19 @@ function doPost(e) {
             window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
           }
         }}
-        className="fixed bottom-14 right-5 z-40 w-11 h-11 bg-white hover:bg-[#eff0fe] text-[#7065f0] hover:text-[#584bd8] rounded-full shadow-xl border-2 border-purple-200/90 transition-all hover:scale-110 active:scale-95 cursor-pointer flex items-center justify-center group"
+        className="fixed bottom-6 right-6 z-50 px-3.5 py-2 bg-gradient-to-r from-[#7065f0] to-[#5a4ad8] hover:from-[#5a4ad8] hover:to-[#4335c0] text-white rounded-full shadow-2xl shadow-indigo-600/40 border-2 border-white ring-2 ring-purple-300 transition-all hover:scale-105 active:scale-95 cursor-pointer flex items-center gap-2 group"
         title="Scroll Down to Attendance Table"
       >
-        <ChevronDown className="w-5 h-5 stroke-[2.5] group-hover:translate-y-0.5 transition-transform animate-bounce" />
+        <img
+          src={scrollDownIcon}
+          alt="Scroll"
+          className="w-4 h-4 object-contain brightness-0 invert group-hover:translate-y-0.5 transition-transform"
+          onError={(e) => {
+            (e.currentTarget as HTMLElement).style.display = 'none';
+          }}
+        />
+        <span className="text-xs font-black tracking-wide hidden sm:inline">Table</span>
+        <ChevronDown className="w-4 h-4 text-white stroke-[3] group-hover:translate-y-0.5 transition-transform animate-bounce" />
       </button>
     </div>
   );
