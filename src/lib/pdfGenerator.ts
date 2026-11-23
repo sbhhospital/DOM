@@ -266,9 +266,13 @@ export function generateDirectorPdf(
     const expected = rec.leader?.expected_mode || 'PHYSICAL';
 
     let actualMode = '—';
-    if (rec.evidence_source === 'ADMIN_MANUAL') actualMode = 'In-Person (Admin)';
-    else if (rec.selected_mode === 'PHYSICAL') actualMode = 'In-Person (Room)';
-    else if (rec.selected_mode === 'VIRTUAL') actualMode = 'Virtual (Online)';
+    if (rec.selected_mode === 'VIRTUAL') {
+      actualMode = rec.evidence_source === 'ADMIN_MANUAL' ? 'Virtual (Admin)' : 'Virtual (Meet)';
+    } else if (rec.selected_mode === 'PHYSICAL') {
+      actualMode = rec.evidence_source === 'ADMIN_MANUAL' ? 'In-Person (Admin)' : 'In-Person (Room)';
+    } else if (rec.evidence_source === 'ADMIN_MANUAL') {
+      actualMode = 'Admin Manual';
+    }
 
     let joinTime = '—';
     if (rec.check_in_at) {
@@ -341,13 +345,16 @@ export function generateDirectorPdf(
       statusDisplay = rec.verification_note || (isSundayMeeting ? 'Sunday Weekly Off' : 'Holiday / No DOM');
       auditDisplay = 'EXCUSED';
     } else if (rec.status === 'LEAVE' || (rec.status === 'INFORMED_ABSENT' && rec.informed_confirmed)) {
-      statusDisplay = `Approved Leave (${rec.informed_to_person || 'Admin'})`;
+      const channel = rec.informed_to_person?.toLowerCase().includes('whatsapp') ? 'WhatsApp Group' : (rec.informed_to_person || 'Admin');
+      statusDisplay = `Approved Leave (${channel})`;
       auditDisplay = 'EXCUSED';
     } else if (rec.status === 'INFORMED_ABSENT' && !rec.informed_confirmed) {
-      statusDisplay = `Informed Leave (${rec.informed_to_person || 'Awaiting Admin'})`;
+      const channel = rec.informed_to_person?.toLowerCase().includes('whatsapp') ? 'WhatsApp Group' : (rec.informed_to_person || 'Awaiting Admin');
+      statusDisplay = `Informed Leave (${channel})`;
       auditDisplay = 'PENDING APPROVAL';
     } else if (hasJoined) {
       const isAdminMarked = rec.evidence_source === 'ADMIN_MANUAL' || rec.verification_note?.includes('Marked Present by Admin');
+      const isVirtual = rec.selected_mode === 'VIRTUAL';
       if (isLateArrival) {
         const lateLabel =
           lateMinsCalculated > 60
@@ -357,15 +364,17 @@ export function generateDirectorPdf(
               : 'Late';
 
         if (rec.status === 'INFORMED_LATE' || rec.verification_note?.includes('Informed')) {
-          statusDisplay = `Present (Informed Late: ${lateLabel})`;
+          statusDisplay = isVirtual ? `Present (Virtual Informed Late: ${lateLabel})` : `Present (Informed Late: ${lateLabel})`;
         } else if (isAdminMarked) {
-          statusDisplay = `Present (Admin Late: ${lateLabel})`;
+          statusDisplay = isVirtual ? `Present (Virtual Admin: ${lateLabel})` : `Present (Admin Late: ${lateLabel})`;
         } else {
-          statusDisplay = `Present (Late: ${lateLabel})`;
+          statusDisplay = isVirtual ? `Present (Virtual Late: ${lateLabel})` : `Present (Late: ${lateLabel})`;
         }
         auditDisplay = isAdminMarked ? 'ADMIN MANUAL' : 'APPROVED';
       } else {
-        statusDisplay = isAdminMarked ? 'Present (Admin Marked)' : 'Present (On-Time)';
+        statusDisplay = isVirtual
+          ? (isAdminMarked ? 'Present (Virtual Admin)' : 'Present (Virtual On-Time)')
+          : (isAdminMarked ? 'Present (Admin Marked)' : 'Present (On-Time)');
         auditDisplay = isAdminMarked ? 'ADMIN MANUAL' : 'APPROVED';
       }
     } else if (rec.late_expired || (rec.status === 'INFORMED_LATE' && !hasJoined)) {

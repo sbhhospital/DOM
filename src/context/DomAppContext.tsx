@@ -89,7 +89,8 @@ interface DomAppContextType {
     status?: AttendanceStatus,
     mode?: 'PHYSICAL' | 'VIRTUAL',
     customNote?: string,
-    informedToPerson?: string
+    informedToPerson?: string,
+    informedReason?: string
   ) => Promise<{ success: boolean; message: string }>;
   resetAttendanceTime: (recordId: string) => Promise<{ success: boolean; message: string }>;
   deleteAttendanceRecordById: (recordId: string) => Promise<{ success: boolean; message: string }>;
@@ -536,9 +537,11 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         mappedLeaders = supaLeaders.map((lead: any) => {
           const dept = liveDepts.find((d) => d.id === lead.department_id) || resolveLeaderDepartment(lead, liveDepts);
           const localPass = localStorage.getItem(`sbh_user_pass_${lead.id}`);
+          const localExpectedMode = localStorage.getItem(`sbh_leader_mode_${lead.id}`);
           return {
             ...lead,
             password: lead.password || localPass || '123456',
+            expected_mode: (localExpectedMode as any) || lead.expected_mode || 'PHYSICAL',
             is_active: lead.is_active !== undefined ? lead.is_active : true,
             department: dept,
             department_id: dept?.id || lead.department_id,
@@ -1507,7 +1510,10 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (newPass !== undefined) cleanDbUpdates.password = newPass; // directly update password in leaders table!
     if (updates.role !== undefined) cleanDbUpdates.role = updates.role;
     if (updates.employee_code !== undefined) cleanDbUpdates.employee_code = updates.employee_code.trim();
-    if (updates.expected_mode !== undefined) cleanDbUpdates.expected_mode = updates.expected_mode;
+    if (updates.expected_mode !== undefined) {
+      cleanDbUpdates.expected_mode = updates.expected_mode;
+      localStorage.setItem(`sbh_leader_mode_${id}`, updates.expected_mode);
+    }
     if (updates.is_active !== undefined) cleanDbUpdates.is_active = updates.is_active;
     if (updates.department_id !== undefined) {
       cleanDbUpdates.department_id = isUuid(updates.department_id) ? updates.department_id : null;
@@ -2894,9 +2900,11 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const directorRec = forDate.find((r) => isDir(r.leader || { id: r.leader_id }) && (r.check_in_at || r.status === 'PRESENT'));
 
     const presentPhysical = forDate.filter(
-      (r) => !isDir(r.leader || { id: r.leader_id }) && r.selected_mode === 'PHYSICAL' && (r.status === 'PRESENT' || r.admin_verified_attendance)
+      (r) => !isDir(r.leader || { id: r.leader_id }) && r.selected_mode === 'PHYSICAL' && (r.status === 'PRESENT' || r.admin_verified_attendance || r.verification_status === 'VERIFIED')
     );
-    const presentVirtual = forDate.filter((r) => !isDir(r.leader || { id: r.leader_id }) && r.selected_mode === 'VIRTUAL' && r.status === 'PRESENT');
+    const presentVirtual = forDate.filter(
+      (r) => !isDir(r.leader || { id: r.leader_id }) && r.selected_mode === 'VIRTUAL' && (r.status === 'PRESENT' || r.admin_verified_attendance || r.verification_status === 'VERIFIED')
+    );
     const informedLate = forDate.filter(
       (r) => !isDir(r.leader || { id: r.leader_id }) && r.status === 'INFORMED_LATE' && r.late_approved_by_admin
     );
@@ -3716,9 +3724,11 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const directorRec = forDate.find((r) => isDir(r.leader || { id: r.leader_id }) && (r.check_in_at || r.status === 'PRESENT'));
 
     const presentPhysical = forDate.filter(
-      (r) => !isDir(r.leader || { id: r.leader_id }) && r.selected_mode === 'PHYSICAL' && (r.status === 'PRESENT' || r.admin_verified_attendance)
+      (r) => !isDir(r.leader || { id: r.leader_id }) && r.selected_mode === 'PHYSICAL' && (r.status === 'PRESENT' || r.admin_verified_attendance || r.verification_status === 'VERIFIED')
     );
-    const presentVirtual = forDate.filter((r) => !isDir(r.leader || { id: r.leader_id }) && r.selected_mode === 'VIRTUAL' && r.status === 'PRESENT');
+    const presentVirtual = forDate.filter(
+      (r) => !isDir(r.leader || { id: r.leader_id }) && r.selected_mode === 'VIRTUAL' && (r.status === 'PRESENT' || r.admin_verified_attendance || r.verification_status === 'VERIFIED')
+    );
     const informedLate = forDate.filter(
       (r) => !isDir(r.leader || { id: r.leader_id }) && r.status === 'INFORMED_LATE' && r.late_approved_by_admin
     );
@@ -4206,7 +4216,8 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     status: AttendanceStatus = 'PRESENT',
     mode: 'PHYSICAL' | 'VIRTUAL' = 'PHYSICAL',
     customNote?: string,
-    informedToPerson?: string
+    informedToPerson?: string,
+    informedReason?: string
   ): Promise<{ success: boolean; message: string }> => {
     let targetRec: AttendanceRecord | null = null;
     const nowIso = new Date().toISOString();
@@ -4261,41 +4272,45 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const isAbsent = status === 'ABSENT';
     const isLeave = status === 'LEAVE';
 
-    setAttendanceRecords((prev) => {
-      const exists = prev.some((r) => r.id === recordId);
-      if (exists) {
-        return prev.map((r) => {
-          if (r.id === recordId) {
-            const recDate = r.meeting_date || selectedDate;
-            const newCheckInIso = isAbsent || isLeave ? undefined : buildCheckInIso(recDate, customTimeStr);
-            const lateMins = isAbsent || isLeave ? undefined : calculateLate(customTimeStr);
+    const extractedLeaderId = recordId.startsWith(`att-${selectedDate}-`)
+      ? recordId.replace(`att-${selectedDate}-`, '')
+      : recordId;
 
-            const updated: AttendanceRecord = {
-              ...r,
-              check_in_at: newCheckInIso,
-              selected_mode: isAbsent || isLeave ? 'NONE' : mode,
-              evidence_source: 'ADMIN_MANUAL',
-              status,
-              verification_status: isAbsent ? 'REJECTED' : 'VERIFIED',
-              admin_verified_attendance: !isAbsent && !isLeave,
-              verification_note: customNote || `Marked by Admin (${customTimeStr})`,
-              late_minutes: lateMins && lateMins > 0 ? lateMins : undefined,
-              informed_to_person: informedToPerson || r.informed_to_person,
-              late_expired: false,
-              updated_at: nowIso,
-            };
-            (updated as any).join_time = isAbsent || isLeave ? undefined : customTimeStr;
-            targetRec = updated;
-            return updated;
-          }
-          return r;
-        });
+    setAttendanceRecords((prev) => {
+      const existingIdx = prev.findIndex(
+        (r) => r.id === recordId || (r.leader_id === extractedLeaderId && (r.meeting_date === selectedDate || !r.meeting_date))
+      );
+
+      if (existingIdx >= 0) {
+        const r = prev[existingIdx];
+        const recDate = r.meeting_date || selectedDate;
+        const newCheckInIso = isAbsent || isLeave ? undefined : buildCheckInIso(recDate, customTimeStr);
+        const lateMins = isAbsent || isLeave ? undefined : calculateLate(customTimeStr);
+
+        const updated: AttendanceRecord = {
+          ...r,
+          check_in_at: newCheckInIso,
+          selected_mode: isAbsent || isLeave ? 'NONE' : mode,
+          evidence_source: 'ADMIN_MANUAL',
+          status,
+          verification_status: isAbsent ? 'REJECTED' : 'VERIFIED',
+          admin_verified_attendance: !isAbsent && !isLeave,
+          verification_note: customNote || `Marked by Admin (${customTimeStr})`,
+          late_minutes: lateMins && lateMins > 0 ? lateMins : undefined,
+          informed_to_person: informedToPerson || r.informed_to_person,
+          informed_reason: informedReason || r.informed_reason,
+          late_reason: status === 'INFORMED_LATE' ? (informedReason || r.late_reason) : r.late_reason,
+          late_expired: false,
+          updated_at: nowIso,
+        };
+        (updated as any).join_time = isAbsent || isLeave ? undefined : customTimeStr;
+        targetRec = updated;
+        const next = [...prev];
+        next[existingIdx] = updated;
+        return next;
       }
 
       // Record doesn't exist in state yet (synthetic row from getFullRosterForDate)
-      const extractedLeaderId = recordId.startsWith(`att-${selectedDate}-`)
-        ? recordId.replace(`att-${selectedDate}-`, '')
-        : recordId;
       const lead = leaders.find((l) => l.id === extractedLeaderId);
       const meeting = getMeetingForDate(selectedDate);
       const newCheckInIso = isAbsent || isLeave ? undefined : buildCheckInIso(selectedDate, customTimeStr);
@@ -4317,6 +4332,8 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         verification_note: customNote || `Marked by Admin (${customTimeStr})`,
         late_minutes: lateMins && lateMins > 0 ? lateMins : undefined,
         informed_to_person: informedToPerson,
+        informed_reason: informedReason,
+        late_reason: status === 'INFORMED_LATE' ? informedReason : undefined,
         late_expired: false,
         check_in_at: newCheckInIso,
         verified_at: nowIso,

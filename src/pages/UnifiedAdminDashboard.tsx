@@ -790,6 +790,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
     mode: 'PHYSICAL' | 'VIRTUAL';
     informType: 'ON_TIME' | 'INFORMED_LATE' | 'LATE_NO_INFO' | 'ABSENT_NO_INFO' | 'LEAVE';
     informedTo: string;
+    informedReason?: string;
     status: AttendanceStatus;
   }>({
     isOpen: false,
@@ -797,7 +798,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
     timeStr: '',
     mode: 'PHYSICAL',
     informType: 'ON_TIME',
-    informedTo: 'Director Sir',
+    informedTo: 'Official WhatsApp Group',
+    informedReason: '',
     status: 'PRESENT',
   });
 
@@ -3013,6 +3015,22 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                     <div className="font-bold text-sm leading-snug text-slate-900 truncate">
                                       {rec.leader?.full_name}
                                     </div>
+                                    {(rec.informed_to_person || rec.informed_reason || rec.late_reason) && (
+                                      <div className="mt-1 flex items-center gap-1 flex-wrap">
+                                        <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                                          rec.informed_to_person?.toLowerCase().includes('whatsapp')
+                                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                            : 'bg-amber-100 text-amber-900 border border-amber-300'
+                                        }`}>
+                                          {rec.informed_to_person?.toLowerCase().includes('whatsapp') ? '💬 WhatsApp Group' : `📌 Informed: ${rec.informed_to_person || 'Admin'}`}
+                                        </span>
+                                        {(rec.informed_reason || rec.late_reason) && (
+                                          <span className="text-[10px] text-slate-600 font-medium italic truncate max-w-[200px]" title={rec.informed_reason || rec.late_reason}>
+                                            "{rec.informed_reason || rec.late_reason}"
+                                          </span>
+                                        )}
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
                               </td>
@@ -3025,20 +3043,29 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                 </span>
                               </td>
                               <td className="py-3 px-4 text-center">
-                                {rec.evidence_source === 'ADMIN_MANUAL' ? (
-                                  <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-300 inline-flex items-center gap-1 shadow-2xs">
-                                    <Shield className="w-3.5 h-3.5 text-emerald-700" /> Admin Manual
+                                {rec.selected_mode === 'VIRTUAL' ? (
+                                  <span className="text-xs font-bold text-sky-800 bg-sky-50 px-2.5 py-1 rounded-lg border border-sky-300 inline-flex items-center gap-1 shadow-2xs">
+                                    <Video className="w-3.5 h-3.5 text-sky-600" />
+                                    <span>Virtual (Meet)</span>
+                                    {rec.evidence_source === 'ADMIN_MANUAL' && (
+                                      <span className="text-[9px] font-bold text-sky-700 bg-sky-100 px-1 py-0.5 rounded border border-sky-200">Admin</span>
+                                    )}
                                   </span>
                                 ) : rec.selected_mode === 'PHYSICAL' ? (
                                   <span className="text-xs font-bold text-emerald-800 bg-emerald-100 px-2.5 py-1 rounded-lg border border-emerald-300 inline-flex items-center gap-1 shadow-2xs">
                                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                                    {rec.evidence_source === 'ROOM_STATIC_QR' || rec.evidence_source === 'VIRTUAL_QR_VERIFIED' || rec.qr_scanned_at
-                                      ? 'Physical (QR Verified)'
-                                      : 'Physical (5th Flr)'}
+                                    <span>
+                                      {rec.evidence_source === 'ROOM_STATIC_QR' || rec.evidence_source === 'VIRTUAL_QR_VERIFIED' || rec.qr_scanned_at
+                                        ? 'Physical (QR Verified)'
+                                        : 'Physical (5th Flr)'}
+                                    </span>
+                                    {rec.evidence_source === 'ADMIN_MANUAL' && (
+                                      <span className="text-[9px] font-bold text-emerald-700 bg-emerald-200/80 px-1 py-0.5 rounded border border-emerald-300">Admin</span>
+                                    )}
                                   </span>
-                                ) : rec.selected_mode === 'VIRTUAL' ? (
-                                  <span className="text-xs font-bold text-sky-800 bg-sky-50 px-2.5 py-1 rounded-lg border border-sky-200 inline-flex items-center gap-1">
-                                    <Video className="w-3.5 h-3.5 text-sky-600" /> Virtual (Meet)
+                                ) : rec.evidence_source === 'ADMIN_MANUAL' ? (
+                                  <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-300 inline-flex items-center gap-1 shadow-2xs">
+                                    <Shield className="w-3.5 h-3.5 text-emerald-700" /> Admin Manual
                                   </span>
                                 ) : (
                                   <span className="text-xs text-slate-400 font-semibold">—</span>
@@ -3119,19 +3146,36 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                     <span>ABSENT (No Inform)</span>
                                   </span>
                                 ) : rec.status === 'LEAVE' || (rec.status === 'INFORMED_ABSENT' && rec.informed_confirmed) ? (
-                                  <span className="text-xs bg-purple-50 text-purple-900 font-bold px-2.5 py-1 rounded-lg border border-purple-300 inline-flex items-center gap-1.5 shadow-2xs">
-                                    <CheckCircle2 className="w-3.5 h-3.5 text-purple-600" />
-                                    <span>APPROVED LEAVE {rec.informed_to_person ? `(${rec.informed_to_person})` : ''}</span>
-                                  </span>
+                                  <div className="flex flex-col items-center gap-0.5">
+                                    <span className="text-xs bg-purple-50 text-purple-900 font-bold px-2.5 py-1 rounded-lg border border-purple-300 inline-flex items-center gap-1.5 shadow-2xs">
+                                      <CheckCircle2 className="w-3.5 h-3.5 text-purple-600" />
+                                      <span>APPROVED LEAVE</span>
+                                    </span>
+                                    {rec.informed_to_person && (
+                                      <span className={`text-[10px] font-bold ${rec.informed_to_person.toLowerCase().includes('whatsapp') ? 'text-emerald-700' : 'text-purple-700'}`}>
+                                        {rec.informed_to_person.toLowerCase().includes('whatsapp') ? '💬 WhatsApp Group' : `To: ${rec.informed_to_person}`}
+                                      </span>
+                                    )}
+                                    {rec.informed_reason && (
+                                      <span className="text-[9px] text-slate-500 italic max-w-[180px] truncate" title={rec.informed_reason}>
+                                        "{rec.informed_reason}"
+                                      </span>
+                                    )}
+                                  </div>
                                 ) : rec.status === 'INFORMED_ABSENT' && !rec.informed_confirmed ? (
                                   <div className="flex flex-col items-center gap-0.5">
                                     <span className="text-xs bg-amber-50 text-amber-900 font-bold px-2.5 py-1 rounded-lg border border-amber-300 inline-flex items-center gap-1.5 shadow-2xs">
                                       <Clock className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
                                       <span>Informed Awaiting Approval</span>
                                     </span>
-                                    <span className="text-[10px] text-amber-800 font-medium">
-                                      To: {rec.informed_to_person || 'Authority'}
+                                    <span className={`text-[10px] font-bold ${rec.informed_to_person?.toLowerCase().includes('whatsapp') ? 'text-emerald-700' : 'text-amber-800'}`}>
+                                      {rec.informed_to_person?.toLowerCase().includes('whatsapp') ? '💬 WhatsApp Group' : `To: ${rec.informed_to_person || 'Authority'}`}
                                     </span>
+                                    {rec.informed_reason && (
+                                      <span className="text-[9px] text-slate-500 italic max-w-[180px] truncate" title={rec.informed_reason}>
+                                        "{rec.informed_reason}"
+                                      </span>
+                                    )}
                                   </div>
                                 ) : (rec.late_expired || (rec.status === 'INFORMED_LATE' && !rec.check_in_at && !isFutureDate && rec.late_minutes && rec.late_minutes > 0)) ? (
                                   <span className="text-xs bg-rose-50 text-rose-800 font-bold px-2.5 py-1 rounded-lg border border-rose-300 inline-flex items-center gap-1.5 shadow-2xs">
@@ -3144,30 +3188,39 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                       <Clock className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
                                       <span>Informed Late (+{rec.committed_late_minutes || rec.late_minutes || 10}m)</span>
                                     </span>
-                                    <span className="text-[10px] text-amber-800 font-medium">
-                                      Awaiting Check-in
+                                    <span className={`text-[10px] font-bold ${rec.informed_to_person?.toLowerCase().includes('whatsapp') ? 'text-emerald-700' : 'text-amber-800'}`}>
+                                      {rec.informed_to_person?.toLowerCase().includes('whatsapp') ? '💬 WhatsApp Group' : `To: ${rec.informed_to_person || 'Authority'}`}
                                     </span>
+                                    {(rec.late_reason || rec.informed_reason) && (
+                                      <span className="text-[9px] text-slate-500 italic max-w-[180px] truncate" title={rec.late_reason || rec.informed_reason}>
+                                        "{rec.late_reason || rec.informed_reason}"
+                                      </span>
+                                    )}
                                   </div>
                                 ) : (isPresent || Boolean(rec.check_in_at)) && isLate ? (
                                   <span className="text-xs bg-amber-50 text-amber-900 font-bold px-2.5 py-1 rounded-lg border border-amber-300 inline-flex items-center gap-1.5 shadow-2xs">
                                     <Clock className="w-3.5 h-3.5 text-amber-600" />
                                     <span>
                                       {rec.status === 'INFORMED_LATE' || rec.verification_note?.includes('Informed')
-                                        ? `PRESENT (Informed Late: ${formatLateDuration(dynamicLateMins || rec.committed_late_minutes || 10)})`
+                                        ? `PRESENT (${rec.selected_mode === 'VIRTUAL' ? 'Virtual ' : ''}Informed Late: ${formatLateDuration(dynamicLateMins || rec.committed_late_minutes || 10)})`
                                         : rec.evidence_source === 'ADMIN_MANUAL'
-                                          ? `PRESENT (Admin Late: ${formatLateDuration(dynamicLateMins || 15)})`
-                                          : `PRESENT (Late: ${formatLateDuration(dynamicLateMins || 10)})`}
+                                          ? `PRESENT (${rec.selected_mode === 'VIRTUAL' ? 'Virtual ' : ''}Admin Late: ${formatLateDuration(dynamicLateMins || 15)})`
+                                          : `PRESENT (${rec.selected_mode === 'VIRTUAL' ? 'Virtual ' : ''}Late: ${formatLateDuration(dynamicLateMins || 10)})`}
                                     </span>
                                   </span>
                                 ) : (rec.admin_verified_attendance || rec.verification_status === 'VERIFIED') && rec.evidence_source === 'ADMIN_MANUAL' ? (
-                                  <span className="text-xs bg-emerald-50 text-emerald-900 font-bold px-2.5 py-1 rounded-lg border border-emerald-300 inline-flex items-center gap-1.5 shadow-2xs" title={rec.verification_note || 'Marked Present by Admin'}>
-                                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
-                                    <span>PRESENT (Admin Marked)</span>
+                                  <span className={`text-xs font-bold px-2.5 py-1 rounded-lg border inline-flex items-center gap-1.5 shadow-2xs ${
+                                    rec.selected_mode === 'VIRTUAL' ? 'bg-sky-50 text-sky-900 border-sky-300' : 'bg-emerald-50 text-emerald-900 border-emerald-300'
+                                  }`} title={rec.verification_note || 'Marked Present by Admin'}>
+                                    {rec.selected_mode === 'VIRTUAL' ? <Video className="w-3.5 h-3.5 text-sky-600" /> : <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />}
+                                    <span>{rec.selected_mode === 'VIRTUAL' ? 'PRESENT (Virtual Meet)' : 'PRESENT (Admin Marked)'}</span>
                                   </span>
                                 ) : rec.admin_verified_attendance || rec.verification_status === 'VERIFIED' ? (
-                                  <span className="text-xs bg-emerald-50 text-emerald-900 font-bold px-2.5 py-1 rounded-lg border border-emerald-300 inline-flex items-center gap-1.5 shadow-2xs">
-                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                                    <span>PRESENT (On-Time)</span>
+                                  <span className={`text-xs font-bold px-2.5 py-1 rounded-lg border inline-flex items-center gap-1.5 shadow-2xs ${
+                                    rec.selected_mode === 'VIRTUAL' ? 'bg-sky-50 text-sky-900 border-sky-300' : 'bg-emerald-50 text-emerald-900 border-emerald-300'
+                                  }`}>
+                                    {rec.selected_mode === 'VIRTUAL' ? <Video className="w-3.5 h-3.5 text-sky-600" /> : <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
+                                    <span>{rec.selected_mode === 'VIRTUAL' ? 'PRESENT (Virtual)' : 'PRESENT (On-Time)'}</span>
                                   </span>
                                 ) : !rec.admin_verified_attendance &&
                                   (rec.status === 'PRESENT' || rec.status === 'INFORMED_LATE' || rec.selected_mode !== 'NONE') ? (
@@ -3277,8 +3330,9 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                                 record: rec,
                                                 timeStr: existingTime,
                                                 mode: rec.selected_mode === 'VIRTUAL' ? 'VIRTUAL' : 'PHYSICAL',
-                                                informType: rec.status === 'INFORMED_LATE' ? 'INFORMED_LATE' : rec.verification_note?.includes('No Inform') ? 'LATE_NO_INFO' : 'ON_TIME',
-                                                informedTo: rec.informed_to_person || 'Director Sir',
+                                                informType: rec.status === 'LEAVE' ? 'LEAVE' : rec.status === 'INFORMED_LATE' ? 'INFORMED_LATE' : rec.verification_note?.includes('No Inform') ? 'LATE_NO_INFO' : 'ON_TIME',
+                                                informedTo: rec.informed_to_person || 'Official WhatsApp Group',
+                                                informedReason: rec.informed_reason || rec.late_reason || '',
                                                 status: rec.status,
                                               });
                                             }}
@@ -3454,8 +3508,9 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                             record: rec,
                                             timeStr: existingTime,
                                             mode: rec.selected_mode === 'VIRTUAL' ? 'VIRTUAL' : 'PHYSICAL',
-                                            informType: rec.status === 'INFORMED_LATE' ? 'INFORMED_LATE' : rec.verification_note?.includes('No Inform') ? 'LATE_NO_INFO' : 'ON_TIME',
-                                            informedTo: rec.informed_to_person || 'Director Sir',
+                                            informType: rec.status === 'LEAVE' ? 'LEAVE' : rec.status === 'INFORMED_LATE' ? 'INFORMED_LATE' : rec.verification_note?.includes('No Inform') ? 'LATE_NO_INFO' : 'ON_TIME',
+                                            informedTo: rec.informed_to_person || 'Official WhatsApp Group',
+                                            informedReason: rec.informed_reason || rec.late_reason || '',
                                             status: rec.status === 'ABSENT' ? 'PRESENT' : rec.status,
                                           });
                                         }}
@@ -7910,7 +7965,7 @@ function doPost(e) {
               </div>
               <button
                 type="button"
-                onClick={() => setEditTimeModal({ isOpen: false, record: null, timeStr: '', mode: 'PHYSICAL', informType: 'ON_TIME', informedTo: 'Director Sir', status: 'PRESENT' })}
+                onClick={() => setEditTimeModal({ isOpen: false, record: null, timeStr: '', mode: 'PHYSICAL', informType: 'ON_TIME', informedTo: 'Official WhatsApp Group', informedReason: '', status: 'PRESENT' })}
                 className="text-slate-400 hover:text-slate-600 font-bold text-sm cursor-pointer"
               >
                 ✕
@@ -8070,12 +8125,57 @@ function doPost(e) {
                   </div>
                 </div>
               )}
+
+              {/* Informed Channel / Authority */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Where / Whom did they inform?
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Official WhatsApp Group / Director Sir / Management"
+                  value={editTimeModal.informedTo || ''}
+                  onChange={(e) => setEditTimeModal((prev) => ({ ...prev, informedTo: e.target.value }))}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#7065f0]"
+                />
+                <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
+                  <span className="text-[10px] text-slate-400 font-bold">Presets:</span>
+                  {['Official WhatsApp Group', 'Director Sir', 'Medical Superintendent', 'Admin / Management'].map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setEditTimeModal((prev) => ({ ...prev, informedTo: p }))}
+                      className={`px-2 py-0.5 rounded-lg text-[10px] font-bold border cursor-pointer transition-colors ${
+                        editTimeModal.informedTo === p
+                          ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                          : 'bg-slate-100 hover:bg-purple-50 text-slate-700 border-slate-200'
+                      }`}
+                    >
+                      {p === 'Official WhatsApp Group' ? '💬 WhatsApp Group' : p}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Remark / Reason Input */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Remark / Reason (User Intimation / Admin Note)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Informed on WhatsApp group due to emergency ward round / OT delay"
+                  value={editTimeModal.informedReason || ''}
+                  onChange={(e) => setEditTimeModal((prev) => ({ ...prev, informedReason: e.target.value }))}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-[#7065f0]"
+                />
+              </div>
             </div>
 
             <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
               <button
                 type="button"
-                onClick={() => setEditTimeModal({ isOpen: false, record: null, timeStr: '', mode: 'PHYSICAL', informType: 'ON_TIME', informedTo: 'Director Sir', status: 'PRESENT' })}
+                onClick={() => setEditTimeModal({ isOpen: false, record: null, timeStr: '', mode: 'PHYSICAL', informType: 'ON_TIME', informedTo: 'Official WhatsApp Group', informedReason: '', status: 'PRESENT' })}
                 className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer"
               >
                 Cancel
@@ -8089,7 +8189,9 @@ function doPost(e) {
 
                   if (editTimeModal.informType === 'ON_TIME') {
                     statusToSave = 'PRESENT';
-                    customNote = `Marked Present by Admin (${editTimeModal.timeStr || '10:00 AM'})`;
+                    customNote = editTimeModal.mode === 'VIRTUAL'
+                      ? `Marked Virtual (Meet) by Admin (${editTimeModal.timeStr || '10:00 AM'})`
+                      : `Marked Present by Admin (${editTimeModal.timeStr || '10:00 AM'})`;
                   } else if (editTimeModal.informType === 'INFORMED_LATE') {
                     statusToSave = 'INFORMED_LATE';
                     customNote = `Informed Late (${editTimeModal.timeStr || '10:15 AM'})`;
@@ -8104,13 +8206,18 @@ function doPost(e) {
                     customNote = `Approved Leave (${editTimeModal.informedTo || 'Admin'})`;
                   }
 
+                  if (editTimeModal.informedReason?.trim()) {
+                    customNote += ` • ${editTimeModal.informedReason.trim()}`;
+                  }
+
                   await overrideAttendanceTime(
                     editTimeModal.record.id,
                     editTimeModal.timeStr || (statusToSave === 'ABSENT' ? '' : '10:00:00 AM'),
                     statusToSave,
                     editTimeModal.mode,
                     customNote,
-                    editTimeModal.informedTo
+                    editTimeModal.informedTo,
+                    editTimeModal.informedReason
                   );
                   setToastAlert({
                     type: 'success',
