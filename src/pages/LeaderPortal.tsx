@@ -1252,53 +1252,69 @@ export const LeaderPortal: React.FC = () => {
         {/* Modal: Informed Late / Absence Notice */}
         {showInformedModal && (
           <div className="fixed inset-0 modal-backdrop flex items-start sm:items-center justify-center z-[2500] p-3 sm:p-4 overflow-y-auto">
-            <div className="bg-white rounded-3xl max-w-md w-full p-4 sm:p-6 shadow-2xl border border-slate-200 my-auto max-h-[92vh] overflow-y-auto animate-in fade-in zoom-in duration-150">
-              <h3 className="text-base font-black text-slate-900 mb-1">
-                Hospital Standup Notice Submission
-              </h3>
-              <p className="text-xs text-slate-500 mb-3">
-                Inform hospital operations whether you are joining late with a committed arrival window or requesting full leave for today.
-              </p>
+            <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-slate-200 my-auto max-h-[92vh] overflow-y-auto custom-scrollbar animate-in fade-in zoom-in duration-150">
+              <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-amber-50 to-orange-100 text-amber-700 flex items-center justify-center font-bold shadow-2xs">
+                    <Clock className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-slate-900 leading-tight">
+                      Hospital Standup Notice Submission
+                    </h3>
+                    <p className="text-[11px] text-slate-500 font-medium">
+                      Inform DOM Operations of late arrival or official absence
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowInformedModal(false)}
+                  className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center font-bold text-sm cursor-pointer transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
 
-              <form onSubmit={handleInformedSubmit} className="space-y-3">
+              <form onSubmit={handleInformedSubmit} className="space-y-4">
                 {/* Notice Type Selector */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">
                     Select Notice Category <span className="text-rose-500">*</span>
                   </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                     <button
                       type="button"
                       onClick={() => setInformedNoticeType('LATE')}
-                      className={`p-2.5 rounded-2xl border text-left cursor-pointer transition-all ${
+                      className={`p-3 rounded-2xl border text-left cursor-pointer transition-all ${
                         informedNoticeType === 'LATE'
-                          ? 'bg-[#eff0fe] text-[#7065f0] border-purple-400 shadow-xs ring-2 ring-[#7065f0]/20'
+                          ? 'bg-gradient-to-br from-purple-50 to-indigo-50/50 text-[#7065f0] border-purple-400 shadow-xs ring-2 ring-[#7065f0]/20'
                           : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
                       }`}
                     >
-                      <div className="flex items-center gap-1.5 mb-0.5">
+                      <div className="flex items-center gap-2 mb-1">
                         <Clock className="w-4 h-4 text-[#7065f0]" />
-                        <span className="font-extrabold text-xs text-[#232d42]">⏱️ Joining Late</span>
+                        <span className="font-black text-xs text-[#232d42]">⏱️ Joining Late</span>
                       </div>
-                      <p className="text-[10px] text-slate-500 font-semibold leading-snug">
-                        Committed arrival (5–30m). Must check in before deadline.
+                      <p className="text-[10px] text-slate-500 font-medium leading-snug">
+                        Committed arrival window (5–30m). Must check in before deadline.
                       </p>
                     </button>
                     <button
                       type="button"
                       onClick={() => setInformedNoticeType('LEAVE')}
-                      className={`p-2.5 rounded-2xl border text-left cursor-pointer transition-all ${
+                      className={`p-3 rounded-2xl border text-left cursor-pointer transition-all ${
                         informedNoticeType === 'LEAVE'
-                          ? 'bg-amber-50 text-amber-900 border-amber-400 shadow-xs ring-2 ring-amber-400/20'
+                          ? 'bg-gradient-to-br from-amber-50 to-orange-50/50 text-amber-900 border-amber-400 shadow-xs ring-2 ring-amber-400/20'
                           : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
                       }`}
                     >
-                      <div className="flex items-center gap-1.5 mb-0.5">
+                      <div className="flex items-center gap-2 mb-1">
                         <FileText className="w-4 h-4 text-amber-700" />
-                        <span className="font-extrabold text-xs text-[#232d42]">🚫 Unable to Attend</span>
+                        <span className="font-black text-xs text-[#232d42]">🚫 Unable to Attend</span>
                       </div>
-                      <p className="text-[10px] text-slate-500 font-semibold leading-snug">
-                        Sanctioned Leave / Duty emergency request to Admin.
+                      <p className="text-[10px] text-slate-500 font-medium leading-snug">
+                        Sanctioned Leave / Duty emergency intimation to Admin.
                       </p>
                     </button>
                   </div>
@@ -1306,7 +1322,7 @@ export const LeaderPortal: React.FC = () => {
 
                 {/* Delay Dropdown if Running Late */}
                 {informedNoticeType === 'LATE' && (
-                  <div className="p-3 bg-purple-50/70 border border-purple-200 rounded-2xl space-y-1.5">
+                  <div className="p-3.5 bg-purple-50/70 border border-purple-200 rounded-2xl space-y-2">
                     <label className="block text-xs font-bold text-slate-900">
                       Committed Late Arrival Time (Max 30 Mins):
                     </label>
@@ -1329,19 +1345,19 @@ export const LeaderPortal: React.FC = () => {
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Whom did you inform? (Name / Title / Channel) <span className="text-rose-500">*</span>
+                    Whom did you inform? (Channel / Authority) <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Official WhatsApp Group / Director Sir / Medical Superintendent"
+                    placeholder="e.g. Official WhatsApp Group / Director Sir / Admin Desk"
                     value={informedToPerson}
                     onChange={(e) => setInformedToPerson(e.target.value)}
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-purple-500 font-medium"
                   />
                   <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
                     <span className="text-[10px] text-slate-400 font-bold">Quick Presets:</span>
-                    {['Official WhatsApp Group', 'Director Sir', 'Medical Superintendent', 'Hospital Admin'].map((p) => (
+                    {['Official WhatsApp Group', 'Director Sir', 'Hospital Admin', 'Management'].map((p) => (
                       <button
                         key={p}
                         type="button"
@@ -1376,17 +1392,17 @@ export const LeaderPortal: React.FC = () => {
                   />
                 </div>
 
-                <div className="flex justify-end gap-2 pt-2">
+                <div className="flex justify-end gap-2.5 pt-2 border-t border-slate-100">
                   <button
                     type="button"
                     onClick={() => setShowInformedModal(false)}
-                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs rounded-xl font-bold cursor-pointer"
+                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs rounded-xl font-bold cursor-pointer transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 bg-gradient-to-r from-[#7065f0] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7065f0] text-white text-xs font-bold rounded-xl shadow-md cursor-pointer"
+                    className="px-5 py-2 bg-gradient-to-r from-[#7065f0] to-[#5a4ad8] hover:from-[#5a4ad8] hover:to-[#4335c0] text-white text-xs font-bold rounded-xl shadow-md shadow-indigo-300/40 cursor-pointer active:scale-95 transition-all"
                   >
                     {informedNoticeType === 'LATE' ? 'Confirm Late Arrival Commitment' : 'Submit Leave Notice'}
                   </button>

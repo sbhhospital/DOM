@@ -799,7 +799,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
     timeStr: '',
     mode: 'PHYSICAL',
     informType: 'ON_TIME',
-    informedTo: 'Official WhatsApp Group',
+    informedTo: '',
     informedReason: '',
     status: 'PRESENT',
   });
@@ -3016,7 +3016,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                     <div className="font-bold text-sm leading-snug text-slate-900 truncate">
                                       {rec.leader?.full_name}
                                     </div>
-                                    {(rec.informed_to_person || rec.informed_reason || rec.late_reason) && (
+                                    {/* Notice Channel Badge: Strictly shown ONLY for exceptions (Late, Leave, or Late with reason). NEVER for normal on-time present! */}
+                                    {((rec.status === 'INFORMED_LATE' || rec.status === 'LEAVE' || rec.status === 'INFORMED_ABSENT' || Boolean(rec.late_minutes && rec.late_minutes > 0)) && (rec.informed_to_person || rec.informed_reason || rec.late_reason)) && (
                                       <div className="mt-1 flex items-center gap-1 flex-wrap">
                                         <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold ${
                                           rec.informed_to_person?.toLowerCase().includes('whatsapp')
@@ -3332,8 +3333,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                                 timeStr: existingTime,
                                                 mode: rec.selected_mode === 'VIRTUAL' ? 'VIRTUAL' : 'PHYSICAL',
                                                 informType: rec.status === 'LEAVE' ? 'LEAVE' : rec.status === 'INFORMED_LATE' ? 'INFORMED_LATE' : rec.verification_note?.includes('No Inform') ? 'LATE_NO_INFO' : 'ON_TIME',
-                                                informedTo: rec.informed_to_person || 'Official WhatsApp Group',
-                                                informedReason: rec.informed_reason || rec.late_reason || '',
+                                                informedTo: (rec.status === 'INFORMED_LATE' || rec.status === 'LEAVE') ? (rec.informed_to_person || '') : '',
+                                                informedReason: (rec.status === 'INFORMED_LATE' || rec.status === 'LEAVE') ? (rec.informed_reason || rec.late_reason || '') : '',
                                                 status: rec.status,
                                               });
                                             }}
@@ -3510,8 +3511,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                             timeStr: existingTime,
                                             mode: rec.selected_mode === 'VIRTUAL' ? 'VIRTUAL' : 'PHYSICAL',
                                             informType: rec.status === 'LEAVE' ? 'LEAVE' : rec.status === 'INFORMED_LATE' ? 'INFORMED_LATE' : rec.verification_note?.includes('No Inform') ? 'LATE_NO_INFO' : 'ON_TIME',
-                                            informedTo: rec.informed_to_person || 'Official WhatsApp Group',
-                                            informedReason: rec.informed_reason || rec.late_reason || '',
+                                            informedTo: (rec.status === 'INFORMED_LATE' || rec.status === 'LEAVE') ? (rec.informed_to_person || '') : '',
+                                            informedReason: (rec.status === 'INFORMED_LATE' || rec.status === 'LEAVE') ? (rec.informed_reason || rec.late_reason || '') : '',
                                             status: rec.status === 'ABSENT' ? 'PRESENT' : rec.status,
                                           });
                                         }}
@@ -6717,11 +6718,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-amber-500"
                 >
                   <option value="Director Sir">Director Sir</option>
-                  <option value="Medical Superintendent">Medical Superintendent (MS)</option>
                   <option value="Chief Operating Officer (COO)">Chief Operating Officer (COO)</option>
                   <option value="HR & Admin Desk">HR & Admin Desk</option>
+                  <option value="Official WhatsApp Group">Official WhatsApp Group</option>
                   <option value="Department Head / HOD">Department Head / HOD</option>
-                  <option value="Verbal Communication">Verbal Call / WhatsApp Notice</option>
                 </select>
               </div>
 
@@ -6888,11 +6888,10 @@ export const UnifiedAdminDashboard: React.FC = () => {
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-amber-500"
                 >
                   <option value="Director Sir">Director Sir</option>
-                  <option value="Medical Superintendent">Medical Superintendent (MS)</option>
                   <option value="Chief Operating Officer (COO)">Chief Operating Officer (COO)</option>
                   <option value="Admin Desk">Admin Desk</option>
+                  <option value="Official WhatsApp Group">Official WhatsApp Group</option>
                   <option value="Department Head / HOD">Department Head / HOD</option>
-                  <option value="WhatsApp Group Notice">WhatsApp Group Notice</option>
                 </select>
               </div>
 
@@ -7950,175 +7949,197 @@ function doPost(e) {
         </div>
       )}
 
-      {/* ================= MODAL: ADMIN ATTENDANCE TIME OVERRIDE ================= */}
+      {/* ================= MODAL: ADMIN ATTENDANCE TIME & STATUS OVERRIDE ================= */}
       {editTimeModal.isOpen && editTimeModal.record && (
         <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-[9999] p-4 overflow-y-auto animate-in fade-in">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-[#eff0fe] text-[#7065f0] flex items-center justify-center font-bold">
-                  <Clock className="w-4 h-4" />
+          <div className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-7 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-150 max-h-[92vh] overflow-y-auto custom-scrollbar">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-2xl bg-[#eff0fe] text-[#7065f0] flex items-center justify-center font-bold shadow-2xs">
+                  <Clock className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-black text-slate-900">Modify Check-in Time</h3>
-                  <p className="text-[11px] text-slate-500">Manual Admin Time Override & Status Modification</p>
+                  <h3 className="text-base font-black text-slate-900 leading-tight">Modify Attendance Record</h3>
+                  <p className="text-[11px] text-slate-500 font-medium">Verified Admin Attendance & Mode Configuration</p>
                 </div>
               </div>
               <button
                 type="button"
-                onClick={() => setEditTimeModal({ isOpen: false, record: null, timeStr: '', mode: 'PHYSICAL', informType: 'ON_TIME', informedTo: 'Official WhatsApp Group', informedReason: '', status: 'PRESENT' })}
-                className="text-slate-400 hover:text-slate-600 font-bold text-sm cursor-pointer"
+                onClick={() => setEditTimeModal({ isOpen: false, record: null, timeStr: '', mode: 'PHYSICAL', informType: 'ON_TIME', informedTo: '', informedReason: '', status: 'PRESENT' })}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center font-bold text-sm cursor-pointer transition-colors"
+                title="Close"
               >
                 ✕
               </button>
             </div>
 
             <div className="py-4 space-y-4">
-              {/* Leader Profile Header with Official Logo (No Emp ID) */}
-              <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 flex items-center gap-3">
-                <img
-                  src={defaultLeaderAvatar}
-                  alt={editTimeModal.record.leader?.full_name || 'Leader'}
-                  className="w-11 h-11 rounded-full object-cover border border-purple-200 shadow-xs shrink-0"
-                />
-                <div className="min-w-0">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Department Leader</span>
-                  <span className="text-sm font-black text-slate-900 block truncate">{editTimeModal.record.leader?.full_name}</span>
-                  <span className="text-[11px] text-[#7065f0] font-semibold block truncate">
-                    {editTimeModal.record.leader?.department?.name || 'Hospital Department'}
-                  </span>
+              {/* Leader Profile Card */}
+              <div className="p-3.5 bg-gradient-to-r from-slate-50 to-indigo-50/30 rounded-2xl border border-slate-200/80 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <img
+                    src={defaultLeaderAvatar}
+                    alt={editTimeModal.record.leader?.full_name || 'Leader'}
+                    className="w-11 h-11 rounded-full object-cover border-2 border-purple-200 shadow-xs shrink-0"
+                  />
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Department Leader</span>
+                    <span className="text-sm font-black text-slate-900 block truncate">{editTimeModal.record.leader?.full_name}</span>
+                    <span className="text-[11px] text-[#7065f0] font-bold block truncate">
+                      {editTimeModal.record.leader?.department?.name || 'Hospital Department'}
+                    </span>
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className="text-[10px] font-bold uppercase text-slate-400 block">Current Status</span>
+                  <span className="text-xs font-black text-slate-700 block mt-0.5">{editTimeModal.record.status}</span>
                 </div>
               </div>
 
-              {/* Mode Selection */}
+              {/* 1. Mode Selection */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Attendance Join Mode
+                  1. Attendance Join Mode
                 </label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2.5">
                   <button
                     type="button"
                     onClick={() => setEditTimeModal((prev) => ({ ...prev, mode: 'PHYSICAL' }))}
-                    className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${editTimeModal.mode === 'PHYSICAL'
-                      ? 'bg-[#eff0fe] text-[#7065f0] border-purple-300 shadow-2xs'
-                      : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                    className={`p-3 rounded-2xl border text-left cursor-pointer transition-all ${editTimeModal.mode === 'PHYSICAL'
+                      ? 'bg-gradient-to-br from-purple-50 to-indigo-50/50 text-[#7065f0] border-purple-400 shadow-xs ring-2 ring-[#7065f0]/20'
+                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
                       }`}
                   >
-                    <Building className="w-3.5 h-3.5 text-[#7065f0]" />
-                    <span>Physical (Boardroom)</span>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Building className="w-4 h-4 text-[#7065f0]" />
+                      <span className="text-xs font-black">🏢 In-Person Presence</span>
+                    </div>
+                    <span className="text-[10px] text-slate-500 font-medium block">Conference Room, 5th Floor</span>
                   </button>
+
                   <button
                     type="button"
                     onClick={() => setEditTimeModal((prev) => ({ ...prev, mode: 'VIRTUAL' }))}
-                    className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${editTimeModal.mode === 'VIRTUAL'
-                      ? 'bg-sky-50 text-sky-700 border-sky-300 shadow-2xs'
-                      : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                    className={`p-3 rounded-2xl border text-left cursor-pointer transition-all ${editTimeModal.mode === 'VIRTUAL'
+                      ? 'bg-gradient-to-br from-sky-50 to-indigo-50/50 text-sky-700 border-sky-400 shadow-xs ring-2 ring-sky-500/20'
+                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
                       }`}
                   >
-                    <Video className="w-3.5 h-3.5 text-sky-600" />
-                    <span>Virtual (Meet)</span>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Video className="w-4 h-4 text-sky-600" />
+                      <span className="text-xs font-black">💻 Virtual (Google Meet)</span>
+                    </div>
+                    <span className="text-[10px] text-slate-500 font-medium block">Official Remote Video Conference</span>
                   </button>
                 </div>
               </div>
 
-              {/* Attendance Classification & Inform Status */}
+              {/* 2. Attendance Classification & Inform Status */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Attendance Classification & Inform Status
+                  2. Attendance Classification
                 </label>
-                <div className="space-y-1.5 text-xs">
-                  <label className="flex items-center gap-2.5 p-2 bg-emerald-50/70 hover:bg-emerald-50 rounded-xl border border-emerald-200 cursor-pointer">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  <label className={`flex items-start gap-2.5 p-2.5 rounded-2xl border cursor-pointer transition-all ${
+                    editTimeModal.informType === 'ON_TIME'
+                      ? 'bg-emerald-50 border-emerald-400 ring-2 ring-emerald-400/20 shadow-xs'
+                      : 'bg-white border-slate-200 hover:bg-slate-50'
+                  }`}>
                     <input
                       type="radio"
                       name="informType"
                       checked={editTimeModal.informType === 'ON_TIME'}
-                      onChange={() => setEditTimeModal((prev) => ({ ...prev, informType: 'ON_TIME', status: 'PRESENT', timeStr: prev.timeStr || '10:00:00 AM' }))}
-                      className="text-emerald-600 focus:ring-emerald-500 w-4 h-4"
+                      onChange={() => setEditTimeModal((prev) => ({ ...prev, informType: 'ON_TIME', status: 'PRESENT', timeStr: prev.timeStr || '10:00:00 AM', informedTo: '', informedReason: '' }))}
+                      className="text-emerald-600 focus:ring-emerald-500 w-4 h-4 mt-0.5"
                     />
                     <div>
-                      <span className="font-bold text-emerald-950 block">✅ On-Time Present (Normal)</span>
-                      <span className="text-[10px] text-emerald-700 block">Joined by 10:05 AM (Full Attendance)</span>
+                      <span className="font-black text-emerald-950 block">🟢 On-Time Present</span>
+                      <span className="text-[10px] text-emerald-700 font-medium block leading-snug">Joined by 10:05 AM (Full On-Time Attendance)</span>
                     </div>
                   </label>
 
-                  <label className="flex items-center gap-2.5 p-2 bg-amber-50/70 hover:bg-amber-50 rounded-xl border border-amber-200 cursor-pointer">
+                  <label className={`flex items-start gap-2.5 p-2.5 rounded-2xl border cursor-pointer transition-all ${
+                    editTimeModal.informType === 'INFORMED_LATE'
+                      ? 'bg-amber-50 border-amber-400 ring-2 ring-amber-400/20 shadow-xs'
+                      : 'bg-white border-slate-200 hover:bg-slate-50'
+                  }`}>
                     <input
                       type="radio"
                       name="informType"
                       checked={editTimeModal.informType === 'INFORMED_LATE'}
-                      onChange={() => setEditTimeModal((prev) => ({ ...prev, informType: 'INFORMED_LATE', status: 'INFORMED_LATE', timeStr: '10:15:00 AM' }))}
-                      className="text-amber-600 focus:ring-amber-500 w-4 h-4"
+                      onChange={() => setEditTimeModal((prev) => ({ ...prev, informType: 'INFORMED_LATE', status: 'INFORMED_LATE', timeStr: prev.timeStr || '10:15:00 AM' }))}
+                      className="text-amber-600 focus:ring-amber-500 w-4 h-4 mt-0.5"
                     />
                     <div>
-                      <span className="font-bold text-amber-950 block">⏰ Informed Late Arrival</span>
-                      <span className="text-[10px] text-amber-700 block">Leader informed beforehand (e.g. Ward Round / Emergency)</span>
+                      <span className="font-black text-amber-950 block">🟡 Informed Late</span>
+                      <span className="text-[10px] text-amber-700 font-medium block leading-snug">Notified beforehand (Emergency / Ward Round)</span>
                     </div>
                   </label>
 
-                  <label className="flex items-center gap-2.5 p-2 bg-orange-50/70 hover:bg-orange-50 rounded-xl border border-orange-200 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="informType"
-                      checked={editTimeModal.informType === 'LATE_NO_INFO'}
-                      onChange={() => setEditTimeModal((prev) => ({ ...prev, informType: 'LATE_NO_INFO', status: 'PRESENT', timeStr: '10:15:00 AM' }))}
-                      className="text-orange-600 focus:ring-orange-500 w-4 h-4"
-                    />
-                    <div>
-                      <span className="font-bold text-orange-950 block">⚠️ Late Arrival (No Information)</span>
-                      <span className="text-[10px] text-orange-700 block">Arrived late without prior intimation (Light red alert)</span>
-                    </div>
-                  </label>
-
-                  <label className="flex items-center gap-2.5 p-2 bg-rose-50/70 hover:bg-rose-50 rounded-xl border border-rose-200 cursor-pointer">
+                  <label className={`flex items-start gap-2.5 p-2.5 rounded-2xl border cursor-pointer transition-all ${
+                    editTimeModal.informType === 'ABSENT_NO_INFO'
+                      ? 'bg-rose-50 border-rose-400 ring-2 ring-rose-400/20 shadow-xs'
+                      : 'bg-white border-slate-200 hover:bg-slate-50'
+                  }`}>
                     <input
                       type="radio"
                       name="informType"
                       checked={editTimeModal.informType === 'ABSENT_NO_INFO'}
                       onChange={() => setEditTimeModal((prev) => ({ ...prev, informType: 'ABSENT_NO_INFO', status: 'ABSENT', timeStr: '' }))}
-                      className="text-rose-600 focus:ring-rose-500 w-4 h-4"
+                      className="text-rose-600 focus:ring-rose-500 w-4 h-4 mt-0.5"
                     />
                     <div>
-                      <span className="font-bold text-rose-950 block">❌ Absent (No Information)</span>
-                      <span className="text-[10px] text-rose-700 block">Did not attend standup and gave zero information (Red alert)</span>
+                      <span className="font-black text-rose-950 block">🔴 Absent (No Information)</span>
+                      <span className="text-[10px] text-rose-700 font-medium block leading-snug">Did not attend standup (Unexcused)</span>
                     </div>
                   </label>
 
-                  <label className="flex items-center gap-2.5 p-2 bg-purple-50/70 hover:bg-purple-50 rounded-xl border border-purple-200 cursor-pointer">
+                  <label className={`flex items-start gap-2.5 p-2.5 rounded-2xl border cursor-pointer transition-all ${
+                    editTimeModal.informType === 'LEAVE'
+                      ? 'bg-purple-50 border-purple-400 ring-2 ring-purple-400/20 shadow-xs'
+                      : 'bg-white border-slate-200 hover:bg-slate-50'
+                  }`}>
                     <input
                       type="radio"
                       name="informType"
                       checked={editTimeModal.informType === 'LEAVE'}
                       onChange={() => setEditTimeModal((prev) => ({ ...prev, informType: 'LEAVE', status: 'LEAVE' }))}
-                      className="text-purple-600 focus:ring-purple-500 w-4 h-4"
+                      className="text-purple-600 focus:ring-purple-500 w-4 h-4 mt-0.5"
                     />
                     <div>
-                      <span className="font-bold text-purple-950 block">🏖️ Approved Official Leave</span>
-                      <span className="text-[10px] text-purple-700 block">Sanctioned hospital leave</span>
+                      <span className="font-black text-purple-950 block">🟣 Approved Leave</span>
+                      <span className="text-[10px] text-purple-700 font-medium block leading-snug">Official hospital leave sanctioned</span>
                     </div>
                   </label>
                 </div>
               </div>
 
+              {/* 3. Check-in Time (IST) - Only for Present / Late */}
               {editTimeModal.informType !== 'ABSENT_NO_INFO' && editTimeModal.informType !== 'LEAVE' && (
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Actual Check-in Time (IST)
+                <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/80">
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    3. Actual Check-in Time (IST)
                   </label>
                   <input
                     type="text"
-                    placeholder="e.g. 10:02:15 AM or 09:55:00 AM"
+                    placeholder="e.g. 10:00:00 AM or 09:55:00 AM"
                     value={editTimeModal.timeStr}
                     onChange={(e) => setEditTimeModal((prev) => ({ ...prev, timeStr: e.target.value }))}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-[#7065f0]"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-[#7065f0]"
                   />
-                  <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
-                    <span className="text-[10px] text-slate-400 font-bold">Presets:</span>
-                    {['09:55:00 AM', '10:00:00 AM', '10:05:00 AM', '10:10:00 AM', '10:15:00 AM', '10:20:00 AM'].map((t) => (
+                  <div className="flex items-center gap-1.5 flex-wrap mt-2">
+                    <span className="text-[10px] text-slate-400 font-bold">Quick Presets:</span>
+                    {['09:50:00 AM', '09:55:00 AM', '10:00:00 AM', '10:05:00 AM', '10:10:00 AM', '10:15:00 AM', '10:20:00 AM'].map((t) => (
                       <button
                         key={t}
                         type="button"
                         onClick={() => setEditTimeModal((prev) => ({ ...prev, timeStr: t }))}
-                        className="px-2 py-0.5 rounded-lg text-[10px] font-mono font-bold bg-slate-100 hover:bg-purple-50 text-slate-700 hover:text-[#7065f0] border border-slate-200 cursor-pointer"
+                        className={`px-2 py-0.5 rounded-lg text-[10px] font-mono font-bold border cursor-pointer transition-colors ${
+                          editTimeModal.timeStr === t
+                            ? 'bg-[#eff0fe] text-[#7065f0] border-purple-300'
+                            : 'bg-white hover:bg-purple-50 text-slate-700 border-slate-200'
+                        }`}
                       >
                         {t.slice(0, 5)}
                       </button>
@@ -8127,57 +8148,61 @@ function doPost(e) {
                 </div>
               )}
 
-              {/* Informed Channel / Authority */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Where / Whom did they inform?
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Official WhatsApp Group / Director Sir / Management"
-                  value={editTimeModal.informedTo || ''}
-                  onChange={(e) => setEditTimeModal((prev) => ({ ...prev, informedTo: e.target.value }))}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#7065f0]"
-                />
-                <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
-                  <span className="text-[10px] text-slate-400 font-bold">Presets:</span>
-                  {['Official WhatsApp Group', 'Director Sir', 'Medical Superintendent', 'Admin / Management'].map((p) => (
-                    <button
-                      key={p}
-                      type="button"
-                      onClick={() => setEditTimeModal((prev) => ({ ...prev, informedTo: p }))}
-                      className={`px-2 py-0.5 rounded-lg text-[10px] font-bold border cursor-pointer transition-colors ${
-                        editTimeModal.informedTo === p
-                          ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                          : 'bg-slate-100 hover:bg-purple-50 text-slate-700 border-slate-200'
-                      }`}
-                    >
-                      {p === 'Official WhatsApp Group' ? '💬 WhatsApp Group' : p}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              {/* 4. Notice Authority & Reason (Shown ONLY for Informed Late or Leave) */}
+              {(editTimeModal.informType === 'INFORMED_LATE' || editTimeModal.informType === 'LEAVE') && (
+                <div className="p-3.5 bg-amber-50/50 rounded-2xl border border-amber-200/80 space-y-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Whom did they inform?
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Official WhatsApp Group / Director Sir / Admin Desk"
+                      value={editTimeModal.informedTo || ''}
+                      onChange={(e) => setEditTimeModal((prev) => ({ ...prev, informedTo: e.target.value }))}
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-amber-500"
+                    />
+                    <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
+                      <span className="text-[10px] text-slate-400 font-bold">Presets:</span>
+                      {['Official WhatsApp Group', 'Director Sir', 'Admin / Management'].map((p) => (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => setEditTimeModal((prev) => ({ ...prev, informedTo: p }))}
+                          className={`px-2 py-0.5 rounded-lg text-[10px] font-bold border cursor-pointer transition-colors ${
+                            editTimeModal.informedTo === p
+                              ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                              : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200'
+                          }`}
+                        >
+                          {p === 'Official WhatsApp Group' ? '💬 WhatsApp Group' : p}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
-              {/* Remark / Reason Input */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Remark / Reason (User Intimation / Admin Note)
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Informed on WhatsApp group due to emergency ward round / OT delay"
-                  value={editTimeModal.informedReason || ''}
-                  onChange={(e) => setEditTimeModal((prev) => ({ ...prev, informedReason: e.target.value }))}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-[#7065f0]"
-                />
-              </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Remark / Reason (User Intimation / Admin Note)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Informed on WhatsApp group due to emergency ward round / OT delay"
+                      value={editTimeModal.informedReason || ''}
+                      onChange={(e) => setEditTimeModal((prev) => ({ ...prev, informedReason: e.target.value }))}
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
+            {/* Modal Footer */}
             <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
               <button
                 type="button"
-                onClick={() => setEditTimeModal({ isOpen: false, record: null, timeStr: '', mode: 'PHYSICAL', informType: 'ON_TIME', informedTo: 'Official WhatsApp Group', informedReason: '', status: 'PRESENT' })}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer"
+                onClick={() => setEditTimeModal({ isOpen: false, record: null, timeStr: '', mode: 'PHYSICAL', informType: 'ON_TIME', informedTo: '', informedReason: '', status: 'PRESENT' })}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer transition-colors"
               >
                 Cancel
               </button>
@@ -8187,8 +8212,9 @@ function doPost(e) {
                   if (!editTimeModal.record) return;
                   let customNote = '';
                   let statusToSave: AttendanceStatus = 'PRESENT';
+                  const isOnTime = editTimeModal.informType === 'ON_TIME';
 
-                  if (editTimeModal.informType === 'ON_TIME') {
+                  if (isOnTime) {
                     statusToSave = 'PRESENT';
                     customNote = editTimeModal.mode === 'VIRTUAL'
                       ? `Marked Virtual (Meet) by Admin (${editTimeModal.timeStr || '10:00 AM'})`
@@ -8196,9 +8222,6 @@ function doPost(e) {
                   } else if (editTimeModal.informType === 'INFORMED_LATE') {
                     statusToSave = 'INFORMED_LATE';
                     customNote = `Informed Late (${editTimeModal.timeStr || '10:15 AM'})`;
-                  } else if (editTimeModal.informType === 'LATE_NO_INFO') {
-                    statusToSave = 'PRESENT';
-                    customNote = `Late (No Inform: ${editTimeModal.timeStr || '10:15 AM'})`;
                   } else if (editTimeModal.informType === 'ABSENT_NO_INFO') {
                     statusToSave = 'ABSENT';
                     customNote = 'Absent (No Information)';
@@ -8207,27 +8230,28 @@ function doPost(e) {
                     customNote = `Approved Leave (${editTimeModal.informedTo || 'Admin'})`;
                   }
 
-                  if (editTimeModal.informedReason?.trim()) {
+                  if (!isOnTime && editTimeModal.informedReason?.trim()) {
                     customNote += ` • ${editTimeModal.informedReason.trim()}`;
                   }
 
+                  // Pass informedTo and informedReason ONLY if late or leave; clear if on-time present
                   await overrideAttendanceTime(
                     editTimeModal.record.id,
                     editTimeModal.timeStr || (statusToSave === 'ABSENT' ? '' : '10:00:00 AM'),
                     statusToSave,
                     editTimeModal.mode,
                     customNote,
-                    editTimeModal.informedTo,
-                    editTimeModal.informedReason
+                    isOnTime ? undefined : (editTimeModal.informedTo || undefined),
+                    isOnTime ? undefined : (editTimeModal.informedReason || undefined)
                   );
                   setToastAlert({
                     type: 'success',
-                    text: `Attendance saved for ${editTimeModal.record.leader?.full_name}: ${customNote}!`,
+                    text: `✅ Attendance saved for ${editTimeModal.record.leader?.full_name}: ${customNote}!`,
                   });
                   setEditTimeModal((prev) => ({ ...prev, isOpen: false, record: null }));
                   setTimeout(() => setToastAlert(null), 3500);
                 }}
-                className="px-5 py-2 bg-gradient-to-r from-[#7065f0] to-[#7f70f6] hover:from-[#513ed8] hover:to-[#7065f0] text-white rounded-xl text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer"
+                className="px-5 py-2 bg-gradient-to-r from-[#7065f0] to-[#5a4ad8] hover:from-[#5a4ad8] hover:to-[#4335c0] text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-400/30 active:scale-95 transition-all cursor-pointer"
               >
                 Save Attendance Record
               </button>

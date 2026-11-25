@@ -4287,6 +4287,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const newCheckInIso = isAbsent || isLeave ? undefined : buildCheckInIso(recDate, customTimeStr);
         const lateMins = isAbsent || isLeave ? undefined : calculateLate(customTimeStr);
 
+        const isNoticeException = status === 'INFORMED_LATE' || status === 'LEAVE' || status === 'INFORMED_ABSENT';
         const updated: AttendanceRecord = {
           ...r,
           check_in_at: newCheckInIso,
@@ -4297,9 +4298,9 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           admin_verified_attendance: !isAbsent && !isLeave,
           verification_note: customNote || `Marked by Admin (${customTimeStr})`,
           late_minutes: lateMins && lateMins > 0 ? lateMins : undefined,
-          informed_to_person: informedToPerson || r.informed_to_person,
-          informed_reason: informedReason || r.informed_reason,
-          late_reason: status === 'INFORMED_LATE' ? (informedReason || r.late_reason) : r.late_reason,
+          informed_to_person: isNoticeException ? (informedToPerson || r.informed_to_person || undefined) : undefined,
+          informed_reason: isNoticeException ? (informedReason || r.informed_reason || undefined) : undefined,
+          late_reason: status === 'INFORMED_LATE' ? (informedReason || r.late_reason) : undefined,
           late_expired: false,
           updated_at: nowIso,
         };
@@ -4331,8 +4332,8 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         admin_verified_attendance: !isAbsent && !isLeave,
         verification_note: customNote || `Marked by Admin (${customTimeStr})`,
         late_minutes: lateMins && lateMins > 0 ? lateMins : undefined,
-        informed_to_person: informedToPerson,
-        informed_reason: informedReason,
+        informed_to_person: (status === 'INFORMED_LATE' || status === 'LEAVE' || status === 'INFORMED_ABSENT') ? (informedToPerson || undefined) : undefined,
+        informed_reason: (status === 'INFORMED_LATE' || status === 'LEAVE' || status === 'INFORMED_ABSENT') ? (informedReason || undefined) : undefined,
         late_reason: status === 'INFORMED_LATE' ? informedReason : undefined,
         late_expired: false,
         check_in_at: newCheckInIso,
