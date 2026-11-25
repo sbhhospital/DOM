@@ -2,13 +2,13 @@ name: Daily Standup WhatsApp Automation (DOM)
 
 on:
   schedule:
-    # 04:20 UTC is 09:50 AM IST (Monday to Saturday, Sundays excluded)
-    - cron: '20 4 * * 1-6'
+    # 04:00 UTC is 09:30 AM IST (Monday to Saturday, Sundays excluded)
+    - cron: '0 4 * * 1-6'
   workflow_dispatch: # Allows manual run button from GitHub Actions UI
 
 jobs:
   broadcast-standup-reminders:
-    name: 09:50 AM IST WhatsApp Reminder Broadcast
+    name: 09:30 AM IST WhatsApp Reminder Broadcast
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -20,14 +20,38 @@ jobs:
           node-version: 20
 
       - name: Dispatch Standup Notice to Official WhatsApp Group
+        env:
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
         run: |
-          echo "Executing automated 09:50 AM IST Standup WhatsApp Broadcast..."
+          echo "Executing automated 09:30 AM IST Standup WhatsApp Broadcast..."
           node -e "
             const https = require('https');
             
             // Format today's date in Indian DD-MM-YYYY format
             const today = new Date();
             const istDate = new Date(today.getTime() + (5.5 * 60 * 60 * 1000));
+            const istHours = istDate.getUTCHours();
+            const istMinutes = istDate.getUTCMinutes();
+            const istDayOfWeek = istDate.getUTCDay();
+
+            // 1. Skip Sunday (0)
+            if (istDayOfWeek === 0) {
+              console.log('Today is Sunday (Official Hospital Weekly Off). Standup broadcast skipped.');
+              process.exit(0);
+            }
+
+            // 2. Strict Time-Window Guard:
+            // ONLY allow execution between 09:15 AM and 09:45 AM IST (target 09:30 AM).
+            // If GitHub Actions triggers at night (e.g. 8:00 PM, 8:15 PM, 8:25 PM due to runner queue delays), ABORT IMMEDIATELY!
+            const isAllowedWindow = (istHours === 9 && istMinutes >= 15 && istMinutes <= 45);
+            const isManualDispatch = process.env.GITHUB_EVENT_NAME === 'workflow_dispatch';
+
+            if (!isAllowedWindow && !isManualDispatch) {
+              console.warn('[TIME GUARD BLOCKED] Current IST time is ' + String(istHours).padStart(2,'0') + ':' + String(istMinutes).padStart(2,'0') + ' IST.');
+              console.warn('Automated broadcast is strictly restricted to 09:30 AM IST morning window. Night/delayed trigger aborted to prevent spam!');
+              process.exit(0);
+            }
+
             const day = String(istDate.getUTCDate()).padStart(2, '0');
             const month = String(istDate.getUTCMonth() + 1).padStart(2, '0');
             const year = istDate.getUTCFullYear();
@@ -35,7 +59,7 @@ jobs:
             
             const message = [
               '🏥 *SBH GROUP OF HOSPITALS, RAIPUR*',
-              '🔔 *09:50 AM NOTICE: DAILY OPERATIONS MEETING (DOM)*',
+              '🔔 *09:30 AM NOTICE: DAILY OPERATIONS MEETING (DOM)*',
               '━━━━━━━━━━━━━━━━━━━━━━',
               '📅 *Date:* ' + formattedDate,
               '⏰ *Time:* Sharp 10:00 AM IST',
@@ -45,7 +69,7 @@ jobs:
               '👉 https://sbhdom.vercel.app/',
               '',
               '📌 *MANDATORY CHECK-IN INSTRUCTION:*',
-              'Physical attendance in the 5th Floor Conference Room requires scanning the on-screen QR Code. Ensure your device GPS is active inside the room.',
+              'Physical attendance in the 5th Floor Conference Room requires scanning the on-screen QR Code.',
               '',
               '⚠️ All Department Heads and Leaders please assemble in the 5th Floor Conference Room and check in before 10:00 AM sharp.',
               'Final attendance audit freezes at 10:30 AM for Hospital Director review.',
@@ -56,9 +80,9 @@ jobs:
             const targetGroupId = '919977881452-1431506963@g.us';
             const audioUrl = 'https://sbhdom.vercel.app/audio/announcement-dom.mp3';
             
-            console.log('Dispatching notice & audio to target group: ' + targetGroupId);
+            console.log('Dispatching 09:30 AM notice & audio strictly to group: ' + targetGroupId);
             
-            // 1. Dispatch via Vercel Dispatch Proxy (handles both message + audio attachment)
+            // 1. Dispatch via Vercel Dispatch Proxy (handles group recipientIds safely)
             const postPayload = JSON.stringify({
               mobileNo: targetGroupId,
               message: message,
@@ -86,10 +110,10 @@ jobs:
             vercelReq.write(postPayload);
             vercelReq.end();
             
-            // 2. Direct fallback call to Ceoitbox messageautosender
+            // 2. Direct fallback call to Ceoitbox messageautosender (strictly recipientIds, NEVER receiverMobileNo)
             const ceoQuery = 'username=' + encodeURIComponent('SBH HOSPITAL') +
               '&password=' + encodeURIComponent('123456789') +
-              '&receiverMobileNo=' + encodeURIComponent(targetGroupId) +
+              '&recipientIds=' + encodeURIComponent(targetGroupId) +
               '&receiverName=' + encodeURIComponent('SBH DOM Group') +
               '&message=' + encodeURIComponent(message) +
               '&filePathUrl=' + encodeURIComponent(audioUrl);

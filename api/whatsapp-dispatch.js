@@ -38,9 +38,14 @@ export default async function handler(req, res) {
       cleanPhone = TEST_GROUP;
     }
 
-    // Strict safety protection: NEVER message single contact 9977881452
-    if (!isGroup && cleanPhone.replace(/\D/g, '').includes('9977881452')) {
-      return res.status(200).json({ success: false, message: 'Blocked individual dispatch to 9977881452.' });
+    // Strict safety protection: NEVER message single contact 9977881452 or 919977881452 on personal chat
+    if (!isGroup && (cleanPhone.replace(/\D/g, '').includes('9977881452') || cleanPhone === '9977881452' || cleanPhone === '919977881452')) {
+      return res.status(200).json({ success: false, message: 'Blocked individual dispatch to 9977881452. DOM notifications are group-only.' });
+    }
+
+    // Standup broadcasts must NEVER be sent to individual phone numbers — groups only
+    if (!isGroup && message && (message.includes('DAILY OPERATIONS') || message.includes('DOM') || message.includes('CHECK-IN INSTRUCTION'))) {
+      return res.status(200).json({ success: false, message: 'Blocked standup broadcast to individual phone. Official DOM notices are restricted strictly to WhatsApp Groups.' });
     }
 
     const user = username || 'SBH HOSPITAL';
@@ -71,7 +76,7 @@ export default async function handler(req, res) {
       await new Promise((resolve) => {
         const postPayload = JSON.stringify({
           recipientIds: isGroup ? [cleanPhone] : undefined,
-          receiverMobileNo: cleanPhone,
+          receiverMobileNo: isGroup ? undefined : cleanPhone,
           base64File: filePayload ? [filePayload] : undefined,
           filePathUrl: effectiveFilePathUrl,
         });
@@ -112,12 +117,13 @@ export default async function handler(req, res) {
     // 2. If text message is provided, dispatch via GET /api/v1/message/create
     if (message) {
       await new Promise((resolve) => {
-        // Provide both receiverMobileNo and recipientIds so Ceoitbox accepts regardless of field preference
         const queryParams = new URLSearchParams();
         queryParams.set('api_key', 'test');
-        queryParams.set('receiverMobileNo', cleanPhone);
         if (isGroup) {
           queryParams.set('recipientIds', cleanPhone);
+          // CRITICAL: NEVER set receiverMobileNo for groups. Ceoitbox splits hyphen '-' and messages individual numbers!
+        } else {
+          queryParams.set('receiverMobileNo', cleanPhone);
         }
         queryParams.set('message', message);
         if (effectiveFilePathUrl) {

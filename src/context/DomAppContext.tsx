@@ -3008,7 +3008,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return { success: true, message: 'Final 10:30 AM WhatsApp Audit Report automatically sent & logged in Google Sheet!', payload: msg };
   };
 
-  // Stage 1: 09:50 AM Morning Notice with Meeting Link (or Holiday / Sunday Weekly Off notice)
+  // Stage 1: 09:30 AM Morning Notice with Meeting Link (or Holiday / Sunday Weekly Off notice)
   const sendMeetingReminderNotice = async (
     date: string
   ): Promise<{ success: boolean; sentCount: number; message: string }> => {
@@ -3053,7 +3053,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       let cleanTime = (meeting.scheduled_time || '10:00 AM').replace(/\s*IST\s*/gi, '').trim();
 
       reminderMsg = `*SBH GROUP OF HOSPITALS, RAIPUR*\n`;
-      reminderMsg += `🔔 *09:50 AM NOTICE: ${cleanCadence} — ${cleanMeetingTitle}*\n`;
+      reminderMsg += `🔔 *09:30 AM NOTICE: ${cleanCadence} — ${cleanMeetingTitle}*\n`;
       reminderMsg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
       reminderMsg += `📅 *Date:* ${formatToIndianDate(date)}\n`;
       reminderMsg += `⏰ *Start Time:* ${cleanTime} IST (Sharp)\n`;
@@ -3123,7 +3123,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       sentCount: leaders.length,
       message: isSunday || isHoliday
         ? `✅ Official ${isSunday ? 'Sunday Weekly Off' : 'Holiday'} Notice sent successfully to WhatsApp Group!`
-        : `✅ 09:50 AM ${cadenceCode} Notice sent successfully to WhatsApp Group!`,
+        : `✅ 09:30 AM ${cadenceCode} Notice sent successfully to WhatsApp Group!`,
     };
   };
 
@@ -3593,7 +3593,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
   };
 
-  // Stage 1: Send Personalized 09:50 AM Alerts to All Leaders (Mon-Sat, Sunday Paused unless Test Mode)
+  // Stage 1: Send Personalized 09:30 AM Alerts to All Leaders (Mon-Sat, Sunday Paused unless Test Mode)
   const sendCeoitboxRemindersToAll = async (
     date: string
   ): Promise<{ success: boolean; count: number; message: string }> => {
@@ -3623,7 +3623,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     let cleanTime = (meeting.scheduled_time || '10:00 AM').replace(/\s*IST\s*/gi, '').trim();
 
     let reminderText = `*SBH GROUP OF HOSPITALS, RAIPUR*\n`;
-    reminderText += `🔔 *OFFICIAL 09:50 AM ${cleanCadence} NOTICE — ${cleanMeetingTitle}*\n`;
+    reminderText += `🔔 *OFFICIAL 09:30 AM ${cleanCadence} NOTICE — ${cleanMeetingTitle}*\n`;
     reminderText += `━━━━━━━━━━━━━━━━━━━━━━\n`;
     reminderText += `📅 *Date:* ${formattedDate}\n`;
     reminderText += `⏰ *Start Time:* ${cleanTime} IST (Sharp)\n`;
@@ -3647,7 +3647,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return {
       success: true,
       count: 1,
-      message: `09:50 AM notice broadcast directly to WhatsApp Group (${targetGroup})!`,
+      message: `09:30 AM notice broadcast directly to WhatsApp Group (${targetGroup})!`,
     };
   };
 
@@ -3704,7 +3704,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (stage === '1030' && date > getLiveIndiaDateStr() && !appSettings.is_test_mode) {
       return {
         success: false,
-        message: `Meeting has not started yet for ${formatToIndianDate(date)}. Final attendance reports cannot be generated or broadcast for future dates. Only 09:50 AM schedule announcements are permitted.`,
+        message: `Meeting has not started yet for ${formatToIndianDate(date)}. Final attendance reports cannot be generated or broadcast for future dates. Only 09:30 AM schedule announcements are permitted.`,
         url: '',
         payload: '',
       };
@@ -3756,7 +3756,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     if (stage === '0950') {
       msg = `*SBH GROUP OF HOSPITALS, RAIPUR*\n`;
-      msg += `🔔 *09:50 AM NOTICE: ${cleanCadence} — ${cleanMeetingTitle}*\n`;
+      msg += `🔔 *09:30 AM NOTICE: ${cleanCadence} — ${cleanMeetingTitle}*\n`;
       msg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
       msg += `📅 *Date:* ${formattedDate}\n`;
       msg += `⏰ *Start Time:* 10:00 AM IST (Sharp)\n`;
@@ -3872,7 +3872,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     return {
       success: true,
-      message: `Stage ${stage === '0950' ? '09:50 AM Notice' : '10:30 AM Final Audit'} automatically sent to WhatsApp Group (${groupJid}) & logged in Google Sheet!`,
+      message: `Stage ${stage === '0950' ? '09:30 AM Notice' : '10:30 AM Final Audit'} automatically sent to WhatsApp Group (${groupJid}) & logged in Google Sheet!`,
       url: res.url,
       payload: msg,
     };
@@ -4079,7 +4079,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  // Automated 09:50 AM Transmission (Official WhatsApp Group ONLY — Zero individual leader spam)
+  // Automated 09:30 AM Transmission (Official WhatsApp Group ONLY — Zero individual leader spam)
   const triggerAutomated0950Transmission = async (
     date: string
   ): Promise<{ success: boolean; leadersCount: number; message: string }> => {
@@ -4093,7 +4093,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return {
       success: true,
       leadersCount: 1,
-      message: `09:50 AM Morning Notice successfully sent to Official WhatsApp Group (${targetWhatsappGroup})!`,
+      message: `09:30 AM Morning Notice successfully sent to Official WhatsApp Group (${targetWhatsappGroup})!`,
     };
   };
 

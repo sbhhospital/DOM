@@ -597,15 +597,15 @@ export const UnifiedAdminDashboard: React.FC = () => {
         return;
       }
 
-      // Stage 1: 09:50 AM Auto-Broadcast (DOM/WOM/MOM Morning Assembly Notice)
-      if (h === 9 && m === 50) {
-        const key = `sbh_auto_group_0950_${todayDate}`;
+      // Stage 1: 09:30 AM Auto-Broadcast (DOM/WOM/MOM Morning Assembly Notice)
+      if (h === 9 && m === 30) {
+        const key = `sbh_auto_group_0930_${todayDate}`;
         if (!localStorage.getItem(key)) {
           localStorage.setItem(key, 'dispatched');
           triggerAutomated0950Transmission(todayDate);
           setToastAlert({
             type: 'success',
-            text: `🔔 09:50 AM Automated Notice: ${curMeeting.cadence || 'DOM'} Standup Notice sent to WhatsApp Group!`,
+            text: `🔔 09:30 AM Automated Notice: ${curMeeting.cadence || 'DOM'} Standup Notice sent to WhatsApp Group!`,
           });
           setTimeout(() => setToastAlert(null), 8000);
         }
@@ -2462,13 +2462,13 @@ export const UnifiedAdminDashboard: React.FC = () => {
                       <span>{isTestMode ? '🧪 Test Mode: ON' : 'Enable Test Mode'}</span>
                     </button>
 
-                    {/* 09:50 AM Broadcast Button */}
+                    {/* 09:30 AM Broadcast Button */}
                     <button
                       onClick={() =>
                         openConfirm({
-                          title: 'Broadcast 09:50 AM Morning Notice',
+                          title: 'Broadcast 09:30 AM Morning Notice',
                           message:
-                            'Broadcast official 09:50 AM assembly notice with the boardroom check-in link to the Official WhatsApp Group?',
+                            'Broadcast official 09:30 AM assembly notice with the boardroom check-in link to the Official WhatsApp Group?',
                           type: 'primary',
                           confirmText: 'Send Broadcast',
                           onConfirm: async () => {
@@ -2477,7 +2477,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                               await handleTriggerAutomatedTransmission();
                               setToastAlert({
                                 type: 'success',
-                                text: '✅ 09:50 AM Morning Notice successfully sent to WhatsApp Group!',
+                                text: '✅ 09:30 AM Morning Notice successfully sent to WhatsApp Group!',
                               });
                               setTimeout(() => setToastAlert(null), 5000);
                             } finally {
@@ -2488,14 +2488,14 @@ export const UnifiedAdminDashboard: React.FC = () => {
                       }
                       disabled={isBroadcasting0950}
                       className="h-9 px-3.5 w-full sm:w-auto justify-center bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white rounded-2xl text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all duration-150 shrink-0"
-                      title="Broadcast 09:50 AM Notice to Official WhatsApp Group"
+                      title="Broadcast 09:30 AM Notice to Official WhatsApp Group"
                     >
                       {isBroadcasting0950 ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
                       ) : (
                         <Zap className="w-3.5 h-3.5 text-yellow-200 fill-yellow-200" />
                       )}
-                      <span>09:50 AM Broadcast</span>
+                      <span>09:30 AM Broadcast</span>
                     </button>
 
                     {/* Approve Joined */}

@@ -166,7 +166,12 @@ export async function sendCeoitboxWhatsappMessage({
   const queryParams = new URLSearchParams();
   queryParams.set('username', username);
   queryParams.set('password', password);
-  queryParams.set('receiverMobileNo', cleanPhone);
+  if (isGroup) {
+    queryParams.set('recipientIds', cleanPhone);
+    // Never send receiverMobileNo for groups to prevent CEOITBOX splitting hyphen into individual phone numbers
+  } else {
+    queryParams.set('receiverMobileNo', cleanPhone);
+  }
   queryParams.set('receiverName', receiverName);
   queryParams.set('message', message);
   if (filePathUrl) {
