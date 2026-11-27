@@ -2,8 +2,8 @@ name: Daily Standup WhatsApp Automation (DOM)
 
 on:
   schedule:
-    # 04:00 UTC is 09:30 AM IST (Monday to Saturday, Sundays excluded)
-    - cron: '0 4 * * 1-6'
+    # 04:00 UTC is 09:30 AM IST (Monday to Friday, Saturdays & Sundays excluded)
+    - cron: '0 4 * * 1-5'
   workflow_dispatch: # Allows manual run button from GitHub Actions UI
 
 jobs:
@@ -34,9 +34,10 @@ jobs:
             const istMinutes = istDate.getUTCMinutes();
             const istDayOfWeek = istDate.getUTCDay();
 
-            // 1. Skip Sunday (0)
-            if (istDayOfWeek === 0) {
-              console.log('Today is Sunday (Official Hospital Weekly Off). Standup broadcast skipped.');
+            // 1. Skip Sunday (0) and Saturday (6) - Official Hospital Weekend Off (No DOM on Sat/Sun)
+            if (istDayOfWeek === 0 || istDayOfWeek === 6) {
+              const offDay = istDayOfWeek === 0 ? 'Sunday' : 'Saturday';
+              console.log('Today is ' + offDay + ' (Official Hospital Weekly Off — No DOM). Standup broadcast skipped.');
               process.exit(0);
             }
 

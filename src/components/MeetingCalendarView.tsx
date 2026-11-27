@@ -117,13 +117,21 @@ export const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
     return `${year}-${mm}-${dd}`;
   };
 
-  const getCellCadenceBadge = (cadence?: CadenceType, isHoliday?: boolean, isSunday?: boolean) => {
+  const getCellCadenceBadge = (cadence?: CadenceType, isHoliday?: boolean, isSunday?: boolean, isSaturday?: boolean) => {
     if (isSunday) {
       return {
         bg: 'bg-rose-50 text-rose-800 border-rose-200 font-bold',
         dot: 'bg-rose-500',
         label: '🏖️ Sunday Off',
         code: 'SUNDAY',
+      };
+    }
+    if (isSaturday) {
+      return {
+        bg: 'bg-amber-50 text-amber-900 border-amber-200 font-bold',
+        dot: 'bg-amber-500',
+        label: '🏖️ Saturday Off',
+        code: 'SATURDAY',
       };
     }
     if (isHoliday || cadence === 'HOLIDAY') {
@@ -295,11 +303,13 @@ export const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
             const dateStr = formatDateString(currentYear, currentMonth, dayNum);
             const dateObj = new Date(currentYear, currentMonth, dayNum);
             const isSunday = dateObj.getDay() === 0;
+            const isSaturday = dateObj.getDay() === 6;
+            const isWeekend = isSunday || isSaturday;
             const isSelected = selectedDate === dateStr;
             const isToday = todayStr === dateStr;
 
             const meeting = getMeetingForDate(dateStr);
-            const badge = getCellCadenceBadge(meeting.cadence, meeting.is_holiday_or_shifted, isSunday);
+            const badge = getCellCadenceBadge(meeting.cadence, meeting.is_holiday_or_shifted, isSunday, isSaturday);
 
             const dateRecs = attendanceRecords.filter((r) => r.meeting_date === dateStr);
             const dayPresent = dateRecs.filter(
@@ -319,7 +329,7 @@ export const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
                     ? 'bg-[#eff0fe]/80 border-2 border-[#7065f0] shadow-md ring-2 ring-[#7065f0]/25 z-10'
                     : isToday
                     ? 'bg-[#eff0fe]/30 border border-indigo-200 hover:border-[#7065f0] shadow-2xs'
-                    : isSunday
+                    : isWeekend
                     ? 'bg-rose-50/30 border border-rose-200/60 hover:bg-rose-50/80'
                     : 'bg-white border border-slate-200/80 hover:border-indigo-300 hover:shadow-2xs'
                 }`}
@@ -332,7 +342,7 @@ export const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
                         ? 'bg-[#7065f0] text-white shadow-xs'
                         : isToday
                         ? 'bg-[#eff0fe] text-[#7065f0] font-bold border border-indigo-200'
-                        : isSunday
+                        : isWeekend
                         ? 'text-rose-500 font-bold'
                         : 'text-[#232d42]'
                     }`}

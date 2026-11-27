@@ -308,8 +308,9 @@ export const LeaderPortal: React.FC = () => {
     ) {
       return false;
     }
-    const isSun = new Date(selectedDate + 'T00:00:00').getDay() === 0;
-    return isSun || currentMeeting.cadence === 'HOLIDAY' || Boolean(currentMeeting.is_holiday_or_shifted);
+    const dayOfWeek = new Date(selectedDate + 'T00:00:00').getDay();
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+    return isWeekend || currentMeeting.cadence === 'HOLIDAY' || Boolean(currentMeeting.is_holiday_or_shifted);
   }, [currentMeeting, selectedDate]);
 
   const isOnLeave = Boolean(
@@ -465,7 +466,7 @@ export const LeaderPortal: React.FC = () => {
     if (isSundayOrHoliday && !isTestMode) {
       setActionMessage({
         success: false,
-        text: '🏖️ Official Hospital Weekly Off (Sunday). Standup attendance is excused and check-in is closed.',
+        text: `🏖️ Official Hospital Weekly Off (${new Date(selectedDate + 'T00:00:00').getDay() === 6 ? 'Saturday' : 'Sunday'}). Standup attendance is excused and check-in is closed.`,
       });
       return;
     }
@@ -592,7 +593,7 @@ export const LeaderPortal: React.FC = () => {
     if (isSundayOrHoliday && !isTestMode) {
       setActionMessage({
         success: false,
-        text: '🏖️ Official Hospital Weekly Off (Sunday). Standup attendance is excused and check-in is closed.',
+        text: `🏖️ Official Hospital Weekly Off (${new Date(selectedDate + 'T00:00:00').getDay() === 6 ? 'Saturday' : 'Sunday'}). Standup attendance is excused and check-in is closed.`,
       });
       return;
     }
@@ -1103,7 +1104,7 @@ export const LeaderPortal: React.FC = () => {
                       </div>
                       <div className="min-w-0">
                         <h4 className="text-xs sm:text-sm font-bold text-amber-950 truncate">
-                          Official Weekly Off (Sunday) — Standup Excused
+                          Official Weekly Off ({new Date(selectedDate + 'T00:00:00').getDay() === 6 ? 'Saturday' : 'Sunday'}) — Standup Excused
                         </h4>
                         <p className="text-[11px] text-amber-800 font-medium truncate sm:whitespace-normal">
                           Official hospital off day. Zero absentees counted. Next: Monday 10:00 AM IST (WOM).
@@ -1172,7 +1173,7 @@ export const LeaderPortal: React.FC = () => {
                         {isTestMode
                           ? 'Scan Boardroom QR (5th Flr)'
                           : isSundayOrHoliday
-                            ? 'Sunday Off (Excused)'
+                            ? `${new Date(selectedDate + 'T00:00:00').getDay() === 6 ? 'Saturday' : 'Sunday'} Off (Excused)`
                             : isOnLeave
                               ? 'Marked on Official Leave'
                               : isCutoffLocked
@@ -1208,7 +1209,7 @@ export const LeaderPortal: React.FC = () => {
                         {isTestMode
                           ? 'Official Google Meet'
                           : isSundayOrHoliday
-                            ? 'Sunday Off (Excused)'
+                            ? `${new Date(selectedDate + 'T00:00:00').getDay() === 6 ? 'Saturday' : 'Sunday'} Off (Excused)`
                             : isOnLeave
                               ? 'Marked on Official Leave'
                               : isCutoffLocked

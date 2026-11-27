@@ -106,14 +106,16 @@ const SidebarSystemClock: React.FC<{ currentCadence?: string }> = React.memo(({ 
     const target0950 = 9 * 3600 + 50 * 60;
     const target1000 = 10 * 3600;
     const dayOfWeek = time.getDay();
-    const isTodaySunday = dayOfWeek === 0;
 
     let diff = 0;
     let label = 'Starts in';
 
-    if (isTodaySunday && currentCadence === 'HOLIDAY') {
+    if (dayOfWeek === 0 && currentCadence === 'HOLIDAY') {
       diff = (24 * 3600 - nowSecs) + target1000;
-      label = 'WOM in';
+      label = 'Mon WOM in';
+    } else if (dayOfWeek === 6 && currentCadence === 'HOLIDAY') {
+      diff = (24 * 3600 - nowSecs) + (24 * 3600) + target1000;
+      label = 'Mon WOM in';
     } else if (nowSecs < target0950) {
       diff = target0950 - nowSecs;
       label = `${currentCadence} in`;
@@ -121,7 +123,11 @@ const SidebarSystemClock: React.FC<{ currentCadence?: string }> = React.memo(({ 
       diff = target1000 - nowSecs;
       label = 'Starts in';
     } else {
-      if (dayOfWeek === 6) {
+      if (dayOfWeek === 5) {
+        // Friday after 10:00 AM -> Next is Monday (3 days)
+        diff = (24 * 3600 - nowSecs) + (2 * 24 * 3600) + target1000;
+        label = 'Mon WOM in';
+      } else if (dayOfWeek === 6) {
         diff = (24 * 3600 - nowSecs) + (24 * 3600) + target1000;
         label = 'Mon WOM in';
       } else {
@@ -201,7 +207,7 @@ const LiveIndiaClockAndCountdown: React.FC<{ currentCadence: string }> = React.m
     let targetMilestone = '';
     let stageTitle = `Next ${currentCadence} Standup In`;
 
-    if (isTodaySunday && currentCadence === 'HOLIDAY') {
+    if (dayOfWeek === 0 && currentCadence === 'HOLIDAY') {
       // Today is Sunday (Weekly Off) -> Next standup is Monday 10:00 AM IST
       const mon = new Date(time);
       mon.setDate(mon.getDate() + 1);
@@ -211,6 +217,16 @@ const LiveIndiaClockAndCountdown: React.FC<{ currentCadence: string }> = React.m
       diff = (24 * 3600 - nowSecs) + target1000;
       targetMilestone = 'Monday 10:00 AM IST';
       stageTitle = `Sunday Off • Next ${nextCadence} Standup`;
+    } else if (dayOfWeek === 6 && currentCadence === 'HOLIDAY') {
+      // Today is Saturday (Weekly Off) -> Next standup is Monday 10:00 AM IST (2 days away)
+      const mon = new Date(time);
+      mon.setDate(mon.getDate() + 2);
+      const monStr = mon.toISOString().split('T')[0];
+      const monMeeting = getMeetingForDate(monStr);
+      const nextCadence = monMeeting?.cadence || (monMeeting?.frequency === 'MONTHLY' ? 'MOM' : monMeeting?.frequency === 'WEEKLY' ? 'WOM' : 'DOM');
+      diff = (24 * 3600 - nowSecs) + (24 * 3600) + target1000;
+      targetMilestone = 'Monday 10:00 AM IST';
+      stageTitle = `Saturday Off • Next ${nextCadence} Standup`;
     } else if (nowSecs < target0950) {
       diff = target0950 - nowSecs;
       targetMilestone = '09:50 AM IST';
@@ -225,8 +241,18 @@ const LiveIndiaClockAndCountdown: React.FC<{ currentCadence: string }> = React.m
       stageTitle = `${currentCadence} In Session`;
     } else {
       // After 10:30 AM today:
-      // If today is Saturday (6), tomorrow is Sunday (Weekly Off). Next standup is Monday (2 days away)!
-      if (dayOfWeek === 6) {
+      if (dayOfWeek === 5) {
+        // Friday after 10:30 AM -> Next standup is Monday (3 days away)
+        const mon = new Date(time);
+        mon.setDate(mon.getDate() + 3);
+        const monStr = mon.toISOString().split('T')[0];
+        const monMeeting = getMeetingForDate(monStr);
+        const nextCadence = monMeeting?.cadence || (monMeeting?.frequency === 'MONTHLY' ? 'MOM' : monMeeting?.frequency === 'WEEKLY' ? 'WOM' : 'DOM');
+        diff = (24 * 3600 - nowSecs) + (2 * 24 * 3600) + target1000;
+        targetMilestone = 'Monday 10:00 AM IST';
+        stageTitle = `Next ${nextCadence} Standup (Monday)`;
+      } else if (dayOfWeek === 6) {
+        // Saturday -> Next standup is Monday (2 days away)
         const mon = new Date(time);
         mon.setDate(mon.getDate() + 2);
         const monStr = mon.toISOString().split('T')[0];
@@ -578,7 +604,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
     const timer = setInterval(() => {
       // Calculate current IST Time
       const istDate = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
-      const isSundayToday = istDate.getDay() === 0;
+      const isWeekendToday = istDate.getDay() === 0 || istDate.getDay() === 6;
 
       const h = istDate.getHours();
       const m = istDate.getMinutes();
@@ -588,12 +614,12 @@ export const UnifiedAdminDashboard: React.FC = () => {
       const todayDate = `${yyyy}-${mm}-${dd}`;
 
       // Holiday & Sunday Off Suppression Feature:
-      // If a day is marked as HOLIDAY in the calendar, or is Sunday without explicit DOM enable:
+      // If a day is marked as HOLIDAY in the calendar, or is Sunday/Saturday without explicit DOM enable:
       // Absolutely ZERO automated reminders, voice announcements, or conclusion reports will be sent!
       const curMeeting = getMeetingForDate(todayDate);
       const isExplicitlyEnabled = (curMeeting.cadence === 'DOM' || curMeeting.cadence === 'WOM' || curMeeting.cadence === 'MOM') && !curMeeting.is_holiday_or_shifted;
       const isHolidayToday = curMeeting.cadence === 'HOLIDAY' || Boolean(curMeeting.is_holiday_or_shifted);
-      const isMeetingOffToday = !isExplicitlyEnabled && (isSundayToday || isHolidayToday);
+      const isMeetingOffToday = !isExplicitlyEnabled && (isWeekendToday || isHolidayToday);
 
       if (isMeetingOffToday) {
         return;
@@ -657,8 +683,9 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
   const isHolidayOrRemovedDom = currentMeeting.cadence === 'HOLIDAY' || Boolean(currentMeeting.is_holiday_or_shifted);
 
-  const isSunday = useMemo(() => {
-    return new Date(selectedDate + 'T00:00:00').getDay() === 0 && isHolidayOrRemovedDom;
+  const isWeekendOff = useMemo(() => {
+    const day = new Date(selectedDate + 'T00:00:00').getDay();
+    return (day === 0 || day === 6) && isHolidayOrRemovedDom;
   }, [selectedDate, isHolidayOrRemovedDom]);
 
   const isAfter0930Am = useMemo(() => {
@@ -673,7 +700,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
     return h * 60 + m >= 570; // 09:30 AM IST = 570 minutes
   }, [currentIstTime]);
 
-  const canMarkPresent = isSelectedDateToday && !isSunday && !isHolidayOrRemovedDom && isAfter0930Am;
+  const canMarkPresent = isSelectedDateToday && !isWeekendOff && !isHolidayOrRemovedDom && isAfter0930Am;
 
   // Active Tab: 'attendance' | 'calendar' | 'reports' | 'leaders' | 'departments' | 'settings' | 'links' | 'geo-history' | 'late-audit' | 'compliance-audit'
   const [activeTab, setActiveTab] = useState<
@@ -957,8 +984,11 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
   // Helper functions for Attendance Classification (strictly mutually exclusive)
   const isExplicitlyActive = (currentMeeting.cadence === 'DOM' || currentMeeting.cadence === 'WOM' || currentMeeting.cadence === 'MOM') && !currentMeeting.is_holiday_or_shifted;
-  const isOffDate = !isExplicitlyActive && (currentMeeting.cadence === 'HOLIDAY' || Boolean(currentMeeting.is_holiday_or_shifted) || new Date(selectedDate + 'T12:00:00').getDay() === 0);
-  const isSundayDate = new Date(selectedDate + 'T12:00:00').getDay() === 0 && isOffDate;
+  const selectedDayOfWeek = new Date(selectedDate + 'T12:00:00').getDay();
+  const isWeekendDay = selectedDayOfWeek === 0 || selectedDayOfWeek === 6;
+  const isOffDate = !isExplicitlyActive && (currentMeeting.cadence === 'HOLIDAY' || Boolean(currentMeeting.is_holiday_or_shifted) || isWeekendDay);
+  const isSundayDate = selectedDayOfWeek === 0 && isOffDate;
+  const isSaturdayDate = selectedDayOfWeek === 6 && isOffDate;
   const liveTodayDate = getLiveIndiaDateStr();
   const isFutureDate = selectedDate > liveTodayDate;
 
@@ -1419,8 +1449,11 @@ export const UnifiedAdminDashboard: React.FC = () => {
     const meeting = getMeetingForDate(date);
     const cadenceCode = meeting.cadence || 'DOM';
     const forDate = getFullRosterForDate(date);
-    const isOffDateLocal = meeting.cadence === 'HOLIDAY' || Boolean(meeting.is_holiday_or_shifted);
-    const isSundayDateLocal = new Date(date).getDay() === 0 && isOffDateLocal;
+    const localDayOfWeek = new Date(date + 'T12:00:00').getDay();
+    const isExplicitlyActiveLocal = (cadenceCode === 'DOM' || cadenceCode === 'WOM' || cadenceCode === 'MOM') && !meeting.is_holiday_or_shifted;
+    const isOffDateLocal = !isExplicitlyActiveLocal && (meeting.cadence === 'HOLIDAY' || Boolean(meeting.is_holiday_or_shifted) || localDayOfWeek === 0 || localDayOfWeek === 6);
+    const isSundayDateLocal = localDayOfWeek === 0 && isOffDateLocal;
+    const isSaturdayDateLocal = localDayOfWeek === 6 && isOffDateLocal;
 
     const presentCount = forDate.filter((r) => isPresentRecord(r)).length;
     const lateCount = forDate.filter((r) => isLateRecord(r)).length;
@@ -2662,11 +2695,17 @@ export const UnifiedAdminDashboard: React.FC = () => {
                     </div>
                     <div>
                       <h4 className="text-sm font-black text-amber-950">
-                        {new Date(selectedDate).getDay() === 0 ? '🏖️ Official Weekly Off (Sunday)' : '🛑 Standup Removed / Holiday (No DOM Scheduled)'}
+                        {new Date(selectedDate).getDay() === 0
+                          ? '🏖️ Official Weekly Off (Sunday)'
+                          : new Date(selectedDate).getDay() === 6
+                          ? '🏖️ Official Weekly Off (Saturday — No DOM)'
+                          : '🛑 Standup Removed / Holiday (No DOM Scheduled)'}
                       </h4>
                       <p className="text-xs text-amber-800/90 mt-0.5">
                         {new Date(selectedDate).getDay() === 0
                           ? 'Sundays are official hospital off days and are never counted in DOM attendance. Zero absentees recorded.'
+                          : new Date(selectedDate).getDay() === 6
+                          ? 'Saturdays are official weekly off days (No DOM Standup). Zero absentees recorded.'
                           : currentMeeting.shift_reason || 'DOM meeting has been removed for this date by administrator. Zero absentees recorded.'}
                       </p>
                     </div>
@@ -3152,7 +3191,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                 {isOffDate && rec.status !== 'PRESENT' ? (
                                   <span className="text-xs bg-slate-100 text-slate-800 font-bold px-2.5 py-1 rounded-lg border border-slate-300 inline-flex items-center gap-1.5 shadow-2xs">
                                     <Calendar className="w-3.5 h-3.5 text-slate-500" />
-                                    <span>{rec.verification_note || (isSundayDate ? 'Sunday Weekly Off' : 'Holiday / No DOM')}</span>
+                                    <span>{rec.verification_note || (isSundayDate ? 'Sunday Weekly Off' : isSaturdayDate ? 'Saturday Weekly Off' : 'Holiday / No DOM')}</span>
                                   </span>
                                 ) : rec.verification_status === 'REJECTED' || rec.verification_note?.includes('Disapproved') || rec.verification_note?.includes('No Inform') ? (
                                   <span className="text-xs bg-rose-50 text-rose-800 font-bold px-2.5 py-1 rounded-lg border border-rose-300 inline-flex items-center gap-1.5 shadow-2xs">
@@ -3418,8 +3457,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                                 title={
                                                   !isSelectedDateToday
                                                     ? `Mark Present is only allowed on today's date (${todayIST})`
-                                                    : isSunday
-                                                      ? 'Sunday is official weekly off. Standup attendance is disabled.'
+                                                    : isWeekendOff
+                                                      ? `${new Date(selectedDate + 'T00:00:00').getDay() === 6 ? 'Saturday' : 'Sunday'} is official weekly off. Standup attendance is disabled.`
                                                       : isHolidayOrRemovedDom
                                                         ? 'DOM meeting is not scheduled or has been removed for this date.'
                                                         : 'Mark Present unlocks at 09:30 AM IST on DOM standup day.'
@@ -3429,8 +3468,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
                                                 <span>
                                                   {!isSelectedDateToday
                                                     ? 'Today Only'
-                                                    : isSunday
-                                                      ? 'Sunday Off'
+                                                    : isWeekendOff
+                                                      ? `${new Date(selectedDate + 'T00:00:00').getDay() === 6 ? 'Saturday' : 'Sunday'} Off`
                                                       : isHolidayOrRemovedDom
                                                         ? 'No DOM'
                                                         : 'At 09:30 AM'}

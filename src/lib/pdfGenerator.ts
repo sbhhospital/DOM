@@ -123,9 +123,10 @@ export function generateDirectorPdf(
 
   const directorAttended = records.find((r) => isDirector(r.leader) && (r.check_in_at || r.status === 'PRESENT'));
   const totalLeaders = records.filter((r) => !isDirector(r.leader)).length;
-  const isSundayMeeting = new Date(meeting.meeting_date).getDay() === 0;
+  const meetingDay = new Date(meeting.meeting_date).getDay();
+  const isWeekendMeeting = meetingDay === 0 || meetingDay === 6;
   const isExplicitlyEnabled = (meeting.cadence === 'DOM' || meeting.cadence === 'WOM' || meeting.cadence === 'MOM') && !meeting.is_holiday_or_shifted;
-  const isMeetingOff = !isExplicitlyEnabled && (isSundayMeeting || meeting.cadence === 'HOLIDAY' || Boolean(meeting.is_holiday_or_shifted));
+  const isMeetingOff = !isExplicitlyEnabled && (isWeekendMeeting || meeting.cadence === 'HOLIDAY' || Boolean(meeting.is_holiday_or_shifted));
 
   const approvedPresent = records.filter(
     (r) =>
@@ -342,7 +343,7 @@ export function generateDirectorPdf(
     let auditDisplay = 'UNEXCUSED';
 
     if (isMeetingOff && !hasJoined) {
-      statusDisplay = rec.verification_note || (isSundayMeeting ? 'Sunday Weekly Off' : 'Holiday / No DOM');
+      statusDisplay = rec.verification_note || (meetingDay === 6 ? 'Saturday Weekly Off' : meetingDay === 0 ? 'Sunday Weekly Off' : 'Holiday / No DOM');
       auditDisplay = 'EXCUSED';
     } else if (rec.status === 'LEAVE' || (rec.status === 'INFORMED_ABSENT' && rec.informed_confirmed)) {
       const channel = rec.informed_to_person?.toLowerCase().includes('whatsapp') ? 'WhatsApp Group' : (rec.informed_to_person || 'Admin');

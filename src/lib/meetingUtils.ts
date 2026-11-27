@@ -91,16 +91,16 @@ export function determineMeetingFrequency(dateStr: string): {
     }
   }
 
-  // Sunday is ALWAYS an official weekly off / holiday (NEVER counted in DOM)
-  if (dayOfWeek === 0) {
+  // Sunday (0) & Saturday (6) are official weekly off days (NEVER counted in DOM)
+  if (dayOfWeek === 0 || dayOfWeek === 6) {
     return {
       frequency: 'SPECIAL',
       cadence: 'HOLIDAY',
-      defaultTitle: 'SUNDAY OFF — Weekly Holiday (No DOM Standup)',
+      defaultTitle: dayOfWeek === 6 ? 'SATURDAY OFF — Weekly Off (No DOM Standup)' : 'SUNDAY OFF — Weekly Holiday (No DOM Standup)',
     };
   }
 
-  // Tuesday through Saturday: Standard DOM Standup
+  // Tuesday through Friday: Standard DOM Standup
   return {
     frequency: 'DAILY',
     cadence: 'DOM',
@@ -248,9 +248,10 @@ export function checkStandupWindowStatus(
   windowOpenStr: string;
   windowCloseStr: string;
 } {
-  const isSunday = new Date(dateStr + 'T00:00:00').getDay() === 0;
+  const dayOfWeek = new Date(dateStr + 'T00:00:00').getDay();
+  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
   const isExplicitlyEnabled = cadence === 'DOM' || cadence === 'WOM' || cadence === 'MOM';
-  const isOffDay = cadence === 'HOLIDAY' || (isSunday && !isExplicitlyEnabled);
+  const isOffDay = cadence === 'HOLIDAY' || (isWeekend && !isExplicitlyEnabled);
 
   // Helper to format minutes from midnight into 12-hour AM/PM string
   const formatMinsTo12h = (totalMins: number): string => {
@@ -298,7 +299,7 @@ export function checkStandupWindowStatus(
       isSundayOrHoliday: true,
       windowOpenStr,
       windowCloseStr,
-      message: `Hospital Official Off: Today is an official off day (${isSunday ? 'Sunday Weekly Off' : 'Sanctioned Holiday'}). Standup attendance is not required today and zero absentees are recorded.`,
+      message: `Hospital Official Off: Today is an official off day (${isWeekend ? (dayOfWeek === 6 ? 'Saturday' : 'Sunday') + ' Weekly Off' : 'Sanctioned Holiday'}). Standup attendance is not required today and zero absentees are recorded.`,
     };
   }
 

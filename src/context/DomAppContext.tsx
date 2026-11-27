@@ -2581,7 +2581,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const todayIST = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
       const isSelectedDateToday = selectedDate === todayIST;
       const selectedDateObj = new Date(selectedDate + 'T00:00:00');
-      const isSunday = selectedDateObj.getDay() === 0;
+      const isWeekend = selectedDateObj.getDay() === 0 || selectedDateObj.getDay() === 6;
       const meeting = getMeetingForDate(selectedDate);
       const isHolidayOrRemovedDom = meeting.cadence === 'HOLIDAY' || Boolean(meeting.is_holiday_or_shifted);
 
@@ -2604,11 +2604,13 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         };
       }
       const isExplicitlyEnabled = (meeting.cadence === 'DOM' || meeting.cadence === 'WOM' || meeting.cadence === 'MOM') && !meeting.is_holiday_or_shifted;
-      const isOff = !isExplicitlyEnabled && (isSunday || isHolidayOrRemovedDom);
+      const isOff = !isExplicitlyEnabled && (isWeekend || isHolidayOrRemovedDom);
       if (isOff) {
         return {
           success: false,
-          message: isSunday ? 'Cannot mark attendance on Sunday (official weekly off).' : 'Cannot mark attendance: DOM meeting is not scheduled or has been removed for this date.',
+          message: isWeekend
+            ? `Cannot mark attendance on ${selectedDateObj.getDay() === 6 ? 'Saturday' : 'Sunday'} (official weekly off).`
+            : 'Cannot mark attendance: DOM meeting is not scheduled or has been removed for this date.',
         };
       }
       if (!isAfter0930Am) {
@@ -3019,10 +3021,11 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   ): Promise<{ success: boolean; sentCount: number; message: string }> => {
     const meeting = getMeetingForDate(date);
     const cadenceCode = meeting.cadence || 'DOM';
-    const isSunday = new Date(date).getDay() === 0;
+    const dayOfWeek = new Date(date).getDay();
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
     const isExplicitlyEnabled = (cadenceCode === 'DOM' || cadenceCode === 'WOM' || cadenceCode === 'MOM') && !meeting.is_holiday_or_shifted;
     const isHoliday = cadenceCode === 'HOLIDAY' || Boolean(meeting.is_holiday_or_shifted);
-    const isOff = !isExplicitlyEnabled && (isSunday || isHoliday);
+    const isOff = !isExplicitlyEnabled && (isWeekend || isHoliday);
     const targetGroup = appSettings.is_test_mode
       ? (appSettings.test_whatsapp_group || '120363432056023698@g.us')
       : (appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us');
@@ -3040,14 +3043,15 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     let noticeType = 'DOM_0950_NOTICE';
 
     if (isOff) {
-      noticeType = isSunday ? 'SUNDAY_OFF_NOTICE' : 'HOLIDAY_NOTICE';
+      const offLabel = isWeekend ? (dayOfWeek === 6 ? 'SATURDAY' : 'SUNDAY') : 'HOSPITAL HOLIDAY';
+      noticeType = isWeekend ? `${offLabel}_OFF_NOTICE` : 'HOLIDAY_NOTICE';
       reminderMsg = `*SBH GROUP OF HOSPITALS, RAIPUR*\n`;
-      reminderMsg += `🏖️ *OFFICIAL NOTICE: ${isSunday ? 'WEEKLY OFF (SUNDAY)' : 'HOSPITAL HOLIDAY / STAND-DOWN'}*\n`;
+      reminderMsg += `🏖️ *OFFICIAL NOTICE: ${isWeekend ? `WEEKLY OFF (${offLabel})` : 'HOSPITAL HOLIDAY / STAND-DOWN'}*\n`;
       reminderMsg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
-      reminderMsg += `📅 *Date:* ${formatToIndianDate(date)} (${isSunday ? 'Sunday Weekly Off' : meeting.title})\n`;
+      reminderMsg += `📅 *Date:* ${formatToIndianDate(date)} (${isWeekend ? `${offLabel} Weekly Off` : meeting.title})\n`;
       reminderMsg += `📌 *Status:* Daily Operations Meeting (DOM) Standup is paused today.\n`;
       reminderMsg += `🏖️ Today is an official hospital off day. Zero absentees recorded.\n`;
-      reminderMsg += `Next DOM Standup will resume on Monday at 10:00 AM IST.\n`;
+      reminderMsg += `Next Standup will resume on Monday at 10:00 AM IST.\n`;
       reminderMsg += `━━━━━━━━━━━━━━━━━━━━━━\n*Automated Reminder*`;
     } else {
       const cleanCadence = (cadenceCode || 'DOM').trim();
@@ -3110,7 +3114,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify({
             action: 'SEND_WHATSAPP_BROADCAST',
-            stage: isSunday || isHoliday ? 'OFF_NOTICE' : '0950',
+            stage: isOff ? 'OFF_NOTICE' : '0950',
             date,
             message: reminderMsg,
             targetGroup,
@@ -3122,8 +3126,8 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return {
       success: res.success,
       sentCount: leaders.length,
-      message: isSunday || isHoliday
-        ? `✅ Official ${isSunday ? 'Sunday Weekly Off' : 'Holiday'} Notice sent successfully to WhatsApp Group!`
+      message: isOff
+        ? `✅ Official ${isWeekend ? (dayOfWeek === 6 ? 'Saturday' : 'Sunday') + ' Weekly Off' : 'Holiday'} Notice sent successfully to WhatsApp Group!`
         : `✅ 09:30 AM ${cadenceCode} Notice sent successfully to WhatsApp Group!`,
     };
   };
@@ -3396,13 +3400,13 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const directorLead = leaders.find(isDirectorUser);
     const existingForDate = attendanceRecords.filter((r) => r.meeting_date === date);
 
-    // SUNDAY & CANCELLED / REMOVED DOM RULES:
-    // Sunday is an official weekly off; never counted in DOM unless explicitly enabled.
-    // If date is Sunday (un-enabled) or Holiday/Removed, leaders without manual status are EXCUSED.
+    // WEEKEND (SATURDAY & SUNDAY) & CANCELLED / REMOVED DOM RULES:
+    // Saturday & Sunday are official hospital weekly offs; never counted in DOM unless explicitly enabled.
+    // If date is Weekend (un-enabled) or Holiday/Removed, leaders without manual status are EXCUSED.
     const dateDay = new Date(date + 'T12:00:00').getDay();
-    const isSunday = dateDay === 0;
+    const isWeekend = dateDay === 0 || dateDay === 6;
     const isExplicitlyEnabled = (meeting.cadence === 'DOM' || meeting.cadence === 'WOM' || meeting.cadence === 'MOM') && !meeting.is_holiday_or_shifted;
-    const isOff = !isExplicitlyEnabled && (isSunday || meeting.cadence === 'HOLIDAY' || Boolean(meeting.is_holiday_or_shifted));
+    const isOff = !isExplicitlyEnabled && (isWeekend || meeting.cadence === 'HOLIDAY' || Boolean(meeting.is_holiday_or_shifted));
 
     const existingMap = new Map<string, AttendanceRecord>();
     existingForDate.forEach((r) => existingMap.set(r.leader_id, r));
@@ -3416,7 +3420,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             leader: lead,
             status: 'EXCUSED' as AttendanceStatus,
             verification_status: 'VERIFIED' as const,
-            verification_note: isSunday ? 'Sunday Weekly Off' : 'Holiday / No DOM',
+            verification_note: isWeekend ? (dateDay === 6 ? 'Saturday Weekly Off' : 'Sunday Weekly Off') : 'Holiday / No DOM',
             admin_verified_attendance: true,
           };
         }
@@ -3425,6 +3429,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           (existing.status === 'EXCUSED' ||
             (!existing.check_in_at &&
               (existing.verification_note?.includes('Sunday') ||
+                existing.verification_note?.includes('Saturday') ||
                 existing.verification_note?.includes('Weekly Off') ||
                 existing.verification_note?.includes('Holiday'))))
         ) {
@@ -3453,7 +3458,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         selected_mode: 'NONE',
         status: (isOff ? 'EXCUSED' : 'ABSENT') as AttendanceStatus,
         verification_status: isOff ? 'VERIFIED' : 'PENDING',
-        verification_note: isOff ? (isSunday ? 'Sunday Weekly Off' : 'Holiday / No DOM') : undefined,
+        verification_note: isOff ? (isWeekend ? (dateDay === 6 ? 'Saturday Weekly Off' : 'Sunday Weekly Off') : 'Holiday / No DOM') : undefined,
         admin_verified_attendance: isOff,
       };
     });
@@ -3763,13 +3768,14 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
   };
 
-  // Stage 1: Send Personalized 09:30 AM Alerts to All Leaders (Mon-Sat, Sunday Paused unless Test Mode)
+  // Stage 1: Send Personalized 09:30 AM Alerts to All Leaders (Mon-Fri, Sat/Sun Paused unless Test Mode)
   const sendCeoitboxRemindersToAll = async (
     date: string
   ): Promise<{ success: boolean; count: number; message: string }> => {
-    // Sunday Rule: Automated reminders paused on Sunday (unless in test mode)
-    if (new Date(date).getDay() === 0 && !appSettings.is_test_mode) {
-      return { success: true, count: 0, message: 'Sunday is an official weekly off. Leader reminders skipped.' };
+    // Weekend Rule: Automated reminders paused on Saturday & Sunday (unless in test mode)
+    const dayOfWeek = new Date(date).getDay();
+    if ((dayOfWeek === 0 || dayOfWeek === 6) && !appSettings.is_test_mode) {
+      return { success: true, count: 0, message: `${dayOfWeek === 6 ? 'Saturday' : 'Sunday'} is an official weekly off. Leader reminders skipped.` };
     }
 
     const meeting = getMeetingForDate(date);
@@ -4013,14 +4019,15 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const meeting = getMeetingForDate(date);
     const cadenceCode = (meeting.cadence || 'DOM').trim();
     const forDate = getFullRosterForDate(date);
-    const isSundayMeeting = new Date(date).getDay() === 0;
-    const isMeetingOff = isSundayMeeting || meeting.cadence === 'HOLIDAY' || meeting.is_holiday_or_shifted;
+    const dayOfWeek = new Date(date).getDay();
+    const isWeekendMeeting = dayOfWeek === 0 || dayOfWeek === 6;
+    const isMeetingOff = isWeekendMeeting || meeting.cadence === 'HOLIDAY' || meeting.is_holiday_or_shifted;
 
     if (isMeetingOff) {
       return {
         success: true,
         count: 0,
-        message: `Today is an official hospital off day / holiday. Zero absentees recorded.`,
+        message: `Today is an official hospital off day / holiday (${dayOfWeek === 6 ? 'Saturday' : 'Sunday'} Off). Zero absentees recorded.`,
       };
     }
 
@@ -4232,15 +4239,16 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
 
     const meeting = getMeetingForDate(date);
-    const isSundayMeeting = new Date(date).getDay() === 0;
+    const dayOfWeek = new Date(date).getDay();
+    const isWeekendMeeting = dayOfWeek === 0 || dayOfWeek === 6;
     const isExplicitlyEnabled = (meeting.cadence === 'DOM' || meeting.cadence === 'WOM' || meeting.cadence === 'MOM') && !meeting.is_holiday_or_shifted;
     const isHoliday = meeting.cadence === 'HOLIDAY' || Boolean(meeting.is_holiday_or_shifted);
-    const isMeetingOff = !isExplicitlyEnabled && (isSundayMeeting || isHoliday);
+    const isMeetingOff = !isExplicitlyEnabled && (isWeekendMeeting || isHoliday);
 
     if (isMeetingOff) {
       return {
         success: true,
-        message: `ℹ️ ${formatToIndianDate(date)} is an official ${isSundayMeeting ? 'Sunday Weekly Off' : 'Holiday'} (No DOM scheduled). Meeting conclusion reports suppressed.`,
+        message: `ℹ️ ${formatToIndianDate(date)} is an official ${dayOfWeek === 6 ? 'Saturday Weekly Off' : isWeekendMeeting ? 'Sunday Weekly Off' : 'Holiday'} (No DOM scheduled). Meeting conclusion reports suppressed.`,
       };
     }
 
