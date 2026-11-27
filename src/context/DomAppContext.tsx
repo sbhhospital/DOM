@@ -2950,7 +2950,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     if (absent.length > 0) {
       msg += `🚨 *ABSENT LEADERS LIST — NO INFORMATION / REASON REQUIRED:*\n`;
-      msg += `Aap aaj ki meeting me upasthit nahi hue hain aur koi prior information nahi mili hai. Kripya management ko reason batayein ki aap meeting me kyu nahi aaye:\n\n`;
+      msg += `The following department leaders were absent without prior information or approved leave. Kindly submit official written justification to Hospital Operations Command:\n\n`;
       absent.forEach((p, idx) => {
         const note = p.verification_note ? ` (${p.verification_note})` : ' (No Prior Information)';
         msg += `❌ ${idx + 1}. *${p.leader?.full_name}* (${p.leader?.department?.name || 'Dept'})${note}\n`;
@@ -3796,7 +3796,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       if (absent.length > 0) {
         msg += `🚨 *ABSENT LEADERS LIST — NO INFORMATION / REASON REQUIRED:*\n`;
-        msg += `Aap aaj ki meeting me upasthit nahi hue hain aur koi prior information nahi mili hai. Kripya management ko reason batayein ki aap meeting me kyu nahi aaye:\n\n`;
+        msg += `The following department leaders were absent without prior information or approved leave. Formal written justification is required by Hospital Operations Command:\n\n`;
         absent.forEach((p, idx) => {
           const note = p.verification_note ? ` (${p.verification_note})` : ' (No Prior Information)';
           msg += `❌ ${idx + 1}. *${p.leader?.full_name}* (${p.leader?.department?.name || 'Dept'})${note}\n`;
@@ -3932,9 +3932,9 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     msg += `📅 *Date:* ${formattedDate} | *Meeting:* ${cadenceCode}\n`;
     msg += `⏰ *Scheduled Time:* 10:00 AM IST | *Venue:* ${appSettings.conference_room_name || 'Conference Room, 5th Floor'}\n\n`;
     msg += `📢 *To All Unexcused Absent Leaders:*\n`;
-    msg += `Aap aaj bina kisi purva suchna (prior sanction) ke ${cadenceCode} meeting me upasthit nahi hue hain. Kripaya turant apna karan spasht karein ki aap meeting me kyu nahi aaye.\n\n`;
+    msg += `You have been marked ABSENT without prior sanction for today's ${cadenceCode} meeting. Please submit your formal written justification immediately to Hospital Management.\n\n`;
     msg += `📌 *Dear Management Team:*\n`;
-    msg += `Kripaya ispar turant dhyan dein evam uchit administrative action lein.\n\n`;
+    msg += `Hospital Management is requested to initiate appropriate administrative compliance review.\n\n`;
     msg += `❌ *UNEXCUSED ABSENT LEADERS LIST (${unexcusedAbsentees.length}):*\n`;
     unexcusedAbsentees.forEach((p, idx) => {
       msg += `${idx + 1}. *${p.leader?.full_name}* — ${p.leader?.department?.name || 'Department'}\n`;
@@ -4182,23 +4182,20 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       closed_at: new Date().toISOString(),
     });
 
-    // 3. Dispatch Report 1: Official Attendance Audit Summary to WhatsApp Group
-    try {
-      await sendCeoitboxGroupBroadcast('1030', date);
-    } catch (e) {
-      console.warn('Error sending meeting conclusion broadcast:', e);
-    }
+    // 3. Dispatch Official Signed PDF Attendance Report directly attached to WhatsApp Group
+    const targetWhatsappGroup = appSettings.is_test_mode
+      ? (appSettings.test_whatsapp_group || '120363432056023698@g.us')
+      : (appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us');
 
-    // 4. Dispatch Report 2: Unexcused Absentees Escalation Notice to WhatsApp Group
     try {
-      await sendNonAttendeesEscalationNotice(date);
+      await sendDirectorPdfToWhatsappGroup(date);
     } catch (e) {
-      console.warn('Error sending non-attendees escalation notice:', e);
+      console.warn('Error sending meeting conclusion PDF to WhatsApp group:', e);
     }
 
     return {
       success: true,
-      message: `✅ Today's ${meeting.cadence || 'DOM'} meeting successfully concluded and closed! Check-in locked, attendance summary report, and absentee explanation notice dispatched to WhatsApp group.`,
+      message: `✅ Today's ${meeting.cadence || 'DOM'} meeting successfully concluded and closed! Check-in locked and official signed PDF report dispatched directly to WhatsApp group (${targetWhatsappGroup}).`,
     };
   };
 

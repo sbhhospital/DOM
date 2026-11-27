@@ -52,16 +52,17 @@ function whatsappDispatchPlugin() {
             const results: any = {};
 
             // 1. If PDF or direct Audio attachment is provided, dispatch via POST /api/v1/message/create
+            const cleanB64 = (raw: string) => (raw ? (raw.includes('base64,') ? raw.split('base64,')[1] : raw) : '');
             let filePayload: { name: string; body: string } | null = null;
             if (pdfBase64) {
               filePayload = {
                 name: pdfFilename || `SBH_DOM_Report_${new Date().toISOString().split('T')[0]}.pdf`,
-                body: pdfBase64,
+                body: cleanB64(pdfBase64),
               };
             } else if (audioBase64) {
               filePayload = {
                 name: audioFilename || 'announcement-dom.mp3',
-                body: audioBase64,
+                body: cleanB64(audioBase64),
               };
             }
 
@@ -111,8 +112,8 @@ function whatsappDispatchPlugin() {
               });
             }
 
-            // 2. If text message is provided, dispatch via GET /api/v1/message/create
-            if (message) {
+            // 2. If text message is provided (and no file attachment is present), dispatch via GET /api/v1/message/create
+            if (message && !filePayload) {
               await new Promise<void>((resolve) => {
                 const paramKey = isGroup ? 'recipientIds' : 'receiverMobileNo';
                 const getPath = `/api/v1/message/create?api_key=test&${paramKey}=${encodeURIComponent(cleanPhone)}&message=${encodeURIComponent(message)}`;

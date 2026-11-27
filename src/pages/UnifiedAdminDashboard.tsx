@@ -7018,11 +7018,11 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => sendDailyWhatsappReport(selectedDate)}
+                  onClick={() => handleSharePdfDirectly(selectedDate)}
                   className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-600/20 flex items-center gap-1.5 transition-all cursor-pointer"
                 >
                   <Send className="w-3.5 h-3.5" />
-                  <span>Send to WhatsApp</span>
+                  <span>Send PDF to WhatsApp Group</span>
                 </button>
 
                 <a
@@ -7771,7 +7771,7 @@ function doPost(e) {
                       ⚠️ Send Unexcused Absentee Escalation
                     </div>
                     <div className="text-[11px] text-slate-500">
-                      {isFutureDate ? 'Locked — Zero absentees for unstarted meeting' : 'Kripaya Karan Bataye notice to unexcused absentees & Management Action template'}
+                      {isFutureDate ? 'Locked — Zero absentees for unstarted meeting' : 'Official Absentee Explanation Notice & Management Compliance Action'}
                     </div>
                   </div>
                 </div>
@@ -7870,10 +7870,7 @@ function doPost(e) {
                   <strong className="text-slate-900">Absentee Finalization:</strong> All unrecorded / unverified leaders will be finalized as <span className="text-rose-600 font-bold">ABSENT</span>.
                 </li>
                 <li>
-                  <strong className="text-slate-900">Report 1 to WhatsApp Group:</strong> Full Attendance Audit Summary Report will be instantly dispatched to the Official WhatsApp Group.
-                </li>
-                <li>
-                  <strong className="text-slate-900">Report 2 to WhatsApp Group:</strong> Dedicated Unexcused Absentees Escalation Notice with complete leader names and departments demanding formal justification.
+                  <strong className="text-slate-900">Official Signed PDF Report:</strong> The comprehensive signed attendance PDF report will be instantly generated and attached directly to the Official WhatsApp Group.
                 </li>
               </ul>
             </div>
@@ -7935,7 +7932,7 @@ function doPost(e) {
                 {isClosingMeeting ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Finalizing & Dispatching WhatsApp Reports...</span>
+                    <span>Finalizing & Dispatching WhatsApp PDF Report...</span>
                   </>
                 ) : (
                   <>

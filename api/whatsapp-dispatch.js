@@ -114,8 +114,8 @@ export default async function handler(req, res) {
       });
     }
 
-    // 2. If text message is provided, dispatch via GET /api/v1/message/create
-    if (message) {
+    // 2. If text message is provided (and no file attachment was dispatched), dispatch via GET /api/v1/message/create
+    if (message && !filePayload) {
       await new Promise((resolve) => {
         const queryParams = new URLSearchParams();
         queryParams.set('api_key', 'test');
