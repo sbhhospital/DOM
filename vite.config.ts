@@ -30,7 +30,6 @@ function whatsappDispatchPlugin() {
               password,
               pdfBase64,
               pdfFilename,
-              audioBase64,
               audioFilename,
               filePathUrl,
             } = data;
@@ -51,30 +50,19 @@ function whatsappDispatchPlugin() {
 
             const results: any = {};
 
-            // 1. If PDF or direct Audio attachment is provided, dispatch via POST /api/v1/message/create
+            // 1. If PDF document attachment is provided, dispatch via POST /api/v1/message/create
             const cleanB64 = (raw: string) => (raw ? (raw.includes('base64,') ? raw.split('base64,')[1] : raw) : '');
-            let filePayload: { name: string; body: string } | null = null;
             if (pdfBase64) {
-              filePayload = {
+              const filePayload = {
                 name: pdfFilename || `SBH_DOM_Report_${new Date().toISOString().split('T')[0]}.pdf`,
                 body: cleanB64(pdfBase64),
               };
-            } else if (audioBase64) {
-              filePayload = {
-                name: audioFilename || 'announcement-dom.mp3',
-                body: cleanB64(audioBase64),
-              };
-            }
 
-            const effectiveFilePathUrl = filePathUrl || (audioFilename ? `https://sbhdom.vercel.app/audio/${audioFilename}` : undefined);
-
-            if (filePayload || effectiveFilePathUrl) {
               await new Promise<void>((resolve) => {
                 const postPayload = JSON.stringify({
                   recipientIds: isGroup ? [cleanPhone] : undefined,
                   receiverMobileNo: isGroup ? undefined : cleanPhone,
-                  base64File: filePayload ? [filePayload] : undefined,
-                  filePathUrl: effectiveFilePathUrl,
+                  base64File: [filePayload],
                 });
 
                 const postReq = https.request(
@@ -94,16 +82,16 @@ function whatsappDispatchPlugin() {
                     let respData = '';
                     apiRes.on('data', (c: any) => (respData += c));
                     apiRes.on('end', () => {
-                      console.log('[Ceoitbox Proxy] Attachment Dispatch Result:', apiRes.statusCode, respData.trim());
-                      results.file = { statusCode: apiRes.statusCode, response: respData.trim() };
+                      console.log('[Ceoitbox Proxy] PDF Dispatch Result:', apiRes.statusCode, respData.trim());
+                      results.pdf = { statusCode: apiRes.statusCode, response: respData.trim() };
                       resolve();
                     });
                   }
                 );
 
                 postReq.on('error', (err: any) => {
-                  console.error('[Ceoitbox Proxy] Attachment Network Error:', err.message);
-                  results.file = { error: err.message };
+                  console.error('[Ceoitbox Proxy] PDF Network Error:', err.message);
+                  results.pdf = { error: err.message };
                   resolve();
                 });
 
@@ -112,11 +100,17 @@ function whatsappDispatchPlugin() {
               });
             }
 
-            // 2. If text message is provided (and no file attachment is present), dispatch via GET /api/v1/message/create
-            if (message && !filePayload) {
+            // 2. Text message and Audio Dispatch:
+            // Always sends message text, with audio filePathUrl if present
+            const effectiveFilePathUrl = filePathUrl || (audioFilename ? `https://sbhdom.vercel.app/audio/${audioFilename}` : undefined);
+
+            if (message && !pdfBase64) {
               await new Promise<void>((resolve) => {
                 const paramKey = isGroup ? 'recipientIds' : 'receiverMobileNo';
-                const getPath = `/api/v1/message/create?api_key=test&${paramKey}=${encodeURIComponent(cleanPhone)}&message=${encodeURIComponent(message)}`;
+                let getPath = `/api/v1/message/create?api_key=test&${paramKey}=${encodeURIComponent(cleanPhone)}&message=${encodeURIComponent(message)}`;
+                if (effectiveFilePathUrl) {
+                  getPath += `&filePathUrl=${encodeURIComponent(effectiveFilePathUrl)}`;
+                }
 
                 const getReq = https.request(
                   {

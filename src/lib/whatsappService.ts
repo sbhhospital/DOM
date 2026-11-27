@@ -74,12 +74,22 @@ export async function sendCeoitboxWhatsappMessage({
   const rawClean = cleanMobileNumber(mobileNo);
   const isGroup = rawClean.includes('@g.us');
 
-  // Safety filter: NEVER message single contact 9977881452 or +919977881452 on personal chat
-  if (!isGroup && (rawClean.replace(/\D/g, '').includes('9977881452') || rawClean === '9977881452' || rawClean === '919977881452')) {
-    console.warn('[WhatsApp Safety] Blocked single number dispatch to 9977881452 during testing phase.');
+  // Safety filter: NEVER message single contact 9977881452 with meeting reminder broadcasts
+  const isCredentials = Boolean(
+    message && (
+      message.includes('CREDENTIALS') ||
+      message.includes('Password') ||
+      message.includes('LOGIN GUIDE') ||
+      message.includes('Portal Login URL') ||
+      message.includes('Registered Mobile')
+    )
+  );
+
+  if (!isGroup && !isCredentials && (rawClean.replace(/\D/g, '').includes('9977881452') || rawClean === '9977881452' || rawClean === '919977881452')) {
+    console.warn('[WhatsApp Safety] Blocked single number broadcast to 9977881452.');
     return {
       success: false,
-      status: 'Blocked individual contact number 9977881452 during testing.',
+      status: 'Blocked individual broadcast to 9977881452.',
       url: '',
     };
   }
@@ -122,15 +132,6 @@ export async function sendCeoitboxWhatsappMessage({
   const username = settings?.ceoitbox_username || 'SBH HOSPITAL';
   const password = settings?.ceoitbox_password || '123456789';
   const receiverName = name || (isGroup ? 'SBH DOM Official Group' : 'Hospital Leader');
-
-  // Copy text to clipboard in background for convenience
-  if (typeof navigator !== 'undefined' && navigator.clipboard) {
-    try {
-      await navigator.clipboard.writeText(message);
-    } catch {
-      // silent background copy
-    }
-  }
 
   // 1. Primary: Local / Vercel Serverless Proxy (POST /api/whatsapp-dispatch)
   try {

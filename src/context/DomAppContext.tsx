@@ -3010,10 +3010,6 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         // silent
       }
     }
-    if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      navigator.clipboard.writeText(msg).catch(() => {});
-    }
-
     return { success: true, message: 'Final 10:30 AM WhatsApp Audit Report automatically sent & logged in Google Sheet!', payload: msg };
   };
 
@@ -3121,10 +3117,6 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           }),
         }).catch(() => {});
       } catch (e) {}
-    }
-
-    if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      navigator.clipboard.writeText(reminderMsg).catch(() => {});
     }
 
     return {
@@ -3299,10 +3291,6 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       } catch (e) {
         // silent
       }
-    }
-
-    if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      navigator.clipboard.writeText(msg).catch(() => {});
     }
 
     return {
@@ -4014,15 +4002,6 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
     }
 
-    // 2. Copy to clipboard silently
-    if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      try {
-        await navigator.clipboard.writeText(msg);
-      } catch (e) {
-        // silent
-      }
-    }
-
     return {
       success: true,
       message: `Stage ${stage === '0950' ? '09:30 AM Notice' : '10:30 AM Final Audit'} automatically sent to WhatsApp Group (${groupJid}) & logged in Google Sheet!`,
@@ -4658,10 +4637,6 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const sendLeaderOnboardingCredentials = async (leader: Leader): Promise<{ success: boolean; message: string }> => {
     if (!leader.phone || leader.phone.trim().length < 10) {
       return { success: false, message: `Leader ${leader.full_name} does not have a valid registered WhatsApp number.` };
-    }
-
-    if (leader.phone.replace(/\D/g, '').includes('9977881452')) {
-      return { success: false, message: 'Dispatch to 9977881452 is strictly blocked during testing phase.' };
     }
 
     const assignedPassword =

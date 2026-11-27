@@ -56,10 +56,30 @@ jobs:
             const month = String(istDate.getUTCMonth() + 1).padStart(2, '0');
             const year = istDate.getUTCFullYear();
             const formattedDate = day + '-' + month + '-' + year;
-            
+
+            // 3. Determine Dynamic Meeting Cadence & Corresponding Audio (DOM, WOM, MOM):
+            // - 1st Monday of Month (date <= 7): MOM (Monthly Operations Meeting)
+            // - Other Mondays: WOM (Weekly Operations Meeting)
+            // - Tuesday through Saturday: DOM (Daily Operations Meeting)
+            let cadenceCode = 'DOM';
+            let cadenceTitle = 'DAILY OPERATIONS MEETING (DOM)';
+            let audioFilename = 'announcement-dom.mp3';
+
+            if (istDayOfWeek === 1) { // Monday
+              if (istDate.getUTCDate() <= 7) {
+                cadenceCode = 'MOM';
+                cadenceTitle = 'MONTHLY OPERATIONS MEETING (MOM)';
+                audioFilename = 'announcement-mom.mp3';
+              } else {
+                cadenceCode = 'WOM';
+                cadenceTitle = 'WEEKLY OPERATIONS MEETING (WOM)';
+                audioFilename = 'announcement-wom.mp3';
+              }
+            }
+
             const message = [
               '🏥 *SBH GROUP OF HOSPITALS, RAIPUR*',
-              '🔔 *09:30 AM NOTICE: DAILY OPERATIONS MEETING (DOM)*',
+              '🔔 *09:30 AM NOTICE: ' + cadenceTitle + '*',
               '━━━━━━━━━━━━━━━━━━━━━━',
               '📅 *Date:* ' + formattedDate,
               '⏰ *Time:* Sharp 10:00 AM IST',
@@ -74,19 +94,19 @@ jobs:
               '⚠️ All Department Heads and Leaders please assemble in the 5th Floor Conference Room and check in before 10:00 AM sharp.',
               'Final attendance audit freezes at 10:30 AM for Hospital Director review.',
               '━━━━━━━━━━━━━━━━━━━━━━',
-              'DOM Operations Command | SBH Raipur'
+              cadenceCode + ' Operations Command | SBH Raipur'
             ].join('\n');
             
             const targetGroupId = '919977881452-1431506963@g.us';
-            const audioUrl = 'https://sbhdom.vercel.app/audio/announcement-dom.mp3';
+            const audioUrl = 'https://sbhdom.vercel.app/audio/' + audioFilename;
             
-            console.log('Dispatching 09:30 AM notice & audio strictly to group: ' + targetGroupId);
+            console.log('Dispatching 09:30 AM ' + cadenceCode + ' notice & audio (' + audioFilename + ') strictly to group: ' + targetGroupId);
             
             // 1. Dispatch via Vercel Dispatch Proxy (handles group recipientIds safely)
             const postPayload = JSON.stringify({
               mobileNo: targetGroupId,
               message: message,
-              audioFilename: 'announcement-dom.mp3',
+              audioFilename: audioFilename,
               filePathUrl: audioUrl
             });
             
