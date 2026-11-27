@@ -364,6 +364,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
     sendCeoitboxRemindersToAll,
     sendCeoitboxEscalationToNonAttendees,
     sendCeoitboxUnexcusedAbsenteeNotice,
+    sendLateArrivalsAuditNotice,
+    sendUnexcusedAbsenteesNotice,
     sendCeoitboxGroupBroadcast,
     triggerAutomated0950Transmission,
     broadcastScheduleChange,
@@ -436,7 +438,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
 
   // Group Dispatch Modal & Button Loaders
   const [showGroupDispatchModal, setShowGroupDispatchModal] = useState<boolean>(false);
-  const [isDispatchingGroup, setIsDispatchingGroup] = useState<'pdf' | 'text' | 'both' | 'unexcused' | null>(null);
+  const [isDispatchingGroup, setIsDispatchingGroup] = useState<'pdf' | 'text' | 'both' | 'unexcused' | 'late_audit' | null>(null);
   const [isBroadcasting0950, setIsBroadcasting0950] = useState<boolean>(false);
   const [isSendingNotice, setIsSendingNotice] = useState<boolean>(false);
   const [isEscalating, setIsEscalating] = useState<boolean>(false);
@@ -1469,8 +1471,8 @@ export const UnifiedAdminDashboard: React.FC = () => {
     return res;
   };
 
-  // Unified Handler for WhatsApp Group Dispatch Options (PDF, Roster Text, Both, or Unexcused Escalation)
-  const handleGroupDispatchAction = async (action: 'pdf' | 'text' | 'both' | 'unexcused') => {
+  // Unified Handler for WhatsApp Group Dispatch Options (PDF, Late Audit, Absentees, Roster Text, Both)
+  const handleGroupDispatchAction = async (action: 'pdf' | 'text' | 'both' | 'unexcused' | 'late_audit') => {
     if (selectedDate > liveTodayDate && !isTestMode) {
       setToastAlert({
         type: 'error',
@@ -1482,8 +1484,18 @@ export const UnifiedAdminDashboard: React.FC = () => {
     }
     setIsDispatchingGroup(action);
     try {
+      if (action === 'late_audit') {
+        const res = await sendLateArrivalsAuditNotice(selectedDate);
+        setShowGroupDispatchModal(false);
+        setToastAlert({
+          type: res.success ? 'success' : 'info',
+          text: res.message,
+        });
+        setTimeout(() => setToastAlert(null), 5000);
+        return;
+      }
       if (action === 'unexcused') {
-        const res = await sendCeoitboxUnexcusedAbsenteeNotice(selectedDate);
+        const res = await sendUnexcusedAbsenteesNotice(selectedDate);
         setShowGroupDispatchModal(false);
         setToastAlert({
           type: res.success ? 'success' : 'info',
@@ -7746,6 +7758,38 @@ function doPost(e) {
                 <span className={`text-xs font-bold px-3 py-1 rounded-lg shrink-0 ${isFutureDate ? 'bg-slate-200 text-slate-500' : 'text-purple-700 bg-purple-100'
                   }`}>
                   {isFutureDate ? 'Locked' : isDispatchingGroup === 'both' ? 'Sending...' : 'Send Both'}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                disabled={isDispatchingGroup !== null || isFutureDate}
+                onClick={() => handleGroupDispatchAction('late_audit')}
+                className={`w-full p-4 rounded-2xl border bg-white flex items-center justify-between transition-all text-left shadow-2xs ${isFutureDate
+                  ? 'border-slate-200 opacity-50 cursor-not-allowed bg-slate-50'
+                  : 'border-amber-200 hover:border-amber-500 hover:bg-amber-50/50 group cursor-pointer hover:shadow-xs'
+                  }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                    {isDispatchingGroup === 'late_audit' ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <Clock className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                    )}
+                  </div>
+                  <div>
+                    <div className="text-xs font-black text-slate-900 group-hover:text-amber-800">
+                      ⏱️ Send Late Arrivals Audit (&gt; 10:05 AM)
+                    </div>
+                    <div className="text-[11px] text-slate-500">
+                      {isFutureDate ? 'Locked — Available on meeting day' : 'Dispatches names, minutes late, and recorded justification for all late arrivals'}
+                    </div>
+                  </div>
+                </div>
+                <span className={`text-xs font-bold px-3 py-1 rounded-lg shrink-0 ${isFutureDate ? 'bg-slate-200 text-slate-500' : 'text-amber-700 bg-amber-100'
+                  }`}>
+                  {isFutureDate ? 'Locked' : isDispatchingGroup === 'late_audit' ? 'Sending...' : 'Send Late Audit'}
                 </span>
               </button>
 

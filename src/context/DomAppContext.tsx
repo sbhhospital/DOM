@@ -16,8 +16,12 @@ import {
   downloadDirectorPdf,
   getDirectorPdfBase64,
   openDirectorPdfInNewTab,
+  downloadWeeklyAuditPdf,
   downloadMonthlyAuditPdf,
   downloadYearlyAuditPdf,
+  getWeeklyAuditPdfBase64,
+  getMonthlyAuditPdfBase64,
+  getYearlyAuditPdfBase64,
 } from '../lib/pdfGenerator';
 import { sendCeoitboxWhatsappMessage, sendCeoitboxPdfAttachment, getAudioBase64 } from '../lib/whatsappService';
 import {
@@ -142,14 +146,20 @@ interface DomAppContextType {
   getFullRosterForDate: (date: string) => AttendanceRecord[];
   concludeAndCloseMeeting: (date: string) => Promise<{ success: boolean; message: string }>;
   reopenMeeting: (date: string) => void;
-  // PDF Reports (Daily DOM, Monthly MOM, Annual Audit)
+  // PDF Reports (Daily DOM, Weekly, Monthly MOM, Annual Audit)
   downloadPdfReport: (date: string) => void;
   openPdfReport: (date: string) => void;
+  downloadWeeklyPdfReport: (weekRangeStr: string) => void;
   downloadMonthlyPdfReport: (monthYearStr: string) => void;
   downloadYearlyPdfReport: (year: number) => void;
   // CEOITBOX WhatsApp Automation
   sendDirectorCeoitboxWhatsapp: (date: string) => Promise<{ success: boolean; message: string; url: string }>;
   sendDirectorPdfToWhatsappGroup: (date: string) => Promise<{ success: boolean; message: string }>;
+  sendWeeklyPdfToWhatsappGroup: (weekRangeStr: string) => Promise<{ success: boolean; message: string }>;
+  sendMonthlyPdfToWhatsappGroup: (monthYearStr: string) => Promise<{ success: boolean; message: string }>;
+  sendYearlyPdfToWhatsappGroup: (year: number) => Promise<{ success: boolean; message: string }>;
+  sendLateArrivalsAuditNotice: (date: string) => Promise<{ success: boolean; count: number; message: string; payload?: string }>;
+  sendUnexcusedAbsenteesNotice: (date: string) => Promise<{ success: boolean; count: number; message: string; payload?: string }>;
   sendCeoitboxRemindersToAll: (date: string) => Promise<{ success: boolean; count: number; message: string }>;
   sendCeoitboxEscalationToNonAttendees: (date: string) => Promise<{ success: boolean; count: number; message: string }>;
   sendCeoitboxUnexcusedAbsenteeNotice: (date: string) => Promise<{ success: boolean; count: number; message: string }>;
@@ -1713,8 +1723,9 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           message: `Access Denied: Meeting Check-In Closed. You committed to join within ${existingPrior.late_minutes} minutes (${existingPrior.expected_arrival_time}), but the deadline has expired. You are recorded as ABSENT for today's session. Entry is not permitted.`,
         };
       }
-    } else if (!existingPrior?.check_in_at && lateMinutes > 5 && existingPrior?.status !== 'INFORMED_LATE') {
-      const unexcusedNote = `Absent: Joined late (+${lateMinutes}m) without prior inform. Unexcused late check-in rejected.`;
+    } else if (!existingPrior?.check_in_at && lateMinutes > 20 && !isTestActive) {
+      // Hard cutoff at 10:20 AM IST (Meeting start + 20 mins)
+      const cutoffNote = `Absent: Attempted check-in after cutoff (+${lateMinutes}m late). Check-in officially locked at 10:20 AM.`;
       const leadObj = leaders.find((l) => l.id === leaderId);
       const updatedRec: AttendanceRecord = {
         ...(existingPrior || {
@@ -1731,34 +1742,28 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         status: 'ABSENT',
         verification_status: 'REJECTED',
         late_expired: true,
-        verification_note: unexcusedNote,
+        verification_note: cutoffNote,
         updated_at: nowIso,
       };
       setAttendanceRecords((prev) => {
         const has = prev.some((r) => r.id === updatedRec.id);
         return has ? prev.map((r) => (r.id === updatedRec.id ? updatedRec : r)) : [...prev, updatedRec];
       });
-      syncAttendanceRecordToSupabase(updatedRec, unexcusedNote);
+      syncAttendanceRecordToSupabase(updatedRec, cutoffNote);
       return {
         success: false,
         meetUrl: '',
         clicksCount: existingPrior?.virtual_clicks_count || 0,
-        message: `Access Denied: You are ${lateMinutes} minutes late and did not inform prior to standup. Only leaders with approved inform notices can join late. You are recorded as ABSENT.`,
-      };
-    } else if (!existingPrior?.check_in_at && lateMinutes > 30) {
-      return {
-        success: false,
-        meetUrl: '',
-        clicksCount: existingPrior?.virtual_clicks_count || 0,
-        message: `Access Denied: Meeting check-in window closed (+30 minutes limit exceeded). You are recorded as ABSENT for today's session. Entry is not permitted.`,
+        message: `Access Denied: Meeting check-in closed at 10:20 AM IST (+20 mins limit). Attendance cannot be marked after 10:20 AM. You are recorded as ABSENT for today's session.`,
       };
     }
 
     const isLate = lateMinutes > 0;
+    const providedReason = locationData?.lateReason?.trim() || existingPrior?.late_reason || existingPrior?.informed_reason;
     const statusToSet: AttendanceStatus = isLate ? 'INFORMED_LATE' : 'PRESENT';
     const note = isLate
-      ? `Joined ${lateMinutes}m late • Pending Admin Approval`
-      : 'On-Time • Pending Admin Approval';
+      ? `Joined ${lateMinutes}m late${providedReason ? ` (${providedReason})` : ''} • Recorded`
+      : 'On-Time • Confirmed';
 
     let updatedClicks = 1;
     const recordId = `att-${targetDate}-${leaderId}`;
@@ -1785,6 +1790,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           first_event_at: existing.first_event_at || nowIso,
           last_click_at: nowIso,
           late_minutes: preservedLate,
+          late_reason: providedReason || existing.late_reason,
           virtual_clicks_count: updatedClicks,
           evidence_source: existing.evidence_source || 'GOOGLE_MEET_REDIRECT',
           admin_verified_attendance: existing.admin_verified_attendance || false,
@@ -1813,6 +1819,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         first_event_at: nowIso,
         last_click_at: nowIso,
         late_minutes: lateMinutes,
+        late_reason: providedReason,
         virtual_clicks_count: 1,
         evidence_source: 'GOOGLE_MEET_REDIRECT',
         admin_verified_attendance: false,
@@ -1879,6 +1886,8 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const meeting = getMeetingForDate(dateStr);
     const lateMinutes = calculateLateMinutes(dateStr, meeting.scheduled_time, new Date());
     const isLate = lateMinutes > 0;
+    const existingPrior = attendanceRecords.find((r) => r.leader_id === leaderId && r.meeting_date === dateStr);
+    const providedReason = existingPrior?.late_reason || existingPrior?.informed_reason;
     const statusToSet: AttendanceStatus = isLate ? 'INFORMED_LATE' : 'PRESENT';
     const note = isLate
       ? `Virtual QR Scanned (+${lateMinutes}m late) • Pending Admin Approval`
@@ -1928,6 +1937,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         qr_scanned_at: nowIso,
         last_click_at: nowIso,
         late_minutes: lateMinutes,
+        late_reason: providedReason,
         virtual_clicks_count: 1,
         verification_note: note,
         created_at: nowIso,
@@ -2062,8 +2072,9 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           message: `Access Denied: Meeting Check-In Closed. You committed to join within ${existingRec.late_minutes} minutes (${existingRec.expected_arrival_time}), but the deadline has expired. You are recorded as ABSENT for today's session. Entry is not permitted.`,
         };
       }
-    } else if (!existingRec?.check_in_at && lateMinutes > 5 && existingRec?.status !== 'INFORMED_LATE') {
-      const unexcusedNote = `Absent: Scanned physical QR late (+${lateMinutes}m) without prior inform. Unexcused late check-in rejected.`;
+    } else if (!existingRec?.check_in_at && lateMinutes > 20 && !isTestActive) {
+      // Hard cutoff at 10:20 AM IST (Meeting start + 20 mins)
+      const cutoffNote = `Absent: Scanned physical QR after cutoff (+${lateMinutes}m late). Cutoff was 10:20 AM.`;
       const leadObj = leaders.find((l) => l.id === leaderId);
       const updatedRec: AttendanceRecord = {
         ...(existingRec || {
@@ -2080,30 +2091,26 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         status: 'ABSENT',
         verification_status: 'REJECTED',
         late_expired: true,
-        verification_note: unexcusedNote,
+        verification_note: cutoffNote,
         updated_at: nowIso,
       };
       setAttendanceRecords((prev) => {
         const has = prev.some((r) => r.id === updatedRec.id);
         return has ? prev.map((r) => (r.id === updatedRec.id ? updatedRec : r)) : [...prev, updatedRec];
       });
-      syncAttendanceRecordToSupabase(updatedRec, unexcusedNote);
+      syncAttendanceRecordToSupabase(updatedRec, cutoffNote);
       return {
         success: false,
-        message: `Access Denied: You are ${lateMinutes} minutes late and did not inform prior to standup. Only leaders with approved inform notices can join late. You are recorded as ABSENT.`,
-      };
-    } else if (!existingRec?.check_in_at && lateMinutes > 30) {
-      return {
-        success: false,
-        message: `Access Denied: Meeting check-in window closed (+30 minutes limit exceeded). You are recorded as ABSENT for today's session. Entry is not permitted.`,
+        message: `Access Denied: Meeting check-in closed at 10:20 AM IST (+20 mins limit). Attendance cannot be marked after 10:20 AM. You are recorded as ABSENT for today's session.`,
       };
     }
 
     const isLate = lateMinutes > 0;
+    const providedPhysicalReason = locationData?.lateReason?.trim() || existingRec?.late_reason || existingRec?.informed_reason;
     const statusToSet: AttendanceStatus = isLate ? 'INFORMED_LATE' : 'PRESENT';
     const note = isLate
-      ? `Boardroom QR Scanned (+${lateMinutes}m late) • Pending Admin Approval`
-      : 'Boardroom QR Scanned On-Time • Pending Admin Approval';
+      ? `Boardroom QR Scanned (+${lateMinutes}m late${providedPhysicalReason ? `: ${providedPhysicalReason}` : ''}) • Recorded`
+      : 'Boardroom QR Scanned On-Time • Confirmed';
     const recordId = `att-${selectedDate}-${leaderId}`;
 
     let isAlreadyRecorded = false;
@@ -2138,6 +2145,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           first_event_at: existing.first_event_at || nowIso,
           evidence_source: 'ROOM_STATIC_QR',
           late_minutes: preservedLate,
+          late_reason: providedPhysicalReason || existing.late_reason,
           admin_verified_attendance: existing.admin_verified_attendance || false,
           verification_note: preservedNote,
           latitude: locationData?.latitude ?? existing.latitude,
@@ -2163,6 +2171,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         check_in_at: nowIso,
         first_event_at: nowIso,
         late_minutes: lateMinutes,
+        late_reason: providedPhysicalReason,
         evidence_source: 'ROOM_STATIC_QR',
         admin_verified_attendance: false,
         verification_note: note,
@@ -3495,12 +3504,156 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     openDirectorPdfInNewTab(meeting, fullRecords, appSettings);
   };
 
+  const downloadWeeklyPdfReport = (weekRangeStr: string) => {
+    downloadWeeklyAuditPdf(weekRangeStr, leaders, attendanceRecords, appSettings);
+  };
+
   const downloadMonthlyPdfReport = (monthYearStr: string) => {
     downloadMonthlyAuditPdf(monthYearStr, leaders, attendanceRecords, appSettings);
   };
 
   const downloadYearlyPdfReport = (year: number) => {
     downloadYearlyAuditPdf(year, leaders, attendanceRecords, appSettings);
+  };
+
+  const sendWeeklyPdfToWhatsappGroup = async (
+    weekRangeStr: string
+  ): Promise<{ success: boolean; message: string }> => {
+    const { base64: pdfBase64, filename } = getWeeklyAuditPdfBase64(weekRangeStr, leaders, attendanceRecords, appSettings);
+    const targetGroup = appSettings.is_test_mode
+      ? (appSettings.test_whatsapp_group || '120363432056023698@g.us')
+      : (appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us');
+
+    const res = await sendCeoitboxPdfAttachment({
+      mobileNo: targetGroup,
+      pdfBase64,
+      filename,
+      message: undefined,
+      settings: appSettings,
+    });
+    return { success: res.success, message: res.status };
+  };
+
+  const sendMonthlyPdfToWhatsappGroup = async (
+    monthYearStr: string
+  ): Promise<{ success: boolean; message: string }> => {
+    const { base64: pdfBase64, filename } = getMonthlyAuditPdfBase64(monthYearStr, leaders, attendanceRecords, appSettings);
+    const targetGroup = appSettings.is_test_mode
+      ? (appSettings.test_whatsapp_group || '120363432056023698@g.us')
+      : (appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us');
+
+    const res = await sendCeoitboxPdfAttachment({
+      mobileNo: targetGroup,
+      pdfBase64,
+      filename,
+      message: undefined,
+      settings: appSettings,
+    });
+    return { success: res.success, message: res.status };
+  };
+
+  const sendYearlyPdfToWhatsappGroup = async (
+    year: number
+  ): Promise<{ success: boolean; message: string }> => {
+    const { base64: pdfBase64, filename } = getYearlyAuditPdfBase64(year, leaders, attendanceRecords, appSettings);
+    const targetGroup = appSettings.is_test_mode
+      ? (appSettings.test_whatsapp_group || '120363432056023698@g.us')
+      : (appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us');
+
+    const res = await sendCeoitboxPdfAttachment({
+      mobileNo: targetGroup,
+      pdfBase64,
+      filename,
+      message: undefined,
+      settings: appSettings,
+    });
+    return { success: res.success, message: res.status };
+  };
+
+  // Text 1: Late Arrivals Audit Notice (> 10:05 AM)
+  const sendLateArrivalsAuditNotice = async (
+    date: string
+  ): Promise<{ success: boolean; count: number; message: string; payload?: string }> => {
+    const meeting = getMeetingForDate(date);
+    const cadenceCode = (meeting.cadence || 'DOM').trim();
+    const forDate = getFullRosterForDate(date);
+    const isDir = (l?: any) => l?.role === 'DIRECTOR' || l?.full_name?.toLowerCase().includes('director') || l?.id === '905b6cf2-0e49-40b1-aa7c-828fe88a55ad';
+
+    const lateAttendees = forDate.filter((r) => {
+      if (isDir(r.leader || { id: r.leader_id })) return false;
+      const isLateStatus = r.status === 'INFORMED_LATE';
+      const hasLateMins = Boolean(r.late_minutes && r.late_minutes > 5);
+      const isPresentLate = (r.status === 'PRESENT' || r.admin_verified_attendance) && Boolean(r.late_minutes && r.late_minutes > 5);
+      return isLateStatus || hasLateMins || isPresentLate;
+    });
+
+    if (lateAttendees.length === 0) {
+      return {
+        success: true,
+        count: 0,
+        message: 'No leaders arrived late (> 10:05 AM) for today’s meeting. Punctuality was 100%!',
+      };
+    }
+
+    const formattedDate = new Date(date).toLocaleDateString('en-IN', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+
+    let msg = `*SBH GROUP OF HOSPITALS, RAIPUR*\n`;
+    msg += `⏱️ *OFFICIAL STANDUP: LATE ARRIVALS AUDIT (> 10:05 AM)*\n`;
+    msg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
+    msg += `📅 *Date:* ${formattedDate} | *Meeting:* ${cadenceCode} (${meeting.title || 'Daily Standup'})\n`;
+    msg += `⏰ *Scheduled Time:* ${meeting.scheduled_time || '10:00 AM'} IST | *Grace Cutoff:* 10:05 AM IST\n`;
+    msg += `📍 *Venue:* ${appSettings.conference_room_name || 'Conference Room, 5th Floor'}\n`;
+    msg += `━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+
+    msg += `📢 *OFFICIAL NOTICE TO LATE ATTENDEES:*\n`;
+    msg += `The following leaders arrived past the 10:05 AM punctuality window. Leaders are strictly expected to join before 10:00 AM sharp:\n\n`;
+
+    msg += `⏱️ *LATE ARRIVALS & RECORDED JUSTIFICATION (${lateAttendees.length}):*\n`;
+    lateAttendees.forEach((p, idx) => {
+      const lateMins = p.late_minutes ? `+${p.late_minutes}m late` : 'Late';
+      const checkInTime = p.check_in_at
+        ? new Date(p.check_in_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
+        : (p as any).join_time || 'Past 10:05 AM';
+      const reason = p.late_reason || p.informed_reason || p.verification_note || 'Late arrival without prior intimation';
+      msg += `${idx + 1}. *${p.leader?.full_name}* (${p.leader?.department?.name || 'Department'}) — *${lateMins}* (Arrival: ${checkInTime})\n`;
+      msg += `   ↳ *Reason:* ${reason}\n\n`;
+    });
+
+    msg += `⚠️ *COMPLIANCE DIRECTIVE:*\n`;
+    msg += `All Department Heads must assemble and check in before 10:00 AM sharp to maintain operational discipline.\n`;
+    msg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
+    msg += `*Hospital Operations & Management Command*\n`;
+    msg += `*Automated Operational Compliance Notice*`;
+
+    const targetGroup = appSettings.is_test_mode
+      ? (appSettings.test_whatsapp_group || '120363432056023698@g.us')
+      : (appSettings.admin_whatsapp_group || '919977881452-1431506963@g.us');
+
+    const res = await sendCeoitboxWhatsappMessage({
+      mobileNo: targetGroup,
+      name: 'SBH DOM Official Group',
+      message: msg,
+      settings: appSettings,
+    });
+
+    return {
+      success: res.success,
+      count: lateAttendees.length,
+      message: `Late arrivals notice for ${lateAttendees.length} leaders successfully sent to WhatsApp Group!`,
+      payload: msg,
+    };
+  };
+
+  // Text 2: Unexcused Absentees Notice
+  const sendUnexcusedAbsenteesNotice = async (
+    date: string
+  ): Promise<{ success: boolean; count: number; message: string; payload?: string }> => {
+    return sendCeoitboxUnexcusedAbsenteeNotice(date);
   };
 
   // ================= CEOITBOX WHATSAPP DISPATCHES =================
@@ -4618,10 +4771,16 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         reopenMeeting,
         downloadPdfReport,
         openPdfReport,
+        downloadWeeklyPdfReport,
         downloadMonthlyPdfReport,
         downloadYearlyPdfReport,
         sendDirectorCeoitboxWhatsapp,
         sendDirectorPdfToWhatsappGroup,
+        sendWeeklyPdfToWhatsappGroup,
+        sendMonthlyPdfToWhatsappGroup,
+        sendYearlyPdfToWhatsappGroup,
+        sendLateArrivalsAuditNotice,
+        sendUnexcusedAbsenteesNotice,
         sendCeoitboxRemindersToAll,
         sendCeoitboxEscalationToNonAttendees,
         sendCeoitboxUnexcusedAbsenteeNotice,

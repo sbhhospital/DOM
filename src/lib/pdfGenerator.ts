@@ -610,6 +610,182 @@ export function generateDirectorPdf(
 }
 
 // -------------------------------------------------------------
+// WEEKLY LEADERSHIP AUDIT & COMPLIANCE PDF
+// -------------------------------------------------------------
+export function generateWeeklyAuditPdf(
+  weekRangeStr: string, // e.g. "23 Nov 2026 – 28 Nov 2026"
+  leaders: Leader[],
+  records: AttendanceRecord[],
+  settings: AppSettings
+): jsPDF {
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const margin = 12;
+
+  // Header Brand Bars
+  doc.setFillColor(13, 148, 136); // Teal for Weekly
+  doc.rect(0, 0, pageWidth, 5, 'F');
+  doc.setFillColor(234, 88, 12);
+  doc.rect(0, 5, pageWidth, 2, 'F');
+
+  // Official Hospital Logo & Header
+  try {
+    doc.addImage(sbhLogoBase64, 'PNG', margin, 9, 38, 10);
+  } catch (e) {
+    // fallback
+  }
+
+  const textStartX = margin + 41;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10.5);
+  doc.setTextColor(15, 23, 42);
+  doc.text('SBH GROUP OF HOSPITALS, RAIPUR', textStartX, 13);
+
+  doc.setFontSize(7.5);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(100, 116, 139);
+  doc.text('Weekly Leadership Attendance & Operational Cadence Audit', textStartX, 17.5);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8.5);
+  doc.setTextColor(13, 148, 136);
+  doc.text('WEEKLY AUDIT REPORT', pageWidth - margin, 13, { align: 'right' });
+  doc.setFontSize(7.5);
+  doc.setTextColor(100, 116, 139);
+  doc.text(`Period: ${weekRangeStr}`, pageWidth - margin, 18, { align: 'right' });
+
+  let currentY = 22;
+  doc.setDrawColor(226, 232, 240);
+  doc.setLineWidth(0.5);
+  doc.line(margin, currentY, pageWidth - margin, currentY);
+
+  currentY += 6;
+
+  // Aggregate stats for each leader
+  const leaderStats = leaders.map((lead) => {
+    const leadRecords = records.filter((r) => r.leader_id === lead.id);
+    const totalScheduled = leadRecords.length;
+    const attended = leadRecords.filter(
+      (r) => r.status === 'PRESENT' || (r.selected_mode === 'PHYSICAL' && r.admin_verified_attendance)
+    ).length;
+    const late = leadRecords.filter(
+      (r) => (r.late_minutes && r.late_minutes > 0) || r.status === 'INFORMED_LATE'
+    ).length;
+    const leave = leadRecords.filter((r) => r.status === 'LEAVE').length;
+    const missed = leadRecords.filter(
+      (r) => r.status === 'ABSENT' || (r.status === 'PENDING' && r.selected_mode === 'NONE')
+    ).length;
+
+    const domRecs = leadRecords.filter((r) => r.cadence === 'DOM' || r.meeting_frequency === 'DAILY');
+    const domSched = domRecs.length;
+    const domAtt = domRecs.filter((r) => r.status === 'PRESENT' || r.admin_verified_attendance).length;
+
+    const womRecs = leadRecords.filter((r) => r.cadence === 'WOM' || r.meeting_frequency === 'WEEKLY');
+    const womSched = womRecs.length;
+    const womAtt = womRecs.filter((r) => r.status === 'PRESENT' || r.admin_verified_attendance).length;
+
+    const effective = totalScheduled - leave;
+    const rate = effective > 0 ? Math.round((attended / effective) * 100) : totalScheduled > 0 ? 100 : 0;
+
+    return {
+      lead,
+      totalScheduled,
+      attended,
+      late,
+      leave,
+      missed,
+      domSched,
+      domAtt,
+      womSched,
+      womAtt,
+      rate,
+    };
+  });
+
+  const totalMeetings = Math.max(...leaderStats.map((s) => s.totalScheduled), 0);
+  const totalAttendedAll = leaderStats.reduce((sum, s) => sum + s.attended, 0);
+  const totalMissedAll = leaderStats.reduce((sum, s) => sum + s.missed, 0);
+  const avgCompliance =
+    leaderStats.length > 0
+      ? Math.round(leaderStats.reduce((sum, s) => sum + s.rate, 0) / leaderStats.length)
+      : 0;
+
+  // 4 Metric cards
+  const cardWidth = (pageWidth - margin * 2 - 12) / 4;
+  const kpis = [
+    { title: 'WEEKLY SESSIONS', val: `${totalMeetings}`, sub: 'DOM + WOM', bg: [204, 251, 241], text: [13, 148, 136] },
+    { title: 'AVG COMPLIANCE', val: `${avgCompliance}%`, sub: 'Hospital Benchmark', bg: [236, 253, 245], text: [22, 163, 74] },
+    { title: 'TOTAL ABSENCES', val: `${totalMissedAll}`, sub: 'Across Departments', bg: [255, 241, 242], text: [225, 29, 72] },
+    { title: 'LEADERS AUDITED', val: `${leaders.length}`, sub: 'Executive Roster', bg: [254, 249, 195], text: [161, 98, 7] },
+  ];
+
+  kpis.forEach((kpi, idx) => {
+    const cardX = margin + idx * (cardWidth + 4);
+    doc.setFillColor(kpi.bg[0], kpi.bg[1], kpi.bg[2]);
+    doc.roundedRect(cardX, currentY, cardWidth, 18, 2, 2, 'F');
+    doc.setDrawColor(226, 232, 240);
+    doc.roundedRect(cardX, currentY, cardWidth, 18, 2, 2, 'S');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(6.5);
+    doc.setTextColor(100, 116, 139);
+    doc.text(kpi.title, cardX + 3, currentY + 4.5);
+
+    doc.setFontSize(11);
+    doc.setTextColor(kpi.text[0], kpi.text[1], kpi.text[2]);
+    doc.text(kpi.val, cardX + 3, currentY + 10.5);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6.5);
+    doc.setTextColor(100, 116, 139);
+    doc.text(kpi.sub, cardX + 3, currentY + 15);
+  });
+
+  currentY += 24;
+
+  // Complete Leader Table
+  const sortedStats = [...leaderStats].sort((a, b) => b.rate - a.rate);
+  const rows = sortedStats.map((item, idx) => [
+    `${idx + 1}`,
+    item.lead.full_name,
+    item.lead.department?.name || 'Department',
+    `${item.totalScheduled}`,
+    `${item.attended}`,
+    `${item.late}`,
+    `${item.missed}`,
+    `${item.domAtt}/${item.domSched}`,
+    `${item.womAtt}/${item.womSched}`,
+    `${item.rate}%`,
+    item.rate >= 90 ? 'EXEMPLARY' : item.rate >= 75 ? 'SATISFACTORY' : 'NEEDS ACTION',
+  ]);
+
+  autoTable(doc, {
+    startY: currentY,
+    head: [['#', 'Leader Name', 'Department', 'Sched', 'Attended', 'Late', 'Absent', 'DOM', 'WOM', 'Rate %', 'Compliance Status']],
+    body: rows,
+    theme: 'grid',
+    styles: { fontSize: 7, cellPadding: 1.8, textColor: [30, 41, 59] },
+    headStyles: { fillColor: [13, 148, 136], textColor: [255, 255, 255], fontStyle: 'bold' },
+    columnStyles: {
+      0: { halign: 'center', cellWidth: 7 },
+      1: { fontStyle: 'bold', cellWidth: 38 },
+      2: { cellWidth: 30 },
+      3: { halign: 'center', cellWidth: 12 },
+      4: { halign: 'center', cellWidth: 14 },
+      5: { halign: 'center', cellWidth: 12 },
+      6: { halign: 'center', fontStyle: 'bold', textColor: [225, 29, 72], cellWidth: 12 },
+      7: { halign: 'center', cellWidth: 16 },
+      8: { halign: 'center', cellWidth: 16 },
+      9: { halign: 'center', fontStyle: 'bold', cellWidth: 14 },
+      10: { halign: 'center', cellWidth: 25 },
+    },
+  });
+
+  addHospitalLogoWatermark(doc);
+  return doc;
+}
+
+// -------------------------------------------------------------
 // MONTHLY LEADERSHIP AUDIT & ABSENTEEISM PDF
 // -------------------------------------------------------------
 export function generateMonthlyAuditPdf(
@@ -620,7 +796,7 @@ export function generateMonthlyAuditPdf(
 ): jsPDF {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const pageWidth = doc.internal.pageSize.getWidth();
-  const margin = 14;
+  const margin = 12;
 
   // Header Brand Bars
   doc.setFillColor(147, 51, 234); // #9333ea Purple for Monthly MOM
@@ -668,10 +844,26 @@ export function generateMonthlyAuditPdf(
     const attended = leadRecords.filter(
       (r) => r.status === 'PRESENT' || (r.selected_mode === 'PHYSICAL' && r.admin_verified_attendance)
     ).length;
+    const late = leadRecords.filter(
+      (r) => (r.late_minutes && r.late_minutes > 0) || r.status === 'INFORMED_LATE'
+    ).length;
     const leave = leadRecords.filter((r) => r.status === 'LEAVE').length;
     const missed = leadRecords.filter(
       (r) => r.status === 'ABSENT' || (r.status === 'PENDING' && r.selected_mode === 'NONE')
     ).length;
+
+    const domRecs = leadRecords.filter((r) => r.cadence === 'DOM' || r.meeting_frequency === 'DAILY');
+    const domSched = domRecs.length;
+    const domAtt = domRecs.filter((r) => r.status === 'PRESENT' || r.admin_verified_attendance).length;
+
+    const womRecs = leadRecords.filter((r) => r.cadence === 'WOM' || r.meeting_frequency === 'WEEKLY');
+    const womSched = womRecs.length;
+    const womAtt = womRecs.filter((r) => r.status === 'PRESENT' || r.admin_verified_attendance).length;
+
+    const momRecs = leadRecords.filter((r) => r.cadence === 'MOM' || r.meeting_frequency === 'MONTHLY');
+    const momSched = momRecs.length;
+    const momAtt = momRecs.filter((r) => r.status === 'PRESENT' || r.admin_verified_attendance).length;
+
     const effective = totalScheduled - leave;
     const rate = effective > 0 ? Math.round((attended / effective) * 100) : totalScheduled > 0 ? 100 : 0;
 
@@ -679,8 +871,15 @@ export function generateMonthlyAuditPdf(
       lead,
       totalScheduled,
       attended,
+      late,
       leave,
       missed,
+      domSched,
+      domAtt,
+      womSched,
+      womAtt,
+      momSched,
+      momAtt,
       rate,
     };
   });
@@ -698,7 +897,7 @@ export function generateMonthlyAuditPdf(
   const kpis = [
     { title: 'MONTHLY SESSIONS', val: `${totalMeetings}`, sub: 'DOM + WOM + MOM', bg: [243, 232, 255], text: [126, 34, 206] },
     { title: 'AVG COMPLIANCE', val: `${avgCompliance}%`, sub: 'Hospital Benchmark', bg: [236, 253, 245], text: [22, 163, 74] },
-    { title: 'TOTAL ABSENCES', val: `${totalMissedAll}`, sub: 'Across All Departments', bg: [255, 241, 242], text: [225, 29, 72] },
+    { title: 'TOTAL ABSENCES', val: `${totalMissedAll}`, sub: 'Across Departments', bg: [255, 241, 242], text: [225, 29, 72] },
     { title: 'LEADERS AUDITED', val: `${leaders.length}`, sub: '24 Departments', bg: [254, 249, 195], text: [161, 98, 7] },
   ];
 
@@ -726,90 +925,43 @@ export function generateMonthlyAuditPdf(
 
   currentY += 24;
 
-  // Star Performers Table (Best Attendance)
-  const topPerformers = leaderStats.filter((s) => s.rate >= 90).sort((a, b) => b.rate - a.rate);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
-  doc.setTextColor(22, 163, 74);
-  doc.text(`1. TOP COMPLIANT LEADERS (>= 90% ATTENDANCE) — ${topPerformers.length}`, margin, currentY);
-
-  currentY += 2;
-  const topRows = topPerformers.map((item, idx) => [
+  // Complete Leader Roster Table
+  const sortedStats = [...leaderStats].sort((a, b) => b.rate - a.rate);
+  const rows = sortedStats.map((item, idx) => [
     `${idx + 1}`,
     item.lead.full_name,
     item.lead.department?.name || 'Department',
     `${item.totalScheduled}`,
     `${item.attended}`,
+    `${item.late}`,
     `${item.missed}`,
-    `${item.leave}`,
+    `${item.domAtt}/${item.domSched}`,
+    `${item.womAtt}/${item.womSched}`,
+    `${item.momAtt}/${item.momSched}`,
     `${item.rate}%`,
-    item.rate === 100 ? 'EXEMPLARY (100%)' : 'OUTSTANDING',
+    item.rate >= 90 ? 'EXEMPLARY' : item.rate >= 75 ? 'SATISFACTORY' : 'NEEDS ACTION',
   ]);
 
   autoTable(doc, {
     startY: currentY,
-    head: [['#', 'Leader Name', 'Department', 'Scheduled', 'Attended', 'Missed', 'Leave', 'Rate %', 'Rating']],
-    body: topRows.length > 0 ? topRows : [['—', 'No leaders in this range', '—', '—', '—', '—', '—', '—', '—']],
+    head: [['#', 'Leader Name', 'Department', 'Sched', 'Attended', 'Late', 'Absent', 'DOM', 'WOM', 'MOM', 'Rate %', 'Compliance Status']],
+    body: rows,
     theme: 'grid',
-    styles: { fontSize: 7.5, cellPadding: 2, textColor: [30, 41, 59] },
-    headStyles: { fillColor: [22, 163, 74], textColor: [255, 255, 255], fontStyle: 'bold' },
+    styles: { fontSize: 6.8, cellPadding: 1.8, textColor: [30, 41, 59] },
+    headStyles: { fillColor: [147, 51, 234], textColor: [255, 255, 255], fontStyle: 'bold' },
     columnStyles: {
-      0: { halign: 'center', cellWidth: 8 },
-      1: { fontStyle: 'bold', cellWidth: 40 },
-      2: { cellWidth: 36 },
-      3: { halign: 'center', cellWidth: 16 },
-      4: { halign: 'center', cellWidth: 16 },
-      5: { halign: 'center', cellWidth: 16 },
-      6: { halign: 'center', cellWidth: 14 },
-      7: { halign: 'center', fontStyle: 'bold', cellWidth: 16 },
-      8: { halign: 'center', cellWidth: 26 },
-    },
-  });
-
-  // Absentees Table (Needs Attention)
-  let afterTableY = (doc as any).lastAutoTable?.finalY || 140;
-  if (afterTableY > 210) {
-    doc.addPage();
-    afterTableY = 20;
-  }
-
-  afterTableY += 8;
-  const absentees = leaderStats.filter((s) => s.missed > 0).sort((a, b) => b.missed - a.missed);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
-  doc.setTextColor(225, 29, 72);
-  doc.text(`2. CHRONIC ABSENTEEISM & MISSED MEETINGS AUDIT — ${absentees.length}`, margin, afterTableY);
-
-  afterTableY += 2;
-  const absRows = absentees.map((item, idx) => [
-    `${idx + 1}`,
-    item.lead.full_name,
-    item.lead.department?.name || 'Department',
-    `${item.totalScheduled}`,
-    `${item.attended}`,
-    `${item.missed}`,
-    `${item.leave}`,
-    `${item.rate}%`,
-    item.missed >= 5 ? 'CRITICAL ATTENTION' : 'NOTICE ISSUED',
-  ]);
-
-  autoTable(doc, {
-    startY: afterTableY,
-    head: [['#', 'Leader Name', 'Department', 'Scheduled', 'Attended', 'Missed Days', 'Leave', 'Rate %', 'Action Status']],
-    body: absRows.length > 0 ? absRows : [['—', 'Nil — No absences recorded for this month!', '—', '—', '—', '—', '—', '—', '—']],
-    theme: 'grid',
-    styles: { fontSize: 7.5, cellPadding: 2, textColor: [30, 41, 59] },
-    headStyles: { fillColor: [225, 29, 72], textColor: [255, 255, 255], fontStyle: 'bold' },
-    columnStyles: {
-      0: { halign: 'center', cellWidth: 8 },
-      1: { fontStyle: 'bold', cellWidth: 40 },
-      2: { cellWidth: 36 },
-      3: { halign: 'center', cellWidth: 16 },
-      4: { halign: 'center', cellWidth: 16 },
-      5: { halign: 'center', fontStyle: 'bold', textColor: [225, 29, 72], cellWidth: 18 },
-      6: { halign: 'center', cellWidth: 14 },
-      7: { halign: 'center', fontStyle: 'bold', cellWidth: 16 },
-      8: { halign: 'center', cellWidth: 24 },
+      0: { halign: 'center', cellWidth: 7 },
+      1: { fontStyle: 'bold', cellWidth: 35 },
+      2: { cellWidth: 28 },
+      3: { halign: 'center', cellWidth: 11 },
+      4: { halign: 'center', cellWidth: 13 },
+      5: { halign: 'center', cellWidth: 11 },
+      6: { halign: 'center', fontStyle: 'bold', textColor: [225, 29, 72], cellWidth: 11 },
+      7: { halign: 'center', cellWidth: 15 },
+      8: { halign: 'center', cellWidth: 15 },
+      9: { halign: 'center', cellWidth: 15 },
+      10: { halign: 'center', fontStyle: 'bold', cellWidth: 13 },
+      11: { halign: 'center', cellWidth: 22 },
     },
   });
 
@@ -928,6 +1080,98 @@ export function generateYearlyAuditPdf(
     },
   });
 
+  // Section 2: Complete Leader Annual Compliance Roster
+  let afterAnnualTableY = (doc as any).lastAutoTable?.finalY || 140;
+  if (afterAnnualTableY > 190) {
+    doc.addPage();
+    afterAnnualTableY = 20;
+  } else {
+    afterAnnualTableY += 8;
+  }
+
+  const annualStats = leaders.map((lead) => {
+    const yRecs = records.filter((r) => r.leader_id === lead.id && r.meeting_date?.startsWith(`${year}`));
+    const totalScheduled = yRecs.length;
+    const attended = yRecs.filter((r) => r.status === 'PRESENT' || (r.selected_mode === 'PHYSICAL' && r.admin_verified_attendance)).length;
+    const late = yRecs.filter((r) => (r.late_minutes && r.late_minutes > 0) || r.status === 'INFORMED_LATE').length;
+    const leave = yRecs.filter((r) => r.status === 'LEAVE').length;
+    const missed = yRecs.filter((r) => r.status === 'ABSENT' || (r.status === 'PENDING' && r.selected_mode === 'NONE')).length;
+
+    const domRecs = yRecs.filter((r) => r.cadence === 'DOM' || r.meeting_frequency === 'DAILY');
+    const domSched = domRecs.length;
+    const domAtt = domRecs.filter((r) => r.status === 'PRESENT' || r.admin_verified_attendance).length;
+
+    const womRecs = yRecs.filter((r) => r.cadence === 'WOM' || r.meeting_frequency === 'WEEKLY');
+    const womSched = womRecs.length;
+    const womAtt = womRecs.filter((r) => r.status === 'PRESENT' || r.admin_verified_attendance).length;
+
+    const momRecs = yRecs.filter((r) => r.cadence === 'MOM' || r.meeting_frequency === 'MONTHLY');
+    const momSched = momRecs.length;
+    const momAtt = momRecs.filter((r) => r.status === 'PRESENT' || r.admin_verified_attendance).length;
+
+    const effective = totalScheduled - leave;
+    const rate = effective > 0 ? Math.round((attended / effective) * 100) : totalScheduled > 0 ? 100 : 0;
+
+    return {
+      lead,
+      totalScheduled,
+      attended,
+      late,
+      missed,
+      domSched,
+      domAtt,
+      womSched,
+      womAtt,
+      momSched,
+      momAtt,
+      rate,
+    };
+  }).sort((a, b) => b.rate - a.rate);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(15, 23, 42);
+  doc.text(`2. ANNUAL LEADERSHIP ATTENDANCE AUDIT ROSTER (${year})`, margin, afterAnnualTableY);
+
+  afterAnnualTableY += 2;
+  const annualLeaderRows = annualStats.map((item, idx) => [
+    `${idx + 1}`,
+    item.lead.full_name,
+    item.lead.department?.name || 'Department',
+    `${item.totalScheduled}`,
+    `${item.attended}`,
+    `${item.late}`,
+    `${item.missed}`,
+    `${item.domAtt}/${item.domSched}`,
+    `${item.womAtt}/${item.womSched}`,
+    `${item.momAtt}/${item.momSched}`,
+    `${item.rate}%`,
+    item.rate >= 90 ? 'EXEMPLARY' : item.rate >= 75 ? 'SATISFACTORY' : 'NEEDS ACTION',
+  ]);
+
+  autoTable(doc, {
+    startY: afterAnnualTableY,
+    head: [['#', 'Leader Name', 'Department', 'Sched', 'Attended', 'Late', 'Absent', 'DOM', 'WOM', 'MOM', 'Rate %', 'Status']],
+    body: annualLeaderRows,
+    theme: 'grid',
+    styles: { fontSize: 6.8, cellPadding: 1.8, textColor: [30, 41, 59] },
+    headStyles: { fillColor: [37, 99, 235], textColor: [255, 255, 255], fontStyle: 'bold' },
+    columnStyles: {
+      0: { halign: 'center', cellWidth: 7 },
+      1: { fontStyle: 'bold', cellWidth: 35 },
+      2: { cellWidth: 28 },
+      3: { halign: 'center', cellWidth: 11 },
+      4: { halign: 'center', cellWidth: 13 },
+      5: { halign: 'center', cellWidth: 11 },
+      6: { halign: 'center', fontStyle: 'bold', textColor: [225, 29, 72], cellWidth: 11 },
+      7: { halign: 'center', cellWidth: 15 },
+      8: { halign: 'center', cellWidth: 15 },
+      9: { halign: 'center', cellWidth: 15 },
+      10: { halign: 'center', fontStyle: 'bold', cellWidth: 13 },
+      11: { halign: 'center', cellWidth: 22 },
+    },
+  });
+
   // Apply Subtle Hospital Watermark Across All Pages
   addHospitalLogoWatermark(doc);
 
@@ -969,6 +1213,31 @@ export function openDirectorPdfInNewTab(
   window.open(pdfBlobUrl as unknown as string, '_blank');
 }
 
+export function downloadWeeklyAuditPdf(
+  weekRangeStr: string,
+  leaders: Leader[],
+  records: AttendanceRecord[],
+  settings: AppSettings
+) {
+  const doc = generateWeeklyAuditPdf(weekRangeStr, leaders, records, settings);
+  const cleanLabel = weekRangeStr.replace(/[^a-zA-Z0-9_-]/g, '_');
+  doc.save(`SBH_Weekly_Audit_${cleanLabel}.pdf`);
+}
+
+export function getWeeklyAuditPdfBase64(
+  weekRangeStr: string,
+  leaders: Leader[],
+  records: AttendanceRecord[],
+  settings: AppSettings
+): { base64: string; filename: string } {
+  const doc = generateWeeklyAuditPdf(weekRangeStr, leaders, records, settings);
+  const cleanLabel = weekRangeStr.replace(/[^a-zA-Z0-9_-]/g, '_');
+  const filename = `SBH_Weekly_Audit_${cleanLabel}.pdf`;
+  const dataUri = doc.output('datauristring');
+  const base64 = dataUri.split(',')[1] || '';
+  return { base64, filename };
+}
+
 export function downloadMonthlyAuditPdf(
   monthYearStr: string,
   leaders: Leader[],
@@ -979,6 +1248,20 @@ export function downloadMonthlyAuditPdf(
   doc.save(`SBH_MOM_Monthly_Audit_${monthYearStr.replace(/\s+/g, '_')}.pdf`);
 }
 
+export function getMonthlyAuditPdfBase64(
+  monthYearStr: string,
+  leaders: Leader[],
+  records: AttendanceRecord[],
+  settings: AppSettings
+): { base64: string; filename: string } {
+  const doc = generateMonthlyAuditPdf(monthYearStr, leaders, records, settings);
+  const cleanLabel = monthYearStr.replace(/[^a-zA-Z0-9_-]/g, '_');
+  const filename = `SBH_Monthly_Audit_${cleanLabel}.pdf`;
+  const dataUri = doc.output('datauristring');
+  const base64 = dataUri.split(',')[1] || '';
+  return { base64, filename };
+}
+
 export function downloadYearlyAuditPdf(
   year: number,
   leaders: Leader[],
@@ -987,4 +1270,17 @@ export function downloadYearlyAuditPdf(
 ) {
   const doc = generateYearlyAuditPdf(year, leaders, records, settings);
   doc.save(`SBH_Annual_Attendance_Audit_${year}.pdf`);
+}
+
+export function getYearlyAuditPdfBase64(
+  year: number,
+  leaders: Leader[],
+  records: AttendanceRecord[],
+  settings: AppSettings
+): { base64: string; filename: string } {
+  const doc = generateYearlyAuditPdf(year, leaders, records, settings);
+  const filename = `SBH_Annual_Audit_${year}.pdf`;
+  const dataUri = doc.output('datauristring');
+  const base64 = dataUri.split(',')[1] || '';
+  return { base64, filename };
 }
