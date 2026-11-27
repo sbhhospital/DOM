@@ -121,15 +121,6 @@ export const AdminLogin: React.FC = () => {
   const [password, setPassword] = useState('');
   const [visible, setVisible] = useState(false);
 
-  // Captcha State
-  const [captcha, setCaptcha] = useState<{ num1: number; num2: number; op: string; answer: number }>({
-    num1: 3,
-    num2: 4,
-    op: '+',
-    answer: 7,
-  });
-  const [captchaInput, setCaptchaInput] = useState('');
-
   const [errorMsg, setErrorMsg] = useState('');
   const [toastMsg, setToastMsg] = useState('');
   const [loading, setLoading] = useState(false);
@@ -242,28 +233,6 @@ export const AdminLogin: React.FC = () => {
       document.removeEventListener('mousedown', handleClickOutside);
       subscription.unsubscribe();
     };
-  }, []);
-
-  const generateCaptcha = () => {
-    const isMinus = Math.random() < 0.5;
-    let num1: number, num2: number, answer: number, op: string;
-    if (isMinus) {
-      num1 = Math.floor(Math.random() * 8) + 2;
-      num2 = Math.floor(Math.random() * (num1 - 1)) + 1;
-      answer = num1 - num2;
-      op = '-';
-    } else {
-      num1 = Math.floor(Math.random() * 8) + 2;
-      num2 = Math.floor(Math.random() * 8) + 1;
-      answer = num1 + num2;
-      op = '+';
-    }
-    setCaptcha({ num1, num2, op, answer });
-    setCaptchaInput('');
-  };
-
-  useEffect(() => {
-    generateCaptcha();
   }, []);
 
   // Active leaders only for login selection (using dbLeaders fallback)
@@ -475,12 +444,6 @@ export const AdminLogin: React.FC = () => {
       }
     }
 
-    if (parseInt(captchaInput, 10) !== captcha.answer) {
-      showToast('🤖 Incorrect Captcha calculation. Please try again.');
-      generateCaptcha();
-      return;
-    }
-
     if (!password) {
       showToast('⚠️ Please enter your password.');
       return;
@@ -500,7 +463,6 @@ export const AdminLogin: React.FC = () => {
         }, 1200);
       } else {
         setErrorMsg(res.message);
-        generateCaptcha();
       }
     } else if (activeLeaderSelected) {
       // 2. Leader Login
@@ -516,7 +478,6 @@ export const AdminLogin: React.FC = () => {
         }, 1200);
       } else {
         setErrorMsg(res.message);
-        generateCaptcha();
       }
     } else {
       setLoading(false);
@@ -810,34 +771,6 @@ export const AdminLogin: React.FC = () => {
                 >
                   {visible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
-              </div>
-            </div>
-
-            {/* Security Captcha Verification */}
-            <div className="bg-[#f8f6fe]/70 p-3.5 rounded-2xl border border-[#f0f1f8] space-y-2">
-              <div className="flex items-center justify-between text-[10px] font-black text-slate-500 uppercase">
-                <span>SECURITY CAPTCHA VERIFICATION</span>
-                <button
-                  type="button"
-                  onClick={generateCaptcha}
-                  className="text-[#7065f0] hover:text-[#4f42dc] cursor-pointer"
-                  title="Generate new captcha"
-                >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                </button>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="bg-white px-4 py-2 rounded-xl border border-[#f0f1f8] font-black text-sm text-[#232d42] shrink-0">
-                  {captcha.num1} {captcha.op} {captcha.num2} =
-                </div>
-                <input
-                  type="number"
-                  required
-                  placeholder="Answer"
-                  value={captchaInput}
-                  onChange={(e) => setCaptchaInput(e.target.value)}
-                  className="w-full bg-white border border-[#f0f1f8] rounded-2xl p-2 text-center text-sm font-black text-[#232d42] outline-none focus:ring-2 focus:ring-[#7065f0]"
-                />
               </div>
             </div>
 
