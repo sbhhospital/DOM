@@ -3238,17 +3238,16 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       };
     }
 
+    const cleanTime = (meeting.scheduled_time || '10:00 AM').replace(/\s*IST\s*/gi, '').trim() + ' IST';
     let msg = `*SBH GROUP OF HOSPITALS, RAIPUR*\n`;
     msg += `🚨 *MANDATORY ATTENDANCE NON-COMPLIANCE ESCALATION*\n`;
     msg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
     msg += `📅 *Date:* ${formattedDate} | *Meeting:* ${cadenceCode} (${meeting.title})\n`;
-    msg += `⏰ *Session Time:* ${meeting.scheduled_time || '10:00 AM'} IST\n`;
+    msg += `⏰ *Session Time:* ${cleanTime}\n`;
     msg += `📍 *Venue:* ${appSettings.conference_room_name || 'Conference Room, 5th Floor'}\n`;
     msg += `━━━━━━━━━━━━━━━━━━━━━━\n\n`;
 
-    msg += `📢 *DEAR MANAGEMENT TEAM,*\n`;
-    msg += `The following department leaders have *NOT ATTENDED* today's mandatory meeting and have provided *NO PRIOR INFORMATION* or valid explanation for their absence.\n\n`;
-    msg += `Kindly review and initiate necessary administrative action as per hospital policy.\n\n`;
+    msg += `The following department leaders have *NOT ATTENDED* today's mandatory meeting and have provided *NO PRIOR INFORMATION*:\n\n`;
 
     msg += `❌ *ABSENT LEADERS (NO INFORMATION SUBMITTED):*\n`;
     uninformedAbsentees.forEach((p, idx) => {
@@ -3256,10 +3255,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
     msg += `\n`;
 
-    msg += `⚠️ *OFFICIAL EXPLANATION REQUIRED (FOR ABSENT LEADERS):*\n`;
-    msg += `To all leaders listed above:\n`;
-    msg += `You have been officially marked *ABSENT (NO INFORMATION)*. Please submit your written explanation immediately to the Hospital Management & Operations Command stating the valid reason why you were unable to attend today's scheduled meeting.\n\n`;
-
+    msg += `⚠️ *Action Required:* Marked ABSENT. Submit formal written explanation to Hospital Management.\n`;
     msg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
     msg += `*Hospital Operations & Management Command*\n`;
     msg += `*Automated Reminder*`;
@@ -3712,9 +3708,42 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     // 1. Generate direct base64 PDF
     const { base64: pdfBase64, filename } = getDirectorPdfBase64(meeting, fullRecords, appSettings);
 
-    // 2. Clean concise caption: PDF is dispatched exclusively without duplicate text
+    // 2. Clean concise caption: PDF is dispatched with official audit summary (no individual absent names)
     const durationInfo = calculateMeetingDuration(meeting.scheduled_time || '10:00 AM', meeting.closed_at || new Date());
-    const summaryMsg = `*SBH GROUP OF HOSPITALS, RAIPUR*\n📄 *OFFICIAL ${cadenceCode} SIGNED ATTENDANCE PDF REPORT (${formatToIndianDate(date)})*\n⏱️ *Meeting Duration:* ${durationInfo.durationFormatted} (${durationInfo.startTimeFormatted} – ${durationInfo.endTimeFormatted} IST)\n*Automated Reminder*`;
+    const isDir = (l?: { id?: string; role?: string; full_name?: string }) =>
+      l?.role === 'DIRECTOR' || l?.full_name?.toLowerCase().includes('director');
+    const eligible = fullRecords.filter((r) => !isDir(r.leader || { id: r.leader_id }));
+    const totalCount = eligible.length;
+    const presentPhysical = eligible.filter((r) => r.selected_mode === 'PHYSICAL' && (r.status === 'PRESENT' || r.admin_verified_attendance));
+    const presentVirtual = eligible.filter((r) => r.selected_mode === 'VIRTUAL' && (r.status === 'PRESENT' || r.admin_verified_attendance));
+    const informedLate = eligible.filter((r) => r.status === 'INFORMED_LATE' || (r.late_minutes && r.late_minutes > 0));
+    const informedLeave = eligible.filter((r) => r.status === 'LEAVE' || (r.status === 'INFORMED_ABSENT' && (r.informed_confirmed || r.admin_verified_attendance)));
+    const absent = eligible.filter((r) => r.status === 'ABSENT' || (r.status === 'PENDING' && r.selected_mode === 'NONE') || r.verification_status === 'REJECTED');
+    const totalAttended = presentPhysical.length + presentVirtual.length + informedLate.length;
+    const complianceRate = totalCount > 0 ? Math.round((totalAttended / totalCount) * 100) : 0;
+    const formattedDate = new Date(date).toLocaleDateString('en-IN', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+
+    let summaryMsg = `*SBH GROUP OF HOSPITALS, RAIPUR*\n`;
+    summaryMsg += `📊 *FINAL 10:30 AM ${cadenceCode} ATTENDANCE AUDIT REPORT*\n`;
+    summaryMsg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
+    summaryMsg += `📅 *Date:* ${formattedDate} | *Meeting:* ${cadenceCode} (${meeting.frequency})\n`;
+    summaryMsg += `⏰ *Audit Frozen:* 10:30 AM IST | *Venue:* ${appSettings.conference_room_name || 'Conference Room, 5th Floor'}\n`;
+    summaryMsg += `⏱️ *Meeting Duration:* ${durationInfo.durationFormatted} (${durationInfo.startTimeFormatted} – ${durationInfo.endTimeFormatted} IST)\n`;
+    summaryMsg += `📄 *Attendance PDF Report Attached*\n\n`;
+    summaryMsg += `📈 *HOSPITAL OPERATIONS AUDIT SUMMARY:*\n`;
+    summaryMsg += `👥 Total Expected Leaders: ${totalCount}\n`;
+    summaryMsg += `🏢 In-Person (Conference Room): ${presentPhysical.length}\n`;
+    summaryMsg += `💻 Virtual (Online): ${presentVirtual.length}\n`;
+    summaryMsg += `⏱️ Approved Late Arrivals: ${informedLate.length}\n`;
+    summaryMsg += `⚠️ Approved Leave / Excused: ${informedLeave.length}\n`;
+    summaryMsg += `❌ Final Absentees: ${absent.length}\n`;
+    summaryMsg += `🎯 Overall Compliance: *${complianceRate}%*\n\n`;
+    summaryMsg += `━━━━━━━━━━━━━━━━━━━━━━\n*Automated Reminder*`;
 
     const targetGroup = appSettings.is_test_mode
       ? (appSettings.test_whatsapp_group || '120363432056023698@g.us')
@@ -3917,15 +3946,7 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       msg += `📅 *Date:* ${formattedDate} | *Meeting:* ${cleanCadence} (${meeting.frequency})\n`;
       msg += `⏰ *Audit Frozen:* 10:30 AM IST | *Venue:* ${appSettings.conference_room_name}\n`;
       msg += `⏱️ *Meeting Duration:* ${durationInfo.durationFormatted} (${durationInfo.startTimeFormatted} – ${durationInfo.endTimeFormatted} IST)\n`;
-      msg += `📄 *Official Signed Director Attendance PDF Report Attached*\n`;
-      if (directorRec) {
-        const dirMode = directorRec.selected_mode === 'PHYSICAL' ? 'In-Person (Conference Room, 5th Flr)' : 'Virtually via Google Meet';
-        const dirTime = directorRec.check_in_at
-          ? new Date(directorRec.check_in_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
-          : (directorRec as any).join_time || '10:00 AM';
-        msg += `👑 *EXECUTIVE ATTENDANCE:* Director Sir (Joined ${dirMode} at ${dirTime})\n`;
-      }
-      msg += `\n`;
+      msg += `📄 *Attendance PDF Report Attached*\n\n`;
       msg += `📈 *HOSPITAL OPERATIONS AUDIT SUMMARY:*\n`;
       msg += `👥 Total Expected Leaders: ${totalCount}\n`;
       msg += `🏢 In-Person (Conference Room): ${presentPhysical.length}\n`;
@@ -3934,39 +3955,6 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       msg += `⚠️ Approved Leave / Excused: ${informedLeave.length}\n`;
       msg += `❌ Final Absentees: ${absent.length}\n`;
       msg += `🎯 Overall Compliance: *${complianceRate}%*\n\n`;
-
-      if (absent.length > 0) {
-        msg += `🚨 *ABSENT LEADERS LIST — NO INFORMATION / REASON REQUIRED:*\n`;
-        msg += `The following department leaders were absent without prior information or approved leave. Formal written justification is required by Hospital Operations Command:\n\n`;
-        absent.forEach((p, idx) => {
-          const note = p.verification_note ? ` (${p.verification_note})` : ' (No Prior Information)';
-          msg += `❌ ${idx + 1}. *${p.leader?.full_name}* (${p.leader?.department?.name || 'Dept'})${note}\n`;
-        });
-        msg += `\n`;
-      } else {
-        msg += `🎉 *100% ATTENDANCE COMPLIANCE RECORDED TODAY!*\n\n`;
-      }
-
-      if (informedLate.length > 0) {
-        msg += `⏱️ *APPROVED LATE ARRIVALS (Admin Verified ✅):*\n`;
-        informedLate.forEach((p, idx) => {
-          const mins = p.late_minutes ? `+${p.late_minutes}m` : 'Late';
-          const eta = p.expected_arrival_time ? ` | ETA: ${p.expected_arrival_time}` : '';
-          const rsn = p.late_reason || p.informed_reason ? ` (${p.late_reason || p.informed_reason})` : '';
-          msg += `• *${p.leader?.full_name}* (${p.leader?.department?.name || 'Dept'}) — ${mins}${eta}${rsn}\n`;
-        });
-        msg += `\n`;
-      }
-
-      if (informedLeave.length > 0) {
-        msg += `⚠️ *OFFICIAL EXCUSED / LEAVE SUMMARY:*\n`;
-        informedLeave.forEach((p, idx) => {
-          const info = p.informed_to_person ? `Informed: ${p.informed_to_person}` : 'Verified';
-          const rsn = p.informed_reason ? ` | ${p.informed_reason}` : '';
-          msg += `• *${p.leader?.full_name}* (${p.leader?.department?.name || 'Dept'}) — ${info}${rsn}\n`;
-        });
-        msg += `\n`;
-      }
       msg += `━━━━━━━━━━━━━━━━━━━━━━\n*Automated Reminder*`;
     }
 
@@ -4058,22 +4046,25 @@ export const DomAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       year: 'numeric',
     });
 
+    const cleanTime = (meeting.scheduled_time || '10:00 AM').replace(/\s*IST\s*/gi, '').trim() + ' IST';
     let msg = `*SBH GROUP OF HOSPITALS, RAIPUR*\n`;
-    msg += `⚠️ *URGENT COMPLIANCE NOTICE: UNEXCUSED ABSENTEEISM*\n`;
+    msg += `🚨 *ATTENDANCE ESCALATION — UNEXCUSED ABSENTEES*\n`;
     msg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
     msg += `📅 *Date:* ${formattedDate} | *Meeting:* ${cadenceCode}\n`;
-    msg += `⏰ *Scheduled Time:* 10:00 AM IST | *Venue:* ${appSettings.conference_room_name || 'Conference Room, 5th Floor'}\n\n`;
-    msg += `📢 *To All Unexcused Absent Leaders:*\n`;
-    msg += `You have been marked ABSENT without prior sanction for today's ${cadenceCode} meeting. Please submit your formal written justification immediately to Hospital Management.\n\n`;
-    msg += `📌 *Dear Management Team:*\n`;
-    msg += `Hospital Management is requested to initiate appropriate administrative compliance review.\n\n`;
-    msg += `❌ *UNEXCUSED ABSENT LEADERS LIST (${unexcusedAbsentees.length}):*\n`;
+    msg += `⏰ *Session Time:* ${cleanTime} | *Venue:* ${appSettings.conference_room_name || 'Conference Room, 5th Floor'}\n\n`;
+
+    msg += `The following department leaders have *NOT ATTENDED* today's mandatory meeting and have provided *NO PRIOR INFORMATION*:\n\n`;
+
+    msg += `❌ *ABSENT LEADERS (${unexcusedAbsentees.length}):*\n`;
     unexcusedAbsentees.forEach((p, idx) => {
-      msg += `${idx + 1}. *${p.leader?.full_name}* — ${p.leader?.department?.name || 'Department'}\n`;
+      msg += `❌ ${idx + 1}. *${p.leader?.full_name}* (${p.leader?.department?.name || 'Department'})\n`;
     });
-    msg += `\n━━━━━━━━━━━━━━━━━━━━━━\n`;
+    msg += `\n`;
+
+    msg += `⚠️ *Action Required:* Marked ABSENT. Submit formal written explanation to Hospital Management.\n`;
+    msg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
     msg += `*Hospital Operations & Management Command*\n`;
-    msg += `*Automated Operational Compliance Notice*`;
+    msg += `*Automated Reminder*`;
 
     const groupJid = appSettings.is_test_mode
       ? (appSettings.test_whatsapp_group || '120363432056023698@g.us')

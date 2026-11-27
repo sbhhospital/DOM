@@ -1393,7 +1393,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
       if (res.success) {
         setToastAlert({
           type: 'success',
-          text: `🎉 Official Signed PDF Report sent successfully to WhatsApp Group (${effectiveWhatsappGroup}) via Ceoitbox API!`,
+          text: `🎉 Official Attendance PDF Report sent successfully to WhatsApp Group (${effectiveWhatsappGroup}) via Ceoitbox API!`,
         });
       } else {
         setToastAlert({
@@ -1514,7 +1514,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
       setToastAlert({
         type: 'success',
         text: action === 'pdf'
-          ? '🎉 Official Signed PDF Report sent successfully to WhatsApp Group!'
+          ? '🎉 Official Attendance PDF Report sent successfully to WhatsApp Group!'
           : action === 'text'
             ? '🎉 Absentee Text Report sent successfully to WhatsApp Group!'
             : '🎉 PDF Report & Absentee Text Summary sent successfully to WhatsApp Group!',
@@ -1535,7 +1535,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
     setIsSyncingDrive(true);
     setToastAlert({
       type: 'info',
-      text: 'Generating official signed PDF report and archiving record securely...',
+      text: 'Generating official attendance PDF report and archiving record securely...',
     });
     try {
       const res = await uploadReportToGoogleDriveAndSheet(selectedDate);
@@ -2641,7 +2641,7 @@ export const UnifiedAdminDashboard: React.FC = () => {
                         </span>
                       </h4>
                       <p className="text-xs text-indigo-900/80 font-medium mt-0.5">
-                        This meeting has not started yet. Leader attendance verification, actions, and signed Director PDF reports will activate on the meeting day at 10:00 AM IST. Only 09:50 AM schedule announcements can be broadcast in advance.
+                        This meeting has not started yet. Leader attendance verification, actions, and official attendance PDF reports will activate on the meeting day at 10:00 AM IST. Only 09:50 AM schedule announcements can be broadcast in advance.
                       </p>
                     </div>
                   </div>
@@ -7914,7 +7914,7 @@ function doPost(e) {
                   <strong className="text-slate-900">Absentee Finalization:</strong> All unrecorded / unverified leaders will be finalized as <span className="text-rose-600 font-bold">ABSENT</span>.
                 </li>
                 <li>
-                  <strong className="text-slate-900">Official Signed PDF Report:</strong> The comprehensive signed attendance PDF report will be instantly generated and attached directly to the Official WhatsApp Group.
+                  <strong className="text-slate-900">Official Attendance PDF Report:</strong> The comprehensive attendance PDF report will be instantly generated and attached directly to the Official WhatsApp Group.
                 </li>
               </ul>
             </div>
